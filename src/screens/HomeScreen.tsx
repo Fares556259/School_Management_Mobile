@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, Modal, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Book, Microscope, Clock, Globe, Palette, Calculator, Music, Languages, MessageSquare, AlertCircle, FileText, Download, Briefcase, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react-native';
+import { Book, Microscope, Clock, Globe, Palette, Calculator, Music, Languages, MessageSquare, AlertCircle, FileText, Download, Briefcase, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, BookOpen, Bell } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 
 const DateItem = ({ day, date, active, onPress }: any) => (
@@ -197,11 +197,6 @@ export const HomeScreen = ({ navigation }: any) => {
       newYear--;
     }
 
-    // Academic Year Boundary: Sep (8) to Jun (5)
-    // For 2025-2026 cycle:
-    // Sep 2025 - Dec 2025 (months 8-11)
-    // Jan 2026 - Jun 2026 (months 0-5)
-    
     const isWithinAcademicYear = 
       (newYear === 2025 && newMonth >= 8) || 
       (newYear === 2026 && newMonth <= 5);
@@ -281,14 +276,12 @@ export const HomeScreen = ({ navigation }: any) => {
     ]
   };
 
-  // Mock Homework Due Today
   const homeworkDueTodayByDate: any = {
     '25': [{ id: 101, title: 'Calculus Assignment 4', dueDate: 'Apr 25, 2026', isUrgent: true, assignedDate: 'Apr 22, 2026' }],
     '24': [{ id: 102, title: 'Energy Transformation Lab Report', dueDate: 'Apr 24, 2026', isUrgent: false, assignedDate: 'Apr 20, 2026' }],
     '23': [{ id: 103, title: 'Read Chapter 5: Operating Systems', dueDate: 'Apr 23, 2026', isUrgent: false, assignedDate: 'Apr 18, 2026' }],
   };
 
-  // Mock Homework Given Today (To Do)
   const homeworkGivenTodayByDate: any = {
     '25': [{ id: 201, title: 'New Physics Lab: Optics', dueDate: 'Apr 28, 2026', isUrgent: false, assignedDate: 'Apr 25, 2026' }],
     '24': [{ id: 202, title: 'History Essay: Industrial Red', dueDate: 'Apr 29, 2026', isUrgent: true, assignedDate: 'Apr 24, 2026' }],
@@ -305,15 +298,50 @@ export const HomeScreen = ({ navigation }: any) => {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={{ paddingBottom: 120, paddingHorizontal: 20 }}>
           {/* Header */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 24, marginBottom: 28 }}>
-            <View style={{ width: 56, height: 56, borderRadius: 28, overflow: 'hidden', borderWidth: 2, borderColor: '#0055d410' }}>
-               <Image 
-                source={{ uri: 'https://i.pravatar.cc/100?u=boy' }} 
-                style={{ width: '100%', height: '100%' }} 
-              />
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 28 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ width: 56, height: 56, borderRadius: 28, overflow: 'hidden', borderWidth: 2, borderColor: '#0055d410' }}>
+                 <Image 
+                  source={{ uri: 'https://i.pravatar.cc/100?u=boy' }} 
+                  style={{ width: '100%', height: '100%' }} 
+                />
+              </View>
+              <View style={{ marginLeft: 16 }}>
+                <Text style={{ fontSize: 24, color: '#2b3437', fontWeight: '500' }}>Bonjour, <Text style={{ fontWeight: 'bold' }}>Ahmed!</Text></Text>
+              </View>
             </View>
-            <View style={{ marginLeft: 16 }}>
-              <Text style={{ fontSize: 24, color: '#2b3437', fontWeight: '500' }}>Bonjour, <Text style={{ fontWeight: 'bold' }}>Ahmed!</Text></Text>
+            <TouchableOpacity style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }}>
+              <Bell size={20} color="#0055d4" />
+              <View style={{ position: 'absolute', top: 12, right: 12, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444', borderWidth: 2, borderColor: 'white' }} />
+            </TouchableOpacity>
+          </View>
+
+          {/* New Admin Notifications / Alerts Section */}
+          <View style={{ marginBottom: 32 }}>
+            <View style={{ 
+              backgroundColor: '#fff7ed', 
+              padding: 20, 
+              borderRadius: 28, 
+              borderWidth: 1, 
+              borderColor: '#ffedd5',
+              shadowColor: '#f97316',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.05,
+              shadowRadius: 12,
+              elevation: 2
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#ffedd5', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                  <AlertCircle size={18} color="#f97316" />
+                </View>
+                <Text style={{ fontSize: 13, fontWeight: '900', color: '#9a3412', textTransform: 'uppercase', letterSpacing: 0.5 }}>Important Message</Text>
+              </View>
+              <Text style={{ fontSize: 15, color: '#431407', lineHeight: 22, fontWeight: '500' }}>
+                Dear <Text style={{ fontWeight: 'bold' }}>M. Selmi</Text>, please note that the tuition fees for <Text style={{ fontWeight: 'bold' }}>Ahmed</Text> (Amount: <Text style={{ fontWeight: 'bold', color: '#ea580c' }}>450.00 TND</Text>) are now due. Please settle at your earliest convenience.
+              </Text>
+              <TouchableOpacity style={{ marginTop: 16, backgroundColor: '#f97316', paddingVertical: 10, borderRadius: 14, alignItems: 'center' }}>
+                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>Pay Now</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -362,7 +390,7 @@ export const HomeScreen = ({ navigation }: any) => {
             {currentSessions.map((session: any) => <SessionItem key={session.id} session={session} />)}
           </View>
 
-          {/* Section 1: Tasks Given Today (New Assignments) */}
+          {/* Section 1: Tasks Given Today */}
           {currentGivenHomework.length > 0 && (
             <View style={{ marginBottom: 32 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
@@ -380,7 +408,7 @@ export const HomeScreen = ({ navigation }: any) => {
             </View>
           )}
 
-          {/* Section 2: Tasks to Submit Today (Deadlines) */}
+          {/* Section 2: Tasks to Submit Today */}
           {currentDueHomework.length > 0 && (
             <View style={{ marginBottom: 32 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
@@ -439,7 +467,6 @@ export const HomeScreen = ({ navigation }: any) => {
               </TouchableOpacity>
             </View>
 
-            {/* Month & Year Selection Header */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, backgroundColor: '#f8f9fa', padding: 12, borderRadius: 16 }}>
               <TouchableOpacity onPress={() => changeMonth(-1)} style={{ padding: 4 }}>
                 <ChevronLeft size={24} color="#0055d4" />
@@ -456,7 +483,7 @@ export const HomeScreen = ({ navigation }: any) => {
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
               {Array.from({ length: getDaysInMonth(viewingMonth, viewingYear) }, (_, i) => i + 1).map((day) => {
                 const dayStr = day.toString();
-                const isSelected = selectedDate === dayStr && viewingMonth === 3; // Highlight April 2026 data
+                const isSelected = selectedDate === dayStr && viewingMonth === 3;
                 const hasData = viewingMonth === 3 && ['23', '24', '25', '26', '27', '28'].includes(dayStr);
 
                 return (
@@ -478,7 +505,7 @@ export const HomeScreen = ({ navigation }: any) => {
                       backgroundColor: isSelected ? '#0055d4' : 'transparent',
                       borderWidth: hasData && !isSelected ? 1 : 0,
                       borderColor: '#0055d440',
-                      opacity: (viewingMonth >= 8 || viewingMonth <= 5) ? 1 : 0.3 // Dim non-academic months
+                      opacity: (viewingMonth >= 8 || viewingMonth <= 5) ? 1 : 0.3
                     }}
                   >
                     <Text style={{ 
