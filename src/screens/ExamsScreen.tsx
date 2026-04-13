@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, Modal, Platform, RefreshControl, Animated, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Calendar as CalendarIcon, Bell, ChevronLeft, ChevronRight, History, Calculator, Microscope, BookOpen, FileText, X, AlertCircle, Info, Lightbulb } from 'lucide-react-native';
+import { Calendar as CalendarIcon, Bell, ChevronLeft, ChevronRight, BookOpen, FileText, X, Calculator, Microscope } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 
 const DateItem = ({ day, date, active, onPress }: any) => (
@@ -73,28 +73,17 @@ const ExamCard = ({ exam }: any) => {
           <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#737c7f', textTransform: 'uppercase' }}>{exam.time}</Text>
         </View>
         <Text style={{ fontSize: 12, color: '#586064', marginTop: 4 }} numberOfLines={2}>{exam.description}</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
+        <div style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
           {exam.tags.map((tag: string, i: number) => (
             <View key={i} style={{ backgroundColor: '#f1f4f6', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginRight: 6 }}>
               <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#2b3437', textTransform: 'uppercase' }}>{tag}</Text>
             </View>
           ))}
-        </View>
+        </div>
       </View>
     </TouchableOpacity>
   );
 };
-
-const MilestoneItem = ({ milestone }: any) => (
-  <View style={{ position: 'relative', paddingLeft: 24, marginBottom: 20 }}>
-    <View style={{ position: 'absolute', left: 0, top: 4, width: 12, height: 12, borderRadius: 6, backgroundColor: milestone.color, borderWidth: 2, borderColor: 'white', zIndex: 10, shadowColor: milestone.color, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4 }} />
-    <View>
-      <Text style={{ fontSize: 10, fontWeight: 'bold', color: milestone.color, textTransform: 'uppercase' }}>{milestone.date}</Text>
-      <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#2b3437', marginTop: 2 }}>{milestone.title}</Text>
-      <Text style={{ fontSize: 12, color: '#586064', marginTop: 2, lineHeight: 18 }}>{milestone.description}</Text>
-    </View>
-  </View>
-);
 
 export const ExamsScreen = () => {
   const { selectedChildId, children } = useAppStore();
@@ -103,7 +92,6 @@ export const ExamsScreen = () => {
   const [showPicker, setShowPicker] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
 
-  const slideAnim = React.useRef(new Animated.Value(-200)).current;
   const [viewingMonth, setViewingMonth] = React.useState(3);
   const [viewingYear, setViewingYear] = React.useState(2026);
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -129,13 +117,7 @@ export const ExamsScreen = () => {
     '27': [{ id: 3, subject: 'Biology', time: '01:45 PM', description: 'Genetics and molecular biology foundations.', icon: Microscope, accentColor: '#006d4a', bgColor: '#f0fdf4', tags: ['Lab Notes'] }]
   };
 
-  const milestonesByDate: any = {
-    '24': [{ id: 1, date: 'Apr 24', title: 'Parent-Teacher Meeting', description: '4:00 PM • Main Hall. Discussion on Grade 10 results.', color: '#0055d4' }],
-    '28': [{ id: 2, date: 'Apr 28', title: 'Science Fair Opening', description: 'Exhibition of student projects from the Biology department.', color: '#865400' }]
-  };
-
   const currentExams = examsByDate[selectedDate] || [];
-  const currentMilestones = milestonesByDate[selectedDate] || [];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }} edges={['top']}>
@@ -191,19 +173,6 @@ export const ExamsScreen = () => {
             ) : (
                <EmptyPlaceholder text="No exams scheduled for this date." icon={FileText} />
             )}
-          </View>
-
-          {/* SECTION 2: KEY MILESTONES */}
-          <View style={{ marginBottom: 32 }}>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437', marginBottom: 16 }}>Key Milestones</Text>
-            <View style={{ backgroundColor: 'white', borderRadius: 28, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 16, elevation: 2 }}>
-               <View style={{ position: 'absolute', left: 29, top: 24, bottom: 24, width: 2, backgroundColor: '#f1f4f6' }} />
-               {currentMilestones.length > 0 ? (
-                 currentMilestones.map((m: any) => <MilestoneItem key={m.id} milestone={m} />)
-               ) : (
-                 <EmptyPlaceholder text="No school events on this date." icon={Info} />
-               )}
-            </View>
           </View>
         </View>
       </ScrollView>
