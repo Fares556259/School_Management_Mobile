@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Modal, Platform, RefreshControl, Animated, StatusBar } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, Modal, StatusBar, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Calendar as CalendarIcon, Bell, ChevronLeft, ChevronRight, BookOpen, FileText, X, Calculator, Microscope } from 'lucide-react-native';
+import { Calendar as CalendarIcon, Bell, ChevronLeft, ChevronRight, BookOpen, FileText, Calculator, Microscope } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 
 const DateItem = ({ day, date, active, onPress }: any) => (
@@ -15,11 +15,6 @@ const DateItem = ({ day, date, active, onPress }: any) => (
       justifyContent: 'center',
       marginRight: 12,
       backgroundColor: active ? '#0055d4' : '#f1f4f6',
-      shadowColor: '#0055d4',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: active ? 0.2 : 0,
-      shadowRadius: 8,
-      elevation: active ? 4 : 0,
     }}
   >
     <Text style={{ fontSize: 10, fontWeight: 'bold', color: active ? 'white' : '#586064', textTransform: 'uppercase' }}>{day}</Text>
@@ -183,7 +178,7 @@ export const ExamsScreen = () => {
           <View style={{ backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 60 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}><Text style={{ fontSize: 22, fontWeight: 'black', color: '#2b3437' }}>Academic Calendar</Text></View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, backgroundColor: '#f8f9fa', padding: 12, borderRadius: 16 }}><TouchableOpacity onPress={() => changeMonth(-1)} style={{ padding: 4 }}><ChevronLeft size={24} color="#0055d4" /></TouchableOpacity><View style={{ alignItems: 'center' }}><Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2b3437' }}>{months[viewingMonth]}</Text><Text style={{ fontSize: 12, color: '#737c7f', fontWeight: 'bold' }}>{viewingYear}</Text></View><TouchableOpacity onPress={() => changeMonth(1)} style={{ padding: 4 }}><ChevronRight size={24} color="#0055d4" /></TouchableOpacity></View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' }}>{Array.from({ length: getDaysInMonth(viewingMonth, viewingYear) }, (_, i) => i + 1).map((day) => { const dayStr = day.toString(); const isSelected = selectedDate === dayStr && viewingMonth === 3; const hasData = viewingMonth === 3 && ['23', '24', '25', '26', '27', '28', '29'].includes(dayStr); return (<TouchableOpacity key={day} onPress={() => { if (hasData) { setSelectedDate(dayStr); setShowPicker(false); } }} style={{ width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', marginVertical: 4, borderRadius: 12, backgroundColor: isSelected ? '#0055d4' : 'transparent', borderWidth: hasData && !isSelected ? 1 : 0, borderColor: '#0055d440', opacity: (viewingMonth >= 8 || viewingMonth <= 5) ? 1 : 0.3 }}><Text style={{ fontSize: 14, fontWeight: isSelected || hasData ? 'bold' : 'normal', color: isSelected ? 'white' : hasData ? '#0055d4' : '#2b3437' }}>{day}</Text></TouchableOpacity>); })}</View>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' }}>{Array.from({ length: getDaysInMonth(viewingMonth, viewingYear) }, (_, i) => i + 1).map((day) => { const dayStr = day.toString(); return (<TouchableOpacity key={day} onPress={() => { setSelectedDate(dayStr); setShowPicker(false); }} style={{ width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', marginVertical: 4, borderRadius: 12, backgroundColor: selectedDate === dayStr ? '#0055d4' : 'transparent' }}><Text style={{ fontSize: 14, color: selectedDate === dayStr ? 'white' : '#2b3437' }}>{day}</Text></TouchableOpacity>); })}</View>
             <View style={{ marginTop: 24, padding: 16, backgroundColor: '#f1f4f6', borderRadius: 20 }}><Text style={{ fontSize: 12, color: '#737c7f', textAlign: 'center', fontWeight: '500' }}>Academic year: <Text style={{ color: '#0055d4', fontWeight: 'bold' }}>September - June</Text></Text></View>
           </View>
         </View>
