@@ -176,6 +176,8 @@ export const HomeScreen = ({ navigation }: any) => {
   const [selectedDate, setSelectedDate] = React.useState('25');
   const [showPicker, setShowPicker] = React.useState(false);
   
+  const [showAlert, setShowAlert] = React.useState(true);
+  
   // Calendar View State
   const [viewingMonth, setViewingMonth] = React.useState(3); // 0-indexed (3 = April)
   const [viewingYear, setViewingYear] = React.useState(2026);
@@ -317,30 +319,37 @@ export const HomeScreen = ({ navigation }: any) => {
           </View>
 
           {/* New Admin Notifications / Alerts Section */}
-          <View style={{ marginBottom: 32 }}>
-            <View style={{ 
-              backgroundColor: '#fff7ed', 
-              padding: 20, 
-              borderRadius: 28, 
-              borderWidth: 1, 
-              borderColor: '#ffedd5',
-              shadowColor: '#f97316',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.05,
-              shadowRadius: 12,
-              elevation: 2
-            }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#ffedd5', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
-                  <AlertCircle size={18} color="#f97316" />
+          {showAlert && (
+            <TouchableOpacity 
+              activeOpacity={0.9}
+              onPress={() => setShowAlert(false)}
+              style={{ marginBottom: 32 }}
+            >
+              <View style={{ 
+                backgroundColor: '#fff7ed', 
+                padding: 20, 
+                borderRadius: 28, 
+                borderWidth: 1, 
+                borderColor: '#ffedd5',
+                shadowColor: '#f97316',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.05,
+                shadowRadius: 12,
+                elevation: 2
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                  <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#ffedd5', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                    <AlertCircle size={18} color="#f97316" />
+                  </View>
+                  <Text style={{ fontSize: 13, fontWeight: '900', color: '#9a3412', textTransform: 'uppercase', letterSpacing: 0.5 }}>Important Message</Text>
                 </View>
-                <Text style={{ fontSize: 13, fontWeight: '900', color: '#9a3412', textTransform: 'uppercase', letterSpacing: 0.5 }}>Important Message</Text>
+                <Text style={{ fontSize: 15, color: '#431407', lineHeight: 22, fontWeight: '500' }}>
+                  Dear <Text style={{ fontWeight: 'bold' }}>M. Selmi</Text>, please note that the tuition fees for <Text style={{ fontWeight: 'bold' }}>Ahmed</Text> (Amount: <Text style={{ fontWeight: 'bold', color: '#ea580c' }}>450.00 TND</Text>) are now due. Please settle at your earliest convenience.
+                </Text>
+                <Text style={{ fontSize: 10, color: '#9a3412', marginTop: 12, opacity: 0.6, fontStyle: 'italic' }}>Tap to dismiss</Text>
               </View>
-              <Text style={{ fontSize: 15, color: '#431407', lineHeight: 22, fontWeight: '500' }}>
-                Dear <Text style={{ fontWeight: 'bold' }}>M. Selmi</Text>, please note that the tuition fees for <Text style={{ fontWeight: 'bold' }}>Ahmed</Text> (Amount: <Text style={{ fontWeight: 'bold', color: '#ea580c' }}>450.00 TND</Text>) are now due. Please settle at your earliest convenience.
-              </Text>
-            </View>
-          </View>
+            </TouchableOpacity>
+          )}
 
           {/* Date Selector Header */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
