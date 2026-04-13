@@ -1,11 +1,13 @@
 import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { HomeworkScreen } from './src/screens/HomeworkScreen';
 import { ExamsScreen } from './src/screens/ExamsScreen';
 import { PaymentsScreen } from './src/screens/PaymentsScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
+import { HomeworkDetailScreen } from './src/screens/HomeworkDetailScreen';
 import { Home as HomeIcon, BookOpen, FileText, CreditCard, User } from 'lucide-react-native';
 import { useAppStore } from './src/store/useAppStore';
 import { parentService } from './src/services/api';
@@ -16,6 +18,16 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
+
+function HomeworkStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="HomeworkList" component={HomeworkScreen} />
+      <Stack.Screen name="HomeworkDetail" component={HomeworkDetailScreen} />
+    </Stack.Navigator>
+  );
+}
 
 function BottomTabs() {
   return (
@@ -67,7 +79,7 @@ function BottomTabs() {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Homework" component={HomeworkScreen} />
+      <Tab.Screen name="Homework" component={HomeworkStack} />
       <Tab.Screen name="Exams" component={ExamsScreen} />
       <Tab.Screen name="Payments" component={PaymentsScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />

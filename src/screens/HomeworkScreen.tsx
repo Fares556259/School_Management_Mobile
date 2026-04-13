@@ -4,8 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BookOpen, Clock, Calendar, ChevronRight } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 
-const HomeworkItem = ({ homework }: any) => (
+const HomeworkItem = ({ homework, onPress }: any) => (
   <TouchableOpacity 
+    onPress={onPress}
     className="bg-surface-lowest p-4 rounded-2xl mb-3 border border-surface-low flex-row items-center"
   >
     <View className="p-2 bg-surface-low rounded-xl mr-4">
@@ -26,7 +27,7 @@ const HomeworkItem = ({ homework }: any) => (
   </TouchableOpacity>
 );
 
-export const HomeworkScreen = () => {
+export const HomeworkScreen = ({ navigation }: any) => {
   const { selectedChildId, children } = useAppStore();
   const selectedChild = children.find(c => c.id === selectedChildId);
 
@@ -58,7 +59,13 @@ export const HomeworkScreen = () => {
           {/* Upcoming Section */}
           <View className="mt-8">
             <Text className="text-xl font-jakarta font-black text-text-primary mb-4">Upcoming Tasks</Text>
-            {homework.map(item => <HomeworkItem key={item.id} homework={item} />)}
+            {homework.map(item => (
+              <HomeworkItem 
+                key={item.id} 
+                homework={item} 
+                onPress={() => navigation.navigate('HomeworkDetail', { homework: item })}
+              />
+            ))}
           </View>
         </View>
       </ScrollView>
