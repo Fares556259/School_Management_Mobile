@@ -177,44 +177,6 @@ export const PaymentsScreen = () => {
       >
         <View style={{ paddingHorizontal: 20, paddingTop: 24 }}>
 
-          {/* fintech summary card */}
-          <View style={{ 
-            backgroundColor: '#0055d4', 
-            borderRadius: 36, 
-            padding: 28, 
-            marginBottom: 32,
-            shadowColor: '#0055d4',
-            shadowOffset: { width: 0, height: 12 },
-            shadowOpacity: 0.3,
-            shadowRadius: 24,
-            elevation: 10,
-            overflow: 'hidden'
-          }}>
-            {/* Background Decoration */}
-            <View style={{ position: 'absolute', top: -100, right: -100, width: 250, height: 250, borderRadius: 125, backgroundColor: 'rgba(255,255,255,0.05)' }} />
-            
-            <View>
-              <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1.5 }}>Total Remaining Balance</Text>
-              <Text style={{ color: 'white', fontSize: 42, fontWeight: 'black', marginTop: 8 }}>{stats.remaining.toLocaleString()} <Text style={{ fontSize: 18, fontWeight: 'bold', color: 'rgba(255,255,255,0.5)' }}>DH</Text></Text>
-            </View>
-
-            <View style={{ marginTop: 32, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-               <Text style={{ color: 'white', fontSize: 13, fontWeight: 'bold' }}>Payment Progress</Text>
-               <Text style={{ color: 'white', fontSize: 13, fontWeight: 'black' }}>{Math.round(stats.progress)}%</Text>
-            </View>
-            <ProgressBar progress={stats.progress} color="white" height={8} />
-
-            <View style={{ flexDirection: 'row', marginTop: 32, gap: 16 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase' }}>Paid to date</Text>
-                <Text style={{ color: 'white', fontSize: 18, fontWeight: 'black', marginTop: 4 }}>{stats.paid.toLocaleString()} DH</Text>
-              </View>
-              <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase' }}>Next Due</Text>
-                <Text style={{ color: 'white', fontSize: 18, fontWeight: 'black', marginTop: 4 }}>Dec 01, 2023</Text>
-              </View>
-            </View>
-          </View>
 
           {/* Filter Bar */}
           <View style={{ marginBottom: 24 }}>
