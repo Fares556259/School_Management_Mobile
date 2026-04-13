@@ -339,9 +339,6 @@ export const HomeScreen = ({ navigation }: any) => {
               <Text style={{ fontSize: 15, color: '#431407', lineHeight: 22, fontWeight: '500' }}>
                 Dear <Text style={{ fontWeight: 'bold' }}>M. Selmi</Text>, please note that the tuition fees for <Text style={{ fontWeight: 'bold' }}>Ahmed</Text> (Amount: <Text style={{ fontWeight: 'bold', color: '#ea580c' }}>450.00 TND</Text>) are now due. Please settle at your earliest convenience.
               </Text>
-              <TouchableOpacity style={{ marginTop: 16, backgroundColor: '#f97316', paddingVertical: 10, borderRadius: 14, alignItems: 'center' }}>
-                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>Pay Now</Text>
-              </TouchableOpacity>
             </View>
           </View>
 
