@@ -39,10 +39,11 @@ const EmptyPlaceholder = ({ text, icon: Icon }: any) => (
   </View>
 );
 
-const ExamCard = ({ exam }: any) => {
+const ExamCard = ({ exam, navigation }: any) => {
   const Icon = exam.icon;
   return (
     <TouchableOpacity 
+      onPress={() => navigation.navigate('ExamDetail', { exam })}
       style={{
         backgroundColor: 'white',
         padding: 16,
@@ -80,7 +81,7 @@ const ExamCard = ({ exam }: any) => {
   );
 };
 
-export const ExamsScreen = () => {
+export const ExamsScreen = ({ navigation }: any) => {
   const { selectedChildId, children } = useAppStore();
   const selectedChild = children.find(c => c.id === selectedChildId);
   const [selectedDate, setSelectedDate] = React.useState('25');
@@ -164,7 +165,7 @@ export const ExamsScreen = () => {
               </View>
             </View>
             {currentExams.length > 0 ? (
-               currentExams.map((exam: any) => <ExamCard key={exam.id} exam={exam} />)
+               currentExams.map((exam: any) => <ExamCard key={exam.id} exam={exam} navigation={navigation} />)
             ) : (
                <EmptyPlaceholder text="No exams scheduled for this date." icon={FileText} />
             )}

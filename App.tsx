@@ -7,6 +7,7 @@ import { ExamsScreen } from './src/screens/ExamsScreen';
 import { PaymentsScreen } from './src/screens/PaymentsScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { HomeworkDetailScreen } from './src/screens/HomeworkDetailScreen';
+import { ExamDetailScreen } from './src/screens/ExamDetailScreen';
 import { Home as HomeIcon, BookOpen, FileText, CreditCard, User } from 'lucide-react-native';
 import { useAppStore } from './src/store/useAppStore';
 import { parentService } from './src/services/api';
@@ -92,6 +93,7 @@ export default function App() {
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="MainTabs" component={BottomTabs} />
             <Stack.Screen name="HomeworkDetail" component={HomeworkDetailScreen} />
+            <Stack.Screen name="ExamDetail" component={ExamDetailScreen} />
           </Stack.Navigator>
         </NavigationContainer>
       </SafeAreaProvider>
