@@ -13,6 +13,7 @@ import "./src/styles/global.css";
 import { View, Text } from 'react-native';
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 const Tab = createBottomTabNavigator();
 
@@ -86,9 +87,11 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer>
-        <BottomTabs />
-      </NavigationContainer>
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <BottomTabs />
+        </NavigationContainer>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
