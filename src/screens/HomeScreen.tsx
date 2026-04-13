@@ -91,6 +91,33 @@ const FileItem = ({ file }: any) => (
   </TouchableOpacity>
 );
 
+const ChildCard = ({ child, active, onPress }: any) => (
+  <TouchableOpacity 
+    onPress={onPress}
+    style={{
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: active ? '#0055d4' : 'white',
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 18,
+      marginRight: 10,
+      borderWidth: 1,
+      borderColor: active ? '#0055d4' : '#f1f4f6',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.03,
+      shadowRadius: 8,
+      elevation: 2
+    }}
+  >
+    <View style={{ width: 32, height: 32, borderRadius: 16, overflow: 'hidden', borderWidth: 1.5, borderColor: active ? 'rgba(255,255,255,0.3)' : '#0055d420' }}>
+      <Image source={{ uri: child.avatar || 'https://i.pravatar.cc/100?u=' + child.id }} style={{ width: '100%', height: '100%' }} />
+    </View>
+    <Text style={{ fontSize: 13, fontWeight: 'bold', color: active ? 'white' : '#2b3437', marginLeft: 10 }}>{child.name}</Text>
+  </TouchableOpacity>
+);
+
 const HomeworkItem = ({ homework, label, onPress }: any) => (
   <TouchableOpacity onPress={onPress} style={{ backgroundColor: 'white', padding: 16, borderRadius: 24, marginBottom: 12, borderWidth: 1, borderColor: '#f1f4f6', flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.02, shadowRadius: 8, elevation: 1 }}>
     <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#f8f9fa', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}><Clock size={20} color="#737c7f" /></View>
@@ -186,14 +213,35 @@ export const HomeScreen = ({ navigation }: any) => {
 
       <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0055d4']} tintColor="#0055d4" />}>
         <View style={{ paddingBottom: 150, paddingHorizontal: 20 }}>
-          {/* Header */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 28 }}>
+          {/* Header Tier 1: Parent Greeting */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 20 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={{ width: 56, height: 56, borderRadius: 28, overflow: 'hidden', borderWidth: 2, borderColor: '#0055d410' }}><Image source={{ uri: 'https://i.pravatar.cc/100?u=boy' }} style={{ width: '100%', height: '100%' }} /></View>
-              <View style={{ marginLeft: 16 }}><Text style={{ fontSize: 24, color: '#2b3437', fontWeight: '500' }}>Bonjour, <Text style={{ fontWeight: 'bold' }}>Ahmed!</Text></Text></View>
+              <View style={{ width: 44, height: 44, borderRadius: 22, overflow: 'hidden', borderWidth: 2, borderColor: '#0055d410' }}>
+                <Image source={{ uri: 'https://i.pravatar.cc/100?u=parent' }} style={{ width: '100%', height: '100%' }} />
+              </View>
+              <View style={{ marginLeft: 14 }}>
+                <Text style={{ fontSize: 13, color: '#737c7f', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 }}>SnapSchool Parent</Text>
+                <Text style={{ fontSize: 18, color: '#2b3437', fontWeight: '500' }}>Bonjour, <Text style={{ fontWeight: 'bold' }}>Ahmed!</Text></Text>
+              </View>
             </View>
-            <TouchableOpacity onPress={simulatePush} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }}>
-              <Bell size={20} color="#0055d4" /><View style={{ position: 'absolute', top: 12, right: 12, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444', borderWidth: 2, borderColor: 'white' }} /></TouchableOpacity>
+            <TouchableOpacity onPress={simulatePush} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }}>
+              <Bell size={20} color="#0055d4" />
+              <View style={{ position: 'absolute', top: 11, right: 11, width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#ef4444', borderWidth: 1.5, borderColor: 'white' }} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Header Tier 2: Child Switcher */}
+          <View style={{ marginBottom: 28 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
+              {children.map((child: any) => (
+                <ChildCard 
+                  key={child.id} 
+                  child={child} 
+                  active={selectedChildId === child.id} 
+                  onPress={() => useAppStore.getState().setSelectedChildId(child.id)} 
+                />
+              ))}
+            </ScrollView>
           </View>
 
           {showAlert && (
