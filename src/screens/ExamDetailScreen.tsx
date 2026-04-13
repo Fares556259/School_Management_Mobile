@@ -99,9 +99,9 @@ export const ExamDetailScreen = ({ route, navigation }: any) => {
              <AlertCircle size={20} color="#2b3437" />
              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2b3437', marginLeft: 8 }}>Preparation Info</Text>
           </View>
-          <View style={{ backgroundColor: '#fffbeb', borderLeftWidth: 4, borderLeftColor: '#d97706', padding: 20, borderRadius: 16 }}>
-            <Text style={{ fontSize: 14, color: '#92400e', lineHeight: 22 }}>
-              {examDetails.instructions}
+          <View style={{ backgroundColor: examDetails.instructions ? '#fffbeb' : '#f8f9fa', borderLeftWidth: 4, borderLeftColor: examDetails.instructions ? '#d97706' : '#d1d5db', padding: 20, borderRadius: 16 }}>
+            <Text style={{ fontSize: 14, color: examDetails.instructions ? '#92400e' : '#737c7f', lineHeight: 22, fontStyle: examDetails.instructions ? 'normal' : 'italic' }}>
+              {examDetails.instructions || 'No specific instructions provided for this exam.'}
             </Text>
           </View>
         </View>
@@ -110,28 +110,34 @@ export const ExamDetailScreen = ({ route, navigation }: any) => {
         <View>
           <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2b3437', marginBottom: 16 }}>Required Materials</Text>
           <View style={{ backgroundColor: 'white', borderWidth: 1, borderColor: '#f1f4f6', borderRadius: 24, overflow: 'hidden' }}>
-            {examDetails.materials.map((item, index) => (
-              <View 
-                key={index} 
-                style={{ 
-                  flexDirection: 'row', 
-                  alignItems: 'center', 
-                  padding: 16, 
-                  borderBottomWidth: index === examDetails.materials.length - 1 ? 0 : 1, 
-                  borderBottomColor: '#f1f4f6' 
-                }}
-              >
-                <CheckCircle2 color={item.required ? '#16a34a' : '#d1d5db'} size={20} />
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={{ fontSize: 15, fontWeight: item.required ? '600' : '400', color: '#2b3437' }}>{item.name}</Text>
-                </View>
-                {item.required && (
-                  <View style={{ backgroundColor: '#f0fdf4', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
-                    <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#16a34a', textTransform: 'uppercase' }}>Essential</Text>
+            {examDetails.materials.length > 0 ? (
+              examDetails.materials.map((item, index) => (
+                <View 
+                  key={index} 
+                  style={{ 
+                    flexDirection: 'row', 
+                    alignItems: 'center', 
+                    padding: 16, 
+                    borderBottomWidth: index === examDetails.materials.length - 1 ? 0 : 1, 
+                    borderBottomColor: '#f1f4f6' 
+                  }}
+                >
+                  <CheckCircle2 color={item.required ? '#16a34a' : '#d1d5db'} size={20} />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={{ fontSize: 15, fontWeight: item.required ? '600' : '400', color: '#2b3437' }}>{item.name}</Text>
                   </View>
-                )}
+                  {item.required && (
+                    <View style={{ backgroundColor: '#f0fdf4', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                      <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#16a34a', textTransform: 'uppercase' }}>Essential</Text>
+                    </View>
+                  )}
+                </View>
+              ))
+            ) : (
+              <View style={{ padding: 24, alignItems: 'center' }}>
+                <Text style={{ fontSize: 14, color: '#737c7f', fontStyle: 'italic' }}>No materials specified.</Text>
               </View>
-            ))}
+            )}
           </View>
         </View>
       </ScrollView>
