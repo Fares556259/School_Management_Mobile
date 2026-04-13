@@ -1,34 +1,8 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BookOpen, Clock, Calendar, ChevronRight, Home, FileText, CreditCard, User } from 'lucide-react-native';
+import { BookOpen, Clock, Calendar, ChevronRight } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
-
-const CourseCard = ({ course }: any) => (
-  <TouchableOpacity 
-    className="bg-surface-lowest p-5 rounded-3xl mb-4 border border-surface-low"
-    style={{
-      shadowColor: '#2b3437',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.04,
-      shadowRadius: 12,
-      elevation: 2,
-    }}
-  >
-    <View className="flex-row items-center justify-between">
-      <View className="flex-row items-center flex-1">
-        <View className={`w-12 h-12 rounded-2xl items-center justify-center mr-4 ${course.bg || 'bg-blue-50'}`}>
-          <BookOpen color={course.color || '#0055d4'} size={24} />
-        </View>
-        <View>
-          <Text className="text-lg font-jakarta font-bold text-text-primary">{course.name}</Text>
-          <Text className="text-text-secondary text-xs font-manrope">{course.teacher}</Text>
-        </View>
-      </View>
-      <ChevronRight color="#dbe4e7" size={20} />
-    </View>
-  </TouchableOpacity>
-);
 
 const HomeworkItem = ({ homework }: any) => (
   <TouchableOpacity 
@@ -56,12 +30,6 @@ export const HomeworkScreen = () => {
   const { selectedChildId, children } = useAppStore();
   const selectedChild = children.find(c => c.id === selectedChildId);
 
-  const courses = [
-    { id: 1, name: 'Advanced Mathematics', teacher: 'Dr. Robert Smith', color: '#0055d4', bg: 'bg-blue-50' },
-    { id: 2, name: 'Physics & Mechanics', teacher: 'Prof. Sarah Jane', color: '#865400', bg: 'bg-orange-50' },
-    { id: 3, name: 'Computer Science', teacher: 'Mr. Alan Turing', color: '#006d4a', bg: 'bg-green-50' },
-  ];
-
   const homework = [
     { id: 1, title: 'Calculus Assignment 4', dueDate: 'Tomorrow', isUrgent: true },
     { id: 2, title: 'Energy Transformation Lab Report', dueDate: 'Friday, Oct 24', isUrgent: false },
@@ -85,20 +53,13 @@ export const HomeworkScreen = () => {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} className="flex-1" contentContainerClassName="px-6 pb-32">
-        {/* Upcoming Section */}
-        <View className="mt-8">
-          <Text className="text-xl font-jakarta font-black text-text-primary mb-4">Upcoming Tasks</Text>
-          {homework.map(item => <HomeworkItem key={item.id} homework={item} />)}
-        </View>
-
-        {/* Courses Section */}
-        <View className="mt-10 mb-20">
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-xl font-jakarta font-black text-text-primary">Regular Courses</Text>
-            <TouchableOpacity><Text className="text-brand-primary font-jakarta font-bold">See All</Text></TouchableOpacity>
+      <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
+        <View className="px-6 pb-32">
+          {/* Upcoming Section */}
+          <View className="mt-8">
+            <Text className="text-xl font-jakarta font-black text-text-primary mb-4">Upcoming Tasks</Text>
+            {homework.map(item => <HomeworkItem key={item.id} homework={item} />)}
           </View>
-          {courses.map(course => <CourseCard key={course.id} course={course} />)}
         </View>
       </ScrollView>
 
