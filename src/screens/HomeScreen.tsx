@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, Modal, Platform, RefreshControl, Animated, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Book, Microscope, Clock, Globe, Palette, Calculator, Music, Languages, MessageSquare, AlertCircle, FileText, Download, Briefcase, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, BookOpen, Bell, Coffee } from 'lucide-react-native';
+import { Book, Microscope, Clock, Globe, Palette, Calculator, Music, Languages, MessageSquare, AlertCircle, FileText, Download, Briefcase, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, BookOpen, Bell, Coffee, Info } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 
 const DateItem = ({ day, date, active, onPress }: any) => (
@@ -25,6 +25,23 @@ const DateItem = ({ day, date, active, onPress }: any) => (
     <Text style={{ fontSize: 10, fontWeight: 'bold', color: active ? 'white' : '#586064' }}>{day}</Text>
     <Text style={{ fontSize: 18, fontWeight: 'bold', color: active ? 'white' : '#2b3437' }}>{date}</Text>
   </TouchableOpacity>
+);
+
+const EmptyPlaceholder = ({ text, icon: Icon }: any) => (
+  <View style={{ 
+    backgroundColor: '#f8f9fa', 
+    padding: 24, 
+    borderRadius: 24, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    borderWidth: 1, 
+    borderColor: '#f1f4f6',
+    borderStyle: 'dashed',
+    marginBottom: 16 
+  }}>
+    <Icon color="#d1d5db" size={32} style={{ marginBottom: 8 }} />
+    <Text style={{ fontSize: 14, color: '#737c7f', fontWeight: '500' }}>{text}</Text>
+  </View>
 );
 
 const SessionItem = ({ session }: any) => {
@@ -118,58 +135,31 @@ export const HomeScreen = ({ navigation }: any) => {
   };
   const getDaysInMonth = (m: number, y: number) => new Date(y, m + 1, 0).getDate();
 
-  const dates = [
-    { day: 'Mon', date: '23' }, { day: 'Tue', date: '24' }, { day: 'Wed', date: '25' }, 
-    { day: 'Thu', date: '26' }, { day: 'Fri', date: '27' }, { day: 'Sat', date: '28' },
-    { day: 'Sun', date: '29' }
-  ];
-
+  const dates = [{ day: 'Mon', date: '23' }, { day: 'Tue', date: '24' }, { day: 'Wed', date: '25' }, { day: 'Thu', date: '26' }, { day: 'Fri', date: '27' }, { day: 'Sat', date: '28' }, { day: 'Sun', date: '29' }];
   const sessionsByDate: any = {
-    '23': [
-      { id: 1, subject: 'Mathematics', room: 'Room 101', time: '08:00 - 10:00', attendance: 'Pres', icon: Calculator, color: '#0055d4' },
-      { id: 2, subject: 'Arabic', room: 'Room 202', time: '10:15 - 12:15', attendance: 'Pres', icon: Languages, color: '#865400' }
-    ],
-    '24': [
-      { id: 3, subject: 'History', room: 'Room 305', time: '08:00 - 10:00', attendance: 'Rtr', icon: Clock, color: '#865400' },
-      { id: 4, subject: 'Geography', room: 'Room 305', time: '10:15 - 12:15', attendance: 'Pres', icon: Globe, color: '#0055d4' }
-    ],
-    '25': [
-      { id: 5, subject: 'Mathematics', room: 'Room 101', time: '08:00 - 10:00', attendance: 'Pres', icon: Book, color: '#006d4a' },
-      { id: 6, subject: 'Art & Design', room: 'Studio 1', time: '13:30 - 15:30', attendance: 'Pres', icon: Palette, color: '#9333ea' }
-    ],
-    '26': [
-      { id: 7, subject: 'English', room: 'Room 201', time: '08:00 - 10:00', attendance: 'Pres', icon: Languages, color: '#0055d4' },
-      { id: 8, subject: 'Physics', room: 'Lab 2', time: '10:15 - 12:15', attendance: 'Abs', icon: Microscope, color: '#ef4444' }
-    ],
-    '27': [
-      { id: 9, subject: 'Biology', room: 'Lab 3', time: '08:00 - 10:00', attendance: 'Pres', icon: Microscope, color: '#006d4a' },
-      { id: 10, subject: 'Music', room: 'Music Hall', time: '14:00 - 15:30', attendance: 'Pres', icon: Music, color: '#db2777' }
-    ],
-    '28': [
-      { id: 11, subject: 'Revision', room: 'Library', time: '09:00 - 11:00', attendance: 'Pres', icon: Book, color: '#737c7f' },
-      { id: 12, subject: 'Coding Club', room: 'CS Lab', time: '11:00 - 13:00', attendance: 'Pres', icon: Briefcase, color: '#0055d4' }
-    ],
-    '29': [] // Sunday
+    '23': [{ id: 1, subject: 'Mathematics', room: 'Room 101', time: '08:00 - 10:00', attendance: 'Pres', icon: Calculator, color: '#0055d4' }, { id: 2, subject: 'Arabic', room: 'Room 202', time: '10:15 - 12:15', attendance: 'Pres', icon: Languages, color: '#865400' }],
+    '24': [{ id: 3, subject: 'History', room: 'Room 305', time: '08:00 - 10:00', attendance: 'Rtr', icon: Clock, color: '#865400' }, { id: 4, subject: 'Geography', room: 'Room 305', time: '10:15 - 12:15', attendance: 'Pres', icon: Globe, color: '#0055d4' }],
+    '25': [{ id: 5, subject: 'Mathematics', room: 'Room 101', time: '08:00 - 10:00', attendance: 'Pres', icon: Book, color: '#006d4a' }, { id: 6, subject: 'Art & Design', room: 'Studio 1', time: '13:30 - 15:30', attendance: 'Pres', icon: Palette, color: '#9333ea' }],
+    '26': [{ id: 7, subject: 'English', room: 'Room 201', time: '08:00 - 10:00', attendance: 'Pres', icon: Languages, color: '#0055d4' }, { id: 8, subject: 'Physics', room: 'Lab 2', time: '10:15 - 12:15', attendance: 'Abs', icon: Microscope, color: '#ef4444' }],
+    '27': [{ id: 9, subject: 'Biology', room: 'Lab 3', time: '08:00 - 10:00', attendance: 'Pres', icon: Microscope, color: '#006d4a' }, { id: 10, subject: 'Music', room: 'Music Hall', time: '14:00 - 15:30', attendance: 'Pres', icon: Music, color: '#db2777' }],
+    '28': [{ id: 11, subject: 'Revision', room: 'Library', time: '09:00 - 11:00', attendance: 'Pres', icon: Book, color: '#737c7f' }, { id: 12, subject: 'Coding Club', room: 'CS Lab', time: '11:00 - 13:00', attendance: 'Pres', icon: Briefcase, color: '#0055d4' }],
+    '29': []
   };
-
   const notesByDate: any = {
     '23': [{ id: 1, author: 'Mme. Sarah', text: 'Ahmed has started the week with great energy.', time: 'Today at 09:00' }],
     '25': [{ id: 2, author: 'M. Ben Ali', text: 'Ahmed was very participative today in solving abstract geometry problems.', time: 'Today at 10:30' }],
     '27': [{ id: 3, author: 'M. Mansour', text: 'Please ensure Ahmed brings his biology lab coat tomorrow.', time: 'Yesterday at 15:00' }]
   };
-
   const filesByDate: any = {
     '24': [{ id: 1, name: 'History_Project_Guide.pdf', type: 'pdf', sharedBy: 'Prof. Leila', size: '1.2 MB' }],
     '25': [{ id: 2, name: 'Geometry_Notes.pdf', type: 'pdf', sharedBy: 'Prof. Ahmed', size: '2.4 MB' }, { id: 3, name: 'Exercises_Ch3.pdf', type: 'pdf', sharedBy: 'Prof. Ahmed', size: '1.1 MB' }],
     '26': [{ id: 4, name: 'Physics_Optics_Course.pdf', type: 'pdf', sharedBy: 'Prof. Ali', size: '3.5 MB' }]
   };
-
   const homeworkDueTodayByDate: any = {
     '24': [{ id: 100, title: 'History Essay', dueDate: 'Apr 24, 2026', isUrgent: false, assignedDate: 'Apr 20, 2026' }],
     '25': [{ id: 101, title: 'Calculus Assignment 4', dueDate: 'Apr 25, 2026', isUrgent: true, assignedDate: 'Apr 22, 2026' }],
     '27': [{ id: 102, title: 'Biology Lab Report', dueDate: 'Apr 27, 2026', isUrgent: true, assignedDate: 'Apr 24, 2026' }]
   };
-
   const homeworkGivenTodayByDate: any = {
     '23': [{ id: 200, title: 'Math: Quadratic Equations', dueDate: 'Apr 26, 2026', isUrgent: false, assignedDate: 'Apr 23, 2026' }],
     '25': [{ id: 201, title: 'New Physics Lab: Optics', dueDate: 'Apr 28, 2026', isUrgent: false, assignedDate: 'Apr 25, 2026' }],
@@ -196,6 +186,7 @@ export const HomeScreen = ({ navigation }: any) => {
 
       <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0055d4']} tintColor="#0055d4" />}>
         <View style={{ paddingBottom: 150, paddingHorizontal: 20 }}>
+          {/* Header */}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 28 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <View style={{ width: 56, height: 56, borderRadius: 28, overflow: 'hidden', borderWidth: 2, borderColor: '#0055d410' }}><Image source={{ uri: 'https://i.pravatar.cc/100?u=boy' }} style={{ width: '100%', height: '100%' }} /></View>
@@ -218,45 +209,73 @@ export const HomeScreen = ({ navigation }: any) => {
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}><Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2b3437' }}>Schedule</Text><TouchableOpacity onPress={() => setShowPicker(true)} style={{ padding: 8, backgroundColor: '#f1f4f6', borderRadius: 12 }}><CalendarIcon size={20} color="#0055d4" /></TouchableOpacity></View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 32 }} contentContainerStyle={{ paddingVertical: 10 }}>{dates.map((d) => (<DateItem key={d.date} day={d.day} date={d.date} active={selectedDate === d.date} onPress={() => setSelectedDate(d.date)} />))}</ScrollView>
 
+          {/* SECTION 1: TODAY'S SESSIONS */}
+          <View style={{ marginBottom: 8 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 }}>
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Today's Sessions</Text>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#586064' }}>{selectedDate === '29' ? '0%' : '50%'}</Text>
+            </View>
+            <View style={{ width: '100%', height: 10, backgroundColor: '#e2e9ec', borderRadius: 5, overflow: 'hidden', marginBottom: 16 }}>
+              <View style={{ width: selectedDate === '29' ? '0%' : '50%', height: '100%', backgroundColor: '#0055d4', borderRadius: 5 }} />
+            </View>
+          </View>
           {currentSessions.length > 0 ? (
-            <View style={{ marginBottom: 24 }}><View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 }}><Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Today's Sessions</Text><Text style={{ fontSize: 14, fontWeight: 'bold', color: '#586064' }}>{selectedDate === '29' ? '0%' : '50%'}</Text></View><View style={{ width: '100%', height: 10, backgroundColor: '#e2e9ec', borderRadius: 5, overflow: 'hidden' }}><View style={{ width: selectedDate === '29' ? '0%' : '50%', height: '100%', backgroundColor: '#0055d4', borderRadius: 5 }} /></View></View>
+             <View style={{ marginBottom: 32 }}>{currentSessions.map((session: any) => <SessionItem key={session.id} session={session} />)}</View>
           ) : (
-             <View style={{ backgroundColor: 'white', padding: 32, borderRadius: 32, alignItems: 'center', justifyContent: 'center', marginBottom: 32, borderStyle: 'dashed', borderWidth: 1, borderColor: '#e5e7eb' }}>
-               <Coffee size={40} color="#d1d5db"  style={{ marginBottom: 12 }} />
-               <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#2b3437' }}>Family Day</Text>
-               <Text style={{ fontSize: 14, color: '#737c7f', textAlign: 'center', marginTop: 4 }}>No classes today. Enjoy your rest!</Text>
-             </View>
+             <EmptyPlaceholder text="Family Day - Enjoy your rest!" icon={Coffee} />
           )}
 
-          <View style={{ marginBottom: 32 }}>{currentSessions.map((session: any) => <SessionItem key={session.id} session={session} />)}</View>
-
-          {currentNotes.length > 0 && (
-            <View style={{ marginBottom: 32 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}><MessageSquare size={20} color="#2b3437" style={{ marginRight: 8 }} /><Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Teacher Remarks</Text></View>
-              {currentNotes.map((note: any) => <NoteItem key={note.id} note={note} />)}
+          {/* SECTION 2: TASKS TO SUBMIT TODAY */}
+          <View style={{ marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+              <AlertCircle size={20} color="#2b3437" style={{ marginRight: 8 }} />
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Tasks to Submit Today</Text>
             </View>
-          )}
+            {currentDueHomework.length > 0 ? (
+               currentDueHomework.map((item: any) => (<HomeworkItem key={item.id} homework={item} label="Submit Today" onPress={() => navigation.navigate('HomeworkDetail', { homework: item })} />))
+            ) : (
+               <EmptyPlaceholder text="No tasks to submit today." icon={Clock} />
+            )}
+          </View>
 
-          {currentFiles.length > 0 && (
-            <View style={{ marginBottom: 32 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}><BookOpen size={20} color="#2b3437" style={{ marginRight: 8 }} /><Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Course Resources</Text></View>
-              {currentFiles.map((file: any) => <FileItem key={file.id} file={file} />)}
+          {/* SECTION 3: TASKS GIVEN TODAY */}
+          <View style={{ marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+              <FileText size={20} color="#2b3437" style={{ marginRight: 8 }} />
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Tasks Given Today</Text>
             </View>
-          )}
+            {currentGivenHomework.length > 0 ? (
+               currentGivenHomework.map((item: any) => (<HomeworkItem key={item.id} homework={item} label={`Due: ${item.dueDate}`} onPress={() => navigation.navigate('HomeworkDetail', { homework: item })} />))
+            ) : (
+               <EmptyPlaceholder text="No new tasks given today." icon={Briefcase} />
+            )}
+          </View>
 
-          {currentGivenHomework.length > 0 && (
-            <View style={{ marginBottom: 32 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}><Clock size={20} color="#2b3437" style={{ marginRight: 8 }} /><Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Tasks Given Today</Text></View>
-              {currentGivenHomework.map((item: any) => (<HomeworkItem key={item.id} homework={item} label={`Due: ${item.dueDate}`} onPress={() => navigation.navigate('HomeworkDetail', { homework: item })} />))}
+          {/* SECTION 4: COURSE RESOURCES */}
+          <View style={{ marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+              <BookOpen size={20} color="#2b3437" style={{ marginRight: 8 }} />
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Course Resources</Text>
             </View>
-          )}
+            {currentFiles.length > 0 ? (
+               currentFiles.map((file: any) => <FileItem key={file.id} file={file} />)
+            ) : (
+               <EmptyPlaceholder text="No resources shared today." icon={Info} />
+            )}
+          </View>
 
-          {currentDueHomework.length > 0 && (
-            <View style={{ marginBottom: 32 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}><AlertCircle size={20} color="#2b3437" style={{ marginRight: 8 }} /><Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Tasks to Submit Today</Text></View>
-              {currentDueHomework.map((item: any) => (<HomeworkItem key={item.id} homework={item} label="Submit Today" onPress={() => navigation.navigate('HomeworkDetail', { homework: item })} />))}
+          {/* SECTION 5: TEACHER REMARKS */}
+          <View style={{ marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+              <MessageSquare size={20} color="#2b3437" style={{ marginRight: 8 }} />
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Teacher Remarks</Text>
             </View>
-          )}
+            {currentNotes.length > 0 ? (
+               currentNotes.map((note: any) => <NoteItem key={note.id} note={note} />)
+            ) : (
+               <EmptyPlaceholder text="No remarks for this date." icon={MessageSquare} />
+            )}
+          </View>
         </View>
       </ScrollView>
 
