@@ -83,9 +83,9 @@ const FintechPaymentCard = ({ item }: any) => {
             <Text style={{ color: '#0055d4', fontWeight: 'bold', fontSize: 14 }}>Receipt</Text>
           </TouchableOpacity>
         ) : !isLocked ? (
-          <TouchableOpacity style={{ flex: 1, backgroundColor: item.isOverdue ? '#dc2626' : '#0055d4', paddingVertical: 12, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>Pay Now</Text>
-          </TouchableOpacity>
+          <View style={{ flex: 1, backgroundColor: item.isOverdue ? '#fef2f2' : '#f8f9fa', borderDash: [4, 4], borderWidth: 1, borderColor: item.isOverdue ? '#dc2626' : '#d1d5db', paddingVertical: 12, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: item.isOverdue ? '#dc2626' : '#737c7f', fontWeight: 'bold', fontSize: 13 }}>{item.isOverdue ? 'Overdue' : 'Due'}</Text>
+          </View>
         ) : (
           <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', py: 12, borderRadius: 14, paddingVertical: 12, backgroundColor: '#f8f9fa' }}>
              <Lock size={16} color="#abb3b7" style={{ marginRight: 8 }} />
@@ -221,7 +221,7 @@ export const PaymentsScreen = () => {
         </View>
       </ScrollView>
 
-      {/* Sticky Bottom CTA */}
+      {/* Footer Info instead of Sticky CTA */}
       <View style={{ 
         position: 'absolute', 
         bottom: 0, 
@@ -230,26 +230,16 @@ export const PaymentsScreen = () => {
         paddingHorizontal: 20, 
         paddingBottom: Platform.OS === 'ios' ? 40 : 24,
         paddingTop: 20,
-        backgroundColor: 'rgba(248, 249, 250, 0.9)',
+        backgroundColor: 'white',
         borderTopWidth: 1,
         borderTopColor: '#f1f4f6'
       }}>
-        <TouchableOpacity style={{ 
-          backgroundColor: '#0055d4', 
-          height: 64, 
-          borderRadius: 20, 
-          flexDirection: 'row', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          shadowColor: '#0055d4',
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.2,
-          shadowRadius: 16,
-          elevation: 8
-        }}>
-          <CreditCard color="white" size={24} style={{ marginRight: 12 }} />
-          <Text style={{ color: 'white', fontSize: 18, fontWeight: 'black' }}>Pay Remaining Balance</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f4f6', padding: 16, borderRadius: 20 }}>
+          <Info size={18} color="#0055d4" style={{ marginRight: 10 }} />
+          <Text style={{ color: '#586064', fontSize: 13, fontWeight: '500', textAlign: 'center' }}>
+            Please contact the school administration to settle any outstanding balances.
+          </Text>
+        </View>
       </View>
     </SafeAreaView>
   );
