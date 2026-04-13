@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, Modal, Platform, RefreshControl, Animated, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Book, Microscope, Clock, Globe, Palette, Calculator, Music, Languages, MessageSquare, AlertCircle, FileText, Download, Briefcase, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, BookOpen, Bell } from 'lucide-react-native';
+import { Book, Microscope, Clock, Globe, Palette, Calculator, Music, Languages, MessageSquare, AlertCircle, FileText, Download, Briefcase, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, BookOpen, Bell, Coffee } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 
 const DateItem = ({ day, date, active, onPress }: any) => (
@@ -118,23 +118,69 @@ export const HomeScreen = ({ navigation }: any) => {
   };
   const getDaysInMonth = (m: number, y: number) => new Date(y, m + 1, 0).getDate();
 
-  const dates = [{ day: 'Mon', date: '23' }, { day: 'Tue', date: '24' }, { day: 'Wed', date: '25' }, { day: 'Thu', date: '26' }, { day: 'Fri', date: '27' }, { day: 'Sat', date: '28' }];
+  const dates = [
+    { day: 'Mon', date: '23' }, { day: 'Tue', date: '24' }, { day: 'Wed', date: '25' }, 
+    { day: 'Thu', date: '26' }, { day: 'Fri', date: '27' }, { day: 'Sat', date: '28' },
+    { day: 'Sun', date: '29' }
+  ];
+
   const sessionsByDate: any = {
-    '23': [{ id: 1, subject: 'Mathematics', room: 'Room 101', time: '08:00 - 10:00', attendance: 'Pres', icon: Calculator, color: '#0055d4' }],
-    '24': [{ id: 1, subject: 'History', room: 'Room 305', time: '08:00 - 10:00', attendance: 'Rtr', icon: Clock, color: '#865400' }],
-    '25': [{ id: 1, subject: 'Mathematics', room: 'Room 101', time: '08:00 - 10:00', attendance: 'Pres', icon: Book, color: '#006d4a' }],
-    '26': [{ id: 1, subject: 'English', room: 'Room 201', time: '08:00 - 10:00', attendance: 'Pres', icon: Languages, color: '#0055d4' }],
-    '27': [{ id: 1, subject: 'Biology', room: 'Lab 3', time: '08:00 - 10:00', attendance: 'Pres', icon: Microscope, color: '#006d4a' }],
-    '28': [{ id: 1, subject: 'Revision', room: 'Library', time: '08:00 - 10:00', attendance: 'Pres', icon: Book, color: '#737c7f' }],
+    '23': [
+      { id: 1, subject: 'Mathematics', room: 'Room 101', time: '08:00 - 10:00', attendance: 'Pres', icon: Calculator, color: '#0055d4' },
+      { id: 2, subject: 'Arabic', room: 'Room 202', time: '10:15 - 12:15', attendance: 'Pres', icon: Languages, color: '#865400' }
+    ],
+    '24': [
+      { id: 3, subject: 'History', room: 'Room 305', time: '08:00 - 10:00', attendance: 'Rtr', icon: Clock, color: '#865400' },
+      { id: 4, subject: 'Geography', room: 'Room 305', time: '10:15 - 12:15', attendance: 'Pres', icon: Globe, color: '#0055d4' }
+    ],
+    '25': [
+      { id: 5, subject: 'Mathematics', room: 'Room 101', time: '08:00 - 10:00', attendance: 'Pres', icon: Book, color: '#006d4a' },
+      { id: 6, subject: 'Art & Design', room: 'Studio 1', time: '13:30 - 15:30', attendance: 'Pres', icon: Palette, color: '#9333ea' }
+    ],
+    '26': [
+      { id: 7, subject: 'English', room: 'Room 201', time: '08:00 - 10:00', attendance: 'Pres', icon: Languages, color: '#0055d4' },
+      { id: 8, subject: 'Physics', room: 'Lab 2', time: '10:15 - 12:15', attendance: 'Abs', icon: Microscope, color: '#ef4444' }
+    ],
+    '27': [
+      { id: 9, subject: 'Biology', room: 'Lab 3', time: '08:00 - 10:00', attendance: 'Pres', icon: Microscope, color: '#006d4a' },
+      { id: 10, subject: 'Music', room: 'Music Hall', time: '14:00 - 15:30', attendance: 'Pres', icon: Music, color: '#db2777' }
+    ],
+    '28': [
+      { id: 11, subject: 'Revision', room: 'Library', time: '09:00 - 11:00', attendance: 'Pres', icon: Book, color: '#737c7f' },
+      { id: 12, subject: 'Coding Club', room: 'CS Lab', time: '11:00 - 13:00', attendance: 'Pres', icon: Briefcase, color: '#0055d4' }
+    ],
+    '29': [] // Sunday
   };
-  const notesByDate: any = { '25': [{ id: 1, author: 'M. Ben Ali', text: 'Ahmed was very participative today in solving abstract geometry problems.', time: 'Today at 10:30' }] };
-  const filesByDate: any = { '25': [{ id: 1, name: 'Geometry_Notes.pdf', type: 'pdf', sharedBy: 'Prof. Ahmed', size: '2.4 MB' }, { id: 2, name: 'Exercises_Ch3.pdf', type: 'pdf', sharedBy: 'Prof. Ahmed', size: '1.1 MB' }] };
-  const homeworkDueTodayByDate: any = { '25': [{ id: 101, title: 'Calculus Assignment 4', dueDate: 'Apr 25, 2026', isUrgent: true, assignedDate: 'Apr 22, 2026' }] };
-  const homeworkGivenTodayByDate: any = { '25': [{ id: 201, title: 'New Physics Lab: Optics', dueDate: 'Apr 28, 2026', isUrgent: false, assignedDate: 'Apr 25, 2026' }] };
+
+  const notesByDate: any = {
+    '23': [{ id: 1, author: 'Mme. Sarah', text: 'Ahmed has started the week with great energy.', time: 'Today at 09:00' }],
+    '25': [{ id: 2, author: 'M. Ben Ali', text: 'Ahmed was very participative today in solving abstract geometry problems.', time: 'Today at 10:30' }],
+    '27': [{ id: 3, author: 'M. Mansour', text: 'Please ensure Ahmed brings his biology lab coat tomorrow.', time: 'Yesterday at 15:00' }]
+  };
+
+  const filesByDate: any = {
+    '24': [{ id: 1, name: 'History_Project_Guide.pdf', type: 'pdf', sharedBy: 'Prof. Leila', size: '1.2 MB' }],
+    '25': [{ id: 2, name: 'Geometry_Notes.pdf', type: 'pdf', sharedBy: 'Prof. Ahmed', size: '2.4 MB' }, { id: 3, name: 'Exercises_Ch3.pdf', type: 'pdf', sharedBy: 'Prof. Ahmed', size: '1.1 MB' }],
+    '26': [{ id: 4, name: 'Physics_Optics_Course.pdf', type: 'pdf', sharedBy: 'Prof. Ali', size: '3.5 MB' }]
+  };
+
+  const homeworkDueTodayByDate: any = {
+    '24': [{ id: 100, title: 'History Essay', dueDate: 'Apr 24, 2026', isUrgent: false, assignedDate: 'Apr 20, 2026' }],
+    '25': [{ id: 101, title: 'Calculus Assignment 4', dueDate: 'Apr 25, 2026', isUrgent: true, assignedDate: 'Apr 22, 2026' }],
+    '27': [{ id: 102, title: 'Biology Lab Report', dueDate: 'Apr 27, 2026', isUrgent: true, assignedDate: 'Apr 24, 2026' }]
+  };
+
+  const homeworkGivenTodayByDate: any = {
+    '23': [{ id: 200, title: 'Math: Quadratic Equations', dueDate: 'Apr 26, 2026', isUrgent: false, assignedDate: 'Apr 23, 2026' }],
+    '25': [{ id: 201, title: 'New Physics Lab: Optics', dueDate: 'Apr 28, 2026', isUrgent: false, assignedDate: 'Apr 25, 2026' }],
+    '27': [{ id: 202, title: 'English: Creative Writing', dueDate: 'May 02, 2026', isUrgent: false, assignedDate: 'Apr 27, 2026' }]
+  };
 
   const currentSessions = sessionsByDate[selectedDate] || [];
   const currentNotes = notesByDate[selectedDate] || [];
   const currentFiles = filesByDate[selectedDate] || [];
+  const currentGivenHomework = homeworkGivenTodayByDate[selectedDate] || [];
+  const currentDueHomework = homeworkDueTodayByDate[selectedDate] || [];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }} edges={['top']}>
@@ -172,7 +218,16 @@ export const HomeScreen = ({ navigation }: any) => {
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}><Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2b3437' }}>Schedule</Text><TouchableOpacity onPress={() => setShowPicker(true)} style={{ padding: 8, backgroundColor: '#f1f4f6', borderRadius: 12 }}><CalendarIcon size={20} color="#0055d4" /></TouchableOpacity></View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 32 }} contentContainerStyle={{ paddingVertical: 10 }}>{dates.map((d) => (<DateItem key={d.date} day={d.day} date={d.date} active={selectedDate === d.date} onPress={() => setSelectedDate(d.date)} />))}</ScrollView>
 
-          <View style={{ marginBottom: 24 }}><View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 }}><Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Today's Sessions</Text><Text style={{ fontSize: 14, fontWeight: 'bold', color: '#586064' }}>50%</Text></View><View style={{ width: '100%', height: 10, backgroundColor: '#e2e9ec', borderRadius: 5, overflow: 'hidden' }}><View style={{ width: '50%', height: '100%', backgroundColor: '#0055d4', borderRadius: 5 }} /></View></View>
+          {currentSessions.length > 0 ? (
+            <View style={{ marginBottom: 24 }}><View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 }}><Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Today's Sessions</Text><Text style={{ fontSize: 14, fontWeight: 'bold', color: '#586064' }}>{selectedDate === '29' ? '0%' : '50%'}</Text></View><View style={{ width: '100%', height: 10, backgroundColor: '#e2e9ec', borderRadius: 5, overflow: 'hidden' }}><View style={{ width: selectedDate === '29' ? '0%' : '50%', height: '100%', backgroundColor: '#0055d4', borderRadius: 5 }} /></View></View>
+          ) : (
+             <View style={{ backgroundColor: 'white', padding: 32, borderRadius: 32, alignItems: 'center', justifyContent: 'center', marginBottom: 32, borderStyle: 'dashed', borderWidth: 1, borderColor: '#e5e7eb' }}>
+               <Coffee size={40} color="#d1d5db"  style={{ marginBottom: 12 }} />
+               <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#2b3437' }}>Family Day</Text>
+               <Text style={{ fontSize: 14, color: '#737c7f', textAlign: 'center', marginTop: 4 }}>No classes today. Enjoy your rest!</Text>
+             </View>
+          )}
+
           <View style={{ marginBottom: 32 }}>{currentSessions.map((session: any) => <SessionItem key={session.id} session={session} />)}</View>
 
           {currentNotes.length > 0 && (
@@ -189,17 +244,17 @@ export const HomeScreen = ({ navigation }: any) => {
             </View>
           )}
 
-          {homeworkGivenTodayByDate[selectedDate]?.length > 0 && (
+          {currentGivenHomework.length > 0 && (
             <View style={{ marginBottom: 32 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}><Clock size={20} color="#2b3437" style={{ marginRight: 8 }} /><Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Tasks Given Today</Text></View>
-              {homeworkGivenTodayByDate[selectedDate].map((item: any) => (<HomeworkItem key={item.id} homework={item} label={`Due: ${item.dueDate}`} onPress={() => navigation.navigate('HomeworkDetail', { homework: item })} />))}
+              {currentGivenHomework.map((item: any) => (<HomeworkItem key={item.id} homework={item} label={`Due: ${item.dueDate}`} onPress={() => navigation.navigate('HomeworkDetail', { homework: item })} />))}
             </View>
           )}
 
-          {homeworkDueTodayByDate[selectedDate]?.length > 0 && (
+          {currentDueHomework.length > 0 && (
             <View style={{ marginBottom: 32 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}><AlertCircle size={20} color="#2b3437" style={{ marginRight: 8 }} /><Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Tasks to Submit Today</Text></View>
-              {homeworkDueTodayByDate[selectedDate].map((item: any) => (<HomeworkItem key={item.id} homework={item} label="Submit Today" onPress={() => navigation.navigate('HomeworkDetail', { homework: item })} />))}
+              {currentDueHomework.map((item: any) => (<HomeworkItem key={item.id} homework={item} label="Submit Today" onPress={() => navigation.navigate('HomeworkDetail', { homework: item })} />))}
             </View>
           )}
         </View>
@@ -210,7 +265,7 @@ export const HomeScreen = ({ navigation }: any) => {
           <View style={{ backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 60 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}><Text style={{ fontSize: 22, fontWeight: 'black', color: '#2b3437' }}>Academic Calendar</Text></View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, backgroundColor: '#f8f9fa', padding: 12, borderRadius: 16 }}><TouchableOpacity onPress={() => changeMonth(-1)} style={{ padding: 4 }}><ChevronLeft size={24} color="#0055d4" /></TouchableOpacity><View style={{ alignItems: 'center' }}><Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2b3437' }}>{months[viewingMonth]}</Text><Text style={{ fontSize: 12, color: '#737c7f', fontWeight: 'bold' }}>{viewingYear}</Text></View><TouchableOpacity onPress={() => changeMonth(1)} style={{ padding: 4 }}><ChevronRight size={24} color="#0055d4" /></TouchableOpacity></View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' }}>{Array.from({ length: getDaysInMonth(viewingMonth, viewingYear) }, (_, i) => i + 1).map((day) => { const dayStr = day.toString(); const isSelected = selectedDate === dayStr && viewingMonth === 3; const hasData = viewingMonth === 3 && ['23', '24', '25', '26', '27', '28'].includes(dayStr); return (<TouchableOpacity key={day} onPress={() => { if (hasData) { setSelectedDate(dayStr); setShowPicker(false); } }} style={{ width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', marginVertical: 4, borderRadius: 12, backgroundColor: isSelected ? '#0055d4' : 'transparent', borderWidth: hasData && !isSelected ? 1 : 0, borderColor: '#0055d440', opacity: (viewingMonth >= 8 || viewingMonth <= 5) ? 1 : 0.3 }}><Text style={{ fontSize: 14, fontWeight: isSelected || hasData ? 'bold' : 'normal', color: isSelected ? 'white' : hasData ? '#0055d4' : '#2b3437' }}>{day}</Text></TouchableOpacity>); })}</View>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' }}>{Array.from({ length: getDaysInMonth(viewingMonth, viewingYear) }, (_, i) => i + 1).map((day) => { const dayStr = day.toString(); const isSelected = selectedDate === dayStr && viewingMonth === 3; const hasData = viewingMonth === 3 && ['23', '24', '25', '26', '27', '28', '29'].includes(dayStr); return (<TouchableOpacity key={day} onPress={() => { if (hasData) { setSelectedDate(dayStr); setShowPicker(false); } }} style={{ width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', marginVertical: 4, borderRadius: 12, backgroundColor: isSelected ? '#0055d4' : 'transparent', borderWidth: hasData && !isSelected ? 1 : 0, borderColor: '#0055d440', opacity: (viewingMonth >= 8 || viewingMonth <= 5) ? 1 : 0.3 }}><Text style={{ fontSize: 14, fontWeight: isSelected || hasData ? 'bold' : 'normal', color: isSelected ? 'white' : hasData ? '#0055d4' : '#2b3437' }}>{day}</Text></TouchableOpacity>); })}</View>
             <View style={{ marginTop: 24, padding: 16, backgroundColor: '#f1f4f6', borderRadius: 20 }}><Text style={{ fontSize: 12, color: '#737c7f', textAlign: 'center', fontWeight: '500' }}>Academic year: <Text style={{ color: '#0055d4', fontWeight: 'bold' }}>September - June</Text></Text></View>
           </View>
         </View>
