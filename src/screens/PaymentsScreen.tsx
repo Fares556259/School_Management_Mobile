@@ -121,6 +121,9 @@ export const PaymentsScreen = () => {
     { id: 5, month: 'January 2024', totalAmount: 1500, paidAmount: 0, status: 'Locked', isOverdue: false },
     { id: 6, month: 'February 2024', totalAmount: 1500, paidAmount: 0, status: 'Locked', isOverdue: false },
     { id: 7, month: 'March 2024', totalAmount: 1500, paidAmount: 0, status: 'Locked', isOverdue: false },
+    { id: 8, month: 'April 2024', totalAmount: 1500, paidAmount: 0, status: 'Locked', isOverdue: false },
+    { id: 9, month: 'May 2024', totalAmount: 1500, paidAmount: 0, status: 'Locked', isOverdue: false },
+    { id: 10, month: 'June 2024', totalAmount: 1500, paidAmount: 0, status: 'Locked', isOverdue: false },
   ];
 
   const filteredHistory = useMemo(() => {
