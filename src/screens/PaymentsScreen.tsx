@@ -61,7 +61,7 @@ const PaymentItem = ({ item }: any) => {
         )}
         {(item.status === 'Due' || item.status === 'Partial') && (
           <TouchableOpacity style={{ backgroundColor: '#0055d4', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 }}>
-            <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>Pay</Text>
+            <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>Pay Now</Text>
           </TouchableOpacity>
         )}
         {isLocked && <Lock size={16} color="#abb3b7" />}
@@ -163,7 +163,7 @@ export const PaymentsScreen = () => {
           </View>
 
           {/* Policy Info */}
-          <View style={{ mt: 32, padding: 20, backgroundColor: '#fdf2f2', borderRadius: 24, flexDirection: 'row', alignItems: 'center', marginTop: 32 }}>
+          <View style={{ padding: 20, backgroundColor: '#fdf2f2', borderRadius: 24, flexDirection: 'row', alignItems: 'center', marginTop: 32 }}>
             <Info size={20} color="#dc2626" style={{ marginRight: 12 }} />
             <Text style={{ flex: 1, fontSize: 12, color: '#991b1b', lineHeight: 18 }}>
               Invoices are issued on the 1st of every month. Please ensure payments are settled within 10 days to avoid service interruption.

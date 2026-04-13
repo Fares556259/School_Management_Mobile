@@ -73,13 +73,13 @@ const ExamCard = ({ exam }: any) => {
           <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#737c7f', textTransform: 'uppercase' }}>{exam.time}</Text>
         </View>
         <Text style={{ fontSize: 12, color: '#586064', marginTop: 4 }} numberOfLines={2}>{exam.description}</Text>
-        <div style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
           {exam.tags.map((tag: string, i: number) => (
             <View key={i} style={{ backgroundColor: '#f1f4f6', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginRight: 6 }}>
               <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#2b3437', textTransform: 'uppercase' }}>{tag}</Text>
             </View>
           ))}
-        </div>
+        </View>
       </View>
     </TouchableOpacity>
   );
