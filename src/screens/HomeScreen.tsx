@@ -459,9 +459,6 @@ export const HomeScreen = ({ navigation }: any) => {
           <View style={{ backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 60 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
               <Text style={{ fontSize: 22, fontWeight: 'black', color: '#2b3437' }}>Academic Calendar</Text>
-              <TouchableOpacity onPress={() => setShowPicker(false)}>
-                <X size={24} color="#737c7f" />
-              </TouchableOpacity>
             </View>
 
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, backgroundColor: '#f8f9fa', padding: 12, borderRadius: 16 }}>
