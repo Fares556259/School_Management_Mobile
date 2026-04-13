@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Modal, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, Modal, Platform, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Book, Microscope, Clock, Globe, Palette, Calculator, Music, Languages, MessageSquare, AlertCircle, FileText, Download, Briefcase, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, BookOpen, Bell } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
@@ -175,9 +175,18 @@ export const HomeScreen = ({ navigation }: any) => {
   const selectedChild = children.find(c => c.id === selectedChildId);
   const [selectedDate, setSelectedDate] = React.useState('25');
   const [showPicker, setShowPicker] = React.useState(false);
-  
+  const [refreshing, setRefreshing] = React.useState(false);
   const [showAlert, setShowAlert] = React.useState(true);
   
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    // Simulate data fetch
+    setTimeout(() => {
+      setShowAlert(true);
+      setRefreshing(false);
+    }, 1500);
+  }, []);
+
   // Calendar View State
   const [viewingMonth, setViewingMonth] = React.useState(3); // 0-indexed (3 = April)
   const [viewingYear, setViewingYear] = React.useState(2026);
@@ -297,7 +306,17 @@ export const HomeScreen = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            colors={['#0055d4']} 
+            tintColor="#0055d4" 
+          />
+        }
+      >
         <View style={{ paddingBottom: 120, paddingHorizontal: 20 }}>
           {/* Header */}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 28 }}>
