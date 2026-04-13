@@ -3,6 +3,16 @@ import { View, Text, ScrollView, TouchableOpacity, Image, Modal, Platform, Refre
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Book, Microscope, Clock, Globe, Palette, Calculator, Music, Languages, MessageSquare, AlertCircle, FileText, Download, Briefcase, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, BookOpen, Bell } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
+import * as Notifications from 'expo-notifications';
+
+// Configure how notifications are handled when the app is foregrounded
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 const DateItem = ({ day, date, active, onPress }: any) => (
   <TouchableOpacity 
@@ -78,52 +88,6 @@ const SessionItem = ({ session }: any) => {
   );
 };
 
-const NoteItem = ({ note }: any) => (
-  <View style={{ 
-    backgroundColor: '#fffbeb', 
-    padding: 20, 
-    borderRadius: 24, 
-    flexDirection: 'row', 
-    alignItems: 'flex-start', 
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#fef3c7'
-  }}>
-    <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#fef3c7', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
-      <MessageSquare color="#865400" size={20} />
-    </View>
-    <View style={{ flex: 1 }}>
-      <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#865400', textTransform: 'uppercase', marginBottom: 4 }}>Note from {note.author}</Text>
-      <Text style={{ fontSize: 14, color: '#2b3437', lineHeight: 20, fontStyle: 'italic' }}>"{note.text}"</Text>
-      <Text style={{ fontSize: 10, color: '#737c7f', marginTop: 8 }}>{note.time}</Text>
-    </View>
-  </View>
-);
-
-const FileItem = ({ file }: any) => (
-  <TouchableOpacity 
-    style={{ 
-      backgroundColor: 'white', 
-      padding: 16, 
-      borderRadius: 20, 
-      flexDirection: 'row', 
-      alignItems: 'center', 
-      marginBottom: 12,
-      borderWidth: 1,
-      borderColor: '#f1f4f6'
-    }}
-  >
-    <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: file.type === 'pdf' ? '#fee2e2' : '#dcfce7', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
-      {file.type === 'pdf' ? <FileText color="#ef4444" size={24} /> : <Book color="#22c55e" size={24} />}
-    </View>
-    <View style={{ flex: 1 }}>
-      <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#2b3437' }} numberOfLines={1}>{file.name}</Text>
-      <Text style={{ fontSize: 11, color: '#737c7f', marginTop: 2 }}>{file.sharedBy} • {file.size}</Text>
-    </View>
-    <Download size={18} color="#0055d4" />
-  </TouchableOpacity>
-);
-
 const HomeworkItem = ({ homework, label, onPress }: any) => (
   <TouchableOpacity 
     onPress={onPress}
@@ -178,12 +142,40 @@ export const HomeScreen = ({ navigation }: any) => {
   const [refreshing, setRefreshing] = React.useState(false);
   const [showAlert, setShowAlert] = React.useState(true);
   
-  // Animation for In-App Notification
+  // Animation for In-App Notification (Legacy Simulation)
   const slideAnim = React.useRef(new Animated.Value(-200)).current;
-  const [showPush, setShowPush] = React.useState(false);
 
-  const simulatePush = () => {
-    setShowPush(true);
+  React.useEffect(() => {
+    // Request permissions for notifications on mount
+    const requestPermissions = async () => {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') {
+        console.log('Failed to get push token for push notification!');
+        return;
+      }
+    };
+
+    requestPermissions();
+  }, []);
+
+  const simulatePush = async () => {
+    // 1. Trigger Native System Notification
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "SnapSchool Admin 🔔",
+        body: "Nouvelle annonce: Réunion des parents ce samedi à 10h.",
+        data: { data: 'goes here' },
+        sound: true,
+      },
+      trigger: null, // trigger immediately
+    });
+
+    // 2. Trigger In-App Animation (for visual feedback inside app)
     Animated.spring(slideAnim, {
       toValue: 20,
       useNativeDriver: true,
@@ -191,13 +183,13 @@ export const HomeScreen = ({ navigation }: any) => {
       friction: 7
     }).start();
 
-    // Auto-hide after 5 seconds
+    // Auto-hide in-app banner
     setTimeout(() => {
       Animated.timing(slideAnim, {
         toValue: -200,
         duration: 500,
         useNativeDriver: true
-      }).start(() => setShowPush(false));
+      }).start();
     }, 5000);
   };
 
@@ -277,7 +269,7 @@ export const HomeScreen = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }} edges={['top']}>
-      {/* Animated Push Notification Banner */}
+      {/* Animated In-App Banner (Visual Polish) */}
       <Animated.View style={{
         position: 'absolute',
         top: 0,
@@ -299,10 +291,7 @@ export const HomeScreen = ({ navigation }: any) => {
         borderColor: '#f1f4f6'
       }}>
         <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#0055d408', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
-          <Image 
-            source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' }} 
-            style={{ width: 24, height: 24 }} 
-          />
+          <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' }} style={{ width: 24, height: 24 }} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#0055d4' }}>SnapSchool Admin</Text>
@@ -311,7 +300,7 @@ export const HomeScreen = ({ navigation }: any) => {
           </Text>
         </View>
         <TouchableOpacity onPress={() => {
-          Animated.timing(slideAnim, { toValue: -200, duration: 300, useNativeDriver: true }).start(() => setShowPush(false));
+          Animated.timing(slideAnim, { toValue: -200, duration: 300, useNativeDriver: true }).start();
         }}>
           <X size={20} color="#737c7f" />
         </TouchableOpacity>
