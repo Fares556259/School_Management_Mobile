@@ -124,7 +124,7 @@ const FileItem = ({ file }: any) => (
   </TouchableOpacity>
 );
 
-const HomeworkItem = ({ homework, onPress }: any) => (
+const HomeworkItem = ({ homework, label, onPress }: any) => (
   <TouchableOpacity 
     onPress={onPress}
     style={{
@@ -150,7 +150,7 @@ const HomeworkItem = ({ homework, onPress }: any) => (
       <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#2b3437' }}>{homework.title}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
         <CalendarIcon size={12} color="#737c7f" />
-        <Text style={{ fontSize: 11, color: '#737c7f', marginLeft: 4 }}>Submit Today</Text>
+        <Text style={{ fontSize: 11, color: '#737c7f', marginLeft: 4 }}>{label}</Text>
       </View>
     </View>
     <View style={{ 
@@ -164,7 +164,7 @@ const HomeworkItem = ({ homework, onPress }: any) => (
         fontWeight: 'bold', 
         color: homework.isUrgent ? '#ef4444' : '#22c55e' 
       }}>
-        {homework.isUrgent ? 'DUE TODAY' : 'PENDING'}
+        {homework.isUrgent ? 'URGENT' : 'PENDING'}
       </Text>
     </View>
   </TouchableOpacity>
@@ -281,16 +281,24 @@ export const HomeScreen = ({ navigation }: any) => {
     ]
   };
 
-  const homeworkByDate: any = {
-    '25': [{ id: 1, title: 'Calculus Assignment 4', dueDate: 'Apr 25, 2026', isUrgent: true, assignedDate: 'Apr 22, 2026' }],
-    '24': [{ id: 1, title: 'Energy Transformation Lab Report', dueDate: 'Apr 24, 2026', isUrgent: false, assignedDate: 'Apr 20, 2026' }],
-    '23': [{ id: 1, title: 'Read Chapter 5: Operating Systems', dueDate: 'Apr 23, 2026', isUrgent: false, assignedDate: 'Apr 18, 2026' }],
+  // Mock Homework Due Today
+  const homeworkDueTodayByDate: any = {
+    '25': [{ id: 101, title: 'Calculus Assignment 4', dueDate: 'Apr 25, 2026', isUrgent: true, assignedDate: 'Apr 22, 2026' }],
+    '24': [{ id: 102, title: 'Energy Transformation Lab Report', dueDate: 'Apr 24, 2026', isUrgent: false, assignedDate: 'Apr 20, 2026' }],
+    '23': [{ id: 103, title: 'Read Chapter 5: Operating Systems', dueDate: 'Apr 23, 2026', isUrgent: false, assignedDate: 'Apr 18, 2026' }],
+  };
+
+  // Mock Homework Given Today (To Do)
+  const homeworkGivenTodayByDate: any = {
+    '25': [{ id: 201, title: 'New Physics Lab: Optics', dueDate: 'Apr 28, 2026', isUrgent: false, assignedDate: 'Apr 25, 2026' }],
+    '24': [{ id: 202, title: 'History Essay: Industrial Red', dueDate: 'Apr 29, 2026', isUrgent: true, assignedDate: 'Apr 24, 2026' }],
   };
 
   const currentSessions = sessionsByDate[selectedDate] || [];
   const currentNotes = notesByDate[selectedDate] || [];
   const currentFiles = filesByDate[selectedDate] || [];
-  const currentHomework = homeworkByDate[selectedDate] || [];
+  const currentDueHomework = homeworkDueTodayByDate[selectedDate] || [];
+  const currentGivenHomework = homeworkGivenTodayByDate[selectedDate] || [];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }} edges={['top']}>
@@ -354,17 +362,36 @@ export const HomeScreen = ({ navigation }: any) => {
             {currentSessions.map((session: any) => <SessionItem key={session.id} session={session} />)}
           </View>
 
-          {/* Tasks Given Today Section - RE-NAMED TO SUBMIT */}
-          {currentHomework.length > 0 && (
+          {/* Section 1: Tasks Given Today (New Assignments) */}
+          {currentGivenHomework.length > 0 && (
+            <View style={{ marginBottom: 32 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <Clock size={20} color="#2b3437" style={{ marginRight: 8 }} />
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Tasks Given Today</Text>
+              </View>
+              {currentGivenHomework.map((item: any) => (
+                <HomeworkItem 
+                  key={item.id} 
+                  homework={item} 
+                  label={`Due: ${item.dueDate}`}
+                  onPress={() => navigation.navigate('HomeworkDetail', { homework: item })}
+                />
+              ))}
+            </View>
+          )}
+
+          {/* Section 2: Tasks to Submit Today (Deadlines) */}
+          {currentDueHomework.length > 0 && (
             <View style={{ marginBottom: 32 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
                 <BookOpen size={20} color="#2b3437" style={{ marginRight: 8 }} />
                 <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Tasks to Submit Today</Text>
               </View>
-              {currentHomework.map((item: any) => (
+              {currentDueHomework.map((item: any) => (
                 <HomeworkItem 
                   key={item.id} 
                   homework={item} 
+                  label="Submit Today"
                   onPress={() => navigation.navigate('HomeworkDetail', { homework: item })}
                 />
               ))}
