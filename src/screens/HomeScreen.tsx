@@ -150,7 +150,7 @@ const HomeworkItem = ({ homework, onPress }: any) => (
       <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#2b3437' }}>{homework.title}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
         <CalendarIcon size={12} color="#737c7f" />
-        <Text style={{ fontSize: 11, color: '#737c7f', marginLeft: 4 }}>Due: {homework.dueDate}</Text>
+        <Text style={{ fontSize: 11, color: '#737c7f', marginLeft: 4 }}>Submit Today</Text>
       </View>
     </View>
     <View style={{ 
@@ -164,7 +164,7 @@ const HomeworkItem = ({ homework, onPress }: any) => (
         fontWeight: 'bold', 
         color: homework.isUrgent ? '#ef4444' : '#22c55e' 
       }}>
-        {homework.isUrgent ? 'URGENT' : 'PENDING'}
+        {homework.isUrgent ? 'DUE TODAY' : 'PENDING'}
       </Text>
     </View>
   </TouchableOpacity>
@@ -282,9 +282,9 @@ export const HomeScreen = ({ navigation }: any) => {
   };
 
   const homeworkByDate: any = {
-    '25': [{ id: 1, title: 'Calculus Assignment 4', dueDate: 'Tomorrow', isUrgent: true, assignedDate: 'Apr 25, 2026' }],
-    '24': [{ id: 1, title: 'Energy Transformation Lab Report', dueDate: 'Friday, Oct 24', isUrgent: false, assignedDate: 'Apr 24, 2026' }],
-    '23': [{ id: 1, title: 'Read Chapter 5: Operating Systems', dueDate: 'Next Monday', isUrgent: false, assignedDate: 'Apr 23, 2026' }],
+    '25': [{ id: 1, title: 'Calculus Assignment 4', dueDate: 'Apr 25, 2026', isUrgent: true, assignedDate: 'Apr 22, 2026' }],
+    '24': [{ id: 1, title: 'Energy Transformation Lab Report', dueDate: 'Apr 24, 2026', isUrgent: false, assignedDate: 'Apr 20, 2026' }],
+    '23': [{ id: 1, title: 'Read Chapter 5: Operating Systems', dueDate: 'Apr 23, 2026', isUrgent: false, assignedDate: 'Apr 18, 2026' }],
   };
 
   const currentSessions = sessionsByDate[selectedDate] || [];
@@ -354,6 +354,23 @@ export const HomeScreen = ({ navigation }: any) => {
             {currentSessions.map((session: any) => <SessionItem key={session.id} session={session} />)}
           </View>
 
+          {/* Tasks Given Today Section - RE-NAMED TO SUBMIT */}
+          {currentHomework.length > 0 && (
+            <View style={{ marginBottom: 32 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <BookOpen size={20} color="#2b3437" style={{ marginRight: 8 }} />
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Tasks to Submit Today</Text>
+              </View>
+              {currentHomework.map((item: any) => (
+                <HomeworkItem 
+                  key={item.id} 
+                  homework={item} 
+                  onPress={() => navigation.navigate('HomeworkDetail', { homework: item })}
+                />
+              ))}
+            </View>
+          )}
+
           {/* Administrative Notes Section */}
           {currentNotes.length > 0 && (
             <View style={{ marginBottom: 32 }}>
@@ -373,23 +390,6 @@ export const HomeScreen = ({ navigation }: any) => {
                 <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Course Resources</Text>
               </View>
               {currentFiles.map((file: any) => <FileItem key={file.id} file={file} />)}
-            </View>
-          )}
-
-          {/* Tasks Given Today Section */}
-          {currentHomework.length > 0 && (
-            <View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-                <BookOpen size={20} color="#2b3437" style={{ marginRight: 8 }} />
-                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Tasks Given Today</Text>
-              </View>
-              {currentHomework.map((item: any) => (
-                <HomeworkItem 
-                  key={item.id} 
-                  homework={item} 
-                  onPress={() => navigation.navigate('Homework', { screen: 'HomeworkDetail', params: { homework: item } })}
-                />
-              ))}
             </View>
           )}
 
