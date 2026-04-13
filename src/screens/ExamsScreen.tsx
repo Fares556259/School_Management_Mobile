@@ -75,7 +75,7 @@ const ExamCard = ({ exam }: any) => {
         <Text style={{ fontSize: 12, color: '#586064', marginTop: 4 }} numberOfLines={2}>{exam.description}</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
           {exam.tags.map((tag: string, i: number) => (
-            <View key={i} style={{ backgroundColor: '#f1f4f6', px: 8, py: 2, borderRadius: 6, marginRight: 6, paddingHorizontal: 8, paddingVertical: 2 }}>
+            <View key={i} style={{ backgroundColor: '#f1f4f6', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginRight: 6 }}>
               <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#2b3437', textTransform: 'uppercase' }}>{tag}</Text>
             </View>
           ))}
@@ -142,7 +142,7 @@ export const ExamsScreen = () => {
       <StatusBar barStyle="dark-content" />
       
       {/* Header */}
-      <View style={{ px: 20, py: 16, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#f1f4f6', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16 }}>
+      <View style={{ paddingHorizontal: 20, paddingVertical: 16, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#f1f4f6', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <View style={{ width: 44, height: 44, borderRadius: 22, overflow: 'hidden', borderWidth: 2, borderColor: '#0055d410' }}>
             <Image source={{ uri: 'https://i.pravatar.cc/100?u=boy' }} style={{ width: '100%', height: '100%' }} />
@@ -182,7 +182,7 @@ export const ExamsScreen = () => {
           <View style={{ marginBottom: 32 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Upcoming Exams</Text>
-              <View style={{ backgroundColor: '#0055d410', px: 10, py: 4, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 }}>
+              <View style={{ backgroundColor: '#0055d410', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 }}>
                 <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#0055d4', textTransform: 'uppercase' }}>Next 14 Days</Text>
               </View>
             </View>
@@ -203,19 +203,6 @@ export const ExamsScreen = () => {
                ) : (
                  <EmptyPlaceholder text="No school events on this date." icon={Info} />
                )}
-            </View>
-          </View>
-
-          {/* Prep Tip Card */}
-          <View style={{ backgroundColor: '#0055d4', padding: 24, borderRadius: 28, flexDirection: 'row', alignItems: 'flex-start' }}>
-            <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
-              <Lightbulb color="white" size={24} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>Study Strategy</Text>
-              <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, marginTop: 4, lineHeight: 20 }}>
-                Studies show that spaced repetition for Biology lab notes can improve score retention by up to 25%. Try reviewing past notes tonight!
-              </Text>
             </View>
           </View>
         </View>
