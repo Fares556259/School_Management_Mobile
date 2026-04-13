@@ -176,8 +176,6 @@ export const PaymentsScreen = () => {
         contentContainerStyle={{ paddingBottom: 150 }}
       >
         <View style={{ paddingHorizontal: 20, paddingTop: 24 }}>
-          <Text style={{ fontSize: 32, fontWeight: 'black', color: '#2b3437', letterSpacing: -0.5 }}>Financial Dashboard</Text>
-          <Text style={{ fontSize: 14, color: '#737c7f', marginTop: 4, marginBottom: 24 }}>Manage academic investments & invoices.</Text>
 
           {/* fintech summary card */}
           <View style={{ 
