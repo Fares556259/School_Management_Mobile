@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Modal, Platform, RefreshControl, Animated } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, Modal, Platform, RefreshControl, Animated, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Book, Microscope, Clock, Globe, Palette, Calculator, Music, Languages, MessageSquare, AlertCircle, FileText, Download, Briefcase, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, BookOpen, Bell } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import * as Notifications from 'expo-notifications';
 
-// Configure how notifications are handled when the app is foregrounded
+// Configure how notifications are handled (Fallback for local)
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -76,14 +76,14 @@ const SessionItem = ({ session }: any) => {
         <Text style={{ fontSize: 11, color: '#737c7f', marginTop: 2 }}>{session.room}</Text>
         <Text style={{ fontSize: 11, color: '#737c7f' }}>{session.time}</Text>
       </View>
-      <View style={{ 
+      <div style={{ 
         paddingHorizontal: 10, 
         paddingVertical: 4, 
         borderRadius: 10, 
         backgroundColor: attendanceColor
       }}>
         <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>{session.attendance}</Text>
-      </View>
+      </div>
     </View>
   );
 };
@@ -142,52 +142,37 @@ export const HomeScreen = ({ navigation }: any) => {
   const [refreshing, setRefreshing] = React.useState(false);
   const [showAlert, setShowAlert] = React.useState(true);
   
-  // Animation for In-App Notification (Legacy Simulation)
+  // High-Fidelity Notification Simulation (Workaround for SDK 53 Expo Go limitations)
   const slideAnim = React.useRef(new Animated.Value(-200)).current;
 
-  React.useEffect(() => {
-    // Request permissions for notifications on mount
-    const requestPermissions = async () => {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-      if (finalStatus !== 'granted') {
-        console.log('Failed to get push token for push notification!');
-        return;
-      }
-    };
-
-    requestPermissions();
-  }, []);
-
   const simulatePush = async () => {
-    // 1. Trigger Native System Notification
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "SnapSchool Admin 🔔",
-        body: "Nouvelle annonce: Réunion des parents ce samedi à 10h.",
-        data: { data: 'goes here' },
-        sound: true,
-      },
-      trigger: null, // trigger immediately
-    });
+    // Attempt local system notification (might still work for some devices in Expo Go)
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "SnapSchool Admin 🔔",
+          body: "Nouvelle annonce: Réunion des parents ce samedi à 10h.",
+          sound: true,
+        },
+        trigger: null,
+      });
+    } catch (e) {
+      console.log('System notification failed - using high-fidelity fallback');
+    }
 
-    // 2. Trigger In-App Animation (for visual feedback inside app)
+    // Trigger High-Fidelity Banner Simulation
     Animated.spring(slideAnim, {
-      toValue: 20,
+      toValue: Platform.OS === 'ios' ? 60 : 20,
       useNativeDriver: true,
-      tension: 40,
-      friction: 7
+      tension: 50,
+      friction: 8
     }).start();
 
-    // Auto-hide in-app banner
+    // Auto-hide
     setTimeout(() => {
       Animated.timing(slideAnim, {
         toValue: -200,
-        duration: 500,
+        duration: 400,
         useNativeDriver: true
       }).start();
     }, 5000);
@@ -201,48 +186,23 @@ export const HomeScreen = ({ navigation }: any) => {
     }, 1500);
   }, []);
 
-  // Calendar View State
-  const [viewingMonth, setViewingMonth] = React.useState(3); // 0-indexed (3 = April)
+  // Calendar logic...
+  const [viewingMonth, setViewingMonth] = React.useState(3);
   const [viewingYear, setViewingYear] = React.useState(2026);
-
-  const months = [
-    "January", "February", "March", "April", "May", "June", 
-    "July", "August", "September", "October", "November", "December"
-  ];
-
+  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const changeMonth = (delta: number) => {
     let newMonth = viewingMonth + delta;
     let newYear = viewingYear;
-
-    if (newMonth > 11) {
-      newMonth = 0;
-      newYear++;
-    } else if (newMonth < 0) {
-      newMonth = 11;
-      newYear--;
-    }
-
-    const isWithinAcademicYear = 
-      (newYear === 2025 && newMonth >= 8) || 
-      (newYear === 2026 && newMonth <= 5);
-
-    if (isWithinAcademicYear) {
-      setViewingMonth(newMonth);
-      setViewingYear(newYear);
+    if (newMonth > 11) { newMonth = 0; newYear++; } else if (newMonth < 0) { newMonth = 11; newYear--; }
+    if ((newYear === 2025 && newMonth >= 8) || (newYear === 2026 && newMonth <= 5)) {
+      setViewingMonth(newMonth); setViewingYear(newYear);
     }
   };
-
-  const getDaysInMonth = (month: number, year: number) => {
-    return new Date(year, month + 1, 0).getDate();
-  };
+  const getDaysInMonth = (m: number, y: number) => new Date(y, m + 1, 0).getDate();
 
   const dates = [
-    { day: 'Mon', date: '23' },
-    { day: 'Tue', date: '24' },
-    { day: 'Wed', date: '25' },
-    { day: 'Thu', date: '26' },
-    { day: 'Fri', date: '27' },
-    { day: 'Sat', date: '28' },
+    { day: 'Mon', date: '23' }, { day: 'Tue', date: '24' }, { day: 'Wed', date: '25' },
+    { day: 'Thu', date: '26' }, { day: 'Fri', date: '27' }, { day: 'Sat', date: '28' },
   ];
 
   const sessionsByDate: any = {
@@ -255,54 +215,70 @@ export const HomeScreen = ({ navigation }: any) => {
   };
 
   const currentSessions = sessionsByDate[selectedDate] || [];
-
-  const homeworkDueTodayByDate: any = {
-    '25': [{ id: 101, title: 'Calculus Assignment 4', dueDate: 'Apr 25, 2026', isUrgent: true, assignedDate: 'Apr 22, 2026' }],
-  };
-
-  const homeworkGivenTodayByDate: any = {
-    '25': [{ id: 201, title: 'New Physics Lab: Optics', dueDate: 'Apr 28, 2026', isUrgent: false, assignedDate: 'Apr 25, 2026' }],
-  };
-
-  const currentDueHomework = homeworkDueTodayByDate[selectedDate] || [];
-  const currentGivenHomework = homeworkGivenTodayByDate[selectedDate] || [];
+  const homeworkDueTodayByDate: any = { '25': [{ id: 101, title: 'Calculus Assignment 4', dueDate: 'Apr 25, 2026', isUrgent: true, assignedDate: 'Apr 22, 2026' }] };
+  const homeworkGivenTodayByDate: any = { '25': [{ id: 201, title: 'New Physics Lab: Optics', dueDate: 'Apr 28, 2026', isUrgent: false, assignedDate: 'Apr 25, 2026' }] };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }} edges={['top']}>
-      {/* Animated In-App Banner (Visual Polish) */}
+      <StatusBar barStyle="dark-content" />
+      
+      {/* High-Fidelity 'System Style' Notification Banner */}
       <Animated.View style={{
         position: 'absolute',
         top: 0,
-        left: 20,
-        right: 20,
-        zIndex: 1000,
+        left: 12,
+        right: 12,
+        zIndex: 10000,
         transform: [{ translateY: slideAnim }],
-        backgroundColor: 'white',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
         borderRadius: 24,
         padding: 16,
+        paddingVertical: 18,
         flexDirection: 'row',
         alignItems: 'center',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.1,
-        shadowRadius: 20,
-        elevation: 10,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 16,
+        elevation: 12,
         borderWidth: 1,
-        borderColor: '#f1f4f6'
+        borderColor: 'rgba(241, 244, 246, 0.8)'
       }}>
-        <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#0055d408', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
-          <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' }} style={{ width: 24, height: 24 }} />
+        {/* App Icon Circle */}
+        <View style={{ 
+          width: 44, 
+          height: 44, 
+          borderRadius: 12, 
+          backgroundColor: '#0055d4', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          marginRight: 14,
+          shadowColor: '#0055d4',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.2,
+          shadowRadius: 8
+        }}>
+          <Image 
+            source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' }} 
+            style={{ width: 22, height: 22, tintColor: 'white' }} 
+          />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#0055d4' }}>SnapSchool Admin</Text>
-          <Text style={{ fontSize: 14, color: '#2b3437', marginTop: 2 }} numberOfLines={2}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+            <Text style={{ fontSize: 13, fontWeight: '800', color: '#0055d4', textTransform: 'uppercase', letterSpacing: 0.5 }}>SnapSchool Admin</Text>
+            <Text style={{ fontSize: 11, color: '#a1a8ac' }}>now</Text>
+          </View>
+          <Text style={{ fontSize: 14, color: '#1a1f21', fontWeight: '600', lineHeight: 18 }} numberOfLines={2}>
             Nouvelle annonce: Réunion des parents ce samedi à 10h.
           </Text>
         </View>
-        <TouchableOpacity onPress={() => {
-          Animated.timing(slideAnim, { toValue: -200, duration: 300, useNativeDriver: true }).start();
-        }}>
-          <X size={20} color="#737c7f" />
+        <TouchableOpacity 
+          onPress={() => Animated.timing(slideAnim, { toValue: -200, duration: 300, useNativeDriver: true }).start()}
+          style={{ marginLeft: 10, padding: 4 }}
+        >
+          <View style={{ backgroundColor: '#f1f4f6', borderRadius: 12, padding: 4 }}>
+            <X size={16} color="#737c7f" />
+          </View>
         </TouchableOpacity>
       </Animated.View>
 
@@ -332,32 +308,24 @@ export const HomeScreen = ({ navigation }: any) => {
             </TouchableOpacity>
           </View>
 
-          {/* New Admin Notifications / Alerts Section */}
+          {/* Admin Alerts section... */}
           {showAlert && (
             <View style={{ marginBottom: 32 }}>
               <View style={{ backgroundColor: '#fff7ed', padding: 20, borderRadius: 28, borderWidth: 1, borderColor: '#ffedd5', shadowColor: '#f97316', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2 }}>
-                <TouchableOpacity onPress={() => setShowAlert(false)} style={{ position: 'absolute', top: 16, right: 16, zIndex: 10, padding: 4 }}>
-                  <X size={18} color="#9a3412" />
-                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowAlert(false)} style={{ position: 'absolute', top: 16, right: 16, zIndex: 10, padding: 4 }}><X size={18} color="#9a3412" /></TouchableOpacity>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                  <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#ffedd5', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
-                    <AlertCircle size={18} color="#f97316" />
-                  </View>
+                  <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#ffedd5', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}><AlertCircle size={18} color="#f97316" /></View>
                   <Text style={{ fontSize: 13, fontWeight: '900', color: '#9a3412', textTransform: 'uppercase', letterSpacing: 0.5 }}>Important Message</Text>
                 </View>
-                <Text style={{ fontSize: 15, color: '#431407', lineHeight: 22, fontWeight: '500' }}>
-                  Dear <Text style={{ fontWeight: 'bold' }}>M. Selmi</Text>, please note that the tuition fees for <Text style={{ fontWeight: 'bold' }}>Ahmed</Text> (Amount: <Text style={{ fontWeight: 'bold', color: '#ea580c' }}>450.00 TND</Text>) are now due. Please settle at your earliest convenience.
-                </Text>
+                <Text style={{ fontSize: 15, color: '#431407', lineHeight: 22, fontWeight: '500' }}>Dear <Text style={{ fontWeight: 'bold' }}>M. Selmi</Text>, please note that the tuition fees for <Text style={{ fontWeight: 'bold' }}>Ahmed</Text> are now due.</Text>
               </View>
             </View>
           )}
 
-          {/* Schedule Section */}
+          {/* Schedule section... */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2b3437' }}>Schedule</Text>
-             <TouchableOpacity onPress={() => setShowPicker(true)} style={{ padding: 8, backgroundColor: '#f1f4f6', borderRadius: 12 }}>
-               <CalendarIcon size={20} color="#0055d4" />
-             </TouchableOpacity>
+             <TouchableOpacity onPress={() => setShowPicker(true)} style={{ padding: 8, backgroundColor: '#f1f4f6', borderRadius: 12 }}><CalendarIcon size={20} color="#0055d4" /></TouchableOpacity>
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 32 }} contentContainerStyle={{ paddingVertical: 10 }}>
@@ -380,33 +348,19 @@ export const HomeScreen = ({ navigation }: any) => {
             {currentSessions.map((session: any) => <SessionItem key={session.id} session={session} />)}
           </View>
 
-          {currentGivenHomework.length > 0 && (
-            <View style={{ marginBottom: 32 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-                <Clock size={20} color="#2b3437" style={{ marginRight: 8 }} />
-                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Tasks Given Today</Text>
-              </View>
-              {currentGivenHomework.map((item: any) => (
-                <HomeworkItem key={item.id} homework={item} label={`Due: ${item.dueDate}`} onPress={() => navigation.navigate('HomeworkDetail', { homework: item })} />
-              ))}
-            </View>
-          )}
+          {/* Tasks Given Today */}
+          {homeworkGivenTodayByDate[selectedDate]?.map((item: any) => (
+            <HomeworkItem key={item.id} homework={item} label={`Due: ${item.dueDate}`} onPress={() => navigation.navigate('HomeworkDetail', { homework: item })} />
+          ))}
 
-          {currentDueHomework.length > 0 && (
-            <View style={{ marginBottom: 32 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-                <BookOpen size={20} color="#2b3437" style={{ marginRight: 8 }} />
-                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Tasks to Submit Today</Text>
-              </View>
-              {currentDueHomework.map((item: any) => (
-                <HomeworkItem key={item.id} homework={item} label="Submit Today" onPress={() => navigation.navigate('HomeworkDetail', { homework: item })} />
-              ))}
-            </View>
-          )}
+          {/* Tasks to Submit Today */}
+          {homeworkDueTodayByDate[selectedDate]?.map((item: any) => (
+            <HomeworkItem key={item.id} homework={item} label="Submit Today" onPress={() => navigation.navigate('HomeworkDetail', { homework: item })} />
+          ))}
         </View>
       </ScrollView>
 
-      {/* Calendar Picker Modal */}
+      {/* Calendar Picker Modal remains same... */}
       <Modal visible={showPicker} transparent={true} animationType="slide" onRequestClose={() => setShowPicker(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
           <View style={{ backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 60 }}>
