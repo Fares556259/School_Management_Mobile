@@ -129,12 +129,8 @@ export const PaymentsScreen = () => {
   const filteredHistory = useMemo(() => {
     let list = [...rawHistory];
     
-    // Sort logic: Overdue first, then by sequence
-    list.sort((a, b) => {
-      if (a.isOverdue && !b.isOverdue) return -1;
-      if (!a.isOverdue && b.isOverdue) return 1;
-      return a.id - b.id;
-    });
+    // Sort logic: Strictly chronological by original sequence
+    list.sort((a, b) => a.id - b.id);
 
     if (activeFilter === 'All') return list;
     if (activeFilter === 'Paid') return list.filter(i => i.status === 'Paid');
