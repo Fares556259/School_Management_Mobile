@@ -320,11 +320,7 @@ export const HomeScreen = ({ navigation }: any) => {
 
           {/* New Admin Notifications / Alerts Section */}
           {showAlert && (
-            <TouchableOpacity 
-              activeOpacity={0.9}
-              onPress={() => setShowAlert(false)}
-              style={{ marginBottom: 32 }}
-            >
+            <View style={{ marginBottom: 32 }}>
               <View style={{ 
                 backgroundColor: '#fff7ed', 
                 padding: 20, 
@@ -337,6 +333,13 @@ export const HomeScreen = ({ navigation }: any) => {
                 shadowRadius: 12,
                 elevation: 2
               }}>
+                <TouchableOpacity 
+                  onPress={() => setShowAlert(false)}
+                  style={{ position: 'absolute', top: 16, right: 16, zIndex: 10, padding: 4 }}
+                >
+                  <X size={18} color="#9a3412" />
+                </TouchableOpacity>
+
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
                   <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#ffedd5', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
                     <AlertCircle size={18} color="#f97316" />
@@ -346,9 +349,8 @@ export const HomeScreen = ({ navigation }: any) => {
                 <Text style={{ fontSize: 15, color: '#431407', lineHeight: 22, fontWeight: '500' }}>
                   Dear <Text style={{ fontWeight: 'bold' }}>M. Selmi</Text>, please note that the tuition fees for <Text style={{ fontWeight: 'bold' }}>Ahmed</Text> (Amount: <Text style={{ fontWeight: 'bold', color: '#ea580c' }}>450.00 TND</Text>) are now due. Please settle at your earliest convenience.
                 </Text>
-                <Text style={{ fontSize: 10, color: '#9a3412', marginTop: 12, opacity: 0.6, fontStyle: 'italic' }}>Tap to dismiss</Text>
               </View>
-            </TouchableOpacity>
+            </View>
           )}
 
           {/* Date Selector Header */}
