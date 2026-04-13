@@ -3,16 +3,6 @@ import { View, Text, ScrollView, TouchableOpacity, Image, Modal, Platform, Refre
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Book, Microscope, Clock, Globe, Palette, Calculator, Music, Languages, MessageSquare, AlertCircle, FileText, Download, Briefcase, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, BookOpen, Bell } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
-import * as Notifications from 'expo-notifications';
-
-// Configure how notifications are handled (Fallback for local)
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
 
 const DateItem = ({ day, date, active, onPress }: any) => (
   <TouchableOpacity 
@@ -76,14 +66,14 @@ const SessionItem = ({ session }: any) => {
         <Text style={{ fontSize: 11, color: '#737c7f', marginTop: 2 }}>{session.room}</Text>
         <Text style={{ fontSize: 11, color: '#737c7f' }}>{session.time}</Text>
       </View>
-      <div style={{ 
+      <View style={{ 
         paddingHorizontal: 10, 
         paddingVertical: 4, 
         borderRadius: 10, 
         backgroundColor: attendanceColor
       }}>
         <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>{session.attendance}</Text>
-      </div>
+      </View>
     </View>
   );
 };
@@ -142,24 +132,10 @@ export const HomeScreen = ({ navigation }: any) => {
   const [refreshing, setRefreshing] = React.useState(false);
   const [showAlert, setShowAlert] = React.useState(true);
   
-  // High-Fidelity Notification Simulation (Workaround for SDK 53 Expo Go limitations)
+  // High-Fidelity Notification Simulation (Stable Version for Expo Go SDK 53)
   const slideAnim = React.useRef(new Animated.Value(-200)).current;
 
-  const simulatePush = async () => {
-    // Attempt local system notification (might still work for some devices in Expo Go)
-    try {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "SnapSchool Admin 🔔",
-          body: "Nouvelle annonce: Réunion des parents ce samedi à 10h.",
-          sound: true,
-        },
-        trigger: null,
-      });
-    } catch (e) {
-      console.log('System notification failed - using high-fidelity fallback');
-    }
-
+  const simulatePush = () => {
     // Trigger High-Fidelity Banner Simulation
     Animated.spring(slideAnim, {
       toValue: Platform.OS === 'ios' ? 60 : 20,
@@ -244,7 +220,6 @@ export const HomeScreen = ({ navigation }: any) => {
         borderWidth: 1,
         borderColor: 'rgba(241, 244, 246, 0.8)'
       }}>
-        {/* App Icon Circle */}
         <View style={{ 
           width: 44, 
           height: 44, 
@@ -258,10 +233,7 @@ export const HomeScreen = ({ navigation }: any) => {
           shadowOpacity: 0.2,
           shadowRadius: 8
         }}>
-          <Image 
-            source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' }} 
-            style={{ width: 22, height: 22, tintColor: 'white' }} 
-          />
+          <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' }} style={{ width: 22, height: 22, tintColor: 'white' }} />
         </View>
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
@@ -308,7 +280,6 @@ export const HomeScreen = ({ navigation }: any) => {
             </TouchableOpacity>
           </View>
 
-          {/* Admin Alerts section... */}
           {showAlert && (
             <View style={{ marginBottom: 32 }}>
               <View style={{ backgroundColor: '#fff7ed', padding: 20, borderRadius: 28, borderWidth: 1, borderColor: '#ffedd5', shadowColor: '#f97316', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2 }}>
@@ -322,7 +293,6 @@ export const HomeScreen = ({ navigation }: any) => {
             </View>
           )}
 
-          {/* Schedule section... */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2b3437' }}>Schedule</Text>
              <TouchableOpacity onPress={() => setShowPicker(true)} style={{ padding: 8, backgroundColor: '#f1f4f6', borderRadius: 12 }}><CalendarIcon size={20} color="#0055d4" /></TouchableOpacity>
@@ -348,19 +318,16 @@ export const HomeScreen = ({ navigation }: any) => {
             {currentSessions.map((session: any) => <SessionItem key={session.id} session={session} />)}
           </View>
 
-          {/* Tasks Given Today */}
           {homeworkGivenTodayByDate[selectedDate]?.map((item: any) => (
             <HomeworkItem key={item.id} homework={item} label={`Due: ${item.dueDate}`} onPress={() => navigation.navigate('HomeworkDetail', { homework: item })} />
           ))}
 
-          {/* Tasks to Submit Today */}
           {homeworkDueTodayByDate[selectedDate]?.map((item: any) => (
             <HomeworkItem key={item.id} homework={item} label="Submit Today" onPress={() => navigation.navigate('HomeworkDetail', { homework: item })} />
           ))}
         </View>
       </ScrollView>
 
-      {/* Calendar Picker Modal remains same... */}
       <Modal visible={showPicker} transparent={true} animationType="slide" onRequestClose={() => setShowPicker(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
           <View style={{ backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 60 }}>
