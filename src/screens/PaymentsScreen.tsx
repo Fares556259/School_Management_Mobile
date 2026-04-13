@@ -20,8 +20,8 @@ const StatusBadge = ({ status, isOverdue }: { status: string, isOverdue?: boolea
     switch (status) {
       case 'Paid': return { bg: '#f0fdf4', text: '#16a34a', label: 'PAID' };
       case 'Partial': return { bg: '#fffbeb', text: '#d97706', label: 'PARTIAL' };
-      case 'Due': return { bg: '#fff7ed', text: '#c2410c', label: 'DUE' };
-      default: return { bg: '#f1f4f6', text: '#737c7f', label: 'LOCKED' };
+      case 'Due': return { bg: '#fff7ed', text: '#c2410c', label: 'UPCOMING' };
+      default: return { bg: '#f1f4f6', text: '#737c7f', label: 'PENDING' };
     }
   };
   const colors = getColors();
@@ -49,8 +49,7 @@ const FintechPaymentCard = ({ item }: any) => {
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.02,
         shadowRadius: 12,
-        elevation: 2,
-        opacity: isLocked ? 0.6 : 1
+        elevation: 2
       }}
       disabled={isLocked}
     >
@@ -87,9 +86,8 @@ const FintechPaymentCard = ({ item }: any) => {
             <Text style={{ color: item.isOverdue ? '#dc2626' : '#737c7f', fontWeight: 'bold', fontSize: 13 }}>{item.isOverdue ? 'Overdue' : 'Due'}</Text>
           </View>
         ) : (
-          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', py: 12, borderRadius: 14, paddingVertical: 12, backgroundColor: '#f8f9fa' }}>
-             <Lock size={16} color="#abb3b7" style={{ marginRight: 8 }} />
-             <Text style={{ color: '#abb3b7', fontWeight: 'bold', fontSize: 14 }}>Locked</Text>
+          <View style={{ flex: 1, backgroundColor: '#f8f9fa', borderDash: [4, 4], borderWidth: 1, borderColor: '#d1d5db', paddingVertical: 12, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: '#737c7f', fontWeight: 'bold', fontSize: 13 }}>Upcoming</Text>
           </View>
         )}
         {!isLocked && (
@@ -118,12 +116,12 @@ export const PaymentsScreen = () => {
     { id: 2, month: 'October 2023', totalAmount: 1500, paidAmount: 1500, status: 'Paid', isOverdue: false },
     { id: 3, month: 'November 2023', totalAmount: 1500, paidAmount: 800, status: 'Partial', isOverdue: true },
     { id: 4, month: 'December 2023', totalAmount: 1500, paidAmount: 0, status: 'Due', isOverdue: false },
-    { id: 5, month: 'January 2024', totalAmount: 1500, paidAmount: 0, status: 'Locked', isOverdue: false },
-    { id: 6, month: 'February 2024', totalAmount: 1500, paidAmount: 0, status: 'Locked', isOverdue: false },
-    { id: 7, month: 'March 2024', totalAmount: 1500, paidAmount: 0, status: 'Locked', isOverdue: false },
-    { id: 8, month: 'April 2024', totalAmount: 1500, paidAmount: 0, status: 'Locked', isOverdue: false },
-    { id: 9, month: 'May 2024', totalAmount: 1500, paidAmount: 0, status: 'Locked', isOverdue: false },
-    { id: 10, month: 'June 2024', totalAmount: 1500, paidAmount: 0, status: 'Locked', isOverdue: false },
+    {id: 5, month: 'January 2024', totalAmount: 1500, paidAmount: 0, status: 'Due', isOverdue: false },
+    { id: 6, month: 'February 2024', totalAmount: 1500, paidAmount: 0, status: 'Due', isOverdue: false },
+    { id: 7, month: 'March 2024', totalAmount: 1500, paidAmount: 0, status: 'Due', isOverdue: false },
+    { id: 8, month: 'April 2024', totalAmount: 1500, paidAmount: 0, status: 'Due', isOverdue: false },
+    { id: 9, month: 'May 2024', totalAmount: 1500, paidAmount: 0, status: 'Due', isOverdue: false },
+    { id: 10, month: 'June 2024', totalAmount: 1500, paidAmount: 0, status: 'Due', isOverdue: false },
   ];
 
   const filteredHistory = useMemo(() => {
