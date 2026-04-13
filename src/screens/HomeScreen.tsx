@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, Modal, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Book, Microscope, Clock, Globe, Palette, Calculator, Music, Languages, MessageSquare, AlertCircle, FileText, Download, Briefcase, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { Book, Microscope, Clock, Globe, Palette, Calculator, Music, Languages, MessageSquare, AlertCircle, FileText, Download, Briefcase, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 
 const DateItem = ({ day, date, active, onPress }: any) => (
@@ -124,7 +124,53 @@ const FileItem = ({ file }: any) => (
   </TouchableOpacity>
 );
 
-export const HomeScreen = () => {
+const HomeworkItem = ({ homework, onPress }: any) => (
+  <TouchableOpacity 
+    onPress={onPress}
+    style={{
+      backgroundColor: 'white',
+      padding: 16,
+      borderRadius: 24,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: '#f1f4f6',
+      flexDirection: 'row',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.02,
+      shadowRadius: 8,
+      elevation: 1
+    }}
+  >
+    <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#f8f9fa', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
+      <Clock size={20} color="#737c7f" />
+    </View>
+    <View style={{ flex: 1 }}>
+      <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#2b3437' }}>{homework.title}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+        <CalendarIcon size={12} color="#737c7f" />
+        <Text style={{ fontSize: 11, color: '#737c7f', marginLeft: 4 }}>Due: {homework.dueDate}</Text>
+      </View>
+    </View>
+    <View style={{ 
+      paddingHorizontal: 10, 
+      paddingVertical: 4, 
+      borderRadius: 10, 
+      backgroundColor: homework.isUrgent ? '#fee2e2' : '#f0fdf4' 
+    }}>
+      <Text style={{ 
+        fontSize: 10, 
+        fontWeight: 'bold', 
+        color: homework.isUrgent ? '#ef4444' : '#22c55e' 
+      }}>
+        {homework.isUrgent ? 'URGENT' : 'PENDING'}
+      </Text>
+    </View>
+  </TouchableOpacity>
+);
+
+export const HomeScreen = ({ navigation }: any) => {
   const { selectedChildId, children } = useAppStore();
   const selectedChild = children.find(c => c.id === selectedChildId);
   const [selectedDate, setSelectedDate] = React.useState('25');
@@ -235,9 +281,16 @@ export const HomeScreen = () => {
     ]
   };
 
+  const homeworkByDate: any = {
+    '25': [{ id: 1, title: 'Calculus Assignment 4', dueDate: 'Tomorrow', isUrgent: true, assignedDate: 'Apr 25, 2026' }],
+    '24': [{ id: 1, title: 'Energy Transformation Lab Report', dueDate: 'Friday, Oct 24', isUrgent: false, assignedDate: 'Apr 24, 2026' }],
+    '23': [{ id: 1, title: 'Read Chapter 5: Operating Systems', dueDate: 'Next Monday', isUrgent: false, assignedDate: 'Apr 23, 2026' }],
+  };
+
   const currentSessions = sessionsByDate[selectedDate] || [];
   const currentNotes = notesByDate[selectedDate] || [];
   const currentFiles = filesByDate[selectedDate] || [];
+  const currentHomework = homeworkByDate[selectedDate] || [];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }} edges={['top']}>
@@ -314,12 +367,29 @@ export const HomeScreen = () => {
 
           {/* Course Files Section */}
           {currentFiles.length > 0 && (
-            <View>
+            <View style={{ marginBottom: 32 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
                 <Briefcase size={20} color="#2b3437" style={{ marginRight: 8 }} />
                 <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Course Resources</Text>
               </View>
               {currentFiles.map((file: any) => <FileItem key={file.id} file={file} />)}
+            </View>
+          )}
+
+          {/* Tasks Given Today Section */}
+          {currentHomework.length > 0 && (
+            <View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <BookOpen size={20} color="#2b3437" style={{ marginRight: 8 }} />
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Tasks Given Today</Text>
+              </View>
+              {currentHomework.map((item: any) => (
+                <HomeworkItem 
+                  key={item.id} 
+                  homework={item} 
+                  onPress={() => navigation.navigate('Homework', { screen: 'HomeworkDetail', params: { homework: item } })}
+                />
+              ))}
             </View>
           )}
 

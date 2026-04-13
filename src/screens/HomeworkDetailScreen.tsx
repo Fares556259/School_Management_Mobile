@@ -8,7 +8,6 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
 
   // Mock details that would normally come from an API
   const homeworkDetails = {
-    assignedDate: 'Oct 20, 2026',
     teacher: 'Dr. Robert Smith',
     description: 'Please complete the exercises from page 42 to 45. Focus on the integration of complex functions and show all steps of your derivation. This assignment will be reviewed during our next seminar.',
     attachment: {
@@ -57,7 +56,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
               <Calendar size={14} color="#0055d4" />
               <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#0055d4', marginLeft: 6, textTransform: 'uppercase' }}>Assigned</Text>
             </View>
-            <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#2b3437' }}>{homeworkDetails.assignedDate}</Text>
+            <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#2b3437' }}>{homework.assignedDate}</Text>
           </View>
           <View style={{ flex: 1, paddingLeft: 16 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
