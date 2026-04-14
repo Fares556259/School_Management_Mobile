@@ -131,7 +131,9 @@ export const studentService = {
   }> => {
     const url = dateStr ? `/api/mobile/home?studentId=${studentId}&date=${dateStr}` : `/api/mobile/home?studentId=${studentId}`;
     const data = await apiFetch(url);
-    if (!data) return { sessions: [], tasksDue: [], tasksGiven: [], upcomingExams: [], teacherRemarks: [] };
+    if (!data || !data.sessions) {
+      return { sessions: [], tasksDue: [], tasksGiven: [], upcomingExams: [], teacherRemarks: [] };
+    }
     return data;
   },
 
@@ -205,11 +207,11 @@ export const studentService = {
 
   fetchAnnouncements: async (): Promise<Announcement[]> => {
     const data = await apiFetch('/api/mobile/announcements');
-    return data || [];
+    return Array.isArray(data) ? data : [];
   },
   
   fetchAttendanceHistory: async (studentId: string): Promise<AttendanceHistoryDay[]> => {
     const data = await apiFetch(`/api/mobile/attendance/history?studentId=${studentId}`);
-    return data || [];
+    return Array.isArray(data) ? data : [];
   },
 };
