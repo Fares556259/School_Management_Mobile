@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bell, Edit2, Globe, BellRing, LifeBuoy, LogOut, Home, BookOpen, FileText, CreditCard, User } from 'lucide-react-native';
+import { Bell, Edit2, Globe, BellRing, LifeBuoy, LogOut } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
+import { authService } from '../services/api';
 
 const ChildCard = ({ child, isSelected, onSelect }: any) => (
   <TouchableOpacity 
@@ -44,8 +45,27 @@ const SettingItem = ({ icon: Icon, label, value, color, iconColor, isLast }: any
   </TouchableOpacity>
 );
 
-export const ProfileScreen = () => {
-  const { children, selectedChildId, setSelectedChildId } = useAppStore();
+export const ProfileScreen = ({ navigation, onSignOut }: any) => {
+  const { children, selectedChildId, setSelectedChildId, setChildren } = useAppStore();
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            await authService.logout();
+            setChildren([]);
+            if (onSignOut) onSignOut();
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-surface-background">
@@ -57,7 +77,10 @@ export const ProfileScreen = () => {
           </View>
           <Text className="text-xl font-jakarta font-black text-brand-primary">SnapSchool</Text>
         </View>
-        <TouchableOpacity className="p-2">
+        <TouchableOpacity 
+          onPress={() => navigation.navigate('Notifications')}
+          className="p-2"
+        >
           <Bell size={24} color="#0055d4" fill="#0055d4" />
         </TouchableOpacity>
       </View>
@@ -105,7 +128,19 @@ export const ProfileScreen = () => {
             <SettingItem icon={Globe} label="Language" value="English (System Default)" color="bg-blue-50" iconColor="#0055d4" />
             <SettingItem icon={BellRing} label="Notifications" value="Alerts, grades, & messages" color="bg-surface-low" iconColor="#586064" />
             <SettingItem icon={LifeBuoy} label="Support" value="Help center & contact school" color="bg-blue-50" iconColor="#0055d4" />
-            <SettingItem icon={LogOut} label="Logout" color="bg-red-50" iconColor="#9f403d" isLast />
+            <TouchableOpacity
+              onPress={handleLogout}
+              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16 }}
+            >
+              <View style={{ padding: 12, borderRadius: 16, marginRight: 16, backgroundColor: '#fef2f2' }}>
+                <LogOut size={20} color="#9f403d" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#9f403d' }}>Sign Out</Text>
+                <Text style={{ color: '#737c7f', fontSize: 13 }}>Clear session & return to login</Text>
+              </View>
+              <Text style={{ color: '#d1d5db', fontSize: 20 }}>›</Text>
+            </TouchableOpacity>
           </View>
         </View>
 

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -7,21 +7,22 @@ import { ExamsScreen } from './src/screens/ExamsScreen';
 import { AnnouncementsScreen } from './src/screens/AnnouncementsScreen';
 import { PaymentsScreen } from './src/screens/PaymentsScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
+import { NotificationsScreen } from './src/screens/NotificationsScreen';
 import { HomeworkDetailScreen } from './src/screens/HomeworkDetailScreen';
 import { ExamDetailScreen } from './src/screens/ExamDetailScreen';
-import { Home as HomeIcon, BookOpen, FileText, CreditCard, User, Megaphone } from 'lucide-react-native';
-import { useAppStore } from './src/store/useAppStore';
-import { parentService } from './src/services/api';
-import "./src/styles/global.css";
-import { View, Text } from 'react-native';
-
+import { SignInScreen } from './src/screens/SignInScreen';
+import { Home as HomeIcon, FileText, CreditCard, User, Megaphone } from 'lucide-react-native';
+import { View, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useAppStore } from './src/store/useAppStore';
+import { parentService, authService } from './src/services/api';
+import "./src/styles/global.css";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-function BottomTabs() {
+function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -46,25 +47,17 @@ function BottomTabs() {
         },
         tabBarActiveTintColor: '#0055d4',
         tabBarInactiveTintColor: '#737c7f',
-        tabBarLabelStyle: {
-          fontFamily: 'Plus Jakarta Sans',
-          fontWeight: '900',
-          fontSize: 9,
-          marginTop: 2,
-        },
-        tabBarIcon: ({ color, size, focused }) => {
-          let Icon;
+        tabBarLabelStyle: { fontWeight: '900', fontSize: 9, marginTop: 2 },
+        tabBarIcon: ({ color, focused }) => {
+          let Icon: any;
           if (route.name === 'Home') Icon = HomeIcon;
           else if (route.name === 'Exams') Icon = FileText;
           else if (route.name === 'Announcements') Icon = Megaphone;
           else if (route.name === 'Payments') Icon = CreditCard;
           else if (route.name === 'Profile') Icon = User;
-
-          const LucideIcon = Icon as any;
-
           return (
-            <View className={`${focused ? 'bg-brand-primary/10 px-4 py-2 rounded-2xl' : ''}`}>
-              <LucideIcon color={color} size={focused ? 24 : 20} />
+            <View style={focused ? { backgroundColor: '#0055d410', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16 } : {}}>
+              <Icon color={color} size={focused ? 24 : 20} />
             </View>
           );
         },
@@ -74,30 +67,86 @@ function BottomTabs() {
       <Tab.Screen name="Exams" component={ExamsScreen} />
       <Tab.Screen name="Announcements" component={AnnouncementsScreen} />
       <Tab.Screen name="Payments" component={PaymentsScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen
+        name="Profile"
+        children={(props: any) => <ProfileScreen {...props} onSignOut={onSignOut} />}
+      />
     </Tab.Navigator>
   );
 }
 
-export default function App() {
-  const { setChildren, setSelectedChildId } = useAppStore();
-
-  useEffect(() => {
-    parentService.fetchChildren().then(data => {
+  export default function App() {
+    const { setChildren, setSelectedChildId, setError, setParentName } = useAppStore();
+    const [authState, setAuthState] = useState<'loading' | 'signedIn' | 'signedOut'>('loading');
+  
+    // Check stored auth on launch
+    useEffect(() => {
+      const bootstrap = async () => {
+        const loggedIn = await authService.isLoggedIn();
+        if (loggedIn) {
+          // Try to load children; if network is down, fall back to login
+          const parentProfile = await parentService.fetchParentProfile();
+          if (parentProfile?.name) setParentName(parentProfile.name);
+          
+          const data = await parentService.fetchChildren();
+          if (data.length > 0) {
+            setChildren(data);
+            setSelectedChildId(data[0].id);
+            setAuthState('signedIn');
+          } else {
+            // Stale session or server unreachable — require login
+            await authService.logout();
+            setAuthState('signedOut');
+          }
+        } else {
+          setAuthState('signedOut');
+        }
+      };
+      bootstrap();
+    }, []);
+  
+    const handleSignIn = async () => {
+      const parentProfile = await parentService.fetchParentProfile();
+      if (parentProfile?.name) setParentName(parentProfile.name);
+      
+      const data = await parentService.fetchChildren();
       setChildren(data);
       if (data.length > 0) setSelectedChildId(data[0].id);
-    });
-  }, []);
+      setAuthState('signedIn');
+    };
+  
+    const handleSignOut = async () => {
+      await authService.logout();
+      setChildren([]);
+      setParentName("Parent");
+      setAuthState('signedOut');
+    };
+
+  if (authState === 'loading') {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a1628' }}>
+        <ActivityIndicator size="large" color="#ffffff" />
+      </View>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <NavigationContainer>
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="MainTabs" component={BottomTabs} />
-            <Stack.Screen name="HomeworkDetail" component={HomeworkDetailScreen} />
-            <Stack.Screen name="ExamDetail" component={ExamDetailScreen} />
-          </Stack.Navigator>
+          {authState === 'signedOut' ? (
+            <SignInScreen onSignIn={handleSignIn} />
+          ) : (
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              <Stack.Screen
+                name="MainTabs"
+                children={() => <BottomTabs onSignOut={handleSignOut} />}
+              />
+              <Stack.Screen name="Notifications" component={NotificationsScreen} />
+              <Stack.Screen name="HomeworkDetail" component={HomeworkDetailScreen} />
+              <Stack.Screen name="ExamDetail" component={ExamDetailScreen} />
+            </Stack.Navigator>
+          )}
         </NavigationContainer>
       </SafeAreaProvider>
     </GestureHandlerRootView>

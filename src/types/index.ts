@@ -13,22 +13,84 @@ export interface Grade {
   date: string;
 }
 
-export interface Payment {
-  id: string;
+export interface PaymentRecord {
+  id: number;
   month: string;
-  amount: number;
-  status: 'PAID' | 'PENDING' | 'OVERDUE';
+  totalAmount: number;
+  paidAmount: number;
+  status: 'Paid' | 'Partial' | 'Due' | 'Locked';
+  isOverdue: boolean;
 }
 
-export interface TimetableSlot {
-  day: string;
-  time: string;
+export interface Session {
+  id: number;
   subject: string;
+  room: string;
+  time: string;
+  attendance: 'Pres' | 'Abs' | 'Rtr' | 'Exclu' | '-';
+  iconName: string;
+  color: string;
 }
 
-export interface Notice {
-  id: string;
+export interface TeacherNote {
+  id: number;
+  author: string;
+  text: string;
+  time: string;
+}
+
+export interface CourseFile {
+  id: number;
+  name: string;
+  type: 'pdf' | 'book';
+  sharedBy: string;
+  size: string;
+}
+
+export interface HomeworkItem {
+  id: number;
   title: string;
-  content: string;
+  dueDate: string;
+  isUrgent: boolean;
+  assignedDate: string;
+}
+
+export interface Exam {
+  id: number;
+  subject: string;
+  time: string;
+  description: string;
+  iconName: string;
+  accentColor: string;
+  bgColor: string;
+  tags: string[];
+}
+
+export interface Notification {
+  id: number;
+  type: string;
+  student: string;
+  message: string;
+  time: string;
+  iconName: string;
+  iconColor: string;
+  isNew: boolean;
+}
+
+export interface Announcement {
+  id: number;
+  title: string;
   date: string;
+  category: string;
+  image: string;
+  excerpt: string;
+}
+
+export interface StudentDayData {
+  sessions: Session[];
+  notes: TeacherNote[];
+  files: CourseFile[];
+  homeworkDue: HomeworkItem[];
+  homeworkGiven: HomeworkItem[];
+  exams: Exam[];
 }

@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, Platform, RefreshControl, StatusBar, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bell, CreditCard, Download, Info, Lock, ChevronRight, AlertCircle, PieChart, Filter, DownloadCloud, ReceiptText } from 'lucide-react-native';
+import { Bell, Info, Filter, DownloadCloud, ReceiptText } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
-
+import { studentService } from '../services/api';
+import { PaymentRecord } from '../types';
 const { width } = Dimensions.get('window');
 
 // --- Helper Components ---
@@ -102,48 +103,35 @@ const FintechPaymentCard = ({ item }: any) => {
 
 // --- Main Screen ---
 
-export const PaymentsScreen = () => {
+export const PaymentsScreen = ({ navigation }: any) => {
+  const { selectedChildId } = useAppStore();
+  const [rawHistory, setRawHistory] = useState<PaymentRecord[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState('All');
 
-  const onRefresh = React.useCallback(() => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1500);
+  const loadPayments = useCallback(async (childId: string) => {
+    const data = await studentService.fetchPayments(childId);
+    setRawHistory(data);
   }, []);
+  useEffect(() => {
+    if (selectedChildId) loadPayments(selectedChildId);
+  }, [selectedChildId]);
 
-  const rawHistory = [
-    { id: 1, month: 'September 2023', totalAmount: 1500, paidAmount: 1500, status: 'Paid', isOverdue: false },
-    { id: 2, month: 'October 2023', totalAmount: 1500, paidAmount: 1500, status: 'Paid', isOverdue: false },
-    { id: 3, month: 'November 2023', totalAmount: 1500, paidAmount: 800, status: 'Partial', isOverdue: true },
-    { id: 4, month: 'December 2023', totalAmount: 1500, paidAmount: 0, status: 'Due', isOverdue: false },
-    {id: 5, month: 'January 2024', totalAmount: 1500, paidAmount: 0, status: 'Due', isOverdue: false },
-    { id: 6, month: 'February 2024', totalAmount: 1500, paidAmount: 0, status: 'Due', isOverdue: false },
-    { id: 7, month: 'March 2024', totalAmount: 1500, paidAmount: 0, status: 'Due', isOverdue: false },
-    { id: 8, month: 'April 2024', totalAmount: 1500, paidAmount: 0, status: 'Due', isOverdue: false },
-    { id: 9, month: 'May 2024', totalAmount: 1500, paidAmount: 0, status: 'Due', isOverdue: false },
-    { id: 10, month: 'June 2024', totalAmount: 1500, paidAmount: 0, status: 'Due', isOverdue: false },
-  ];
-
+  const onRefresh = useCallback(async () => {
+    if (!selectedChildId) return;
+    setRefreshing(true);
+    const data = await studentService.fetchPayments(selectedChildId);
+    setRawHistory(data);
+    setRefreshing(false);
+  }, [selectedChildId]);
   const filteredHistory = useMemo(() => {
-    let list = [...rawHistory];
-    
-    // Sort logic: Strictly chronological by original sequence
-    list.sort((a, b) => a.id - b.id);
-
+    const list = [...rawHistory].sort((a, b) => a.id - b.id);
     if (activeFilter === 'All') return list;
     if (activeFilter === 'Paid') return list.filter(i => i.status === 'Paid');
     if (activeFilter === 'Due') return list.filter(i => i.status === 'Due' || i.status === 'Partial');
     if (activeFilter === 'Overdue') return list.filter(i => i.isOverdue);
     return list;
-  }, [activeFilter]);
-
-  const stats = useMemo(() => {
-    const total = 15000;
-    const paid = rawHistory.reduce((acc, curr) => acc + curr.paidAmount, 0);
-    const remaining = total - paid;
-    const progress = (paid / total) * 100;
-    return { total, paid, remaining, progress };
-  }, []);
+  }, [activeFilter, rawHistory]);
 
   const filters = ['All', 'Paid', 'Due', 'Overdue'];
 
@@ -159,8 +147,11 @@ export const PaymentsScreen = () => {
           </View>
           <Text style={{ fontSize: 18, fontWeight: 'black', color: '#0055d4', marginLeft: 12 }}>SnapSchool</Text>
         </View>
-        <TouchableOpacity style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8f9fa', alignItems: 'center', justifyContent: 'center' }}>
-          <Bell color="#737c7f" size={20} />
+        <TouchableOpacity 
+          onPress={() => navigation.navigate('Notifications')}
+          style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8f9fa', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Bell color="#0055d4" size={20} />
           {rawHistory.some(i => i.isOverdue) && (
             <View style={{ position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444', borderWidth: 2, borderColor: 'white' }} />
           )}

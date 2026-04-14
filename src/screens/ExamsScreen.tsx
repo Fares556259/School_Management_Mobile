@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Image, Modal, StatusBar, Refr
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar as CalendarIcon, Bell, ChevronLeft, ChevronRight, BookOpen, FileText, Calculator, Microscope } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
-
+import { studentService } from '../services/api';
 const DateItem = ({ day, date, active, onPress }: any) => (
   <TouchableOpacity 
     onPress={onPress}
@@ -100,20 +100,34 @@ export const ExamsScreen = ({ navigation }: any) => {
   };
   const getDaysInMonth = (m: number, y: number) => new Date(y, m + 1, 0).getDate();
 
-  const onRefresh = React.useCallback(() => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1500);
+  const ICON_MAP: Record<string, any> = { Calculator, BookOpen, Microscope };
+
+  const [exams, setExams] = React.useState<any[]>([]);
+
+  const loadExams = React.useCallback(async (childId: string, date: string) => {
+    const data = await studentService.fetchExams(childId, date);
+    setExams(data.map((e: any) => ({ ...e, icon: ICON_MAP[e.iconName] || FileText })));
   }, []);
+  React.useEffect(() => {
+    if (selectedChildId) loadExams(selectedChildId, selectedDate);
+  }, [selectedChildId, selectedDate]);
 
-  const dates = [{ day: 'Mon', date: '23' }, { day: 'Tue', date: '24' }, { day: 'Wed', date: '25' }, { day: 'Thu', date: '26' }, { day: 'Fri', date: '27' }, { day: 'Sat', date: '28' }, { day: 'Sun', date: '29' }];
-
-  const examsByDate: any = {
-    '23': [{ id: 10, subject: 'Arabic Literature', time: '09:00 AM', description: 'Classical poetry and modern prose analysis.', icon: BookOpen, accentColor: '#865400', bgColor: '#fffbeb', tags: ['Poetry', 'Vocalization'] }],
-    '25': [{ id: 1, subject: 'Mathematics (Algebra)', time: '10:30 AM', description: 'Quadratic equations and function limits.', icon: Calculator, accentColor: '#0055d4', bgColor: '#eff6ff', tags: ['Units 1-4', 'Calculator'] }],
-    '27': [{ id: 3, subject: 'Biology', time: '01:45 PM', description: 'Genetics and molecular biology foundations.', icon: Microscope, accentColor: '#006d4a', bgColor: '#f0fdf4', tags: ['Lab Notes'] }]
-  };
-
-  const currentExams = examsByDate[selectedDate] || [];
+  const onRefresh = React.useCallback(async () => {
+    if (!selectedChildId) return;
+    setRefreshing(true);
+    const data = await studentService.fetchExams(selectedChildId, selectedDate);
+    setExams(data.map((e: any) => ({ ...e, icon: ICON_MAP[e.iconName] || FileText })));
+    setRefreshing(false);
+  }, [selectedChildId, selectedDate]);
+  const dates = [
+    { day: 'Mon', date: '23' },
+    { day: 'Tue', date: '24' },
+    { day: 'Wed', date: '25' },
+    { day: 'Thu', date: '26' },
+    { day: 'Fri', date: '27' },
+    { day: 'Sat', date: '28' },
+    { day: 'Sun', date: '29' },
+  ];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }} edges={['top']}>
@@ -127,8 +141,11 @@ export const ExamsScreen = ({ navigation }: any) => {
           </View>
           <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#0055d4', marginLeft: 12 }}>SnapSchool</Text>
         </View>
-        <TouchableOpacity style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8f9fa', alignItems: 'center', justifyContent: 'center' }}>
-          <Bell color="#737c7f" size={20} />
+        <TouchableOpacity 
+          onPress={() => navigation.navigate('Notifications')}
+          style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8f9fa', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Bell color="#0055d4" size={20} />
           <View style={{ position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444', borderWidth: 2, borderColor: 'white' }} />
         </TouchableOpacity>
       </View>
@@ -152,7 +169,13 @@ export const ExamsScreen = ({ navigation }: any) => {
           {/* Timeline Picker */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 32 }} contentContainerStyle={{ paddingVertical: 10 }}>
             {dates.map((d) => (
-              <DateItem key={d.date} day={d.day} date={d.date} active={selectedDate === d.date} onPress={() => setSelectedDate(d.date)} />
+              <DateItem 
+                key={d.date} 
+                day={d.day} 
+                date={d.date} 
+                active={selectedDate === d.date} 
+                onPress={() => setSelectedDate(d.date)} 
+              />
             ))}
           </ScrollView>
 
@@ -164,8 +187,8 @@ export const ExamsScreen = ({ navigation }: any) => {
                 <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#0055d4', textTransform: 'uppercase' }}>Next 14 Days</Text>
               </View>
             </View>
-            {currentExams.length > 0 ? (
-               currentExams.map((exam: any) => <ExamCard key={exam.id} exam={exam} navigation={navigation} />)
+            {exams.length > 0 ? (
+               exams.map((exam: any) => <ExamCard key={exam.id} exam={exam} navigation={navigation} />)
             ) : (
                <EmptyPlaceholder text="No exams scheduled for this date." icon={FileText} />
             )}
@@ -178,8 +201,25 @@ export const ExamsScreen = ({ navigation }: any) => {
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
           <View style={{ backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 60 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}><Text style={{ fontSize: 22, fontWeight: 'black', color: '#2b3437' }}>Academic Calendar</Text></View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, backgroundColor: '#f8f9fa', padding: 12, borderRadius: 16 }}><TouchableOpacity onPress={() => changeMonth(-1)} style={{ padding: 4 }}><ChevronLeft size={24} color="#0055d4" /></TouchableOpacity><View style={{ alignItems: 'center' }}><Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2b3437' }}>{months[viewingMonth]}</Text><Text style={{ fontSize: 12, color: '#737c7f', fontWeight: 'bold' }}>{viewingYear}</Text></View><TouchableOpacity onPress={() => changeMonth(1)} style={{ padding: 4 }}><ChevronRight size={24} color="#0055d4" /></TouchableOpacity></View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' }}>{Array.from({ length: getDaysInMonth(viewingMonth, viewingYear) }, (_, i) => i + 1).map((day) => { const dayStr = day.toString(); return (<TouchableOpacity key={day} onPress={() => { setSelectedDate(dayStr); setShowPicker(false); }} style={{ width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', marginVertical: 4, borderRadius: 12, backgroundColor: selectedDate === dayStr ? '#0055d4' : 'transparent' }}><Text style={{ fontSize: 14, color: selectedDate === dayStr ? 'white' : '#2b3437' }}>{day}</Text></TouchableOpacity>); })}</View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, backgroundColor: '#f8f9fa', padding: 12, borderRadius: 16 }}>
+              <TouchableOpacity onPress={() => changeMonth(-1)} style={{ padding: 4 }}><ChevronLeft size={24} color="#0055d4" /></TouchableOpacity>
+              <View style={{ alignItems: 'center' }}><Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2b3437' }}>{months[viewingMonth]}</Text><Text style={{ fontSize: 12, color: '#737c7f', fontWeight: 'bold' }}>{viewingYear}</Text></View>
+              <TouchableOpacity onPress={() => changeMonth(1)} style={{ padding: 4 }}><ChevronRight size={24} color="#0055d4" /></TouchableOpacity>
+            </View>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+              {Array.from({ length: getDaysInMonth(viewingMonth, viewingYear) }, (_, i) => i + 1).map((day) => { 
+                const dayStr = day.toString(); 
+                return (
+                  <TouchableOpacity 
+                    key={day} 
+                    onPress={() => { setSelectedDate(dayStr); setShowPicker(false); }} 
+                    style={{ width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', marginVertical: 4, borderRadius: 12, backgroundColor: selectedDate === dayStr ? '#0055d4' : 'transparent' }}
+                  >
+                    <Text style={{ fontSize: 14, color: selectedDate === dayStr ? 'white' : '#2b3437' }}>{day}</Text>
+                  </TouchableOpacity>
+                ); 
+              })}
+            </View>
             <View style={{ marginTop: 24, padding: 16, backgroundColor: '#f1f4f6', borderRadius: 20 }}><Text style={{ fontSize: 12, color: '#737c7f', textAlign: 'center', fontWeight: '500' }}>Academic year: <Text style={{ color: '#0055d4', fontWeight: 'bold' }}>September - June</Text></Text></View>
           </View>
         </View>
