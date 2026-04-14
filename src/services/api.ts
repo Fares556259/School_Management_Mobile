@@ -128,11 +128,12 @@ export const studentService = {
     tasksGiven: any[];
     upcomingExams: any[];
     teacherRemarks: any[];
+    examPeriods?: any[];
   }> => {
     const url = dateStr ? `/api/mobile/home?studentId=${studentId}&date=${dateStr}` : `/api/mobile/home?studentId=${studentId}`;
     const data = await apiFetch(url);
     if (!data || !data.sessions) {
-      return { sessions: [], tasksDue: [], tasksGiven: [], upcomingExams: [], teacherRemarks: [] };
+      return { sessions: [], tasksDue: [], tasksGiven: [], upcomingExams: [], teacherRemarks: [], examPeriods: [] };
     }
     return data;
   },

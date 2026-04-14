@@ -3,7 +3,6 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeScreen } from './src/screens/HomeScreen';
-import { ExamsScreen } from './src/screens/ExamsScreen';
 import { AnnouncementsScreen } from './src/screens/AnnouncementsScreen';
 import { PaymentsScreen } from './src/screens/PaymentsScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
@@ -52,7 +51,6 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
         tabBarIcon: ({ color, focused }) => {
           let Icon: any;
           if (route.name === 'Home') Icon = HomeIcon;
-          else if (route.name === 'Exams') Icon = FileText;
           else if (route.name === 'Announcements') Icon = Megaphone;
           else if (route.name === 'Payments') Icon = CreditCard;
           else if (route.name === 'Profile') Icon = User;
@@ -65,7 +63,6 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Exams" component={ExamsScreen} />
       <Tab.Screen name="Announcements" component={AnnouncementsScreen} />
       <Tab.Screen name="Payments" component={PaymentsScreen} />
       <Tab.Screen
