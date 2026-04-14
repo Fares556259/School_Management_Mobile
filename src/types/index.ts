@@ -86,6 +86,21 @@ export interface Announcement {
   excerpt: string;
 }
 
+export interface AttendanceHistoryDay {
+  date: string;
+  status: 'PRESENT' | 'ABSENT' | 'LATE';
+  sessions: {
+    id: number;
+    lessonId: number | null;
+    subject: string;
+    status: 'PRESENT' | 'ABSENT' | 'LATE';
+  }[];
+  notes: {
+    author: string;
+    text: string;
+  }[];
+}
+
 export interface StudentDayData {
   sessions: Session[];
   notes: TeacherNote[];

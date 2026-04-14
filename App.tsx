@@ -8,10 +8,11 @@ import { AnnouncementsScreen } from './src/screens/AnnouncementsScreen';
 import { PaymentsScreen } from './src/screens/PaymentsScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { NotificationsScreen } from './src/screens/NotificationsScreen';
+import { AttendanceScreen } from './src/screens/AttendanceScreen';
 import { HomeworkDetailScreen } from './src/screens/HomeworkDetailScreen';
 import { ExamDetailScreen } from './src/screens/ExamDetailScreen';
 import { SignInScreen } from './src/screens/SignInScreen';
-import { Home as HomeIcon, FileText, CreditCard, User, Megaphone } from 'lucide-react-native';
+import { Home as HomeIcon, FileText, CreditCard, User, Megaphone, Calendar } from 'lucide-react-native';
 import { View, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -142,6 +143,7 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
                 name="MainTabs"
                 children={() => <BottomTabs onSignOut={handleSignOut} />}
               />
+              <Stack.Screen name="Attendance" component={AttendanceScreen} />
               <Stack.Screen name="Notifications" component={NotificationsScreen} />
               <Stack.Screen name="HomeworkDetail" component={HomeworkDetailScreen} />
               <Stack.Screen name="ExamDetail" component={ExamDetailScreen} />

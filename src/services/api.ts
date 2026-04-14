@@ -21,14 +21,19 @@ export const authStorage = {
 
 // ─── Helper for Fetching ─────────────────────────────────────────────────────
 const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
       },
     });
+    clearTimeout(id);
 
     if (!response.ok) {
       const text = await response.text();
@@ -37,8 +42,13 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     }
 
     return await response.json();
-  } catch (error) {
-    console.error(`Network Error for ${endpoint}:`, error);
+  } catch (error: any) {
+    clearTimeout(id);
+    if (error.name === 'AbortError') {
+      console.error(`Network Error (Timeout): The request to ${endpoint} took too long.`);
+    } else {
+      console.error(`Network Error for ${endpoint}:`, error);
+    }
     return null;
   }
 };
@@ -195,6 +205,11 @@ export const studentService = {
 
   fetchAnnouncements: async (): Promise<Announcement[]> => {
     const data = await apiFetch('/api/mobile/announcements');
+    return data || [];
+  },
+  
+  fetchAttendanceHistory: async (studentId: string): Promise<AttendanceHistoryDay[]> => {
+    const data = await apiFetch(`/api/mobile/attendance/history?studentId=${studentId}`);
     return data || [];
   },
 };

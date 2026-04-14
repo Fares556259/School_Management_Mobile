@@ -146,6 +146,9 @@ const DATES = [
 const EMPTY_DAY: StudentDayData = { sessions: [], notes: [], files: [], homeworkDue: [], homeworkGiven: [], exams: [] };
 
 export const HomeScreen = ({ navigation }: any) => {
+  const { selectedChildId, children, parentName } = useAppStore();
+  const selectedChild = children.find((c: any) => c.id === selectedChildId);
+
   const today = new Date();
   const [selectedFullDate, setSelectedFullDate] = React.useState(today);
   const [showPicker, setShowPicker] = React.useState(false);
@@ -295,11 +298,21 @@ export const HomeScreen = ({ navigation }: any) => {
             <LoadingSkeleton />
           ) : (
             <>
-              {/* Today's Sessions */}
+              {/* Today's Sessions & Attendance */}
               <View style={{ marginBottom: 8 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 }}>
-                  <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Today's Sessions</Text>
-                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#586064' }}>{attendancePercent}%</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Schedule & Attendance</Text>
+                  <TouchableOpacity 
+                    onPress={() => navigation.navigate('Attendance')}
+                    style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#0055d410', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#0055d4', marginRight: 4 }}>History</Text>
+                    <ChevronRight size={14} color="#0055d4" />
+                  </TouchableOpacity>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 8 }}>
+                  <Text style={{ fontSize: 13, color: '#737c7f', fontWeight: 'bold' }}>Progress</Text>
+                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#586064' }}>{attendancePercent}% marked</Text>
                 </View>
                 <View style={{ width: '100%', height: 10, backgroundColor: '#e2e9ec', borderRadius: 5, overflow: 'hidden', marginBottom: 16 }}>
                   <View style={{ width: `${attendancePercent}%`, height: '100%', backgroundColor: '#0055d4', borderRadius: 5 }} />
