@@ -146,51 +146,67 @@ const DATES = [
 const EMPTY_DAY: StudentDayData = { sessions: [], notes: [], files: [], homeworkDue: [], homeworkGiven: [], exams: [] };
 
 export const HomeScreen = ({ navigation }: any) => {
-  const { selectedChildId, children, parentName } = useAppStore();
-  const selectedChild = children.find(c => c.id === selectedChildId);
-
-  const [selectedDate, setSelectedDate] = React.useState('25');
+  const today = new Date();
+  const [selectedFullDate, setSelectedFullDate] = React.useState(today);
   const [showPicker, setShowPicker] = React.useState(false);
   const [showAlert, setShowAlert] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [dayData, setDayData] = React.useState<StudentDayData>(EMPTY_DAY);
 
-  const [viewingMonth, setViewingMonth] = React.useState(3);
-  const [viewingYear, setViewingYear] = React.useState(2026);
+  const [viewingMonth, setViewingMonth] = React.useState(today.getMonth());
+  const [viewingYear, setViewingYear] = React.useState(today.getFullYear());
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
   const changeMonth = (delta: number) => {
     let newMonth = viewingMonth + delta;
     let newYear = viewingYear;
     if (newMonth > 11) { newMonth = 0; newYear++; } else if (newMonth < 0) { newMonth = 11; newYear--; }
-    if ((newYear === 2025 && newMonth >= 8) || (newYear === 2026 && newMonth <= 5)) { setViewingMonth(newMonth); setViewingYear(newYear); }
+    setViewingMonth(newMonth); 
+    setViewingYear(newYear);
   };
   const getDaysInMonth = (m: number, y: number) => new Date(y, m + 1, 0).getDate();
+  const getFirstDayOfMonth = (m: number, y: number) => {
+    const day = new Date(y, m, 1).getDay();
+    // adjust so Monday is first (0) and Sunday is last (6)
+    return day === 0 ? 6 : day - 1;
+  };
+
+  const formatDateStr = (date: Date) => {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
 
   // Fetch data when child or date changes
   React.useEffect(() => {
     if (!selectedChildId) return;
     const loadData = async () => {
       setLoading(true);
-      const data = await studentService.fetchDayData(selectedChildId, selectedDate);
+      const data = await studentService.fetchDayData(selectedChildId, formatDateStr(selectedFullDate));
       setDayData(data);
       setLoading(false);
     };
     loadData();
-  }, [selectedChildId, selectedDate]);
+  }, [selectedChildId, selectedFullDate]);
 
   const onRefresh = React.useCallback(async () => {
     if (!selectedChildId) return;
     setRefreshing(true);
-    const data = await studentService.fetchDayData(selectedChildId, selectedDate);
+    const data = await studentService.fetchDayData(selectedChildId, formatDateStr(selectedFullDate));
     setDayData(data);
     setShowAlert(true);
     setRefreshing(false);
-  }, [selectedChildId, selectedDate]);
+  }, [selectedChildId, selectedFullDate]);
 
-  const presentCount = dayData.sessions.filter(s => s.attendance === 'Pres').length;
-  const attendancePercent = dayData.sessions.length > 0 ? Math.round((presentCount / dayData.sessions.length) * 100) : 0;
+  const presentCount = dayData.sessions?.filter(s => s.attendance === 'Pres').length || 0;
+  const attendancePercent = (dayData.sessions?.length || 0) > 0 ? Math.round((presentCount / dayData.sessions.length) * 100) : 0;
+
+  // Generate week slider items around selected date
+  const sliderDates = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date(selectedFullDate);
+    d.setDate(d.getDate() - 3 + i);
+    return d;
+  });
+  const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }} edges={['top']}>
@@ -263,7 +279,15 @@ export const HomeScreen = ({ navigation }: any) => {
             </TouchableOpacity>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 32 }} contentContainerStyle={{ paddingVertical: 10 }}>
-            {DATES.map(d => <DateItem key={d.date} day={d.day} date={d.date} active={selectedDate === d.date} onPress={() => setSelectedDate(d.date)} />)}
+            {sliderDates.map(d => (
+              <DateItem 
+                key={formatDateStr(d)} 
+                day={DAYS[d.getDay()]} 
+                date={d.getDate().toString()} 
+                active={formatDateStr(selectedFullDate) === formatDateStr(d)} 
+                onPress={() => setSelectedFullDate(d)} 
+              />
+            ))}
           </ScrollView>
 
           {/* Loading State */}
@@ -281,7 +305,7 @@ export const HomeScreen = ({ navigation }: any) => {
                   <View style={{ width: `${attendancePercent}%`, height: '100%', backgroundColor: '#0055d4', borderRadius: 5 }} />
                 </View>
               </View>
-              {dayData.sessions.length > 0 ? (
+              {dayData.sessions?.length > 0 ? (
                 <View style={{ marginBottom: 32 }}>{dayData.sessions.map((session: any) => <SessionItem key={session.id} session={session} />)}</View>
               ) : (
                 <EmptyPlaceholder text="No sessions – enjoy your day!" icon={Coffee} />
@@ -293,7 +317,7 @@ export const HomeScreen = ({ navigation }: any) => {
                   <AlertCircle size={20} color="#2b3437" style={{ marginRight: 8 }} />
                   <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Tasks to Submit Today</Text>
                 </View>
-                {dayData.homeworkDue.length > 0 ? (
+                {dayData.homeworkDue?.length > 0 ? (
                   dayData.homeworkDue.map((item: any) => <HomeworkItem key={item.id} homework={item} label="Submit Today" onPress={() => navigation.navigate('HomeworkDetail', { homework: item })} />)
                 ) : (
                   <EmptyPlaceholder text="No tasks to submit today." icon={Clock} />
@@ -304,12 +328,12 @@ export const HomeScreen = ({ navigation }: any) => {
               <View style={{ marginBottom: 16 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
                   <FileText size={20} color="#2b3437" style={{ marginRight: 8 }} />
-                  <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Tasks Given Today</Text>
+                  <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Tasks Given</Text>
                 </View>
-                {dayData.homeworkGiven.length > 0 ? (
-                  dayData.homeworkGiven.map((item: any) => <HomeworkItem key={item.id} homework={item} label={`Due: ${item.dueDate}`} onPress={() => navigation.navigate('HomeworkDetail', { homework: item })} />)
+                {dayData.homeworkGiven?.length > 0 ? (
+                  dayData.homeworkGiven.map((item: any) => <HomeworkItem key={item.id} homework={item} label={`Due: ${new Date(item.dueDate).toLocaleDateString()}`} onPress={() => navigation.navigate('HomeworkDetail', { homework: item })} />)
                 ) : (
-                  <EmptyPlaceholder text="No new tasks given today." icon={Briefcase} />
+                  <EmptyPlaceholder text="No new tasks given." icon={Briefcase} />
                 )}
               </View>
 
@@ -319,7 +343,7 @@ export const HomeScreen = ({ navigation }: any) => {
                   <BookOpen size={20} color="#2b3437" style={{ marginRight: 8 }} />
                   <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Course Resources</Text>
                 </View>
-                {dayData.files.length > 0 ? (
+                {dayData.files?.length > 0 ? (
                   dayData.files.map((file: any) => <FileItem key={file.id} file={file} />)
                 ) : (
                   <EmptyPlaceholder text="No resources shared today." icon={Info} />
@@ -332,7 +356,7 @@ export const HomeScreen = ({ navigation }: any) => {
                   <MessageSquare size={20} color="#2b3437" style={{ marginRight: 8 }} />
                   <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Teacher Remarks</Text>
                 </View>
-                {dayData.notes.length > 0 ? (
+                {dayData.notes?.length > 0 ? (
                   dayData.notes.map((note: any) => <NoteItem key={note.id} note={note} />)
                 ) : (
                   <EmptyPlaceholder text="No remarks for this date." icon={MessageSquare} />
@@ -344,39 +368,81 @@ export const HomeScreen = ({ navigation }: any) => {
       </ScrollView>
 
       {/* Calendar Modal */}
-      <Modal visible={showPicker} transparent animationType="slide" onRequestClose={() => setShowPicker(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-          <View style={{ backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 60 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#2b3437' }}>Academic Calendar</Text>
+      <Modal visible={showPicker} transparent animationType="fade" onRequestClose={() => setShowPicker(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: 'white', borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 24, paddingBottom: 50 }}>
+            
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#2b3437' }}>Academic Calendar</Text>
+              <TouchableOpacity onPress={() => setShowPicker(false)} style={{ padding: 4 }}><X size={24} color="#737c7f" /></TouchableOpacity>
             </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, backgroundColor: '#f8f9fa', padding: 12, borderRadius: 16 }}>
-              <TouchableOpacity onPress={() => changeMonth(-1)} style={{ padding: 4 }}><ChevronLeft size={24} color="#0055d4" /></TouchableOpacity>
+            
+            {/* Month & Year Controller */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, backgroundColor: '#f8f9fa', padding: 12, borderRadius: 20 }}>
+              <TouchableOpacity onPress={() => changeMonth(-1)} style={{ padding: 8, backgroundColor: 'white', borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
+                <ChevronLeft size={20} color="#0055d4" />
+              </TouchableOpacity>
               <View style={{ alignItems: 'center' }}>
-                <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2b3437' }}>{months[viewingMonth]}</Text>
-                <Text style={{ fontSize: 12, color: '#737c7f', fontWeight: 'bold' }}>{viewingYear}</Text>
+                <Text style={{ fontSize: 18, fontWeight: '900', color: '#2b3437' }}>{months[viewingMonth]}</Text>
+                <Text style={{ fontSize: 13, color: '#737c7f', fontWeight: 'bold' }}>{viewingYear}</Text>
               </View>
-              <TouchableOpacity onPress={() => changeMonth(1)} style={{ padding: 4 }}><ChevronRight size={24} color="#0055d4" /></TouchableOpacity>
+              <TouchableOpacity onPress={() => changeMonth(1)} style={{ padding: 8, backgroundColor: 'white', borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
+                <ChevronRight size={20} color="#0055d4" />
+              </TouchableOpacity>
             </View>
+            
+            {/* Weekdays Header */}
+            <View style={{ flexDirection: 'row', marginBottom: 12 }}>
+              {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(day => (
+                <Text key={day} style={{ flex: 1, textAlign: 'center', fontSize: 12, fontWeight: 'bold', color: '#737c7f' }}>{day}</Text>
+              ))}
+            </View>
+
+            {/* Days Grid */}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+              {Array.from({ length: getFirstDayOfMonth(viewingMonth, viewingYear) }).map((_, i) => (
+                <View key={`empty-${i}`} style={{ width: '14.28%', aspectRatio: 1 }} />
+              ))}
               {Array.from({ length: getDaysInMonth(viewingMonth, viewingYear) }, (_, i) => i + 1).map(day => {
-                const dayStr = day.toString();
-                const isSelected = selectedDate === dayStr && viewingMonth === 3;
-                const hasData = viewingMonth === 3 && ['23', '24', '25', '26', '27', '28', '29'].includes(dayStr);
+                const isSelected = selectedFullDate.getDate() === day && selectedFullDate.getMonth() === viewingMonth && selectedFullDate.getFullYear() === viewingYear;
+                
+                // For logic realism: weekdays are selectable and have data (mostly). 
+                const d = new Date(viewingYear, viewingMonth, day);
+                const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                const selectable = !isWeekend; 
+
                 return (
                   <TouchableOpacity
                     key={day}
-                    onPress={() => { if (hasData) { setSelectedDate(dayStr); setShowPicker(false); } }}
-                    style={{ width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', marginVertical: 4, borderRadius: 12, backgroundColor: isSelected ? '#0055d4' : 'transparent', borderWidth: hasData && !isSelected ? 1 : 0, borderColor: '#0055d440' }}
+                    onPress={() => { 
+                      setSelectedFullDate(new Date(viewingYear, viewingMonth, day));
+                      setShowPicker(false);
+                    }}
+                    style={{ 
+                      width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', 
+                      marginVertical: 4
+                    }}
                   >
-                    <Text style={{ fontSize: 14, fontWeight: isSelected || hasData ? 'bold' : 'normal', color: isSelected ? 'white' : hasData ? '#0055d4' : '#2b3437' }}>{day}</Text>
+                    <View style={{
+                      width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
+                      backgroundColor: isSelected ? '#0055d4' : selectable ? '#f0f4f8' : 'transparent',
+                    }}>
+                      <Text style={{ 
+                        fontSize: 15, 
+                        fontWeight: isSelected ? 'bold' : '600', 
+                        color: isSelected ? 'white' : selectable ? '#0055d4' : '#a0aab0' 
+                      }}>
+                        {day}
+                      </Text>
+                    </View>
                   </TouchableOpacity>
                 );
               })}
             </View>
-            <View style={{ marginTop: 24, padding: 16, backgroundColor: '#f1f4f6', borderRadius: 20 }}>
-              <Text style={{ fontSize: 12, color: '#737c7f', textAlign: 'center', fontWeight: '500' }}>
-                Academic year: <Text style={{ color: '#0055d4', fontWeight: 'bold' }}>September – June</Text>
+            
+            <View style={{ marginTop: 24, padding: 16, backgroundColor: '#f8f9fa', borderRadius: 20 }}>
+              <Text style={{ fontSize: 13, color: '#737c7f', textAlign: 'center', fontWeight: '500' }}>
+                <CalendarIcon size={14} color="#0055d4" style={{ top: 2 }} /> School days are Monday through Friday.
               </Text>
             </View>
           </View>
