@@ -53,16 +53,14 @@ export const PaymentsScreen = ({ navigation }: any) => {
   const counts = useMemo(() => ({
     All: history.length,
     Paid: history.filter(p => p.status === 'Paid').length,
-    Due: history.filter(p => p.status === 'Due' || p.status === 'Partial').length,
-    Overdue: history.filter(p => p.isOverdue).length,
+    Unpaid: history.filter(p => p.status !== 'Paid' && p.status !== 'Locked').length,
   }), [history]);
 
   // Sorting & Filtering Logic
   const processedList = useMemo(() => {
     let list = [...history];
     if (activeFilter === 'Paid') list = list.filter(p => p.status === 'Paid');
-    if (activeFilter === 'Due') list = list.filter(p => (p.status === 'Due' || p.status === 'Partial') && !p.isOverdue);
-    if (activeFilter === 'Overdue') list = list.filter(p => p.isOverdue);
+    if (activeFilter === 'Unpaid') list = list.filter(p => p.status !== 'Paid' && p.status !== 'Locked');
 
     // Timeline sorting: September to June
     // We can rely on the order in history which is already Sep -> Jun from the api.ts
@@ -140,7 +138,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
             <Text className="ml-2 text-[10px] font-jakarta font-black text-text-muted uppercase tracking-[2px]">Filter History</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-            {['All', 'Paid', 'Due', 'Overdue'].map(filter => {
+            {['All', 'Paid', 'Unpaid'].map(filter => {
               const isActive = activeFilter === filter;
               const count = (counts as any)[filter] || 0;
               return (
