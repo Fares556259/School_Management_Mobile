@@ -131,6 +131,14 @@ export const parentService = {
       body: JSON.stringify({ id: parentId, ...data }),
     });
   },
+
+  linkStudent: async (studentId: string, birthday: string) => {
+    const parentId = await authStorage.getParentId();
+    return apiFetch('/api/mobile/students', {
+      method: 'POST',
+      body: JSON.stringify({ studentId, parentId, birthday }),
+    });
+  },
 };
 
 // ─── Student Data Service ─────────────────────────────────────────────────────

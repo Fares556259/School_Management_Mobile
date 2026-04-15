@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Alert, Modal, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, Alert, Modal, TextInput, ActivityIndicator, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bell, Edit2, Globe, BellRing, LifeBuoy, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, User } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAppStore } from '../store/useAppStore';
 import { authService, parentService, studentService, uiService } from '../services/api';
+
+import { GlobalHeader } from '../components/GlobalHeader';
 
 const ChildCard = ({ child, isSelected, onSelect, onEditImage }: any) => (
   <View className="mr-4">
@@ -59,12 +61,11 @@ const SettingItem = ({ icon: Icon, label, value, color, iconColor, isLast, onPre
 );
 
 export const ProfileScreen = ({ navigation, onSignOut }: any) => {
-  const { children, selectedChildId, setSelectedChildId, setChildren, parentName, setParentName } = useAppStore();
+  const { children, selectedChildId, setSelectedChildId, setChildren, parentName, setParentName, setParentAvatarUrl } = useAppStore();
   const selectedChild = children.find((c: any) => c.id === selectedChildId);
   const [parentProfile, setParentProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  const [showChildSwitcher, setShowChildSwitcher] = useState(false);
   
   // Edit Modal State
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -80,6 +81,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     if (profile) {
       setParentProfile(profile);
       setParentName(`${profile.name} ${profile.surname}`);
+      setParentAvatarUrl(profile.img);
       setEditData({ name: profile.name, surname: profile.surname, phone: profile.phone });
     }
     setLoading(false);
@@ -234,42 +236,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
 
   return (
     <SafeAreaView className="flex-1 bg-surface-background">
-      {/* Header: Profile Switcher & Notifications */}
-      <View className="flex-row items-center justify-between px-6 py-4 bg-surface-lowest">
-        <TouchableOpacity 
-          onPress={() => setShowChildSwitcher(true)}
-          className="flex-row items-center bg-white p-2.5 pr-4 rounded-2xl border border-surface-low"
-          style={{
-            shadowColor: '#2b3437',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.04,
-            shadowRadius: 12,
-            elevation: 2,
-          }}
-        >
-          <View className="w-10 h-10 rounded-full overflow-hidden border-2 border-brand-primary/10 mr-3">
-            <Image 
-              source={selectedChild?.avatarUrl ? { uri: selectedChild.avatarUrl } : require('../../assets/noavatar.png')} 
-              className="w-full h-full" 
-            />
-          </View>
-          <View>
-            <Text className="text-[10px] text-text-muted font-jakarta font-bold tracking-widest uppercase">
-              {selectedChild?.name?.split(' ')[0]}'s Profile
-            </Text>
-            <View className="flex-row items-center">
-              <Text className="text-lg font-jakarta font-bold text-text-primary">
-                {selectedChild?.name || 'Switch Family'}
-              </Text>
-              <ChevronDown size={16} color="#0055d4" className="ml-1.5" />
-            </View>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => navigation.navigate('Notifications')} className="p-2.5 bg-surface-lowest rounded-full border border-surface-low">
-          <Bell size={24} color="#0055d4" fill="#0055d4" />
-        </TouchableOpacity>
-      </View>
+      <StatusBar barStyle="dark-content" />
 
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1" contentContainerClassName="px-6 pb-32">
         {/* Parent Profile Section */}
@@ -413,71 +380,6 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
             </View>
           </View>
         </View>
-      </Modal>
-
-      {/* Child Switcher BottomSheet */}
-      <Modal visible={showChildSwitcher} transparent animationType="slide" onRequestClose={() => setShowChildSwitcher(false)}>
-        <TouchableOpacity 
-          activeOpacity={1} 
-          onPress={() => setShowChildSwitcher(false)}
-          className="flex-1 bg-black/50 justify-end"
-        >
-          <View className="bg-white rounded-t-[40px] p-8 pb-12">
-            <View className="w-10 h-1 bg-surface-low rounded-full self-center mb-6" />
-            
-            <View className="flex-row justify-between items-center mb-6">
-              <View>
-                <Text className="text-2xl font-jakarta font-black text-brand-primary">Family Profiles</Text>
-                <Text className="text-sm text-text-muted font-manrope font-medium mt-1">Switch between your children</Text>
-              </View>
-              <TouchableOpacity onPress={() => setShowChildSwitcher(false)} className="w-10 h-10 bg-surface-low rounded-full items-center justify-center">
-                <X size={20} color="#737c7f" />
-              </TouchableOpacity>
-            </View>
- 
-            <View className="gap-3">
-              {children.map((child: any) => {
-                const isActive = selectedChildId === child.id;
-                return (
-                  <TouchableOpacity
-                    key={child.id}
-                    onPress={() => {
-                      setSelectedChildId(child.id);
-                      setShowChildSwitcher(false);
-                    }}
-                    className={`flex-row items-center p-4 rounded-[28px] border-2 ${isActive ? 'bg-blue-50/50 border-brand-primary' : 'bg-surface-lowest border-surface-low'}`}
-                  >
-                    <View className={`w-14 h-14 rounded-full overflow-hidden border-2 ${isActive ? 'border-brand-primary' : 'border-surface-low'}`}>
-                      <Image 
-                        source={child.avatarUrl ? { uri: child.avatarUrl } : require('../../assets/noavatar.png')} 
-                        className="w-full h-full" 
-                      />
-                    </View>
-                    <View className="flex-1 ml-4">
-                      <Text className="text-lg font-jakarta font-bold text-text-primary">{child.name}</Text>
-                      <Text className="text-sm text-text-muted font-manrope font-semibold">{child.class || 'No Class Assigned'}</Text>
-                    </View>
-                    {isActive ? (
-                      <View className="w-7 h-7 bg-brand-primary rounded-full items-center justify-center">
-                        <Check size={16} color="white" />
-                      </View>
-                    ) : (
-                      <ChevronRight size={20} color="#d1d5db" />
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
- 
-            <TouchableOpacity 
-              className="flex-row items-center justify-center mt-6 p-4 rounded-2xl bg-surface-low"
-              onPress={() => {/* Placeholder for adding another child if needed */}}
-            >
-              <UserIcon size={18} color="#0055d4" className="mr-2" />
-              <Text className="text-brand-primary font-jakarta font-bold text-sm uppercase tracking-widest">Manage Family Accounts</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
       </Modal>
     </SafeAreaView>
   );

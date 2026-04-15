@@ -5,6 +5,7 @@ import { ChevronLeft, Calendar, AlertCircle, CheckCircle2, Clock, MessageSquare,
 import { useAppStore } from '../store/useAppStore';
 import { studentService } from '../services/api';
 import { AttendanceHistoryDay } from '../types';
+import { GlobalHeader } from '../components/GlobalHeader';
 
 const STATUS_MAP = {
   PRESENT: { label: 'Present', color: '#22c55e', bg: '#f0fdf4', icon: CheckCircle2 },
@@ -148,18 +149,14 @@ export const AttendanceScreen = ({ navigation }: any) => {
   const totalLates = history.filter(d => d.status === 'LATE').length;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       
-      {/* Header */}
-      <View style={{ padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()}
-          style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 }}
-        >
-          <ChevronLeft color="#2b3437" size={24} />
-        </TouchableOpacity>
-        <Text style={{ fontSize: 18, fontWeight: '900', color: '#2b3437' }}>Attendance History</Text>
+      {/* Shared Global Header */}
+      <GlobalHeader navigation={navigation} showBack />
+
+      <View style={{ paddingHorizontal: 20, paddingTop: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text style={{ fontSize: 24, fontWeight: '900', color: '#2b3437' }}>Attendance</Text>
         <TouchableOpacity style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 }}>
           <Filter color="#2b3437" size={20} />
         </TouchableOpacity>

@@ -5,6 +5,8 @@ import { Bell, Info, Filter, DownloadCloud, ReceiptText } from 'lucide-react-nat
 import { useAppStore } from '../store/useAppStore';
 import { studentService } from '../services/api';
 import { PaymentRecord } from '../types';
+import { GlobalHeader } from '../components/GlobalHeader';
+
 const { width } = Dimensions.get('window');
 
 // --- Helper Components ---
@@ -139,24 +141,8 @@ export const PaymentsScreen = ({ navigation }: any) => {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       
-      {/* Header */}
-      <View style={{ paddingHorizontal: 20, paddingVertical: 16, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#f1f4f6', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <View style={{ width: 44, height: 44, borderRadius: 22, overflow: 'hidden', borderWidth: 2, borderColor: '#0055d410' }}>
-            <Image source={{ uri: 'https://i.pravatar.cc/100?u=parent' }} style={{ width: '100%', height: '100%' }} />
-          </View>
-          <Text style={{ fontSize: 18, fontWeight: 'black', color: '#0055d4', marginLeft: 12 }}>SnapSchool</Text>
-        </View>
-        <TouchableOpacity 
-          onPress={() => navigation.navigate('Notifications')}
-          style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8f9fa', alignItems: 'center', justifyContent: 'center' }}
-        >
-          <Bell color="#0055d4" size={20} />
-          {rawHistory.some(i => i.isOverdue) && (
-            <View style={{ position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444', borderWidth: 2, borderColor: 'white' }} />
-          )}
-        </TouchableOpacity>
-      </View>
+      {/* Shared Global Header */}
+      <GlobalHeader navigation={navigation} />
 
       <ScrollView 
         showsVerticalScrollIndicator={false}

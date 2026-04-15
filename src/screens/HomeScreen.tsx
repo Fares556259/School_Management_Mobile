@@ -5,6 +5,7 @@ import { Book, Microscope, Clock, Globe, Palette, Calculator, Music, Languages, 
 import { useAppStore } from '../store/useAppStore';
 import { studentService } from '../services/api';
 import { StudentDayData } from '../types';
+import { GlobalHeader } from '../components/GlobalHeader';
 
 // ─── Icon map ─────────────────────────────────────────────────────────────────
 const ICON_MAP: Record<string, any> = {
@@ -147,16 +148,20 @@ const DATES = [
   { day: 'Thu', date: '26' }, { day: 'Fri', date: '27' }, { day: 'Sat', date: '28' }, { day: 'Sun', date: '29' },
 ];
 
+const formatDateStr = (date: Date) => {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+
 const EMPTY_DAY: StudentDayData = { sessions: [], notes: [], files: [], homeworkDue: [], homeworkGiven: [], exams: [] };
 
 export const HomeScreen = ({ navigation }: any) => {
-  const { selectedChildId, children, parentName } = useAppStore();
+  const { selectedChildId, setSelectedChildId, children, setChildren, parentName, setParentName, parentAvatarUrl, setParentAvatarUrl } = useAppStore();
   const selectedChild = children.find((c: any) => c.id === selectedChildId);
 
   const today = new Date();
   const [selectedFullDate, setSelectedFullDate] = React.useState(today);
   const [showPicker, setShowPicker] = React.useState(false);
-  const [showAlert, setShowAlert] = React.useState(true);
+  const [showAlert, setShowAlert] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [dayData, setDayData] = React.useState<StudentDayData>(EMPTY_DAY);
@@ -179,10 +184,6 @@ export const HomeScreen = ({ navigation }: any) => {
     return day === 0 ? 6 : day - 1;
   };
 
-  const formatDateStr = (date: Date) => {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-  };
-
   // Fetch data when child or date changes
   React.useEffect(() => {
     if (!selectedChildId) return;
@@ -190,6 +191,12 @@ export const HomeScreen = ({ navigation }: any) => {
       setLoading(true);
       const data = await studentService.fetchDayData(selectedChildId, formatDateStr(selectedFullDate));
       setDayData(data);
+      
+      // Determine Alert Visibility
+      const payments = await studentService.fetchPayments(selectedChildId);
+      const hasOverdue = payments.some(p => p.status === 'Due' || p.isOverdue);
+      setShowAlert(hasOverdue);
+      
       setLoading(false);
     };
     loadData();
@@ -200,7 +207,6 @@ export const HomeScreen = ({ navigation }: any) => {
     setRefreshing(true);
     const data = await studentService.fetchDayData(selectedChildId, formatDateStr(selectedFullDate));
     setDayData(data);
-    setShowAlert(true);
     setRefreshing(false);
   }, [selectedChildId, selectedFullDate]);
 
@@ -216,69 +222,19 @@ export const HomeScreen = ({ navigation }: any) => {
   const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }} edges={['top']}>
+    <SafeAreaView className="flex-1 bg-surface-background" edges={['top']}>
       <StatusBar barStyle="dark-content" />
+
+      {/* Shared Global Header */}
+      <GlobalHeader navigation={navigation} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0055d4']} tintColor="#0055d4" />}
       >
         <View style={{ paddingBottom: 150, paddingHorizontal: 20 }}>
-
-          {/* Header: SnapSchool & Notifications */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 20 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={{ width: 40, height: 40, backgroundColor: '#0055d4', borderRadius: 12, alignItems: 'center', justifyContent: 'center', shadowColor: '#0055d4', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 }}>
-                <Text style={{ color: 'white', fontWeight: '900', fontSize: 20 }}>S</Text>
-              </View>
-              <View style={{ marginLeft: 12 }}>
-                <Text style={{ fontSize: 13, color: '#737c7f', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }}>Welcome back,</Text>
-                <Text style={{ fontSize: 20, color: '#2b3437', fontWeight: 'bold' }}>{parentName.split(' ')[0]}</Text>
-              </View>
-            </View>
-            
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Notifications')}
-              style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: '#f1f4f6' }}
-            >
-              <Bell size={22} color="#0055d4" />
-              <View style={{ position: 'absolute', top: 12, right: 12, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444', borderWidth: 1.5, borderColor: 'white' }} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Child Selection Context Indicator */}
-          <View style={{ 
-            flexDirection: 'row', 
-            alignItems: 'center', 
-            backgroundColor: 'white', 
-            padding: 10, 
-            borderRadius: 20, 
-            marginBottom: 24, 
-            borderWidth: 1, 
-            borderColor: '#f1f4f6',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.03,
-            shadowRadius: 10,
-            elevation: 2
-          }}>
-            <View style={{ width: 36, height: 36, borderRadius: 18, overflow: 'hidden', borderWidth: 1.5, borderColor: '#0055d420' }}>
-              <Image 
-                source={selectedChild?.avatarUrl ? { uri: selectedChild.avatarUrl } : require('../../assets/noavatar.png')} 
-                style={{ width: '100%', height: '100%' }} 
-              />
-            </View>
-            <View style={{ marginLeft: 12 }}>
-              <Text style={{ fontSize: 10, color: '#737c7f', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }}>Active Profile</Text>
-              <Text style={{ fontSize: 15, color: '#2b3437', fontWeight: 'bold' }}>{selectedChild?.name || 'Select Child'}</Text>
-            </View>
-            <TouchableOpacity 
-              onPress={() => navigation.navigate('Profile')}
-              style={{ marginLeft: 'auto', backgroundColor: '#0055d408', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
-            >
-              <Text style={{ fontSize: 12, color: '#0055d4', fontWeight: 'bold' }}>Switch</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Spacing after flat header */}
+          <View style={{ height: 16 }} />
 
           {/* Tuition Alert */}
           {showAlert && (
@@ -484,6 +440,7 @@ export const HomeScreen = ({ navigation }: any) => {
           </View>
         </View>
       </Modal>
+
     </SafeAreaView>
   );
 };

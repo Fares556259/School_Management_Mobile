@@ -5,6 +5,9 @@ import { Bell, Search, Filter, ChevronRight } from 'lucide-react-native';
 import { studentService } from '../services/api';
 import { Announcement } from '../types';
 import { useAppStore } from '../store/useAppStore';
+import { GlobalHeader } from '../components/GlobalHeader';
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 const AnnouncementCard = ({ item, onPress }: any) => (
   <TouchableOpacity
@@ -72,23 +75,16 @@ export const AnnouncementsScreen = ({ navigation }: any) => {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }} edges={['top']}>
       <StatusBar barStyle="dark-content" />
 
-      {/* Header */}
+      {/* Shared Global Header */}
+      <GlobalHeader navigation={navigation} />
+
+      {/* Screen Title & Search Bar */}
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-          <View>
-            <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#2b3437', letterSpacing: -0.5 }}>Comm Center</Text>
-            <Text style={{ fontSize: 13, color: '#737c7f', marginTop: 2 }}>School news & student alerts</Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Notifications')}
-            style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 4 }}
-          >
-            <Bell size={22} color="#0055d4" />
-            <View style={{ position: 'absolute', top: 14, right: 14, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444', borderWidth: 2, borderColor: 'white' }} />
-          </TouchableOpacity>
+        <View style={{ marginBottom: 24 }}>
+          <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#2b3437', letterSpacing: -0.5 }}>Comm Center</Text>
+          <Text style={{ fontSize: 13, color: '#737c7f', marginTop: 2 }}>School news & student alerts</Text>
         </View>
 
-        {/* Search Bar */}
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <View style={{ flex: 1, height: 52, backgroundColor: 'white', borderRadius: 16, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, borderWidth: 1, borderColor: '#f1f4f6' }}>
             <Search size={20} color="#abb3b7" style={{ marginRight: 12 }} />
