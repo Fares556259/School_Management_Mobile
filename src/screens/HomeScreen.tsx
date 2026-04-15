@@ -59,21 +59,23 @@ const SessionItem = ({ session }: any) => {
       case 'Pres': return { label: 'Present', color: '#22c55e' };
       case 'Abs':  return { label: 'Absent',  color: '#ef4444' };
       case 'Late': return { label: 'Late',    color: '#f59e0b' };
-      default:     return { label: 'Pending', color: '#9ca3af' };
+      default:     return null;
     }
   };
   const badge = getAttendanceBadge(session.attendance);
   return (
-    <View style={{ backgroundColor: 'white', padding: 16, borderRadius: 24, flexDirection: 'row', alignItems: 'center', marginBottom: 16, borderWidth: 1, borderColor: badge.color + '30', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10, elevation: 2 }}>
+    <View style={{ backgroundColor: 'white', padding: 16, borderRadius: 24, flexDirection: 'row', alignItems: 'center', marginBottom: 16, borderWidth: 1, borderColor: (badge?.color || '#f1f4f6') + '30', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10, elevation: 2 }}>
       <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: '#f8f9fa', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}><Icon color="#0055d4" size={24} /></View>
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#2b3437' }}>{session.subject}</Text>
         {session.teacher && <Text style={{ fontSize: 11, color: '#0055d4', marginTop: 1, fontWeight: '600' }}>{session.teacher}</Text>}
         <Text style={{ fontSize: 11, color: '#737c7f', marginTop: 1 }}>{session.room} • {session.time}</Text>
       </View>
-      <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, backgroundColor: badge.color }}>
-        <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>{badge.label}</Text>
-      </View>
+      {badge && (
+        <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, backgroundColor: badge.color }}>
+          <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>{badge.label}</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -205,7 +207,14 @@ export const HomeScreen = ({ navigation }: any) => {
   const onRefresh = React.useCallback(async () => {
     if (!selectedChildId) return;
     setRefreshing(true);
-    const data = await studentService.fetchDayData(selectedChildId, formatDateStr(selectedFullDate));
+    const rawData = await studentService.fetchDayData(selectedChildId, formatDateStr(selectedFullDate));
+    const data = {
+      ...rawData,
+      sessions: rawData.sessions?.map(s => ({
+        ...s,
+        attendance: s.attendance === 'PRESENT' ? 'Pres' : s.attendance === 'ABSENT' ? 'Abs' : s.attendance === 'LATE' ? 'Late' : null
+      }))
+    };
     setDayData(data);
     setRefreshing(false);
   }, [selectedChildId, selectedFullDate]);

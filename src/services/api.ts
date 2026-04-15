@@ -168,7 +168,7 @@ export const studentService = {
         subject: s.subject,
         room: s.room,
         time: `${s.startTime} - ${s.endTime}`,
-        attendance: s.attendance === 'PRESENT' ? 'Pres' : s.attendance === 'ABSENT' ? 'Abs' : s.attendance === 'LATE' ? 'Late' : 'Pres',
+        attendance: s.attendance === 'PRESENT' ? 'Pres' : s.attendance === 'ABSENT' ? 'Abs' : s.attendance === 'LATE' ? 'Late' : null,
         iconName: 'Book',
         color: '#0055d4',
       })),
