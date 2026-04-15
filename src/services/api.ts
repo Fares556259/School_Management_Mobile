@@ -63,7 +63,7 @@ const mapStudent = (s: any): Student & { raw: any } => ({
   id: s.id,
   name: `${s.name} ${s.surname}`,
   class: s.class?.name || 'No Class',
-  avatarUrl: s.img || `https://i.pravatar.cc/100?u=${s.id}`,
+  avatarUrl: s.img || null,
   raw: s,
 });
 

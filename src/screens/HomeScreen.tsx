@@ -5,6 +5,7 @@ import { Book, Microscope, Clock, Globe, Palette, Calculator, Music, Languages, 
 import { useAppStore } from '../store/useAppStore';
 import { studentService } from '../services/api';
 import { StudentDayData } from '../types';
+
 // ─── Icon map ─────────────────────────────────────────────────────────────────
 const ICON_MAP: Record<string, any> = {
   Calculator, Book, Languages, Clock, Globe, Palette, Music, Microscope, Briefcase, BookOpen, FileText,
@@ -117,7 +118,10 @@ const ChildCard = ({ child, active, onPress }: any) => (
     }}
   >
     <View style={{ width: 32, height: 32, borderRadius: 16, overflow: 'hidden', borderWidth: 1.5, borderColor: active ? 'rgba(255,255,255,0.3)' : '#0055d420' }}>
-      <Image source={{ uri: child.avatarUrl || 'https://i.pravatar.cc/100?u=' + child.id }} style={{ width: '100%', height: '100%' }} />
+      <Image 
+        source={child.avatarUrl ? { uri: child.avatarUrl } : require('../../assets/noavatar.png')} 
+        style={{ width: '100%', height: '100%' }} 
+      />
     </View>
     <Text style={{ fontSize: 13, fontWeight: 'bold', color: active ? 'white' : '#2b3437', marginLeft: 10 }}>{child.name.split(' ')[0]}</Text>
   </TouchableOpacity>
@@ -152,7 +156,6 @@ export const HomeScreen = ({ navigation }: any) => {
   const today = new Date();
   const [selectedFullDate, setSelectedFullDate] = React.useState(today);
   const [showPicker, setShowPicker] = React.useState(false);
-  const [showChildSwitcher, setShowChildSwitcher] = React.useState(false);
   const [showAlert, setShowAlert] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -222,25 +225,17 @@ export const HomeScreen = ({ navigation }: any) => {
       >
         <View style={{ paddingBottom: 150, paddingHorizontal: 20 }}>
 
-          {/* Header: Parent Greeting & Profile Switcher */}
+          {/* Header: SnapSchool & Notifications */}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 20 }}>
-            <TouchableOpacity 
-              onPress={() => setShowChildSwitcher(true)}
-              style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', padding: 10, borderRadius: 22, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: '#f1f4f6' }}
-            >
-              <View style={{ width: 44, height: 44, borderRadius: 22, overflow: 'hidden', borderWidth: 2, borderColor: '#0055d420' }}>
-                <Image source={{ uri: selectedChild?.avatarUrl || 'https://i.pravatar.cc/100?u=' + selectedChildId }} style={{ width: '100%', height: '100%' }} />
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ width: 40, height: 40, backgroundColor: '#0055d4', borderRadius: 12, alignItems: 'center', justifyContent: 'center', shadowColor: '#0055d4', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 }}>
+                <Text style={{ color: 'white', fontWeight: '900', fontSize: 20 }}>S</Text>
               </View>
-              <View style={{ marginLeft: 14, marginRight: 8 }}>
-                <Text style={{ fontSize: 13, color: '#737c7f', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 }}>{selectedChild?.name?.split(' ')[0]}'s Profile</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={{ fontSize: 18, color: '#2b3437', fontWeight: 'bold' }}>
-                    {selectedChild?.name || 'Loading...'}
-                  </Text>
-                  <ChevronDown size={18} color="#0055d4" style={{ marginLeft: 6 }} />
-                </View>
+              <View style={{ marginLeft: 12 }}>
+                <Text style={{ fontSize: 13, color: '#737c7f', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }}>Welcome back,</Text>
+                <Text style={{ fontSize: 20, color: '#2b3437', fontWeight: 'bold' }}>{parentName.split(' ')[0]}</Text>
               </View>
-            </TouchableOpacity>
+            </View>
             
             <TouchableOpacity
               onPress={() => navigation.navigate('Notifications')}
@@ -251,8 +246,39 @@ export const HomeScreen = ({ navigation }: any) => {
             </TouchableOpacity>
           </View>
 
-
-
+          {/* Child Selection Context Indicator */}
+          <View style={{ 
+            flexDirection: 'row', 
+            alignItems: 'center', 
+            backgroundColor: 'white', 
+            padding: 10, 
+            borderRadius: 20, 
+            marginBottom: 24, 
+            borderWidth: 1, 
+            borderColor: '#f1f4f6',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.03,
+            shadowRadius: 10,
+            elevation: 2
+          }}>
+            <View style={{ width: 36, height: 36, borderRadius: 18, overflow: 'hidden', borderWidth: 1.5, borderColor: '#0055d420' }}>
+              <Image 
+                source={selectedChild?.avatarUrl ? { uri: selectedChild.avatarUrl } : require('../../assets/noavatar.png')} 
+                style={{ width: '100%', height: '100%' }} 
+              />
+            </View>
+            <View style={{ marginLeft: 12 }}>
+              <Text style={{ fontSize: 10, color: '#737c7f', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }}>Active Profile</Text>
+              <Text style={{ fontSize: 15, color: '#2b3437', fontWeight: 'bold' }}>{selectedChild?.name || 'Select Child'}</Text>
+            </View>
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('Profile')}
+              style={{ marginLeft: 'auto', backgroundColor: '#0055d408', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
+            >
+              <Text style={{ fontSize: 12, color: '#0055d4', fontWeight: 'bold' }}>Switch</Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Tuition Alert */}
           {showAlert && (
@@ -273,7 +299,7 @@ export const HomeScreen = ({ navigation }: any) => {
 
           {/* Schedule Header */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2b3437' }}>Schedule</Text>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2b3437' }}>{selectedChild?.name.split(' ')[0]}'s Schedule</Text>
             <TouchableOpacity onPress={() => setShowPicker(true)} style={{ padding: 8, backgroundColor: '#f1f4f6', borderRadius: 12 }}>
               <CalendarIcon size={20} color="#0055d4" />
             </TouchableOpacity>
@@ -298,7 +324,7 @@ export const HomeScreen = ({ navigation }: any) => {
               {/* Today's Sessions & Attendance */}
               <View style={{ marginBottom: 8 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Schedule & Attendance</Text>
+                  <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>{selectedChild?.name.split(' ')[0]}'s Progress</Text>
                   <TouchableOpacity 
                     onPress={() => navigation.navigate('Attendance')}
                     style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#0055d410', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 }}
@@ -325,7 +351,7 @@ export const HomeScreen = ({ navigation }: any) => {
               <View style={{ marginBottom: 16 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
                   <AlertCircle size={20} color="#2b3437" style={{ marginRight: 8 }} />
-                  <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Tasks to Submit Today</Text>
+                  <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>Tasks for {selectedChild?.name.split(' ')[0]}</Text>
                 </View>
                 {dayData.homeworkDue?.length > 0 ? (
                   dayData.homeworkDue.map((item: any) => <HomeworkItem key={item.id} homework={item} label="Submit Today" onPress={() => navigation.navigate('HomeworkDetail', { homework: item })} />)
@@ -457,73 +483,6 @@ export const HomeScreen = ({ navigation }: any) => {
             </View>
           </View>
         </View>
-      </Modal>
-
-      {/* Child Switcher BottomSheet */}
-      <Modal visible={showChildSwitcher} transparent animationType="slide" onRequestClose={() => setShowChildSwitcher(false)}>
-        <TouchableOpacity 
-          activeOpacity={1} 
-          onPress={() => setShowChildSwitcher(false)}
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
-        >
-          <View style={{ backgroundColor: 'white', borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 24, paddingBottom: 50 }}>
-            <View style={{ alignSelf: 'center', width: 40, height: 4, backgroundColor: '#e2e9ec', borderRadius: 2, marginBottom: 20 }} />
-            
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <View>
-                <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#2b3437' }}>Family Profiles</Text>
-                <Text style={{ fontSize: 14, color: '#737c7f', marginTop: 2 }}>Switch between your children</Text>
-              </View>
-              <TouchableOpacity onPress={() => setShowChildSwitcher(false)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8f9fa', alignItems: 'center', justifyContent: 'center' }}>
-                <X size={20} color="#737c7f" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={{ gap: 12 }}>
-              {children.map((child: any) => {
-                const isActive = selectedChildId === child.id;
-                return (
-                  <TouchableOpacity
-                    key={child.id}
-                    onPress={() => {
-                      useAppStore.getState().setSelectedChildId(child.id);
-                      setShowChildSwitcher(false);
-                    }}
-                    style={{
-                      flexDirection: 'row', alignItems: 'center',
-                      backgroundColor: isActive ? '#0055d408' : 'white',
-                      padding: 16, borderRadius: 24,
-                      borderWidth: 1.5, borderColor: isActive ? '#0055d4' : '#f1f4f6',
-                    }}
-                  >
-                    <View style={{ width: 56, height: 56, borderRadius: 28, overflow: 'hidden', borderWidth: 2, borderColor: isActive ? '#0055d4' : '#f1f4f6' }}>
-                      <Image source={{ uri: child.avatarUrl || 'https://i.pravatar.cc/100?u=' + child.id }} style={{ width: '100%', height: '100%' }} />
-                    </View>
-                    <View style={{ flex: 1, marginLeft: 16 }}>
-                      <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2b3437' }}>{child.name}</Text>
-                      <Text style={{ fontSize: 13, color: '#737c7f', marginTop: 2 }}>{child.class || 'No Class Assigned'}</Text>
-                    </View>
-                    {isActive ? (
-                      <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#0055d4', alignItems: 'center', justifyContent: 'center' }}>
-                        <Check size={16} color="white" />
-                      </View>
-                    ) : (
-                      <ChevronRight size={20} color="#d1d5db" />
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <TouchableOpacity 
-              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 24, padding: 16, borderRadius: 20, backgroundColor: '#f8f9fa' }}
-              onPress={() => {/* Placeholder for adding another child if needed */}}
-            >
-              <User size={18} color="#0055d4" style={{ marginRight: 8 }} />
-              <Text style={{ color: '#0055d4', fontWeight: 'bold', fontSize: 14 }}>Manage Family Accounts</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
       </Modal>
     </SafeAreaView>
   );
