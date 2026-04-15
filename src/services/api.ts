@@ -200,21 +200,83 @@ export const studentService = {
 
     const students: any[] = JSON.parse(cached);
     const s = students.find((x) => x.id === studentId);
-    if (!s || !s.payments) return [];
+    if (!s) return [];
 
     const MONTH_NAMES = [
       '', 'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December',
     ];
 
-    return s.payments.map((p: any) => ({
-      id: p.id,
-      month: `${MONTH_NAMES[p.month] || p.month} ${p.year}`,
-      totalAmount: p.amount,
-      paidAmount: p.status === 'PAID' ? p.amount : p.deferredAmount || 0,
-      status: p.status === 'PAID' ? 'Paid' : p.status === 'PARTIAL' ? 'Partial' : p.status === 'OVERDUE' ? 'Due' : 'Due',
-      isOverdue: p.status === 'OVERDUE',
-    }));
+    const today = new Date();
+    const currentMonth = today.getMonth() + 1;
+    const currentYear = today.getFullYear();
+
+    // Define the academic cycle: Sep (9) to Jun (6)
+    const academicMonths = [
+      { month: 9, year: 2025 },
+      { month: 10, year: 2025 },
+      { month: 11, year: 2025 },
+      { month: 12, year: 2025 },
+      { month: 1, year: 2026 },
+      { month: 2, year: 2026 },
+      { month: 3, year: 2026 },
+      { month: 4, year: 2026 },
+      { month: 5, year: 2026 },
+      { month: 6, year: 2026 },
+    ];
+
+    const timeline: PaymentRecord[] = academicMonths.map((cycle, index) => {
+      // Look for a payment record for this specific month/year
+      const p = (s.payments || []).find((x: any) => x.month === cycle.month && x.year === cycle.year);
+      
+      const dueDate = p?.dueDate || `${cycle.year}-${String(cycle.month).padStart(2, '0')}-28`;
+      const due = new Date(dueDate);
+      
+      // Determine if it's in the past relative to today
+      const isPast = due < today;
+      const isFuture = cycle.year > currentYear || (cycle.year === currentYear && cycle.month > currentMonth);
+      
+      if (p) {
+        const isOverdue = p.status === 'OVERDUE' || (p.status !== 'PAID' && isPast);
+        let overdueDays = 0;
+        if (isOverdue) {
+          const diffTime = Math.abs(today.getTime() - due.getTime());
+          overdueDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        return {
+          id: p.id,
+          month: `${MONTH_NAMES[cycle.month]} ${cycle.year}`,
+          totalAmount: p.amount,
+          paidAmount: p.status === 'PAID' ? p.amount : p.deferredAmount || 0,
+          status: p.status === 'PAID' ? 'Paid' : p.status === 'PARTIAL' ? 'Partial' : 'Due',
+          isOverdue,
+          dueDate,
+          overdueDays: isOverdue ? overdueDays : 0,
+        };
+      } else {
+        // Placeholder month
+        const isOverdue = isPast;
+        let overdueDays = 0;
+        if (isOverdue) {
+          const diffTime = Math.abs(today.getTime() - due.getTime());
+          overdueDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        return {
+          id: -100 - index, // Virtual ID
+          month: `${MONTH_NAMES[cycle.month]} ${cycle.year}`,
+          totalAmount: 120, // Default fee
+          paidAmount: 0,
+          status: isFuture ? 'Locked' : 'Due',
+          isOverdue,
+          dueDate,
+          overdueDays: isOverdue ? overdueDays : 0,
+        };
+      }
+    });
+
+    return timeline;
   },
 
   fetchExams: async (studentId: string, date: string): Promise<any[]> => {

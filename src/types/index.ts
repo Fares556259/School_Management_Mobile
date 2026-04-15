@@ -20,6 +20,8 @@ export interface PaymentRecord {
   paidAmount: number;
   status: 'Paid' | 'Partial' | 'Due' | 'Locked';
   isOverdue: boolean;
+  dueDate?: string;
+  overdueDays?: number;
 }
 
 export interface Session {
