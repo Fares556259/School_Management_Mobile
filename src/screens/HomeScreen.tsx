@@ -190,16 +190,20 @@ export const HomeScreen = ({ navigation }: any) => {
   React.useEffect(() => {
     if (!selectedChildId) return;
     const loadData = async () => {
-      setLoading(true);
-      const data = await studentService.fetchDayData(selectedChildId, formatDateStr(selectedFullDate));
-      setDayData(data);
-      
-      // Determine Alert Visibility
-      const payments = await studentService.fetchPayments(selectedChildId);
-      const hasOverdue = payments.some(p => p.status === 'Due' || p.isOverdue);
-      setShowAlert(hasOverdue);
-      
-      setLoading(false);
+      try {
+        setLoading(true);
+        const data = await studentService.fetchDayData(selectedChildId, formatDateStr(selectedFullDate));
+        setDayData(data);
+        
+        // Determine Alert Visibility
+        const payments = await studentService.fetchPayments(selectedChildId);
+        const hasOverdue = payments.some(p => p.status === 'Due' || p.isOverdue);
+        setShowAlert(hasOverdue);
+      } catch (error) {
+        console.error("[Home Load Error]", error);
+      } finally {
+        setLoading(false);
+      }
     };
     loadData();
   }, [selectedChildId, selectedFullDate]);
@@ -207,14 +211,7 @@ export const HomeScreen = ({ navigation }: any) => {
   const onRefresh = React.useCallback(async () => {
     if (!selectedChildId) return;
     setRefreshing(true);
-    const rawData = await studentService.fetchDayData(selectedChildId, formatDateStr(selectedFullDate));
-    const data = {
-      ...rawData,
-      sessions: rawData.sessions?.map(s => ({
-        ...s,
-        attendance: s.attendance === 'PRESENT' ? 'Pres' : s.attendance === 'ABSENT' ? 'Abs' : s.attendance === 'LATE' ? 'Late' : null
-      }))
-    };
+    const data = await studentService.fetchDayData(selectedChildId, formatDateStr(selectedFullDate));
     setDayData(data);
     setRefreshing(false);
   }, [selectedChildId, selectedFullDate]);

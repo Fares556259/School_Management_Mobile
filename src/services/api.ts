@@ -163,7 +163,7 @@ export const studentService = {
   fetchDayData: async (studentId: string, _date: string): Promise<StudentDayData> => {
     const home = await studentService.fetchHomeData(studentId, _date);
     return {
-      sessions: home.sessions.map((s: any, i: number) => ({
+      sessions: (home.sessions || []).map((s: any, i: number) => ({
         id: s.id || i,
         subject: s.subject,
         room: s.room,
@@ -172,16 +172,16 @@ export const studentService = {
         iconName: 'Book',
         color: '#0055d4',
       })),
-      notes: home.teacherRemarks.map((r: any) => ({
+      notes: (home.teacherRemarks || []).map((r: any) => ({
         id: r.id,
         text: r.note,
         subject: r.subject,
         teacher: r.teacher,
       })),
       files: [],
-      homeworkDue: home.tasksDue,
-      homeworkGiven: home.tasksGiven,
-      exams: home.upcomingExams.map((e: any) => ({
+      homeworkDue: (home.tasksDue || []),
+      homeworkGiven: (home.tasksGiven || []),
+      exams: (home.upcomingExams || []).map((e: any) => ({
         id: e.id,
         subject: e.subject,
         time: new Date(e.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),

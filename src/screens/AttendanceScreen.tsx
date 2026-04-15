@@ -197,14 +197,14 @@ export const AttendanceScreen = ({ navigation }: any) => {
 
         {loading ? (
           <ActivityIndicator size="large" color="#0055d4" style={{ marginTop: 40 }} />
-        ) : history.length === 0 ? (
+        ) : history.filter(d => d.status !== 'PRESENT').length === 0 ? (
           <View style={{ alignItems: 'center', marginTop: 60 }}>
             <Calendar size={64} color="#d1d5db" style={{ marginBottom: 16 }} />
-            <Text style={{ fontSize: 16, color: '#737c7f', fontWeight: 'bold' }}>No attendance records found</Text>
-            <Text style={{ fontSize: 14, color: '#9ca3af', marginTop: 4 }}>Attendance tracking has not started yet.</Text>
+            <Text style={{ fontSize: 16, color: '#737c7f', fontWeight: 'bold' }}>No recent absences or lates</Text>
+            <Text style={{ fontSize: 14, color: '#9ca3af', marginTop: 4 }}>Attendance records are all clear!</Text>
           </View>
         ) : (
-          history.map((day, idx) => (
+          history.filter(d => d.status !== 'PRESENT').map((day, idx) => (
             <AttendanceHistoryItem key={idx} day={day} />
           ))
         )}
