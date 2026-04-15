@@ -18,8 +18,18 @@ const AnnouncementCard = ({ item, onPress }: any) => (
     <Image source={{ uri: item.image }} style={{ width: '100%', height: 160 }} />
     <View style={{ padding: 20 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-        <View style={{ backgroundColor: '#0055d410', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
-          <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#0055d4', textTransform: 'uppercase' }}>{item.category}</Text>
+        <View style={{ 
+          backgroundColor: item.category === 'URGENT' ? '#fee2e2' : '#0055d410', 
+          paddingHorizontal: 10, 
+          paddingVertical: 4, 
+          borderRadius: 8 
+        }}>
+          <Text style={{ 
+            fontSize: 10, 
+            fontWeight: 'bold', 
+            color: item.category === 'URGENT' ? '#ef4444' : '#0055d4', 
+            textTransform: 'uppercase' 
+          }}>{item.category}</Text>
         </View>
         <Text style={{ fontSize: 12, color: '#737c7f', marginLeft: 12 }}>{item.date}</Text>
       </View>
