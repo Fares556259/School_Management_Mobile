@@ -117,11 +117,19 @@ export const parentService = {
     return data.map(mapStudent);
   },
 
-  fetchParentProfile: async (): Promise<{ name: string; surname: string } | null> => {
+  fetchParentProfile: async (): Promise<{ name: string; surname: string; phone: string; img: string } | null> => {
     const parentId = await authStorage.getParentId();
     if (!parentId) return null;
     const data = await apiFetch(`/api/mobile/parent?id=${parentId}`);
     return data || null;
+  },
+
+  updateProfile: async (data: { name?: string; surname?: string; phone?: string; img?: string }) => {
+    const parentId = await authStorage.getParentId();
+    return apiFetch('/api/mobile/parent', {
+      method: 'PATCH',
+      body: JSON.stringify({ id: parentId, ...data }),
+    });
   },
 };
 
@@ -227,5 +235,45 @@ export const studentService = {
   fetchAttendanceHistory: async (studentId: string): Promise<AttendanceHistoryDay[]> => {
     const data = await apiFetch(`/api/mobile/attendance/history?studentId=${studentId}`);
     return Array.isArray(data) ? data : [];
+  },
+
+  updateImage: async (studentId: string, imgUrl: string) => {
+    return apiFetch('/api/mobile/students', {
+      method: 'PATCH',
+      body: JSON.stringify({ id: studentId, img: imgUrl }),
+    });
+  },
+};
+
+export const uiService = {
+  uploadImage: async (uri: string, type: 'profile' | 'student', id: string) => {
+    const formData = new FormData();
+    
+    // Create the file object from the URI
+    const uriParts = uri.split('.');
+    const fileType = uriParts[uriParts.length - 1];
+
+    formData.append('file', {
+      uri,
+      name: `photo.${fileType}`,
+      type: `image/${fileType}`,
+    } as any);
+    
+    formData.append('type', type);
+    formData.append('id', id);
+
+    const response = await fetch(`${API_BASE_URL}/api/mobile/upload`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Upload failed');
+    }
+
+    return await response.json();
   },
 };
