@@ -1,14 +1,21 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StatusBar, RefreshControl, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, StatusBar, RefreshControl, Linking, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bell, FileText, Download, ExternalLink, Calendar, ChevronRight } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { studentService } from '../services/api';
+import { downloadAndPreviewPDF } from '../utils/fileUtils';
 
 const TermCard = ({ period, pdfUrl }: { period: number, pdfUrl?: string }) => {
-  const handleOpenPDF = () => {
+  const [downloading, setDownloading] = React.useState(false);
+
+  const handleOpenPDF = async () => {
     if (pdfUrl) {
-      Linking.openURL(pdfUrl);
+      setDownloading(true);
+      try {
+        await downloadAndPreviewPDF(pdfUrl, `Term_${period}_Schedule.pdf`);
+      } finally {
+        setDownloading(false);
+      }
     }
   };
 
@@ -50,6 +57,7 @@ const TermCard = ({ period, pdfUrl }: { period: number, pdfUrl?: string }) => {
       {pdfUrl && (
         <TouchableOpacity 
           onPress={handleOpenPDF}
+          disabled={downloading}
           style={{ 
             width: 44, 
             height: 44, 
@@ -59,7 +67,11 @@ const TermCard = ({ period, pdfUrl }: { period: number, pdfUrl?: string }) => {
             justifyContent: 'center' 
           }}
         >
-          <ExternalLink color="white" size={20} />
+          {downloading ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <ExternalLink color="white" size={20} />
+          )}
         </TouchableOpacity>
       )}
     </View>

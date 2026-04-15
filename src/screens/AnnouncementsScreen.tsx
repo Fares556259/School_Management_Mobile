@@ -4,8 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bell, Search, Filter, ChevronRight } from 'lucide-react-native';
 import { studentService } from '../services/api';
 import { Announcement } from '../types';
-const AnnouncementCard = ({ item }: any) => (
+import { useAppStore } from '../store/useAppStore';
+
+const AnnouncementCard = ({ item, onPress }: any) => (
   <TouchableOpacity
+    onPress={onPress}
     style={{
       backgroundColor: 'white', borderRadius: 28, overflow: 'hidden', marginBottom: 20,
       borderWidth: 1, borderColor: '#f1f4f6',
@@ -34,13 +37,20 @@ export const AnnouncementsScreen = ({ navigation }: any) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
+  const { getSelectedChild, selectedChildId } = useAppStore();
 
   useEffect(() => {
-    studentService.fetchAnnouncements().then(data => {
+    const fetchWithClass = async () => {
+      setLoading(true);
+      const child = getSelectedChild();
+      const classId = child?.raw?.classId;
+      const data = await studentService.fetchAnnouncements(classId);
       setAnnouncements(data);
       setLoading(false);
-    });
-  }, []);
+    };
+
+    fetchWithClass();
+  }, [selectedChildId]);
 
   const filtered = announcements.filter(a =>
     a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -92,7 +102,13 @@ export const AnnouncementsScreen = ({ navigation }: any) => {
         </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 150 }}>
-          {filtered.map(item => <AnnouncementCard key={item.id} item={item} />)}
+          {filtered.map(item => (
+            <AnnouncementCard 
+              key={item.id} 
+              item={item} 
+              onPress={() => navigation.navigate('AnnouncementDetail', { announcement: item })}
+            />
+          ))}
         </ScrollView>
       )}
     </SafeAreaView>

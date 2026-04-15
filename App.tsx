@@ -11,6 +11,7 @@ import { AttendanceScreen } from './src/screens/AttendanceScreen';
 import { HomeworkDetailScreen } from './src/screens/HomeworkDetailScreen';
 import { ExamDetailScreen } from './src/screens/ExamDetailScreen';
 import { SignInScreen } from './src/screens/SignInScreen';
+import { AnnouncementDetailScreen } from './src/screens/AnnouncementDetailScreen';
 import { Home as HomeIcon, FileText, CreditCard, User, Megaphone, Calendar } from 'lucide-react-native';
 import { View, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -144,6 +145,7 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
               <Stack.Screen name="Notifications" component={NotificationsScreen} />
               <Stack.Screen name="HomeworkDetail" component={HomeworkDetailScreen} />
               <Stack.Screen name="ExamDetail" component={ExamDetailScreen} />
+              <Stack.Screen name="AnnouncementDetail" component={AnnouncementDetailScreen} />
             </Stack.Navigator>
           )}
         </NavigationContainer>

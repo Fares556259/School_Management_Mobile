@@ -1,10 +1,13 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, Calendar, User, FileText, Image as ImageIcon, Download, Clock } from 'lucide-react-native';
+import { downloadAndPreviewPDF } from '../utils/fileUtils';
 
 export const HomeworkDetailScreen = ({ route, navigation }: any) => {
   const { homework } = route.params;
+
+  const [downloading, setDownloading] = React.useState(false);
 
   // Mock details that would normally come from an API
   const homeworkDetails = {
@@ -13,9 +16,21 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
     attachment: {
       type: 'pdf',
       name: 'Calculus_Unit4_Practice.pdf',
-      size: '2.4 MB'
+      size: '2.4 MB',
+      url: 'https://res.cloudinary.com/demo/image/upload/multi_page_pdf.pdf' // Example PDF
     },
     image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&q=80'
+  };
+
+  const handleDownload = async () => {
+    if (homeworkDetails.attachment.url) {
+      setDownloading(true);
+      try {
+        await downloadAndPreviewPDF(homeworkDetails.attachment.url, homeworkDetails.attachment.name);
+      } finally {
+        setDownloading(false);
+      }
+    }
   };
 
   return (
@@ -79,6 +94,8 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
           
           {/* File Attachment */}
           <TouchableOpacity 
+            onPress={handleDownload}
+            disabled={downloading}
             style={{ 
               backgroundColor: 'white', 
               borderWidth: 1, 
@@ -96,13 +113,13 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
             }}
           >
             <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#fee2e2', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
-              <FileText color="#ef4444" size={24} />
+              {downloading ? <ActivityIndicator size="small" color="#ef4444" /> : <FileText color="#ef4444" size={24} />}
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#2b3437' }} numberOfLines={1}>{homeworkDetails.attachment.name}</Text>
-              <Text style={{ fontSize: 12, color: '#737c7f', marginTop: 2 }}>{homeworkDetails.attachment.size}</Text>
+              <Text style={{ fontSize: 12, color: '#737c7f', marginTop: 2 }}>{downloading ? 'Downloading...' : homeworkDetails.attachment.size}</Text>
             </View>
-            <Download size={20} color="#0055d4" />
+            <Download size={20} color={downloading ? '#abb3b7' : "#0055d4"} />
           </TouchableOpacity>
 
           {/* Image Attachment */}

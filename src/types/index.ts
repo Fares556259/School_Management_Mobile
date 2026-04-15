@@ -84,6 +84,8 @@ export interface Announcement {
   category: string;
   image: string;
   excerpt: string;
+  content: string;
+  pdfUrl?: string;
 }
 
 export interface AttendanceHistoryDay {

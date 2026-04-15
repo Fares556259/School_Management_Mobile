@@ -7,7 +7,7 @@ import {
   Announcement,
 } from '../types';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.106:3000';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.106:3000';
 
 const PARENT_ID_KEY = 'snapschool_parent_id';
 const STUDENTS_CACHE_KEY = 'snapschool_students_cache';
@@ -22,10 +22,13 @@ export const authStorage = {
 // ─── Helper for Fetching ─────────────────────────────────────────────────────
 const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), 10000); // 10s timeout
+  const id = setTimeout(() => controller.abort(), 30000); // 30s timeout
+  const startTime = Date.now();
+  const url = `${API_BASE_URL}${endpoint}`;
+  console.log(`[DEBUG-API] Calling: ${url}`);
 
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(url, {
       ...options,
       signal: controller.signal,
       headers: {
@@ -34,20 +37,22 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
       },
     });
     clearTimeout(id);
+    const duration = Date.now() - startTime;
 
     if (!response.ok) {
       const text = await response.text();
-      console.warn(`API Error [${response.status}] ${endpoint}: ${text}`);
+      console.warn(`API Error [${response.status}] [${duration}ms] ${endpoint}: ${text}`);
       return null;
     }
 
     return await response.json();
   } catch (error: any) {
     clearTimeout(id);
+    const duration = Date.now() - startTime;
     if (error.name === 'AbortError') {
-      console.error(`Network Error (Timeout): The request to ${endpoint} took too long.`);
+      console.error(`Network Error (Timeout) [${duration}ms]: The request to ${endpoint} took too long.`);
     } else {
-      console.error(`Network Error for ${endpoint}:`, error);
+      console.error(`Network Error [${duration}ms] for ${endpoint}:`, error);
     }
     return null;
   }
@@ -206,8 +211,9 @@ export const studentService = {
     return [];
   },
 
-  fetchAnnouncements: async (): Promise<Announcement[]> => {
-    const data = await apiFetch('/api/mobile/announcements');
+  fetchAnnouncements: async (classId?: number): Promise<Announcement[]> => {
+    const url = classId ? `/api/mobile/announcements?classId=${classId}` : '/api/mobile/announcements';
+    const data = await apiFetch(url);
     return Array.isArray(data) ? data : [];
   },
   
