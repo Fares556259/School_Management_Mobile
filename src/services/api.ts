@@ -244,11 +244,12 @@ export const studentService = {
           overdueDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         }
 
+        const totalVal = p.amount + (p.deferredAmount || 0);
         return {
           id: p.id,
           month: `${MONTH_NAMES[cycle.month]} ${cycle.year}`,
-          totalAmount: p.amount,
-          paidAmount: p.status === 'PAID' ? p.amount : p.deferredAmount || 0,
+          totalAmount: totalVal,
+          paidAmount: p.amount,
           status: p.status === 'PAID' ? 'Paid' : p.status === 'PARTIAL' ? 'Partial' : 'Due',
           isOverdue,
           dueDate,

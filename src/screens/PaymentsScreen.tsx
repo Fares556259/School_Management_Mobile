@@ -170,8 +170,8 @@ export const PaymentsScreen = ({ navigation }: any) => {
               
               const statusConfig: any = {
                 Paid: { label: 'Paid', icon: CheckCircle2, color: '#16a34a', bg: '#f0fdf4', border: '#dcfce7' },
-                Partial: { label: 'Partial', icon: TrendingDown, color: '#0055d4', bg: '#eff6ff', border: '#dbeafe' },
-                Due: { label: isOverdue ? 'Overdue' : 'Due Soon', icon: isOverdue ? AlertCircle : Info, color: isOverdue ? '#dc2626' : '#d97706', bg: isOverdue ? '#fef2f2' : '#fffbeb', border: isOverdue ? '#fee2e2' : '#fef3c7' },
+                Partial: { label: 'Partial', icon: AlertCircle, color: '#f59e0b', bg: '#fffbeb', border: '#fef3c7' },
+                Due: { label: isOverdue ? 'Overdue' : 'Due Soon', icon: isOverdue ? AlertCircle : Info, color: '#ef4444', bg: '#fef2f2', border: '#fee2e2' },
                 Locked: { label: 'Upcoming', icon: Calendar, color: '#9ca3af', bg: '#f8f9fa', border: '#f1f4f6' }
               };
               const config = statusConfig[item.status] || statusConfig.Due;
