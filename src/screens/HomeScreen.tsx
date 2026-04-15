@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, Modal, Platform, RefreshControl, Animated, StatusBar, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Book, Microscope, Clock, Globe, Palette, Calculator, Music, Languages, MessageSquare, AlertCircle, FileText, Download, Briefcase, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, BookOpen, Bell, Coffee, Info } from 'lucide-react-native';
+import { Book, Microscope, Clock, Globe, Palette, Calculator, Music, Languages, MessageSquare, AlertCircle, FileText, Download, Briefcase, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, BookOpen, Bell, Coffee, Info, ChevronDown, Check, User } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { studentService } from '../services/api';
 import { StudentDayData } from '../types';
@@ -152,6 +152,7 @@ export const HomeScreen = ({ navigation }: any) => {
   const today = new Date();
   const [selectedFullDate, setSelectedFullDate] = React.useState(today);
   const [showPicker, setShowPicker] = React.useState(false);
+  const [showChildSwitcher, setShowChildSwitcher] = React.useState(false);
   const [showAlert, setShowAlert] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -221,41 +222,37 @@ export const HomeScreen = ({ navigation }: any) => {
       >
         <View style={{ paddingBottom: 150, paddingHorizontal: 20 }}>
 
-          {/* Header: Parent Greeting */}
+          {/* Header: Parent Greeting & Profile Switcher */}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 20 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={{ width: 44, height: 44, borderRadius: 22, overflow: 'hidden', borderWidth: 2, borderColor: '#0055d410' }}>
-                <Image source={{ uri: 'https://i.pravatar.cc/100?u=parent' }} style={{ width: '100%', height: '100%' }} />
+            <TouchableOpacity 
+              onPress={() => setShowChildSwitcher(true)}
+              style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', padding: 10, borderRadius: 22, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: '#f1f4f6' }}
+            >
+              <View style={{ width: 44, height: 44, borderRadius: 22, overflow: 'hidden', borderWidth: 2, borderColor: '#0055d420' }}>
+                <Image source={{ uri: selectedChild?.avatarUrl || 'https://i.pravatar.cc/100?u=' + selectedChildId }} style={{ width: '100%', height: '100%' }} />
               </View>
-              <View style={{ marginLeft: 14 }}>
-                <Text style={{ fontSize: 13, color: '#737c7f', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 }}>SnapSchool Parent</Text>
-                <Text style={{ fontSize: 18, color: '#2b3437', fontWeight: '500' }}>
-                  Bonjour, <Text style={{ fontWeight: 'bold' }}>{parentName}!</Text>
-                </Text>
+              <View style={{ marginLeft: 14, marginRight: 8 }}>
+                <Text style={{ fontSize: 13, color: '#737c7f', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 }}>{selectedChild?.name?.split(' ')[0]}'s Profile</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 18, color: '#2b3437', fontWeight: 'bold' }}>
+                    {selectedChild?.name || 'Loading...'}
+                  </Text>
+                  <ChevronDown size={18} color="#0055d4" style={{ marginLeft: 6 }} />
+                </View>
               </View>
-            </View>
+            </TouchableOpacity>
+            
             <TouchableOpacity
               onPress={() => navigation.navigate('Notifications')}
-              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }}
+              style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: '#f1f4f6' }}
             >
-              <Bell size={20} color="#0055d4" />
-              <View style={{ position: 'absolute', top: 11, right: 11, width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#ef4444', borderWidth: 1.5, borderColor: 'white' }} />
+              <Bell size={22} color="#0055d4" />
+              <View style={{ position: 'absolute', top: 12, right: 12, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444', borderWidth: 1.5, borderColor: 'white' }} />
             </TouchableOpacity>
           </View>
 
-          {/* Child Switcher */}
-          <View style={{ marginBottom: 28 }}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
-              {children.map((child: any) => (
-                <ChildCard
-                  key={child.id}
-                  child={child}
-                  active={selectedChildId === child.id}
-                  onPress={() => useAppStore.getState().setSelectedChildId(child.id)}
-                />
-              ))}
-            </ScrollView>
-          </View>
+
+
 
           {/* Tuition Alert */}
           {showAlert && (
@@ -460,6 +457,73 @@ export const HomeScreen = ({ navigation }: any) => {
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* Child Switcher BottomSheet */}
+      <Modal visible={showChildSwitcher} transparent animationType="slide" onRequestClose={() => setShowChildSwitcher(false)}>
+        <TouchableOpacity 
+          activeOpacity={1} 
+          onPress={() => setShowChildSwitcher(false)}
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
+        >
+          <View style={{ backgroundColor: 'white', borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 24, paddingBottom: 50 }}>
+            <View style={{ alignSelf: 'center', width: 40, height: 4, backgroundColor: '#e2e9ec', borderRadius: 2, marginBottom: 20 }} />
+            
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <View>
+                <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#2b3437' }}>Family Profiles</Text>
+                <Text style={{ fontSize: 14, color: '#737c7f', marginTop: 2 }}>Switch between your children</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowChildSwitcher(false)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8f9fa', alignItems: 'center', justifyContent: 'center' }}>
+                <X size={20} color="#737c7f" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ gap: 12 }}>
+              {children.map((child: any) => {
+                const isActive = selectedChildId === child.id;
+                return (
+                  <TouchableOpacity
+                    key={child.id}
+                    onPress={() => {
+                      useAppStore.getState().setSelectedChildId(child.id);
+                      setShowChildSwitcher(false);
+                    }}
+                    style={{
+                      flexDirection: 'row', alignItems: 'center',
+                      backgroundColor: isActive ? '#0055d408' : 'white',
+                      padding: 16, borderRadius: 24,
+                      borderWidth: 1.5, borderColor: isActive ? '#0055d4' : '#f1f4f6',
+                    }}
+                  >
+                    <View style={{ width: 56, height: 56, borderRadius: 28, overflow: 'hidden', borderWidth: 2, borderColor: isActive ? '#0055d4' : '#f1f4f6' }}>
+                      <Image source={{ uri: child.avatarUrl || 'https://i.pravatar.cc/100?u=' + child.id }} style={{ width: '100%', height: '100%' }} />
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 16 }}>
+                      <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2b3437' }}>{child.name}</Text>
+                      <Text style={{ fontSize: 13, color: '#737c7f', marginTop: 2 }}>{child.class || 'No Class Assigned'}</Text>
+                    </View>
+                    {isActive ? (
+                      <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#0055d4', alignItems: 'center', justifyContent: 'center' }}>
+                        <Check size={16} color="white" />
+                      </View>
+                    ) : (
+                      <ChevronRight size={20} color="#d1d5db" />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <TouchableOpacity 
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 24, padding: 16, borderRadius: 20, backgroundColor: '#f8f9fa' }}
+              onPress={() => {/* Placeholder for adding another child if needed */}}
+            >
+              <User size={18} color="#0055d4" style={{ marginRight: 8 }} />
+              <Text style={{ color: '#0055d4', fontWeight: 'bold', fontSize: 14 }}>Manage Family Accounts</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
       </Modal>
     </SafeAreaView>
   );

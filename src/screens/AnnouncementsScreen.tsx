@@ -54,7 +54,8 @@ export const AnnouncementsScreen = ({ navigation }: any) => {
       setLoading(true);
       const child = getSelectedChild();
       const classId = child?.raw?.classId;
-      const data = await studentService.fetchAnnouncements(classId);
+      const studentId = child?.id;
+      const data = await studentService.fetchAnnouncements(classId, studentId);
       setAnnouncements(data);
       setLoading(false);
     };

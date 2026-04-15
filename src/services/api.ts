@@ -211,8 +211,15 @@ export const studentService = {
     return [];
   },
 
-  fetchAnnouncements: async (classId?: number): Promise<Announcement[]> => {
-    const url = classId ? `/api/mobile/announcements?classId=${classId}` : '/api/mobile/announcements';
+  fetchAnnouncements: async (classId?: number, studentId?: string): Promise<Announcement[]> => {
+    let url = '/api/mobile/announcements';
+    const params = new URLSearchParams();
+    if (classId) params.append('classId', classId.toString());
+    if (studentId) params.append('studentId', studentId);
+    
+    const queryString = params.toString();
+    if (queryString) url += `?${queryString}`;
+    
     const data = await apiFetch(url);
     return Array.isArray(data) ? data : [];
   },
