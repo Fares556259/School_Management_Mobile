@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator } from 'react-native';
-import { RefreshControl } from 'react-native';
+import { RefreshControl, View, Text, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, GraduationCap, CheckCircle2, AlertTriangle, Info, Check } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';

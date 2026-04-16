@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, FlatList, StatusBar } from 'react-native';
-import { RefreshControl } from 'react-native';
+import { RefreshControl, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, FlatList, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, Calendar, AlertCircle, CheckCircle2, Clock, MessageSquare, Filter } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
