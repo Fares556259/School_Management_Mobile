@@ -97,15 +97,21 @@ export const NotificationsScreen = ({ navigation }: any) => {
   };
 
   const handleMarkAsRead = async (item: Notification) => {
-    if (!item.isNew) return;
+    // 1. Mark as read (Optimistic)
+    if (item.isNew) {
+      setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, isNew: false } : n));
+      try {
+        await studentService.markNotificationsAsRead([item.id]);
+      } catch (error) {
+        console.error('Failed to mark notification as read:', error);
+      }
+    }
 
-    // Optimistic update
-    setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, isNew: false } : n));
-
-    try {
-      await studentService.markNotificationsAsRead([item.id]);
-    } catch (error) {
-      console.error('Failed to mark notification as read:', error);
+    // 2. Navigate based on type
+    if (item.type === 'ANNOUNCEMENT') {
+      navigation.navigate('MainTabs', { screen: 'Announcements' });
+    } else if (item.type === 'PAYMENT' || item.type === 'REMINDER') {
+      navigation.navigate('MainTabs', { screen: 'Payments' });
     }
   };
 
