@@ -71,7 +71,8 @@ export interface Exam {
 export interface Notification {
   id: number;
   type: string;
-  student: string;
+  studentName: string;
+  studentAvatar?: string | null;
   message: string;
   time: string;
   iconName: string;

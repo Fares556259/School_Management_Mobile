@@ -345,7 +345,8 @@ export const studentService = {
     if (!Array.isArray(data)) return [];
     return data.map((n: any) => ({
       ...n,
-      student: n.student ? { ...n.student, avatarUrl: getFullImageUrl(n.student.img) } : null
+      studentName: typeof n.student === 'object' ? `${n.student.name} ${n.student.surname}` : (n.student || 'Student'),
+      studentAvatar: n.student ? getFullImageUrl(n.student.img) : null
     }));
   },
 

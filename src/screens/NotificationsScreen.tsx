@@ -3,10 +3,11 @@ import { RefreshControl, View, Text, ScrollView, TouchableOpacity, StatusBar, Ac
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, GraduationCap, CheckCircle2, AlertTriangle, Info, Check, Trash2, Calendar, Clock, Bell } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
-import { studentService, authStorage } from '../services/api';
+import { studentService, authStorage, getFullImageUrl } from '../services/api';
 import { Notification } from '../types';
 import { RectButton, Swipeable } from 'react-native-gesture-handler';
 import Animated, { FadeInUp, Layout } from 'react-native-reanimated';
+import { Image } from 'expo-image';
 
 const { width } = Dimensions.get('window');
 
@@ -23,6 +24,7 @@ const ICON_CONFIG: Record<string, { icon: any, color: string, bgColor: string }>
 const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onPress: (n: Notification) => void, onDelete: (id: number) => void }) => {
   const config = ICON_CONFIG[item.type] || (item.message.includes('URGENT') ? ICON_CONFIG.URGENT : ICON_CONFIG.DEFAULT);
   const Icon = config.icon;
+  const avatarSource = item.studentAvatar ? { uri: item.studentAvatar } : require('../../assets/noavatar.png');
 
   const renderRightActions = () => {
     return (
@@ -70,13 +72,22 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
           onPress={() => onPress(item)}
           style={styles.cardContent}
         >
-          <View style={[styles.iconContainer, { backgroundColor: config.bgColor }]}>
-            <Icon size={20} color={config.color} />
+          <View className="relative">
+            <View style={[styles.iconContainer, { backgroundColor: config.bgColor }]}>
+              <Icon size={20} color={config.color} />
+            </View>
+            <View className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white overflow-hidden bg-surface-low">
+              <Image 
+                source={avatarSource} 
+                style={{ width: '100%', height: '100%' }}
+                contentFit="cover"
+              />
+            </View>
           </View>
           
           <View style={styles.textContainer}>
             <View style={styles.cardHeader}>
-              <Text style={styles.typeText}>{item.type} • {item.student}</Text>
+              <Text style={styles.typeText}>{item.type} • {item.studentName}</Text>
               <Text style={styles.timeText}>{item.time}</Text>
             </View>
             
