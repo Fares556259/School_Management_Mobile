@@ -62,7 +62,7 @@ const CircularProgress = ({ size, progress, imageUri, updating, onPress }: any) 
         <Camera size={20} color="#0055d4" />
       </TouchableOpacity>
 
-      {/* Percentage Badge (Top Right or Specific Position) */}
+      {/* Percentage Badge */}
       <View style={{
         position: 'absolute',
         top: 0,
@@ -156,14 +156,19 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
 
   const loadProfile = async () => {
     setLoading(true);
-    const profile = await parentService.fetchParentProfile();
-    if (profile) {
-      setParentProfile(profile);
-      setParentName(`${profile.name} ${profile.surname}`);
-      setParentAvatarUrl(profile.img);
-      setEditData({ name: profile.name, surname: profile.surname, phone: profile.phone });
+    try {
+      const profile = await parentService.fetchParentProfile();
+      if (profile) {
+        setParentProfile(profile);
+        setParentName(`${profile.name} ${profile.surname}`);
+        setParentAvatarUrl(profile.img);
+        setEditData({ name: profile.name, surname: profile.surname, phone: profile.phone });
+      }
+    } catch (error) {
+      console.error('Failed to load profile:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const showImageOptions = (type: 'parent' | 'student', id?: string) => {
@@ -192,33 +197,49 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
   };
 
   const takePhoto = async (type: 'parent' | 'student', id?: string) => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Camera access is required to take photos.');
-      return;
-    }
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Camera access is required to take photos.');
+        return;
+      }
 
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.5,
-    });
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+      });
 
-    if (!result.canceled) {
-      handleUpload(result.assets[0].uri, type, id);
+      if (!result.canceled) {
+        handleUpload(result.assets[0].uri, type, id);
+      }
+    } catch (error) {
+      console.error('Camera error:', error);
+      Alert.alert('Error', 'Failed to open camera');
     }
   };
 
   const pickImage = async (type: 'parent' | 'student', id?: string) => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaType.IMAGES,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.5,
-    });
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Gallery access is required to pick photos.');
+        return;
+      }
 
-    if (!result.canceled) {
-      handleUpload(result.assets[0].uri, type, id);
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaType.IMAGES,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+      });
+
+      if (!result.canceled) {
+        handleUpload(result.assets[0].uri, type, id);
+      }
+    } catch (error) {
+      console.error('Gallery error:', error);
+      Alert.alert('Error', 'Failed to open gallery');
     }
   };
 
@@ -229,6 +250,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
         const updated = await parentService.updateProfile({ img: null });
         if (updated) {
           setParentProfile({ ...parentProfile, img: null });
+          setParentAvatarUrl(null);
         }
       } else if (id) {
         const updated = await studentService.updateImage(id, '');
@@ -255,11 +277,11 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
         const updated = await parentService.updateProfile({ img: url });
         if (updated) {
           setParentProfile({ ...parentProfile, img: url });
+          setParentAvatarUrl(url);
         }
       } else if (id) {
         const updated = await studentService.updateImage(id, url);
         if (updated) {
-          // Refresh children in store
           const refreshedChildren = await parentService.fetchChildren();
           setChildren(refreshedChildren);
         }
@@ -267,7 +289,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
       Alert.alert('Success', 'Profile picture updated successfully');
     } catch (error) {
       console.error('Upload error:', error);
-      Alert.alert('Error', 'Failed to upload image');
+      Alert.alert('Error', 'Failed to upload image. Please try again.');
     } finally {
       setUpdating(false);
     }
