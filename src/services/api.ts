@@ -269,6 +269,8 @@ export const studentService = {
           overdueDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
         }
 
+        const daysUntil = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
         return {
           id: -100 - index, // Virtual ID
           month: `${MONTH_NAMES[cycle.month]} ${cycle.year}`,
@@ -278,6 +280,7 @@ export const studentService = {
           isOverdue,
           dueDate,
           overdueDays: isOverdue ? overdueDays : 0,
+          daysUntil: isFuture ? daysUntil : 0,
         };
       }
     });

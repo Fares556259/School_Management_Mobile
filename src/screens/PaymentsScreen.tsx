@@ -220,8 +220,17 @@ export const PaymentsScreen = ({ navigation }: any) => {
 
                   <View className="flex-row gap-3">
                     {isLocked ? (
-                      <View className="flex-1 bg-surface-lowest h-14 rounded-2xl items-center justify-center border border-surface-low">
-                        <Text className="text-text-muted font-jakarta font-bold text-sm">Not Available Yet</Text>
+                      <View className="flex-1 bg-surface-lowest h-14 rounded-2xl items-center justify-center border border-surface-low overflow-hidden">
+                        {(item as any).daysUntil > 0 && (item as any).daysUntil <= 5 ? (
+                          <View className="flex-row items-center">
+                            <Clock size={16} color="#0055d4" />
+                            <Text className="text-brand-primary font-jakarta font-extrabold text-sm ml-2 italic">
+                              Coming in {(item as any).daysUntil} {(item as any).daysUntil === 1 ? 'day' : 'days'}
+                            </Text>
+                          </View>
+                        ) : (
+                          <Text className="text-text-muted font-jakarta font-bold text-sm">Not Available Yet</Text>
+                        )}
                       </View>
                     ) : !isPaid ? (
                       <TouchableOpacity className="flex-1 bg-brand-primary h-14 rounded-2xl flex-row items-center justify-center">
