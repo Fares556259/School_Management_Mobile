@@ -80,6 +80,9 @@ export const SignInScreen = ({ onSignIn }: { onSignIn: () => void }) => {
         setParentAvatarUrl(tempParent?.img || null);
         setHint('Glad to see you again!');
         setTimeout(() => onSignIn(), 800);
+      } else {
+        const errorMessage = result.error || 'Authentication failed.';
+        
         // SMART AUTO-HEAL: If admin reset the password while the app was in 'PASSWORD' mode,
         // we immediately transition them to the SETUP screen so they don't have to re-enter their phone.
         if (errorMessage.toLowerCase().includes('password not set')) {
