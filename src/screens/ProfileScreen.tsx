@@ -116,11 +116,6 @@ const ChildCard = ({ child, isSelected, onSelect, onEditImage }: any) => (
         <Text className="text-[#0055d4] font-jakarta font-black text-lg" numberOfLines={1}>{child.name.split(' ')[0].toLowerCase()}</Text>
         <Text className="text-text-muted font-manrope text-xs font-bold leading-tight">{child.class}</Text>
       </View>
-      {isSelected && (
-        <View className="w-6 h-6 bg-brand-primary rounded-full items-center justify-center shadow-sm">
-          <Check size={14} color="white" />
-        </View>
-      )}
     </View>
   </TouchableOpacity>
 );
@@ -213,9 +208,13 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
       if (!result.canceled) {
         handleUpload(result.assets[0].uri, type, id);
       }
-    } catch (error) {
-      console.error('Camera error:', error);
-      Alert.alert('Error', 'Failed to open camera');
+    } catch (error: any) {
+      console.log('Camera Attempt Failed:', error.message);
+      if (error.message?.includes('not available on simulator')) {
+        Alert.alert('Simulator Detected', 'The camera is only available on physical devices. Please use "Choose from Library" instead.');
+      } else {
+        Alert.alert('Error', 'Failed to open camera. Please check your settings.');
+      }
     }
   };
 

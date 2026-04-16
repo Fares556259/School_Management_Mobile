@@ -14,6 +14,7 @@ import { SignInScreen } from './src/screens/SignInScreen';
 import { LinkChildScreen } from './src/screens/LinkChildScreen';
 import { AnnouncementDetailScreen } from './src/screens/AnnouncementDetailScreen';
 import { ResultsScreen } from './src/screens/ResultsScreen';
+import { LandingScreen } from './src/screens/LandingScreen';
 import { Home as HomeIcon, FileText, CreditCard, User, Megaphone, Calendar, BarChart3 } from 'lucide-react-native';
 import { View, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -80,7 +81,7 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
 
   export default function App() {
     const { setChildren, setSelectedChildId, setError, setParentName } = useAppStore();
-    const [authState, setAuthState] = useState<'loading' | 'signedIn' | 'signedOut'>('loading');
+    const [authState, setAuthState] = useState<'loading' | 'landing' | 'signedIn' | 'signedOut'>('loading');
   
     // Check stored auth on launch
     useEffect(() => {
@@ -99,10 +100,10 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
           } else {
             // Stale session or server unreachable — require login
             await authService.logout();
-            setAuthState('signedOut');
+            setAuthState('landing');
           }
         } else {
-          setAuthState('signedOut');
+          setAuthState('landing');
         }
       };
       bootstrap();
@@ -122,7 +123,7 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
       await authService.logout();
       setChildren([]);
       setParentName("Parent");
-      setAuthState('signedOut');
+      setAuthState('landing');
     };
 
   if (authState === 'loading') {
@@ -137,7 +138,9 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <NavigationContainer>
-          {authState === 'signedOut' ? (
+          {authState === 'landing' ? (
+            <LandingScreen onSelectParent={() => setAuthState('signedOut')} />
+          ) : authState === 'signedOut' ? (
             <SignInScreen onSignIn={handleSignIn} />
           ) : (
             <Stack.Navigator screenOptions={{ headerShown: false }}>
