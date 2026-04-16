@@ -229,7 +229,7 @@ export const studentService = {
       // Look for a payment record for this specific month/year
       const p = (s.payments || []).find((x: any) => x.month === cycle.month && x.year === cycle.year);
       
-      const dueDate = p?.dueDate || `${cycle.year}-${String(cycle.month).padStart(2, '0')}-28`;
+      const dueDate = p?.dueDate || `${cycle.year}-${String(cycle.month).padStart(2, '0')}-05`;
       const due = new Date(dueDate);
       
       // Determine if it's in the past relative to today
@@ -240,8 +240,10 @@ export const studentService = {
         const isOverdue = p.status === 'OVERDUE' || (p.status !== 'PAID' && isPast);
         let overdueDays = 0;
         if (isOverdue) {
-          const diffTime = Math.abs(today.getTime() - due.getTime());
-          overdueDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          const dueNorm = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+          const diffTime = todayNorm.getTime() - dueNorm.getTime();
+          overdueDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
         }
 
         const totalVal = p.amount + (p.deferredAmount || 0);
@@ -261,8 +263,10 @@ export const studentService = {
         const isOverdue = isPast;
         let overdueDays = 0;
         if (isOverdue) {
-          const diffTime = Math.abs(today.getTime() - due.getTime());
-          overdueDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          const dueNorm = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+          const diffTime = todayNorm.getTime() - dueNorm.getTime();
+          overdueDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
         }
 
         return {
