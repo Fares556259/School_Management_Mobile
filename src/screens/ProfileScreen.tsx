@@ -41,11 +41,7 @@ const CircularProgress = ({ size, progress, imageUri, updating, onPress }: any) 
           transform={`rotate(-90, ${size / 2}, ${size / 2})`}
         />
       </Svg>
-      <TouchableOpacity 
-        onPress={onPress}
-        activeOpacity={0.8}
-        style={{ position: 'absolute', width: size - 15, height: size - 15, borderRadius: (size - 15) / 2, overflow: 'hidden', backgroundColor: '#f1f4f6' }}
-      >
+      <View style={{ position: 'absolute', width: size - 15, height: size - 15, borderRadius: (size - 15) / 2, overflow: 'hidden', backgroundColor: '#f1f4f6' }}>
         <Image 
           source={imageUri ? { uri: imageUri } : require('../../assets/noavatar.png')} 
           style={{ width: '100%', height: '100%' }}
@@ -55,15 +51,22 @@ const CircularProgress = ({ size, progress, imageUri, updating, onPress }: any) 
             <ActivityIndicator size="small" color="white" />
           </View>
         )}
-        <View className="absolute bottom-0 right-0 left-0 bg-black/30 py-1 items-center">
-          <Camera size={12} color="white" />
-        </View>
+      </View>
+
+      {/* Floating Action Button for Image */}
+      <TouchableOpacity 
+        onPress={onPress}
+        activeOpacity={0.8}
+        className="absolute bottom-1 right-1 bg-white p-2.5 rounded-full border border-surface-low shadow-md"
+      >
+        <Camera size={20} color="#0055d4" />
       </TouchableOpacity>
-      {/* Percentage Badge */}
+
+      {/* Percentage Badge (Top Right or Specific Position) */}
       <View style={{
         position: 'absolute',
-        bottom: 5,
-        right: 5,
+        top: 0,
+        right: size / 4,
         backgroundColor: '#f1f4f6',
         paddingHorizontal: 6,
         paddingVertical: 4,
