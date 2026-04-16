@@ -327,6 +327,12 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     ]);
   };
 
+  const isDirty = parentProfile && (
+    editData.name !== parentProfile.name || 
+    editData.surname !== parentProfile.surname || 
+    editData.phone !== parentProfile.phone
+  );
+
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-surface-background">
@@ -339,15 +345,17 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }} edges={['top']}>
       <StatusBar barStyle="dark-content" />
 
-      {/* Modern Header Save Button */}
-      <View className="flex-row justify-end px-6 pt-2">
-         <TouchableOpacity 
-            onPress={handleSaveProfile}
-            disabled={updating}
-            className="bg-brand-primary px-5 py-2.5 rounded-full shadow-md shadow-brand-primary/20"
-         >
-           {updating ? <ActivityIndicator size="small" color="white" /> : <Text className="text-white font-jakarta font-bold text-sm">Save</Text>}
-         </TouchableOpacity>
+      {/* Modern Header Save Button - Only show if dirty */}
+      <View className="flex-row justify-end px-6 pt-2 h-12">
+        {isDirty && (
+          <TouchableOpacity 
+             onPress={handleSaveProfile}
+             disabled={updating}
+             className="bg-brand-primary px-5 py-2.5 rounded-full shadow-md shadow-brand-primary/20"
+          >
+            {updating ? <ActivityIndicator size="small" color="white" /> : <Text className="text-white font-jakarta font-bold text-sm">Save</Text>}
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1" contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 150 }}>
@@ -463,10 +471,10 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
 
               <TouchableOpacity 
                 onPress={handleSaveProfile}
-                disabled={updating}
-                className="bg-brand-primary py-4 rounded-2xl items-center mt-4 shadow-lg shadow-brand-primary/20"
+                disabled={updating || !isDirty}
+                className={`py-4 rounded-2xl items-center mt-4 shadow-lg ${updating || !isDirty ? 'bg-surface-low shadow-none' : 'bg-brand-primary shadow-brand-primary/20'}`}
               >
-                {updating ? <ActivityIndicator color="white" /> : <Text className="text-white font-jakarta font-bold text-lg">Save Changes</Text>}
+                {updating ? <ActivityIndicator color="white" /> : <Text className={`${updating || !isDirty ? 'text-text-muted' : 'text-white'} font-jakarta font-bold text-lg`}>Save Changes</Text>}
               </TouchableOpacity>
             </View>
           </View>
