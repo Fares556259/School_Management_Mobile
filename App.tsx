@@ -86,7 +86,7 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
 }
 
   export default function App() {
-    const { setChildren, setSelectedChildId, setError, setParentName } = useAppStore();
+    const { setChildren, setSelectedChildId, setError, setParentName, setParentAvatarUrl } = useAppStore();
     const [authState, setAuthState] = useState<'loading' | 'landing' | 'signedIn' | 'signedOut'>('loading');
   
     // Check stored auth on launch
