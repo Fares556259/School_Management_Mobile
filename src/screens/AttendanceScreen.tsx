@@ -148,6 +148,7 @@ export const AttendanceScreen = ({ navigation }: any) => {
 
   const totalAbsences = history.filter(d => d.status === 'ABSENT').length;
   const totalLates = history.filter(d => d.status === 'LATE').length;
+  const totalPresences = history.filter(d => d.status === 'PRESENT').length;
   const last30Days = history.filter(d => (new Date().getTime() - new Date(d.date).getTime()) < 30 * 24 * 60 * 60 * 1000);
   const monthlyPresentCount = last30Days.reduce((acc, curr) => acc + (curr.status === 'PRESENT' ? 1 : 0), 0);
   const monthlyTotalCount = last30Days.length || 1;
@@ -187,14 +188,18 @@ export const AttendanceScreen = ({ navigation }: any) => {
         </View>
 
         {/* Summary Dashboard */}
-        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 32 }}>
-          <View style={{ flex: 1, backgroundColor: '#fef2f2', padding: 16, borderRadius: 24, borderLeftWidth: 4, borderLeftColor: '#ef4444' }}>
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#b91c1c' }}>{totalAbsences}</Text>
-            <Text style={{ fontSize: 12, color: '#ef4444', fontWeight: 'bold', textTransform: 'uppercase' }}>Absences</Text>
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 32 }}>
+          <View style={{ flex: 1, backgroundColor: '#f0fdf4', padding: 12, borderRadius: 20, borderLeftWidth: 4, borderLeftColor: '#22c55e' }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#166534' }}>{totalPresences}</Text>
+            <Text style={{ fontSize: 10, color: '#22c55e', fontWeight: 'bold', textTransform: 'uppercase' }}>Presences</Text>
           </View>
-          <View style={{ flex: 1, backgroundColor: '#fffbeb', padding: 16, borderRadius: 24, borderLeftWidth: 4, borderLeftColor: '#f59e0b' }}>
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#92400e' }}>{totalLates}</Text>
-            <Text style={{ fontSize: 12, color: '#f59e0b', fontWeight: 'bold', textTransform: 'uppercase' }}>Lates</Text>
+          <View style={{ flex: 1, backgroundColor: '#fef2f2', padding: 12, borderRadius: 20, borderLeftWidth: 4, borderLeftColor: '#ef4444' }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#b91c1c' }}>{totalAbsences}</Text>
+            <Text style={{ fontSize: 10, color: '#ef4444', fontWeight: 'bold', textTransform: 'uppercase' }}>Absences</Text>
+          </View>
+          <View style={{ flex: 1, backgroundColor: '#fffbeb', padding: 12, borderRadius: 20, borderLeftWidth: 4, borderLeftColor: '#f59e0b' }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#92400e' }}>{totalLates}</Text>
+            <Text style={{ fontSize: 10, color: '#f59e0b', fontWeight: 'bold', textTransform: 'uppercase' }}>Lates</Text>
           </View>
         </View>
 
@@ -208,14 +213,14 @@ export const AttendanceScreen = ({ navigation }: any) => {
                 <View key={i} style={{ height: 80, borderRadius: 24, backgroundColor: '#e2e9ec', opacity: 0.6 }} />
              ))}
           </View>
-        ) : history.filter(d => d.status !== 'PRESENT').length === 0 ? (
+        ) : history.length === 0 ? (
           <View style={{ alignItems: 'center', marginTop: 60 }}>
             <Calendar size={64} color="#d1d5db" style={{ marginBottom: 16 }} />
-            <Text style={{ fontSize: 16, color: '#737c7f', fontWeight: 'bold' }}>No recent absences or lates</Text>
+            <Text style={{ fontSize: 16, color: '#737c7f', fontWeight: 'bold' }}>No recent activity</Text>
             <Text style={{ fontSize: 14, color: '#9ca3af', marginTop: 4 }}>Attendance records are all clear!</Text>
           </View>
         ) : (
-          history.filter(d => d.status !== 'PRESENT').map((day, idx) => (
+          history.map((day, idx) => (
             <AttendanceHistoryItem key={idx} day={day} />
           ))
         )}
