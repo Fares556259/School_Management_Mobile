@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, Modal, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, StatusBar } from 'react-native';
 import { Bell, ChevronDown, Check, X, User, ChevronRight, ChevronLeft } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { authStorage, studentService } from '../services/api';
