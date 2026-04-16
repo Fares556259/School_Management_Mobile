@@ -6,6 +6,8 @@ import { studentService } from '../services/api';
 import { Announcement } from '../types';
 import { useAppStore } from '../store/useAppStore';
 import { GlobalHeader } from '../components/GlobalHeader';
+import { Image } from 'expo-image';
+import { SkeletonBlock } from '../components/SkeletonView';
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -18,7 +20,13 @@ const AnnouncementCard = ({ item, onPress }: any) => (
       shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10, elevation: 3,
     }}
   >
-    <Image source={{ uri: item.image }} style={{ width: '100%', height: 160 }} />
+  >
+    <Image 
+      source={{ uri: item.image }} 
+      style={{ width: '100%', height: 180 }} 
+      contentFit="cover"
+      transition={300}
+    />
     <View style={{ padding: 20 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
         <View style={{ 
@@ -104,9 +112,22 @@ export const AnnouncementsScreen = ({ navigation }: any) => {
 
       {/* Content */}
       {loading ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color="#0055d4" />
-        </View>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 20 }}>
+          {[1, 2, 3].map(i => (
+            <View key={i} style={{ marginBottom: 24, backgroundColor: 'white', borderRadius: 28, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f4f6' }}>
+              <SkeletonBlock height={180} borderRadius={0} />
+              <View style={{ padding: 20 }}>
+                <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
+                  <SkeletonBlock width={60} height={18} borderRadius={8} />
+                  <SkeletonBlock width={80} height={18} borderRadius={8} />
+                </View>
+                <SkeletonBlock width="90%" height={24} marginBottom={10} />
+                <SkeletonBlock width="100%" height={16} marginBottom={6} />
+                <SkeletonBlock width="60%" height={16} />
+              </View>
+            </View>
+          ))}
+        </ScrollView>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 150 }}>
           {filtered.map(item => (

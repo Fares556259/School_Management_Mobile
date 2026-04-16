@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Image, Modal, StatusBar } from 'react-native';
 import { Bell, ChevronDown, Check, X, User, ChevronRight, ChevronLeft } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
-import { parentService, studentService, authStorage } from '../services/api';
+import { authStorage, studentService } from '../services/api';
+import { Image } from 'expo-image';
+import * as Haptics from 'expo-haptics';
 
 interface GlobalHeaderProps {
   navigation: any;
@@ -27,63 +29,70 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
   const selectedChild = children.find((c: any) => c.id === selectedChildId);
   const status = selectedChildId ? studentStatuses[selectedChildId] || 'Present' : 'Present';
 
-  // Load Parent Profile & Notifications count
+  // Only load Notifications count in the header, profile should be in the store
   useEffect(() => {
-    const loadCommonData = async () => {
-      // Load Profile if needed
-      if (!parentName || parentName === 'Parent' || !parentAvatarUrl) {
-        // Double check if we already have it in store by getting fresh get()
-        // but for now simple check is fine to reduce redundant calls.
-        const profile = await parentService.fetchParentProfile();
-        if (profile) {
-          setParentName(`${profile.name} ${profile.surname}`);
-          setParentAvatarUrl(profile.img);
-        }
-      }
-
-      // Load Unread Notifications
+    const loadUnreadCount = async () => {
       const pId = await authStorage.getParentId();
       if (pId) {
-        const notes = await studentService.fetchNotifications(pId, selectedChildId);
-        setUnreadNotificationsCount(notes.filter(n => n.isNew).length);
+        try {
+          const notes = await studentService.fetchNotifications(pId, selectedChildId);
+          setUnreadNotificationsCount(notes.filter(n => !n.isRead).length);
+        } catch (e) {
+          console.log("[NOTIF-LOAD-ERROR] Silent skip");
+        }
       }
     };
-    loadCommonData();
-  }, [selectedChildId]); // Also re-check when switching children for better sync
+    loadUnreadCount();
+  }, [selectedChildId]);
 
+  const handleSwitchChild = (id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setSelectedChildId(id);
+    setShowSwitcher(false);
+  };
+
+  const toggleSwitcher = () => {
+    Haptics.selectionAsync();
+    setShowSwitcher(!showSwitcher);
+  };
 
   return (
-    <View className="bg-white">
+    <View className="bg-white/90 border-b border-surface-low backdrop-blur-xl">
       <View className="flex-row items-center justify-between px-6 py-4">
         <View className="flex-row items-center flex-1">
           {showBack ? (
             <TouchableOpacity 
-              onPress={() => navigation.goBack()}
-              className="mr-3 w-10 h-10 rounded-xl bg-surface-low items-center justify-center border border-surface-low"
+              onPress={() => {
+                Haptics.selectionAsync();
+                navigation.goBack();
+              }}
+              className="mr-3 w-10 h-10 rounded-xl bg-surface-lowest items-center justify-center border border-surface-low"
             >
               <ChevronLeft size={24} color="#2b3437" strokeWidth={3} />
             </TouchableOpacity>
           ) : (
-            /* Dual Avatar: Parent + Student Overlap */
             <TouchableOpacity 
-              onPress={() => navigation.navigate('Profile')}
+              onPress={() => {
+                Haptics.selectionAsync();
+                navigation.navigate('Profile');
+              }}
               activeOpacity={0.8}
               className="relative"
             >
-              {/* Parent Avatar (Base) */}
               <View className="w-11 h-11 rounded-full border-2 border-surface-low overflow-hidden bg-white shadow-sm">
                 <Image 
                   source={parentAvatarUrl ? { uri: parentAvatarUrl } : require('../../assets/noavatar.png')} 
+                  contentFit="cover"
+                  transition={200}
                   className="w-full h-full"
                 />
               </View>
               
-              {/* Student Avatar (Overlay Badge) */}
-              <View 
-                className="absolute -right-1 -bottom-1 w-6 h-6 rounded-full border-2 border-white overflow-hidden bg-surface-low shadow-sm"
-              >
+              <View className="absolute -right-1 -bottom-1 w-6 h-6 rounded-full border-2 border-white overflow-hidden bg-surface-low shadow-sm">
                 <Image 
                   source={selectedChild?.avatarUrl ? { uri: selectedChild.avatarUrl } : require('../../assets/noavatar.png')} 
+                  contentFit="cover"
+                  transition={200}
                   className="w-full h-full"
                 />
               </View>
@@ -91,36 +100,36 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
           )}
 
           <View className="ml-3 flex-1">
-            {/* Parent Name (Secondary) */}
-            <Text className="text-[11px] font-jakarta font-bold text-text-muted opacity-60 uppercase tracking-widest" numberOfLines={1}>
+            <Text className="text-[10px] font-jakarta font-black text-text-muted opacity-40 uppercase tracking-[2px]" numberOfLines={1}>
               {parentName}
             </Text>
             
-            {/* Child Name + Dropdown (Primary Highlight) */}
             <TouchableOpacity 
-              onPress={() => setShowSwitcher(true)}
+              onPress={toggleSwitcher}
               className="flex-row items-center mt-0.5"
             >
-              <Text className="text-xl font-jakarta font-black text-brand-primary" numberOfLines={1}>
-                {selectedChild?.name || 'Select Child'}
+              <Text className="text-xl font-jakarta font-black text-brand-primary tracking-tight" numberOfLines={1}>
+                {selectedChild?.name?.split(' ')[0] || 'Select Child'}
               </Text>
               <View className="flex-row items-center ml-2">
-                <View className={`w-2 h-2 rounded-full mr-2 ${status === 'Absent' ? 'bg-brand-error' : status === 'Due' ? 'bg-orange-500' : 'bg-green-500'}`} />
-                <ChevronDown size={18} color="#0055d4" />
+                <View className={`w-1.5 h-1.5 rounded-full mr-2 ${status === 'Absent' ? 'bg-brand-error' : status === 'Due' ? 'bg-orange-500' : 'bg-green-500'}`} />
+                <ChevronDown size={14} color="#0055d4" strokeWidth={3} />
               </View>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Action: Notifications */}
         <TouchableOpacity
-          onPress={() => navigation.navigate('Notifications')}
-          className="w-11 h-11 rounded-full bg-white items-center justify-center border border-surface-low shadow-lg shadow-black/5"
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            navigation.navigate('Notifications');
+          }}
+          className="w-11 h-11 rounded-full bg-white items-center justify-center border border-surface-low shadow-sm"
         >
-          <Bell size={22} color="#0055d4" />
+          <Bell size={22} color="#0055d4" strokeWidth={2.5} />
         {unreadNotificationsCount > 0 && (
-          <View className="absolute -top-1 -right-1 bg-brand-error min-w-[18px] h-[18px] rounded-full items-center justify-center px-1 border-2 border-white">
-            <Text className="text-[9px] font-black text-white leading-none">
+          <View className="absolute top-0 right-0 bg-brand-error min-w-[18px] h-[18px] rounded-full items-center justify-center px-1 border-2 border-white">
+            <Text className="text-[8px] font-black text-white">
               {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
             </Text>
           </View>
@@ -152,17 +161,15 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
               {children.map((child: any) => {
                 const isActive = selectedChildId === child.id;
                 return (
-                  <TouchableOpacity
+                   <TouchableOpacity
                     key={child.id}
-                    onPress={() => {
-                      setSelectedChildId(child.id);
-                      setShowSwitcher(false);
-                    }}
+                    onPress={() => handleSwitchChild(child.id)}
                     className={`flex-row items-center p-4 rounded-[28px] border-2 ${isActive ? 'bg-blue-50/50 border-brand-primary' : 'bg-surface-lowest border-surface-low'}`}
                   >
                     <View className={`w-14 h-14 rounded-full overflow-hidden border-2 ${isActive ? 'border-brand-primary' : 'border-surface-low'}`}>
                       <Image 
                         source={child.avatarUrl ? { uri: child.avatarUrl } : require('../../assets/noavatar.png')} 
+                        transition={200}
                         className="w-full h-full" 
                       />
                     </View>

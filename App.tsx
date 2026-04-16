@@ -20,7 +20,8 @@ import { View, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAppStore } from './src/store/useAppStore';
-import { parentService, authService } from './src/services/api';
+import { parentService, authService, studentService } from './src/services/api';
+import * as Haptics from 'expo-haptics';
 import "./src/styles/global.css";
 
 const Tab = createBottomTabNavigator();
@@ -29,6 +30,11 @@ const Stack = createNativeStackNavigator();
 function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
   return (
     <Tab.Navigator
+      screenListeners={{
+        tabPress: () => {
+          Haptics.selectionAsync();
+        },
+      }}
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
@@ -60,8 +66,8 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
           else if (route.name === 'Payments') Icon = CreditCard;
           else if (route.name === 'Profile') Icon = User;
           return (
-            <View style={focused ? { backgroundColor: '#0055d410', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16 } : {}}>
-              <Icon color={color} size={focused ? 24 : 20} />
+            <View className={focused ? "bg-brand-primary/10 px-4 py-2 rounded-2xl transform scale-110" : ""}>
+              <Icon color={color} size={focused ? 24 : 20} strokeWidth={focused ? 3 : 2} />
             </View>
           );
         },
@@ -86,23 +92,34 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
     // Check stored auth on launch
     useEffect(() => {
       const bootstrap = async () => {
-        const loggedIn = await authService.isLoggedIn();
-        if (loggedIn) {
-          // Try to load children; if network is down, fall back to login
-          const parentProfile = await parentService.fetchParentProfile();
-          if (parentProfile?.name) setParentName(parentProfile.name);
-          
-          const data = await parentService.fetchChildren();
-          if (data.length > 0) {
-            setChildren(data);
-            setSelectedChildId(data[0].id);
-            setAuthState('signedIn');
+        try {
+          const loggedIn = await authService.isLoggedIn();
+          if (loggedIn) {
+            // Speed Boost: Parallel fetch of essential data
+            const [profile, childrenData] = await Promise.all([
+              parentService.fetchParentProfile(),
+              parentService.fetchChildren()
+            ]);
+
+            if (profile) {
+              setParentName(`${profile.name} ${profile.surname}`);
+              setParentAvatarUrl(profile.img);
+            }
+
+            if (childrenData && childrenData.length > 0) {
+              setChildren(childrenData);
+              setSelectedChildId(childrenData[0].id);
+              setAuthState('signedIn');
+            } else {
+              // Stale session or server unreachable — require login
+              await authService.logout();
+              setAuthState('landing');
+            }
           } else {
-            // Stale session or server unreachable — require login
-            await authService.logout();
             setAuthState('landing');
           }
-        } else {
+        } catch (error) {
+          console.error("[BOOTSTRAP-ERROR]", error);
           setAuthState('landing');
         }
       };

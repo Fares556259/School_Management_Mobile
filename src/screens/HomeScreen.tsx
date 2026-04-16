@@ -7,6 +7,7 @@ import { studentService } from '../services/api';
 import { StudentDayData } from '../types';
 import { GlobalHeader } from '../components/GlobalHeader';
 import { notificationService } from '../services/notificationService';
+import { SkeletonBlock } from '../components/SkeletonView';
 
 // ─── Icon map ─────────────────────────────────────────────────────────────────
 const ICON_MAP: Record<string, any> = {
@@ -40,18 +41,6 @@ const EmptyPlaceholder = ({ text, icon: Icon }: any) => (
   </View>
 );
 
-const SkeletonBlock = ({ width, height, borderRadius = 12, marginBottom = 0, opacity = 1 }: any) => {
-  const [pulseAnim] = React.useState(new Animated.Value(0.6));
-  React.useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 0.6, duration: 1000, useNativeDriver: true }),
-      ])
-    ).start();
-  }, []);
-  return <Animated.View style={{ width, height, borderRadius, backgroundColor: '#e2e9ec', marginBottom, opacity: pulseAnim }} />;
-};
 
 const LoadingSkeleton = () => (
   <View style={{ gap: 16 }}>
