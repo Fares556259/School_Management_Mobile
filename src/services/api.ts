@@ -7,7 +7,7 @@ import {
   Announcement,
 } from '../types';
 
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://172.18.3.31:3000';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.120.17:3000';
 
 const PARENT_ID_KEY = 'snapschool_parent_id';
 const STUDENTS_CACHE_KEY = 'snapschool_students_cache';
@@ -74,7 +74,13 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
       if (!response.ok) {
         const text = await response.text();
         console.warn(`API Error [${response.status}] [${duration}ms] ${endpoint}: ${text}`);
-        return null;
+        try {
+          // Attempt to parse error as JSON
+          return JSON.parse(text);
+        } catch (e) {
+          // Fallback for non-JSON errors
+          return null;
+        }
       }
 
       return await response.json();
@@ -108,25 +114,50 @@ const mapStudent = (s: any): Student & { raw: any } => ({
 // ─── Parent Auth Service ──────────────────────────────────────────────────────
 export const authService = {
   /**
-   * Sign in by phone — looks up the parent in the DB, stores parentId locally.
-   * Returns { success, error, parentName, students }
+   * Check if a parent exists and determine if they need to set up a password
+   * or enter an existing one.
    */
-  login: async (phone: string): Promise<{ success: boolean; error?: string; parentName?: string; parentImg?: string | null }> => {
+  checkPhoneStatus: async (phone: string): Promise<{ success: boolean; status?: 'NEEDS_SETUP' | 'NEEDS_PASSWORD'; error?: string; name?: string; img?: string }> => {
     const data = await apiFetch('/api/mobile/login', {
       method: 'POST',
-      body: JSON.stringify({ phone }),
+      body: JSON.stringify({ phone: phone.trim() }),
     });
 
-    if (!data) return { success: false, error: 'Network error. Check your connection.' };
-
-    await authStorage.saveParentId(data.parentId);
-    // Cache students immediately
-    await AsyncStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify(data.students));
-    return { 
-      success: true, 
-      parentName: data.name,
-      parentImg: getFullImageUrl(data.img)
+    if (!data) return { success: false, error: 'Network error or account not found.' };
+    return {
+      success: true,
+      status: data.status,
+      name: data.name,
+      img: data.img
     };
+  },
+
+  /**
+   * Finalize authentication (Setup or SignIn)
+   */
+  authenticate: async (phone: string, password: string, action: 'setup' | 'signin'): Promise<{ success: boolean; error?: string }> => {
+    const response = await apiFetch('/api/mobile/auth', {
+      method: 'POST',
+      body: JSON.stringify({ phone: phone.trim(), password, action }),
+    });
+
+    // Handle generic network failure
+    if (!response) {
+      return { success: false, error: 'Network error. Please try again.' };
+    }
+
+    // Since apiFetch returns null on !response.ok, we need to check if 
+    // it returned an object with success: true.
+    if (!response.success) {
+      return { success: false, error: response.error || 'Authentication aborted.' };
+    }
+
+    await authStorage.saveParentId(response.parentId);
+    if (response.students) {
+      await AsyncStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify(response.students));
+    }
+    
+    return { success: true };
   },
 
   logout: async () => {
