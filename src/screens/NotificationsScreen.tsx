@@ -67,7 +67,7 @@ const NotificationRow = ({ item, onPress }: any) => {
 };
 
 export const NotificationsScreen = ({ navigation }: any) => {
-  const { unreadNotificationsCount, setUnreadNotificationsCount } = useAppStore();
+  const { selectedChildId, unreadNotificationsCount, setUnreadNotificationsCount } = useAppStore();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -78,7 +78,7 @@ export const NotificationsScreen = ({ navigation }: any) => {
       const parentId = await authStorage.getParentId();
       if (!parentId) return;
 
-      const data = await studentService.fetchNotifications(parentId);
+      const data = await studentService.fetchNotifications(parentId, selectedChildId);
       setNotifications(data);
       setUnreadNotificationsCount(data.filter(n => n.isNew).length);
     } catch (error) {

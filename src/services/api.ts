@@ -285,8 +285,10 @@ export const studentService = {
     return data.exams;
   },
 
-  fetchNotifications: async (parentId: string): Promise<Notification[]> => {
-    const data = await apiFetch(`/api/mobile/notifications?parentId=${parentId}`);
+  fetchNotifications: async (parentId: string, studentId?: string | null): Promise<Notification[]> => {
+    let url = `/api/mobile/notifications?parentId=${parentId}`;
+    if (studentId) url += `&studentId=${studentId}`;
+    const data = await apiFetch(url);
     return Array.isArray(data) ? data : [];
   },
 

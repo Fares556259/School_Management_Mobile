@@ -41,7 +41,7 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
       // Load Unread Notifications
       const pId = await authStorage.getParentId();
       if (pId) {
-        const notes = await studentService.fetchNotifications(pId);
+        const notes = await studentService.fetchNotifications(pId, selectedChildId);
         setUnreadNotificationsCount(notes.filter(n => n.isNew).length);
       }
     };
