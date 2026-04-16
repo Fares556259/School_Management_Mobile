@@ -125,7 +125,11 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
         >
           <Bell size={22} color="#0055d4" />
         {unreadNotificationsCount > 0 && (
-          <View className="absolute top-3 right-3 w-2.5 h-2.5 rounded-full bg-brand-error border-2 border-white" />
+          <View className="absolute -top-1 -right-1 bg-brand-error min-w-[18px] h-[18px] rounded-full items-center justify-center px-1 border-2 border-white">
+            <Text className="text-[9px] font-black text-white leading-none">
+              {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+            </Text>
+          </View>
         )}
         </TouchableOpacity>
       </View>
