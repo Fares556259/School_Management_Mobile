@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Image, Modal, StatusBar } from 'react-native';
 import { Bell, ChevronDown, Check, X, User, ChevronRight, ChevronLeft } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
-import { parentService, studentService } from '../services/api';
+import { parentService, studentService, authStorage } from '../services/api';
 
 interface GlobalHeaderProps {
   navigation: any;
