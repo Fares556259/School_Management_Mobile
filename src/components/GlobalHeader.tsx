@@ -170,7 +170,7 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
                       <Image 
                         source={child.avatarUrl ? { uri: child.avatarUrl } : require('../../assets/noavatar.png')} 
                         transition={200}
-                        className="w-full h-full" 
+                        style={{ width: '100%', height: '100%' }}
                       />
                     </View>
                     <View className="flex-1 ml-4">
