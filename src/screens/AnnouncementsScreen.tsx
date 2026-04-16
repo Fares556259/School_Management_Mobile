@@ -20,7 +20,6 @@ const AnnouncementCard = ({ item, onPress }: any) => (
       shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10, elevation: 3,
     }}
   >
-  >
     <Image 
       source={{ uri: item.image }} 
       style={{ width: '100%', height: 180 }} 
