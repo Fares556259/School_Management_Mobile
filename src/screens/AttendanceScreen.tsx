@@ -212,14 +212,14 @@ export const AttendanceScreen = ({ navigation }: any) => {
                 <View key={i} style={{ height: 80, borderRadius: 24, backgroundColor: '#e2e9ec', opacity: 0.6 }} />
              ))}
           </View>
-        ) : history.length === 0 ? (
+        ) : history.filter(d => d.status !== 'PRESENT').length === 0 ? (
           <View style={{ alignItems: 'center', marginTop: 60 }}>
             <Calendar size={64} color="#d1d5db" style={{ marginBottom: 16 }} />
-            <Text style={{ fontSize: 16, color: '#737c7f', fontWeight: 'bold' }}>No recent activity</Text>
+            <Text style={{ fontSize: 16, color: '#737c7f', fontWeight: 'bold' }}>No recent absences or lates</Text>
             <Text style={{ fontSize: 14, color: '#9ca3af', marginTop: 4 }}>Attendance records are all clear!</Text>
           </View>
         ) : (
-          history.map((day, idx) => (
+          history.filter(d => d.status !== 'PRESENT').map((day, idx) => (
             <AttendanceHistoryItem key={idx} day={day} />
           ))
         )}
