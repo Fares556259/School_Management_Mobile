@@ -76,13 +76,15 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
             <View style={[styles.iconContainer, { backgroundColor: config.bgColor }]}>
               <Icon size={20} color={config.color} />
             </View>
-            <View className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white overflow-hidden bg-surface-low">
-              <Image 
-                source={avatarSource} 
-                style={{ width: '100%', height: '100%' }}
-                contentFit="cover"
-              />
-            </View>
+            {item.studentAvatar ? (
+              <View className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white overflow-hidden bg-surface-low">
+                <Image 
+                  source={{ uri: item.studentAvatar }} 
+                  style={{ width: '100%', height: '100%' }}
+                  contentFit="cover"
+                />
+              </View>
+            ) : null}
           </View>
           
           <View style={styles.textContainer}>
