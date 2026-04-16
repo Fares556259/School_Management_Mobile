@@ -139,8 +139,12 @@ export const NotificationsScreen = ({ navigation }: any) => {
       }
     }
 
-    // Navigate to Home page as requested
-    navigation.navigate('MainTabs', { screen: 'Home' });
+    // Navigate based on type
+    if (item.type === 'PAYMENT') {
+      navigation.navigate('MainTabs', { screen: 'Payments' });
+    } else {
+      navigation.navigate('MainTabs', { screen: 'Home' });
+    }
   };
 
   const handleMarkAllRead = async () => {
