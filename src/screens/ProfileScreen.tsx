@@ -1,62 +1,131 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Alert, Modal, TextInput, ActivityIndicator, StatusBar } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, Alert, Modal, TextInput, ActivityIndicator, StatusBar, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bell, Edit2, Globe, BellRing, LifeBuoy, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, User } from 'lucide-react-native';
+import { Bell, Edit2, Globe, BellRing, LifeBuoy, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, User, Pencil } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { Svg, Circle } from 'react-native-svg';
 import { useAppStore } from '../store/useAppStore';
 import { authService, parentService, studentService, uiService } from '../services/api';
 
 import { GlobalHeader } from '../components/GlobalHeader';
 
-const ChildCard = ({ child, isSelected, onSelect, onEditImage }: any) => (
-  <View className="mr-4">
-    <TouchableOpacity 
-      onPress={onSelect}
-      className={`w-[160px] p-4 rounded-[32px] bg-surface-lowest border ${isSelected ? 'border-brand-primary bg-blue-50' : 'border-surface-low'}`}
-      style={{
-        shadowColor: '#2b3437',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.06,
-        shadowRadius: 24,
-        elevation: 4,
-      }}
-    >
-      <View className="relative">
-        <Image 
-          source={child.avatarUrl ? { uri: child.avatarUrl } : require('../../assets/noavatar.png')} 
-          className="w-16 h-16 rounded-2xl bg-surface-low" 
+const { width } = Dimensions.get('window');
+
+const CircularProgress = ({ size, progress, imageUri, updating }: any) => {
+  const strokeWidth = 5;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const strokeDashoffset = circumference - (progress / 100) * circumference;
+
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="#f1f4f6"
+          strokeWidth={strokeWidth}
+          fill="transparent"
         />
-        <TouchableOpacity 
-          onPress={onEditImage}
-          className="absolute -bottom-1 -right-1 bg-brand-primary p-1.5 rounded-full border-2 border-white"
-        >
-          <Camera size={10} color="white" />
-        </TouchableOpacity>
-        {isSelected && (
-          <View className="absolute -top-2 -right-2 bg-brand-primary rounded-full p-1 border-2 border-white">
-            <Check size={8} color="white" />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="#0055d4"
+          strokeWidth={strokeWidth}
+          fill="transparent"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          transform={`rotate(-90, ${size / 2}, ${size / 2})`}
+        />
+      </Svg>
+      <View style={{ position: 'absolute', width: size - 15, height: size - 15, borderRadius: (size - 15) / 2, overflow: 'hidden', backgroundColor: '#f1f4f6' }}>
+        <Image 
+          source={imageUri ? { uri: imageUri } : require('../../assets/noavatar.png')} 
+          style={{ width: '100%', height: '100%' }}
+        />
+        {updating && (
+          <View className="absolute inset-0 bg-black/20 items-center justify-center">
+            <ActivityIndicator size="small" color="white" />
           </View>
         )}
       </View>
-      <Text className="text-brand-primary font-jakarta font-bold text-lg mt-3" numberOfLines={1}>{child.name.split(' ')[0]}</Text>
-      <Text className="text-text-muted font-manrope text-sm font-medium">{child.class}</Text>
-    </TouchableOpacity>
-  </View>
+      {/* Percentage Badge */}
+      <View style={{
+        position: 'absolute',
+        bottom: 5,
+        right: 5,
+        backgroundColor: '#f1f4f6',
+        paddingHorizontal: 6,
+        paddingVertical: 4,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#e2e9ec',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+      }}>
+        <Text style={{ fontSize: 10, fontWeight: '900', color: '#0055d4' }}>{progress}%</Text>
+      </View>
+    </View>
+  );
+};
+
+const ChildCard = ({ child, isSelected, onSelect, onEditImage }: any) => (
+  <TouchableOpacity 
+    onPress={onSelect}
+    activeOpacity={0.9}
+    className="mr-3 overflow-hidden bg-white rounded-[28px] border border-surface-low"
+    style={{
+      width: 170,
+      shadowColor: '#2b3437',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.05,
+      shadowRadius: 12,
+      elevation: 3,
+    }}
+  >
+    <View className="relative">
+      <Image 
+        source={child.avatarUrl ? { uri: child.avatarUrl } : require('../../assets/noavatar.png')} 
+        className="w-full h-[170px] bg-surface-low" 
+      />
+      <TouchableOpacity 
+        onPress={onEditImage}
+        className="absolute bottom-2 right-2 bg-white/90 p-2 rounded-full border border-surface-low shadow-sm"
+      >
+        <Camera size={18} color="#0055d4" />
+      </TouchableOpacity>
+    </View>
+    <View className="p-4 flex-row justify-between items-center bg-white">
+      <View>
+        <Text className="text-[#0055d4] font-jakarta font-black text-lg" numberOfLines={1}>{child.name.split(' ')[0].toLowerCase()}</Text>
+        <Text className="text-text-muted font-manrope text-xs font-bold leading-tight">{child.class}</Text>
+      </View>
+      {isSelected && (
+        <View className="w-6 h-6 bg-brand-primary rounded-full items-center justify-center shadow-sm">
+          <Check size={14} color="white" />
+        </View>
+      )}
+    </View>
+  </TouchableOpacity>
 );
 
-const SettingItem = ({ icon: Icon, label, value, color, iconColor, isLast, onPress }: any) => (
+const SettingItemV2 = ({ icon: Icon, label, color, isLast, onPress }: any) => (
   <TouchableOpacity 
     onPress={onPress}
-    className={`flex-row items-center py-4 ${!isLast ? 'border-b border-surface-low' : ''}`}
+    activeOpacity={0.6}
+    className={`flex-row items-center py-4 px-4 ${!isLast ? 'border-b border-surface-low' : ''}`}
   >
-    <View className={`p-3 rounded-2xl mr-4 ${color || 'bg-surface-low'}`}>
-      <Icon size={20} color={iconColor || '#737c7f'} />
+    <View className={`w-10 h-10 rounded-xl items-center justify-center mr-4 ${color || 'bg-surface-low'}`}>
+      <Icon size={20} color="#737c7f" />
     </View>
-    <View className="flex-1">
-      <Text className={`text-lg font-jakarta font-semibold ${iconColor === '#9f403d' ? 'text-brand-error' : 'text-text-primary'}`}>{label}</Text>
-      {value && <Text className="text-text-muted font-manrope text-sm font-medium">{value}</Text>}
-    </View>
-    <Text className="text-text-muted text-xl font-light">›</Text>
+    <Text className="flex-1 text-lg font-jakarta font-semibold text-text-primary">{label}</Text>
+    <ChevronDown size={20} color="#d1d5db" />
   </TouchableOpacity>
 );
 
@@ -235,54 +304,37 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-background">
+    <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }} edges={['top']}>
       <StatusBar barStyle="dark-content" />
 
-      <ScrollView showsVerticalScrollIndicator={false} className="flex-1" contentContainerClassName="px-6 pb-32">
-        {/* Profile Health Tracker */}
-        <View className="mt-8 bg-brand-primary p-6 rounded-[32px] shadow-lg shadow-brand-primary/20 overflow-hidden">
-          <View className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-white/10" />
-          <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-white font-jakarta font-black text-lg">Profile Health</Text>
-            <Text className="text-white/80 font-jakarta font-bold">85%</Text>
-          </View>
-          <View className="w-100 h-2 bg-white/20 rounded-full overflow-hidden">
-             <View className="w-[85%] h-full bg-white rounded-full" />
-          </View>
-          <Text className="text-white/70 text-xs mt-3 font-medium">Add photos for all children to reach 100%!</Text>
-        </View>
-
-        {/* Parent Profile Section */}
-        <View className="items-center mt-10">
-          <View className="relative">
-            <View className="p-1.5 rounded-full border-2 border-brand-primary/10">
-              <Image 
-                source={parentProfile?.img ? { uri: parentProfile.img } : require('../../assets/noavatar.png')} 
-                className="w-32 h-32 rounded-full bg-surface-low"
-              />
-            </View>
-            <TouchableOpacity 
-              onPress={() => showImageOptions('parent')}
-              disabled={updating}
-              className="absolute bottom-1 right-1 bg-brand-primary p-2.5 rounded-full border-4 border-white shadow-md shadow-brand-primary/30"
-            >
-              {updating ? <ActivityIndicator size="small" color="white" /> : <Camera size={18} color="white" />}
-            </TouchableOpacity>
-          </View>
-          <Text className="text-3xl font-jakarta font-black text-text-primary mt-5">{parentProfile?.name} {parentProfile?.surname}</Text>
-          <View className="flex-row items-center mt-2 px-4 py-1.5 bg-surface-low rounded-full">
-            <Phone size={12} color="#0055d4" />
-            <Text className="text-brand-primary font-jakarta font-bold text-xs ml-2">{parentProfile?.phone}</Text>
-          </View>
+      <ScrollView showsVerticalScrollIndicator={false} className="flex-1" contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 150 }}>
+        
+        {/* Parent Header (High Fidelity) */}
+        <View className="items-center mt-12">
+          <CircularProgress 
+            size={140} 
+            progress={85} 
+            imageUri={parentProfile?.img}
+            updating={updating}
+          />
+          <Text className="text-2xl font-jakarta font-black text-text-primary mt-6">{parentProfile?.name} {parentProfile?.surname}</Text>
+          <TouchableOpacity 
+             onPress={() => setEditModalVisible(true)}
+             className="mt-4 p-2 bg-white rounded-xl border border-surface-low shadow-sm"
+          >
+            <Pencil size={20} color="#737c7f" />
+          </TouchableOpacity>
         </View>
 
         {/* My Children Section */}
-        <View className="mt-10">
-          <View className="flex-row items-center justify-between mb-4">
+        <View className="mt-12">
+          <View className="flex-row items-center justify-between mb-6">
             <Text className="text-2xl font-jakarta font-black text-text-primary">My Children</Text>
-            <TouchableOpacity><Text className="text-brand-primary font-jakarta font-bold">Manage</Text></TouchableOpacity>
+            <TouchableOpacity className="bg-surface-low px-4 py-2 rounded-xl">
+              <Text className="text-text-muted font-jakarta font-bold text-sm">Manage</Text>
+            </TouchableOpacity>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="py-2">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="py-2 -mx-2 px-2 overflow-visible">
             {children.map(child => (
               <ChildCard 
                 key={child.id} 
@@ -296,41 +348,20 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
         </View>
 
         {/* Settings Section */}
-        <View className="mt-10">
-          <Text className="text-2xl font-jakarta font-black text-text-primary mb-4">Settings</Text>
-          <View className="bg-surface-lowest rounded-[32px] p-6 border border-surface-low">
-            <SettingItem 
-              icon={UserIcon} 
-              label="Profile Details" 
-              value="Update your personal info" 
-              color="bg-blue-50" 
-              iconColor="#0055d4" 
-              onPress={() => setEditModalVisible(true)}
-            />
-            <SettingItem icon={Globe} label="Language" value="English (System Default)" color="bg-surface-low" iconColor="#586064" />
-            <SettingItem icon={BellRing} label="Notifications" value="Alerts, grades, & messages" color="bg-surface-low" iconColor="#586064" />
-            <SettingItem icon={LifeBuoy} label="Support" value="Help center & contact school" color="bg-surface-low" iconColor="#586064" isLast />
-            
-            <TouchableOpacity
-              onPress={handleLogout}
-              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, marginTop: 8 }}
-            >
-              <View style={{ padding: 12, borderRadius: 16, marginRight: 16, backgroundColor: '#fef2f2' }}>
-                <LogOut size={20} color="#9f403d" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 18, fontWeight: '600', color: '#9f403d' }}>Sign Out</Text>
-                <Text style={{ color: '#737c7f', fontSize: 13 }}>Clear session & return to login</Text>
-              </View>
-              <Text style={{ color: '#d1d5db', fontSize: 20 }}>›</Text>
-            </TouchableOpacity>
+        <View className="mt-12">
+          <Text className="text-2xl font-jakarta font-black text-text-primary mb-6">Settings</Text>
+          <View className="bg-white rounded-[32px] overflow-hidden border border-surface-low shadow-sm shadow-black/5">
+            <SettingItemV2 icon={UserIcon} label="Profile Details" onPress={() => setEditModalVisible(true)} />
+            <SettingItemV2 icon={Globe} label="Language" />
+            <SettingItemV2 icon={BellRing} label="Notifications" />
+            <SettingItemV2 icon={LifeBuoy} label="Support" />
+            <SettingItemV2 icon={LogOut} label="Sign Out" isLast onPress={handleLogout} />
           </View>
         </View>
 
         {/* Footer */}
-        <View className="items-center mt-12 mb-20">
-          <Text className="text-text-muted text-[10px] font-jakarta font-bold tracking-widest uppercase">SnapSchool Parent V2.4.0 (Build 82)</Text>
-          <Text className="text-text-muted text-[10px] font-manrope mt-1">© 2026 SnapSchool Education Systems</Text>
+        <View className="items-center mt-12 mb-10 opacity-40">
+          <Text className="text-text-muted text-[10px] font-jakarta font-black tracking-widest uppercase">SnapSchool Parent V2.5.0</Text>
         </View>
       </ScrollView>
 
@@ -347,11 +378,11 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
 
             <View className="gap-5">
               <View>
-                <Text className="text-text-muted font- manrope font-bold mb-2 ml-1">FIRST NAME</Text>
-                <View className="flex-row items-center bg-surface-low rounded-2xl px-4 py-3 border border-surface-low focus:border-brand-primary">
+                <Text className="text-text-muted font-manrope font-bold mb-2 ml-1">FIRST NAME</Text>
+                <View className="flex-row items-center bg-surface-low rounded-2xl px-4 py-3 border border-surface-low">
                   <UserIcon size={18} color="#0055d4" />
                   <TextInput 
-                    className="flex-1 ml-3 text-lg text-text-primary font- manrope"
+                    className="flex-1 ml-3 text-lg text-text-primary font-manrope"
                     value={editData.name}
                     onChangeText={(t) => setEditData({...editData, name: t})}
                     placeholder="Enter first name"
@@ -360,11 +391,11 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
               </View>
 
               <View>
-                <Text className="text-text-muted font- manrope font-bold mb-2 ml-1">LAST NAME</Text>
+                <Text className="text-text-muted font-manrope font-bold mb-2 ml-1">LAST NAME</Text>
                 <View className="flex-row items-center bg-surface-low rounded-2xl px-4 py-3 border border-surface-low">
                   <UserIcon size={18} color="#0055d4" />
                   <TextInput 
-                    className="flex-1 ml-3 text-lg text-text-primary font- manrope"
+                    className="flex-1 ml-3 text-lg text-text-primary font-manrope"
                     value={editData.surname}
                     onChangeText={(t) => setEditData({...editData, surname: t})}
                     placeholder="Enter last name"
@@ -373,11 +404,11 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
               </View>
 
               <View>
-                <Text className="text-text-muted font- manrope font-bold mb-2 ml-1">PHONE NUMBER</Text>
+                <Text className="text-text-muted font-manrope font-bold mb-2 ml-1">PHONE NUMBER</Text>
                 <View className="flex-row items-center bg-surface-low rounded-2xl px-4 py-3 border border-surface-low">
                   <Phone size={18} color="#0055d4" />
                   <TextInput 
-                    className="flex-1 ml-3 text-lg text-text-primary font- manrope"
+                    className="flex-1 ml-3 text-lg text-text-primary font-manrope"
                     value={editData.phone}
                     onChangeText={(t) => setEditData({...editData, phone: t})}
                     keyboardType="phone-pad"
