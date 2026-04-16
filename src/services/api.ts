@@ -285,9 +285,16 @@ export const studentService = {
     return data.exams;
   },
 
-  fetchNotifications: async (_studentId: string): Promise<Notification[]> => {
-    // Will be expanded with a real Notification model later
-    return [];
+  fetchNotifications: async (parentId: string): Promise<Notification[]> => {
+    const data = await apiFetch(`/api/mobile/notifications?parentId=${parentId}`);
+    return Array.isArray(data) ? data : [];
+  },
+
+  markNotificationsAsRead: async (notificationIds: number[]) => {
+    return apiFetch('/api/mobile/notifications', {
+      method: 'PATCH',
+      body: JSON.stringify({ notificationIds }),
+    });
   },
 
   fetchAnnouncements: async (classId?: number, studentId?: string): Promise<Announcement[]> => {

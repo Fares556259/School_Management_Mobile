@@ -21,22 +21,31 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
   } = useAppStore();
   
   const [showSwitcher, setShowSwitcher] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [status, setStatus] = useState<'Present' | 'Absent' | 'Due'>('Present');
   const selectedChild = children.find((c: any) => c.id === selectedChildId);
 
-  // Load Parent Profile if not already in store
+  // Load Parent Profile & Notifications count
   useEffect(() => {
-    if (!parentName || parentName === 'Parent' || !parentAvatarUrl) {
-      const loadParent = async () => {
+    const loadCommonData = async () => {
+      // Load Profile if needed
+      if (!parentName || parentName === 'Parent' || !parentAvatarUrl) {
         const profile = await parentService.fetchParentProfile();
         if (profile) {
           setParentName(`${profile.name} ${profile.surname}`);
           setParentAvatarUrl(profile.img);
         }
-      };
-      loadParent();
-    }
-  }, []);
+      }
+
+      // Load Unread Notifications
+      const pId = await authStorage.getParentId();
+      if (pId) {
+        const notes = await studentService.fetchNotifications(pId);
+        setUnreadCount(notes.filter(n => n.isNew).length);
+      }
+    };
+    loadCommonData();
+  }, [selectedChildId]); // Also re-check when switching children for better sync
 
   // Compute Status Priority for Dot: Absent > Due > Present
   useEffect(() => {
@@ -114,7 +123,9 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
           className="w-11 h-11 rounded-full bg-white items-center justify-center border border-surface-low shadow-lg shadow-black/5"
         >
           <Bell size={22} color="#0055d4" />
-          <View className="absolute top-3 right-3 w-2.5 h-2.5 rounded-full bg-brand-error border-2 border-white" />
+          {unreadCount > 0 && (
+            <View className="absolute top-3 right-3 w-2.5 h-2.5 rounded-full bg-brand-error border-2 border-white" />
+          )}
         </TouchableOpacity>
       </View>
 
