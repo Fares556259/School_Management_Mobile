@@ -67,6 +67,7 @@ const NotificationRow = ({ item, onPress }: any) => {
 };
 
 export const NotificationsScreen = ({ navigation }: any) => {
+  const { unreadNotificationsCount, setUnreadNotificationsCount } = useAppStore();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -79,6 +80,7 @@ export const NotificationsScreen = ({ navigation }: any) => {
 
       const data = await studentService.fetchNotifications(parentId);
       setNotifications(data);
+      setUnreadNotificationsCount(data.filter(n => n.isNew).length);
     } catch (error) {
       console.error('Failed to load notifications:', error);
     } finally {
@@ -113,6 +115,10 @@ export const NotificationsScreen = ({ navigation }: any) => {
     } else if (item.type === 'PAYMENT' || item.type === 'REMINDER') {
       navigation.navigate('MainTabs', { screen: 'Payments' });
     }
+
+    // Refresh count
+    const newUnreadCount = notifications.filter(n => n.id !== item.id ? n.isNew : false).length;
+    setUnreadNotificationsCount(newUnreadCount);
   };
 
   const handleMarkAllRead = async () => {
@@ -121,6 +127,7 @@ export const NotificationsScreen = ({ navigation }: any) => {
 
     // Optimistic update
     setNotifications(prev => prev.map(n => ({ ...n, isNew: false })));
+    setUnreadNotificationsCount(0);
 
     try {
       await studentService.markNotificationsAsRead(unreadIds);

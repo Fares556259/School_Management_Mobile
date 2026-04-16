@@ -8,10 +8,12 @@ interface AppState {
   selectedChildId: string | null;
   isLoading: boolean;
   error: string | null;
+  unreadNotificationsCount: number;
   setChildren: (children: Student[]) => void;
   setParentName: (name: string) => void;
   setParentAvatarUrl: (url: string | null) => void;
   setSelectedChildId: (id: string) => void;
+  setUnreadNotificationsCount: (count: number) => void;
   setLoading: (isLoading: boolean) => void;
   setError: (error: string | null) => void;
   getSelectedChild: () => Student | undefined;
@@ -21,12 +23,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   parentName: 'Parent',
   parentAvatarUrl: null,
   selectedChildId: null,
+  unreadNotificationsCount: 0,
   isLoading: false,
   error: null,
   setChildren: (children) => set({ children }),
   setParentName: (parentName) => set({ parentName }),
   setParentAvatarUrl: (parentAvatarUrl) => set({ parentAvatarUrl }),
   setSelectedChildId: (selectedChildId) => set({ selectedChildId }),
+  setUnreadNotificationsCount: (unreadNotificationsCount) => set({ unreadNotificationsCount }),
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),
   getSelectedChild: () => {

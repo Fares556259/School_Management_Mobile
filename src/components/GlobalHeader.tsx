@@ -17,11 +17,12 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
     parentName, 
     setParentName, 
     parentAvatarUrl, 
-    setParentAvatarUrl 
+    setParentAvatarUrl,
+    unreadNotificationsCount,
+    setUnreadNotificationsCount
   } = useAppStore();
   
   const [showSwitcher, setShowSwitcher] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [status, setStatus] = useState<'Present' | 'Absent' | 'Due'>('Present');
   const selectedChild = children.find((c: any) => c.id === selectedChildId);
 
@@ -41,7 +42,7 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
       const pId = await authStorage.getParentId();
       if (pId) {
         const notes = await studentService.fetchNotifications(pId);
-        setUnreadCount(notes.filter(n => n.isNew).length);
+        setUnreadNotificationsCount(notes.filter(n => n.isNew).length);
       }
     };
     loadCommonData();
@@ -123,9 +124,9 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
           className="w-11 h-11 rounded-full bg-white items-center justify-center border border-surface-low shadow-lg shadow-black/5"
         >
           <Bell size={22} color="#0055d4" />
-          {unreadCount > 0 && (
-            <View className="absolute top-3 right-3 w-2.5 h-2.5 rounded-full bg-brand-error border-2 border-white" />
-          )}
+        {unreadNotificationsCount > 0 && (
+          <View className="absolute top-3 right-3 w-2.5 h-2.5 rounded-full bg-brand-error border-2 border-white" />
+        )}
         </TouchableOpacity>
       </View>
 
