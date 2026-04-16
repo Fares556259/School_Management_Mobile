@@ -147,6 +147,10 @@ export const AttendanceScreen = ({ navigation }: any) => {
 
   const totalAbsences = history.filter(d => d.status === 'ABSENT').length;
   const totalLates = history.filter(d => d.status === 'LATE').length;
+  const last30Days = history.filter(d => (new Date().getTime() - new Date(d.date).getTime()) < 30 * 24 * 60 * 60 * 1000);
+  const monthlyPresentCount = last30Days.reduce((acc, curr) => acc + (curr.status === 'PRESENT' ? 1 : 0), 0);
+  const monthlyTotalCount = last30Days.length || 1;
+  const monthlyAvg = Math.round((monthlyPresentCount / monthlyTotalCount) * 100);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }} edges={['top']}>
@@ -164,30 +168,32 @@ export const AttendanceScreen = ({ navigation }: any) => {
 
       <ScrollView 
         contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
-        refreshControl={<ActivityIndicator animating={refreshing} color="#0055d4" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0055d4']} tintColor="#0055d4" />}
       >
+        {/* Trend Card */}
+        <View style={{ backgroundColor: '#0055d4', borderRadius: 32, padding: 24, marginBottom: 24, overflow: 'hidden' }}>
+          <View style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View>
+              <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }}>Performance</Text>
+              <Text style={{ fontSize: 32, fontWeight: '900', color: 'white', marginTop: 4 }}>{monthlyAvg}%</Text>
+              <Text style={{ fontSize: 13, color: 'white', opacity: 0.9, marginTop: 4 }}>Attendance in last 30 days</Text>
+            </View>
+            <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: 16, borderRadius: 20 }}>
+              <CheckCircle2 color="white" size={32} />
+            </View>
+          </View>
+        </View>
+
         {/* Summary Dashboard */}
-        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
-          <View style={{ flex: 1, backgroundColor: '#fef2f2', padding: 16, borderRadius: 24, borderWidth: 1, borderColor: '#fee2e2' }}>
-            <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-              <AlertCircle size={18} color="white" />
-            </View>
+        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 32 }}>
+          <View style={{ flex: 1, backgroundColor: '#fef2f2', padding: 16, borderRadius: 24, borderLeftWidth: 4, borderLeftColor: '#ef4444' }}>
             <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#b91c1c' }}>{totalAbsences}</Text>
-            <Text style={{ fontSize: 12, color: '#ef4444', fontWeight: 'bold' }}>Absences</Text>
+            <Text style={{ fontSize: 12, color: '#ef4444', fontWeight: 'bold', textTransform: 'uppercase' }}>Absences</Text>
           </View>
-          <View style={{ flex: 1, backgroundColor: '#fffbeb', padding: 16, borderRadius: 24, borderWidth: 1, borderColor: '#fef3c7' }}>
-            <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#f59e0b', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-              <Clock size={18} color="white" />
-            </View>
+          <View style={{ flex: 1, backgroundColor: '#fffbeb', padding: 16, borderRadius: 24, borderLeftWidth: 4, borderLeftColor: '#f59e0b' }}>
             <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#92400e' }}>{totalLates}</Text>
-            <Text style={{ fontSize: 12, color: '#f59e0b', fontWeight: 'bold' }}>Lates</Text>
-          </View>
-          <View style={{ flex: 1, backgroundColor: '#f0fdf4', padding: 16, borderRadius: 24, borderWidth: 1, borderColor: '#dcfce7' }}>
-            <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#22c55e', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-              <CheckCircle2 size={18} color="white" />
-            </View>
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#166534' }}>{history.length - totalAbsences - totalLates}</Text>
-            <Text style={{ fontSize: 12, color: '#22c55e', fontWeight: 'bold' }}>Present</Text>
+            <Text style={{ fontSize: 12, color: '#f59e0b', fontWeight: 'bold', textTransform: 'uppercase' }}>Lates</Text>
           </View>
         </View>
 
@@ -196,7 +202,11 @@ export const AttendanceScreen = ({ navigation }: any) => {
         </Text>
 
         {loading ? (
-          <ActivityIndicator size="large" color="#0055d4" style={{ marginTop: 40 }} />
+          <View style={{ gap: 12 }}>
+             {[1,2,3,4].map(i => (
+                <View key={i} style={{ height: 80, borderRadius: 24, backgroundColor: '#e2e9ec', opacity: 0.6 }} />
+             ))}
+          </View>
         ) : history.filter(d => d.status !== 'PRESENT').length === 0 ? (
           <View style={{ alignItems: 'center', marginTop: 60 }}>
             <Calendar size={64} color="#d1d5db" style={{ marginBottom: 16 }} />

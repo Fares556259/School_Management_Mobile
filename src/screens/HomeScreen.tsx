@@ -39,16 +39,32 @@ const EmptyPlaceholder = ({ text, icon: Icon }: any) => (
   </View>
 );
 
-const SkeletonBlock = ({ width, height, borderRadius = 12, marginBottom = 0 }: any) => (
-  <View style={{ width, height, borderRadius, backgroundColor: '#e2e9ec', marginBottom }} />
-);
+const SkeletonBlock = ({ width, height, borderRadius = 12, marginBottom = 0, opacity = 1 }: any) => {
+  const [pulseAnim] = React.useState(new Animated.Value(0.6));
+  React.useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0.6, duration: 1000, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+  return <Animated.View style={{ width, height, borderRadius, backgroundColor: '#e2e9ec', marginBottom, opacity: pulseAnim }} />;
+};
 
 const LoadingSkeleton = () => (
-  <View style={{ gap: 12 }}>
+  <View style={{ gap: 16 }}>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+      <SkeletonBlock width="40%" height={24} borderRadius={8} />
+      <SkeletonBlock width="20%" height={24} borderRadius={12} />
+    </View>
+    <View style={{ flexDirection: 'row', gap: 12, marginBottom: 8 }}>
+       {[1,2,3,4,5].map(i => <SkeletonBlock key={i} width={56} height={80} borderRadius={16} />)}
+    </View>
+    <SkeletonBlock width="100%" height={100} borderRadius={28} marginBottom={12} />
+    <SkeletonBlock width="60%" height={20} borderRadius={10} marginBottom={4} />
     <SkeletonBlock width="100%" height={80} borderRadius={24} marginBottom={4} />
     <SkeletonBlock width="100%" height={80} borderRadius={24} marginBottom={4} />
-    <SkeletonBlock width="70%" height={20} borderRadius={10} marginBottom={8} />
-    <SkeletonBlock width="100%" height={70} borderRadius={20} />
   </View>
 );
 

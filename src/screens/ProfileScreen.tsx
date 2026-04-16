@@ -239,25 +239,41 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
       <StatusBar barStyle="dark-content" />
 
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1" contentContainerClassName="px-6 pb-32">
+        {/* Profile Health Tracker */}
+        <View className="mt-8 bg-brand-primary p-6 rounded-[32px] shadow-lg shadow-brand-primary/20 overflow-hidden">
+          <View className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-white/10" />
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-white font-jakarta font-black text-lg">Profile Health</Text>
+            <Text className="text-white/80 font-jakarta font-bold">85%</Text>
+          </View>
+          <View className="w-100 h-2 bg-white/20 rounded-full overflow-hidden">
+             <View className="w-[85%] h-full bg-white rounded-full" />
+          </View>
+          <Text className="text-white/70 text-xs mt-3 font-medium">Add photos for all children to reach 100%!</Text>
+        </View>
+
         {/* Parent Profile Section */}
-        <View className="items-center mt-6">
+        <View className="items-center mt-10">
           <View className="relative">
-            <View className="p-1 rounded-full border border-surface-low">
+            <View className="p-1.5 rounded-full border-2 border-brand-primary/10">
               <Image 
                 source={parentProfile?.img ? { uri: parentProfile.img } : require('../../assets/noavatar.png')} 
-                className="w-28 h-28 rounded-full bg-surface-low"
+                className="w-32 h-32 rounded-full bg-surface-low"
               />
             </View>
             <TouchableOpacity 
               onPress={() => showImageOptions('parent')}
               disabled={updating}
-              className="absolute bottom-0 right-0 bg-brand-primary p-2 rounded-full border-2 border-white"
+              className="absolute bottom-1 right-1 bg-brand-primary p-2.5 rounded-full border-4 border-white shadow-md shadow-brand-primary/30"
             >
-              {updating ? <ActivityIndicator size="small" color="white" /> : <Camera size={16} color="white" />}
+              {updating ? <ActivityIndicator size="small" color="white" /> : <Camera size={18} color="white" />}
             </TouchableOpacity>
           </View>
-          <Text className="text-3xl font-jakarta font-black text-text-primary mt-4">{parentProfile?.name} {parentProfile?.surname}</Text>
-          <Text className="text-text-muted font-manrope font-bold mt-1">{parentProfile?.phone}</Text>
+          <Text className="text-3xl font-jakarta font-black text-text-primary mt-5">{parentProfile?.name} {parentProfile?.surname}</Text>
+          <View className="flex-row items-center mt-2 px-4 py-1.5 bg-surface-low rounded-full">
+            <Phone size={12} color="#0055d4" />
+            <Text className="text-brand-primary font-jakarta font-bold text-xs ml-2">{parentProfile?.phone}</Text>
+          </View>
         </View>
 
         {/* My Children Section */}
