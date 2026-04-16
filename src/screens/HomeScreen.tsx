@@ -299,7 +299,8 @@ export const HomeScreen = ({ navigation }: any) => {
                 </View>
                 <Text style={{ fontSize: 15, color: '#431407', lineHeight: 22, fontWeight: '500' }}>
                   Dear <Text style={{ fontWeight: 'bold' }}>{parentName}</Text>, please note that tuition fees for{' '}
-                  <Text style={{ fontWeight: 'bold' }}>{selectedChild?.name.split(' ')[0]}</Text> have an outstanding balance. Please contact administration.
+                  <Text style={{ fontWeight: 'bold' }}>{selectedChild?.name.split(' ')[0]}</Text> for the month of <Text style={{ fontWeight: 'bold' }}>{months[today.getMonth()]}</Text> have an outstanding balance. 
+                  <Text style={{ fontWeight: 'bold' }}> {today.getDate()} days</Text> have already passed this month. Please contact administration.
                 </Text>
               </View>
             </View>
