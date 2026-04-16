@@ -385,7 +385,11 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
               <Text className="text-text-muted font-jakarta font-bold text-sm">Manage</Text>
             </TouchableOpacity>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="py-2 -mx-2 px-2 overflow-visible">
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            className="py-2 -mx-2 px-2 overflow-visible"
+          >
             {children.map(child => (
               <ChildCard 
                 key={child.id} 

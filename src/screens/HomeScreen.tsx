@@ -174,7 +174,17 @@ const formatDateStr = (date: Date) => {
 const EMPTY_DAY: StudentDayData = { sessions: [], notes: [], files: [], homeworkDue: [], homeworkGiven: [], exams: [] };
 
 export const HomeScreen = ({ navigation }: any) => {
-  const { selectedChildId, setSelectedChildId, children, setChildren, parentName, setParentName, parentAvatarUrl, setParentAvatarUrl } = useAppStore();
+  const { 
+    selectedChildId, 
+    setSelectedChildId, 
+    children, 
+    setChildren, 
+    parentName, 
+    setParentName, 
+    parentAvatarUrl, 
+    setParentAvatarUrl,
+    setStudentStatus
+  } = useAppStore();
   const selectedChild = children.find((c: any) => c.id === selectedChildId);
 
   const today = new Date();
@@ -225,10 +235,16 @@ export const HomeScreen = ({ navigation }: any) => {
           data.exams.forEach(item => notificationService.scheduleExamReminder(item));
         }
         
-        // Determine Alert Visibility
+        // Determine Alert Visibility & Global Status
         const payments = await studentService.fetchPayments(selectedChildId);
         const hasOverdue = payments.some(p => p.status === 'Due' || p.isOverdue);
         setShowAlert(hasOverdue);
+        
+        // Compute and sync global status to store (for Header)
+        const hasAbsent = data.sessions?.some((s: any) => s.attendance === 'ABSENT' || s.attendance === 'Abs');
+        if (hasAbsent) setStudentStatus(selectedChildId, 'Absent');
+        else if (hasOverdue) setStudentStatus(selectedChildId, 'Due');
+        else setStudentStatus(selectedChildId, 'Present');
       } catch (error) {
         console.error("[Home Load Error]", error);
       } finally {

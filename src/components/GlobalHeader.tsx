@@ -19,18 +19,21 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
     parentAvatarUrl, 
     setParentAvatarUrl,
     unreadNotificationsCount,
-    setUnreadNotificationsCount
+    setUnreadNotificationsCount,
+    studentStatuses
   } = useAppStore();
   
   const [showSwitcher, setShowSwitcher] = useState(false);
-  const [status, setStatus] = useState<'Present' | 'Absent' | 'Due'>('Present');
   const selectedChild = children.find((c: any) => c.id === selectedChildId);
+  const status = selectedChildId ? studentStatuses[selectedChildId] || 'Present' : 'Present';
 
   // Load Parent Profile & Notifications count
   useEffect(() => {
     const loadCommonData = async () => {
       // Load Profile if needed
       if (!parentName || parentName === 'Parent' || !parentAvatarUrl) {
+        // Double check if we already have it in store by getting fresh get()
+        // but for now simple check is fine to reduce redundant calls.
         const profile = await parentService.fetchParentProfile();
         if (profile) {
           setParentName(`${profile.name} ${profile.surname}`);
@@ -48,29 +51,6 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
     loadCommonData();
   }, [selectedChildId]); // Also re-check when switching children for better sync
 
-  // Compute Status Priority for Dot: Absent > Due > Present
-  useEffect(() => {
-    if (!selectedChildId) return;
-    
-    const loadStatus = async () => {
-      // 1. Check Attendance (Day Data)
-      const today = new Date();
-      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      const homeData = await studentService.fetchHomeData(selectedChildId, dateStr);
-      
-      const hasAbsent = homeData.sessions?.some((s: any) => s.attendance === 'ABSENT');
-      
-      // 2. Check Payments
-      const payments = await studentService.fetchPayments(selectedChildId);
-      const hasOverdue = payments.some(p => p.status === 'Due' || p.isOverdue);
-      
-      if (hasAbsent) setStatus('Absent');
-      else if (hasOverdue) setStatus('Due');
-      else setStatus('Present');
-    };
-    
-    loadStatus();
-  }, [selectedChildId]);
 
   return (
     <View className="bg-white">

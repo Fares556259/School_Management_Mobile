@@ -11,34 +11,39 @@ import {
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GraduationCap, Mail, ArrowRight, BookOpen } from 'lucide-react-native';
+import { GraduationCap, Phone, ArrowRight, BookOpen } from 'lucide-react-native';
 import { authService } from '../services/api';
 
 // ─── Main Sign-In Screen ────────────────────────────────────────────────────
 export const SignInScreen = ({ onSignIn }: { onSignIn: () => void }) => {
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [hint, setHint] = useState('');
 
   const handleLogin = async () => {
-    if (!email.trim()) {
-      setError('Please enter your email address.');
+    if (!phone.trim()) {
+      setError('Please enter your phone number.');
       return;
     }
     setIsLoading(true);
     setError('');
     setHint('');
 
-    const result = await authService.login(email.trim());
+    try {
+      const result = await authService.login(phone.trim());
 
-    if (result.success) {
-      setHint(`Welcome back, ${result.parentName?.split(' ')[0]}!`);
-      setTimeout(() => onSignIn(), 800); // brief flash of welcome message
-    } else {
-      setError(result.error || 'Login failed. Please try again.');
+      if (result.success) {
+        setHint(`Welcome back, ${result.parentName?.split(' ')[0]}!`);
+        setTimeout(() => onSignIn(), 800); // brief flash of welcome message
+      } else {
+        setError(result.error || 'Login failed. Please try again.');
+      }
+    } catch (e) {
+      setError('A network error occurred. Please check your connection.');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   return (
@@ -87,7 +92,7 @@ export const SignInScreen = ({ onSignIn }: { onSignIn: () => void }) => {
                 Sign In
               </Text>
               <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 24 }}>
-                Enter the email address linked to your parent account.
+                Enter the phone number linked to your parent account.
               </Text>
 
               {/* Email input */}
@@ -99,13 +104,13 @@ export const SignInScreen = ({ onSignIn }: { onSignIn: () => void }) => {
                 paddingHorizontal: 18, paddingVertical: 14,
                 marginBottom: 16,
               }}>
-                <Mail size={20} color="rgba(255,255,255,0.5)" style={{ marginRight: 12 }} />
+                <Phone size={20} color="rgba(255,255,255,0.5)" style={{ marginRight: 12 }} />
                 <TextInput
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="parent@example.com"
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="e.g. 55666777"
                   placeholderTextColor="rgba(255,255,255,0.3)"
-                  keyboardType="email-address"
+                  keyboardType="phone-pad"
                   autoCapitalize="none"
                   autoCorrect={false}
                   returnKeyType="go"
@@ -139,9 +144,9 @@ export const SignInScreen = ({ onSignIn }: { onSignIn: () => void }) => {
               {/* Submit button */}
               <TouchableOpacity
                 onPress={handleLogin}
-                disabled={isLoading || !email}
+                disabled={isLoading || !phone}
                 style={{
-                  backgroundColor: email ? '#ffffff' : 'rgba(255,255,255,0.25)',
+                  backgroundColor: phone ? '#ffffff' : 'rgba(255,255,255,0.25)',
                   borderRadius: 18, paddingVertical: 18,
                   flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
                 }}
@@ -168,7 +173,7 @@ export const SignInScreen = ({ onSignIn }: { onSignIn: () => void }) => {
                 </Text>
               </View>
               <Text style={{ color: 'rgba(255,255,255,0.18)', fontSize: 11, marginTop: 6 }}>
-                Use the email from your admin account
+                Use the phone number from your admin account
               </Text>
             </View>
           </ScrollView>

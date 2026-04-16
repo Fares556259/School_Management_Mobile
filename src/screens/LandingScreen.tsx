@@ -50,8 +50,8 @@ const RoleCard = ({ title, description, image, onPress }: any) => (
 export const LandingScreen = ({ onSelectParent }: { onSelectParent: () => void }) => {
   const handleFutureRole = (role: string) => {
     Alert.alert(
-      "Coming Soon", 
-      `The ${role} portal is currently under maintenance. Please use the Parent profile for now.`,
+      "Feature Coming Soon", 
+      `We are currently working on the ${role} portal! This feature will be added in a future update. Please use the Parent profile for now.`,
       [{ text: "OK", style: "default" }]
     );
   };

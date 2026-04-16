@@ -7,7 +7,7 @@ import {
   Announcement,
 } from '../types';
 
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.106:3000';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://172.18.3.31:3000';
 
 const PARENT_ID_KEY = 'snapschool_parent_id';
 const STUDENTS_CACHE_KEY = 'snapschool_students_cache';
@@ -70,13 +70,13 @@ const mapStudent = (s: any): Student & { raw: any } => ({
 // ─── Parent Auth Service ──────────────────────────────────────────────────────
 export const authService = {
   /**
-   * Sign in by email — looks up the parent in the DB, stores parentId locally.
+   * Sign in by phone — looks up the parent in the DB, stores parentId locally.
    * Returns { success, error, parentName, students }
    */
-  login: async (email: string): Promise<{ success: boolean; error?: string; parentName?: string }> => {
+  login: async (phone: string): Promise<{ success: boolean; error?: string; parentName?: string }> => {
     const data = await apiFetch('/api/mobile/login', {
       method: 'POST',
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ phone }),
     });
 
     if (!data) return { success: false, error: 'Network error. Check your connection.' };
