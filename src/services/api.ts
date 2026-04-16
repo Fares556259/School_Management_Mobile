@@ -19,43 +19,63 @@ export const authStorage = {
   clear: () => AsyncStorage.multiRemove([PARENT_ID_KEY, STUDENTS_CACHE_KEY]),
 };
 
-// ─── Helper for Fetching ─────────────────────────────────────────────────────
+// ─── Helper for Fetching with Deduplication ──────────────────────────────────
+const inflightRequests = new Map<string, Promise<any>>();
+
 const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), 30000); // 30s timeout
-  const startTime = Date.now();
-  const url = `${API_BASE_URL}${endpoint}`;
-  console.log(`[DEBUG-API] Calling: ${url}`);
-
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-    clearTimeout(id);
-    const duration = Date.now() - startTime;
-
-    if (!response.ok) {
-      const text = await response.text();
-      console.warn(`API Error [${response.status}] [${duration}ms] ${endpoint}: ${text}`);
-      return null;
-    }
-
-    return await response.json();
-  } catch (error: any) {
-    clearTimeout(id);
-    const duration = Date.now() - startTime;
-    if (error.name === 'AbortError') {
-      console.error(`Network Error (Timeout) [${duration}ms]: The request to ${endpoint} took too long.`);
-    } else {
-      console.error(`Network Error [${duration}ms] for ${endpoint}:`, error);
-    }
-    return null;
+  const requestKey = `${options.method || 'GET'}:${endpoint}:${options.body || ''}`;
+  
+  if (inflightRequests.has(requestKey)) {
+    console.log(`[DEBUG-API] Reusing in-flight request: ${endpoint}`);
+    return inflightRequests.get(requestKey);
   }
+
+  const fetchPromise = (async () => {
+    let controller: AbortController | undefined;
+    let timeoutId: any;
+    const startTime = Date.now();
+
+    try {
+      controller = new AbortController();
+      timeoutId = setTimeout(() => controller?.abort(), 30000);
+      const url = `${API_BASE_URL}${endpoint}`;
+      console.log(`[DEBUG-API] Calling: ${url}`);
+
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      });
+      
+      if (timeoutId) clearTimeout(timeoutId);
+      const duration = Date.now() - startTime;
+
+      if (!response.ok) {
+        const text = await response.text();
+        console.warn(`API Error [${response.status}] [${duration}ms] ${endpoint}: ${text}`);
+        return null;
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      if (timeoutId) clearTimeout(timeoutId);
+      const duration = Date.now() - startTime;
+      if (error.name === 'AbortError') {
+        console.error(`Network Error (Timeout) [${duration}ms]: The request to ${endpoint} took too long.`);
+      } else {
+        console.error(`Network Error [${duration}ms] for ${endpoint}:`, error);
+      }
+      return null;
+    } finally {
+      inflightRequests.delete(requestKey);
+    }
+  })();
+
+  inflightRequests.set(requestKey, fetchPromise);
+  return fetchPromise;
 };
 
 // ─── Map raw DB student to mobile Student type ─────────────────────────────

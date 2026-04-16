@@ -61,18 +61,32 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
               onPress={() => navigation.goBack()}
               className="mr-3 w-10 h-10 rounded-xl bg-surface-low items-center justify-center border border-surface-low"
             >
-              <ChevronLeft size={24} color="#2b3437" />
+              <ChevronLeft size={24} color="#2b3437" strokeWidth={3} />
             </TouchableOpacity>
           ) : (
-            /* Parent Avatar */
+            /* Dual Avatar: Parent + Student Overlap */
             <TouchableOpacity 
               onPress={() => navigation.navigate('Profile')}
-              className="p-1 rounded-full border border-surface-low shadow-sm shadow-black/5"
+              activeOpacity={0.8}
+              className="relative"
             >
-              <Image 
-                source={parentAvatarUrl ? { uri: parentAvatarUrl } : require('../../assets/noavatar.png')} 
-                className="w-10 h-10 rounded-full bg-surface-low"
-              />
+              {/* Parent Avatar (Base) */}
+              <View className="w-11 h-11 rounded-full border-2 border-surface-low overflow-hidden bg-white shadow-sm">
+                <Image 
+                  source={parentAvatarUrl ? { uri: parentAvatarUrl } : require('../../assets/noavatar.png')} 
+                  className="w-full h-full"
+                />
+              </View>
+              
+              {/* Student Avatar (Overlay Badge) */}
+              <View 
+                className="absolute -right-1 -bottom-1 w-6 h-6 rounded-full border-2 border-white overflow-hidden bg-surface-low shadow-sm"
+              >
+                <Image 
+                  source={selectedChild?.avatarUrl ? { uri: selectedChild.avatarUrl } : require('../../assets/noavatar.png')} 
+                  className="w-full h-full"
+                />
+              </View>
             </TouchableOpacity>
           )}
 

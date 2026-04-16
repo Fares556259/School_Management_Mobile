@@ -1,9 +1,19 @@
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { HomeworkItem, Exam } from '../types';
 
+// Detect if we are in Expo Go
+const isExpoGo = Constants.appOwnership === 'expo';
+
 // Function to safe-initialize notification handler
 const setupHandler = () => {
+  // Guard: Expo Go has strict limitations on native modules (SDK 53+)
+  if (isExpoGo) {
+    console.log("[NOTIF-SAFETNET] Skipping notification handler setup in Expo Go");
+    return;
+  }
+
   try {
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
@@ -24,6 +34,12 @@ export const notificationService = {
    * Request permissions from the user
    */
   requestPermissions: async () => {
+    // Guard: Requesting push permissions in Expo Go (SDK 53+) is unsupported
+    if (isExpoGo) {
+      console.log("[NOTIF-SAFETNET] Skipping permission request in Expo Go");
+      return false;
+    }
+
     try {
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
@@ -44,6 +60,7 @@ export const notificationService = {
    * @param hoursBefore How many hours before the deadline to fire the alert (default 24)
    */
   scheduleHomeworkReminder: async (task: HomeworkItem, hoursBefore = 24) => {
+    if (isExpoGo) return;
     try {
       const dueDate = new Date(task.dueDate);
       const triggerDate = new Date(dueDate.getTime() - hoursBefore * 60 * 60 * 1000);
@@ -74,6 +91,7 @@ export const notificationService = {
    * @param exam The exam item
    */
   scheduleExamReminder: async (exam: Exam) => {
+    if (isExpoGo) return;
     try {
       const examDate = new Date(exam.time);
       // Remind the morning of the exam (e.g., 7 AM)
