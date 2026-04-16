@@ -13,9 +13,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GraduationCap, Phone, ArrowRight, BookOpen } from 'lucide-react-native';
 import { authService } from '../services/api';
+import { useAppStore } from '../store/useAppStore';
 
 // ─── Main Sign-In Screen ────────────────────────────────────────────────────
 export const SignInScreen = ({ onSignIn }: { onSignIn: () => void }) => {
+  const { setParentName, setParentAvatarUrl } = useAppStore();
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -34,6 +36,8 @@ export const SignInScreen = ({ onSignIn }: { onSignIn: () => void }) => {
       const result = await authService.login(phone.trim());
 
       if (result.success) {
+        setParentName(result.parentName || 'Parent');
+        setParentAvatarUrl(result.parentImg || null);
         setHint(`Welcome back, ${result.parentName?.split(' ')[0]}!`);
         setTimeout(() => onSignIn(), 800); // brief flash of welcome message
       } else {

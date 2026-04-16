@@ -12,6 +12,17 @@ export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://172.18.3.
 const PARENT_ID_KEY = 'snapschool_parent_id';
 const STUDENTS_CACHE_KEY = 'snapschool_students_cache';
 
+// ─── Helper for URL Normalization ───────────────────────────────────────────
+/**
+ * Prepends the API base URL if the provided URL is a relative path.
+ */
+export const getFullImageUrl = (url: string | null): string | null => {
+  if (!url) return null;
+  if (url.startsWith('http') || url.startsWith('https')) return url;
+  if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
+  return `${API_BASE_URL}/${url}`;
+};
+
 // ─── Auth Storage ────────────────────────────────────────────────────────────
 export const authStorage = {
   saveParentId: (id: string) => AsyncStorage.setItem(PARENT_ID_KEY, id),
@@ -83,7 +94,7 @@ const mapStudent = (s: any): Student & { raw: any } => ({
   id: s.id,
   name: `${s.name} ${s.surname}`,
   class: s.class?.name || 'No Class',
-  avatarUrl: s.img || null,
+  avatarUrl: getFullImageUrl(s.img),
   raw: s,
 });
 
@@ -93,7 +104,7 @@ export const authService = {
    * Sign in by phone — looks up the parent in the DB, stores parentId locally.
    * Returns { success, error, parentName, students }
    */
-  login: async (phone: string): Promise<{ success: boolean; error?: string; parentName?: string }> => {
+  login: async (phone: string): Promise<{ success: boolean; error?: string; parentName?: string; parentImg?: string | null }> => {
     const data = await apiFetch('/api/mobile/login', {
       method: 'POST',
       body: JSON.stringify({ phone }),
@@ -104,7 +115,11 @@ export const authService = {
     await authStorage.saveParentId(data.parentId);
     // Cache students immediately
     await AsyncStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify(data.students));
-    return { success: true, parentName: data.name };
+    return { 
+      success: true, 
+      parentName: data.name,
+      parentImg: getFullImageUrl(data.img)
+    };
   },
 
   logout: async () => {
@@ -137,10 +152,13 @@ export const parentService = {
     return data.map(mapStudent);
   },
 
-  fetchParentProfile: async (): Promise<{ name: string; surname: string; phone: string; img: string } | null> => {
+  fetchParentProfile: async (): Promise<{ name: string; surname: string; phone: string; img: string | null } | null> => {
     const parentId = await authStorage.getParentId();
     if (!parentId) return null;
     const data = await apiFetch(`/api/mobile/parent?id=${parentId}`);
+    if (data && data.img) {
+      data.img = getFullImageUrl(data.img);
+    }
     return data || null;
   },
 
@@ -317,7 +335,11 @@ export const studentService = {
     let url = `/api/mobile/notifications?parentId=${parentId}`;
     if (studentId) url += `&studentId=${studentId}`;
     const data = await apiFetch(url);
-    return Array.isArray(data) ? data : [];
+    if (!Array.isArray(data)) return [];
+    return data.map((n: any) => ({
+      ...n,
+      student: n.student ? { ...n.student, avatarUrl: getFullImageUrl(n.student.img) } : null
+    }));
   },
 
   markNotificationsAsRead: async (notificationIds: number[]) => {
@@ -337,7 +359,12 @@ export const studentService = {
     if (queryString) url += `?${queryString}`;
     
     const data = await apiFetch(url);
-    return Array.isArray(data) ? data : [];
+    if (!Array.isArray(data)) return [];
+    
+    return data.map((item: any) => ({
+      ...item,
+      image: getFullImageUrl(item.img || item.image),
+    }));
   },
   
   fetchAttendanceHistory: async (studentId: string): Promise<AttendanceHistoryDay[]> => {

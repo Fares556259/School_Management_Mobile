@@ -103,7 +103,7 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
 
             if (profile) {
               setParentName(`${profile.name} ${profile.surname}`);
-              setParentAvatarUrl(profile.img);
+              setParentAvatarUrl(profile.img || null);
             }
 
             if (childrenData && childrenData.length > 0) {
