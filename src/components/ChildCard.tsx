@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { Image } from 'expo-image';
 import { Student } from '../types';
 import { Check } from 'lucide-react-native';
 
@@ -18,8 +19,10 @@ export const ChildCard: React.FC<ChildCardProps> = ({ child, isSelected, onSelec
       }`}
     >
       <Image
-        source={{ uri: child.avatarUrl || 'https://via.placeholder.com/50' }}
-        className="w-16 h-16 rounded-full bg-gray-200"
+        source={child.avatarUrl ? { uri: child.avatarUrl } : require('../../assets/noavatar.png')}
+        style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#f1f4f6' }}
+        contentFit="cover"
+        transition={200}
       />
       <View className="flex-1 ml-4">
         <Text className="text-lg font-bold text-gray-800">{child.name}</Text>

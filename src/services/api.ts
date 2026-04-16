@@ -18,9 +18,16 @@ const STUDENTS_CACHE_KEY = 'snapschool_students_cache';
  */
 export const getFullImageUrl = (url: string | null): string | null => {
   if (!url) return null;
-  if (url.startsWith('http') || url.startsWith('https')) return url;
-  if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
-  return `${API_BASE_URL}/${url}`;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  
+  if (trimmed.startsWith('http')) return trimmed;
+  
+  const cleanUrl = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  const fullUrl = `${API_BASE_URL}${cleanUrl}`;
+  
+  console.log(`[DEBUG-IMAGE] Normalized: ${trimmed} -> ${fullUrl}`);
+  return fullUrl;
 };
 
 // ─── Auth Storage ────────────────────────────────────────────────────────────

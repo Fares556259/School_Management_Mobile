@@ -21,7 +21,7 @@ const AnnouncementCard = ({ item, onPress }: any) => (
     }}
   >
     <Image 
-      source={{ uri: item.image }} 
+      source={item.image} 
       style={{ width: '100%', height: 180 }} 
       contentFit="cover"
       transition={300}

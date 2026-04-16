@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Alert, Modal, TextInput, ActivityIndicator, StatusBar, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput, ActivityIndicator, StatusBar, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bell, Edit2, Globe, BellRing, LifeBuoy, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, User, Pencil } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -8,6 +8,7 @@ import { useAppStore } from '../store/useAppStore';
 import { authService, parentService, studentService, uiService } from '../services/api';
 
 import { GlobalHeader } from '../components/GlobalHeader';
+import { Image } from 'expo-image';
 
 const { width } = Dimensions.get('window');
 
@@ -45,6 +46,8 @@ const CircularProgress = ({ size, progress, imageUri, updating, onPress }: any) 
         <Image 
           source={imageUri ? { uri: imageUri } : require('../../assets/noavatar.png')} 
           style={{ width: '100%', height: '100%' }}
+          contentFit="cover"
+          transition={200}
         />
         {updating && (
           <View className="absolute inset-0 bg-black/20 items-center justify-center">
@@ -102,7 +105,9 @@ const ChildCard = ({ child, isSelected, onSelect, onEditImage }: any) => (
     <View className="relative">
       <Image 
         source={child.avatarUrl ? { uri: child.avatarUrl } : require('../../assets/noavatar.png')} 
-        className="w-full h-[170px] bg-surface-low" 
+        style={{ width: '100%', height: 170, backgroundColor: '#f1f4f6' }}
+        contentFit="cover"
+        transition={200}
       />
       <TouchableOpacity 
         onPress={onEditImage}

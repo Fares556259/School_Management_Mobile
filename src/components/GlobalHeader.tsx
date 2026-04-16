@@ -84,7 +84,7 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
                   source={parentAvatarUrl ? { uri: parentAvatarUrl } : require('../../assets/noavatar.png')} 
                   contentFit="cover"
                   transition={200}
-                  className="w-full h-full"
+                  style={{ width: '100%', height: '100%' }}
                 />
               </View>
               
@@ -93,7 +93,7 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
                   source={selectedChild?.avatarUrl ? { uri: selectedChild.avatarUrl } : require('../../assets/noavatar.png')} 
                   contentFit="cover"
                   transition={200}
-                  className="w-full h-full"
+                  style={{ width: '100%', height: '100%' }}
                 />
               </View>
             </TouchableOpacity>

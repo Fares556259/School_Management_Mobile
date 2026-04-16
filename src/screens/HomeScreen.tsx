@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Modal, Platform, RefreshControl, Animated, StatusBar, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Modal, Platform, RefreshControl, Animated, StatusBar, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Book, Microscope, Clock, Globe, Palette, Calculator, Music, Languages, MessageSquare, AlertCircle, FileText, Download, Briefcase, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, BookOpen, Bell, Coffee, Info, ChevronDown, Check, User } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
@@ -130,6 +131,8 @@ const ChildCard = ({ child, active, onPress }: any) => (
       <Image 
         source={child.avatarUrl ? { uri: child.avatarUrl } : require('../../assets/noavatar.png')} 
         style={{ width: '100%', height: '100%' }} 
+        contentFit="cover"
+        transition={200}
       />
     </View>
     <Text style={{ fontSize: 13, fontWeight: 'bold', color: active ? 'white' : '#2b3437', marginLeft: 10 }}>{child.name.split(' ')[0]}</Text>
