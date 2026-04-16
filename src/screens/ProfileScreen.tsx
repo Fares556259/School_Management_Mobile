@@ -11,7 +11,7 @@ import { GlobalHeader } from '../components/GlobalHeader';
 
 const { width } = Dimensions.get('window');
 
-const CircularProgress = ({ size, progress, imageUri, updating }: any) => {
+const CircularProgress = ({ size, progress, imageUri, updating, onPress }: any) => {
   const strokeWidth = 5;
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
@@ -41,7 +41,11 @@ const CircularProgress = ({ size, progress, imageUri, updating }: any) => {
           transform={`rotate(-90, ${size / 2}, ${size / 2})`}
         />
       </Svg>
-      <View style={{ position: 'absolute', width: size - 15, height: size - 15, borderRadius: (size - 15) / 2, overflow: 'hidden', backgroundColor: '#f1f4f6' }}>
+      <TouchableOpacity 
+        onPress={onPress}
+        activeOpacity={0.8}
+        style={{ position: 'absolute', width: size - 15, height: size - 15, borderRadius: (size - 15) / 2, overflow: 'hidden', backgroundColor: '#f1f4f6' }}
+      >
         <Image 
           source={imageUri ? { uri: imageUri } : require('../../assets/noavatar.png')} 
           style={{ width: '100%', height: '100%' }}
@@ -51,7 +55,10 @@ const CircularProgress = ({ size, progress, imageUri, updating }: any) => {
             <ActivityIndicator size="small" color="white" />
           </View>
         )}
-      </View>
+        <View className="absolute bottom-0 right-0 left-0 bg-black/30 py-1 items-center">
+          <Camera size={12} color="white" />
+        </View>
+      </TouchableOpacity>
       {/* Percentage Badge */}
       <View style={{
         position: 'absolute',
@@ -307,15 +314,27 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }} edges={['top']}>
       <StatusBar barStyle="dark-content" />
 
+      {/* Modern Header Save Button */}
+      <View className="flex-row justify-end px-6 pt-2">
+         <TouchableOpacity 
+            onPress={handleSaveProfile}
+            disabled={updating}
+            className="bg-brand-primary px-5 py-2.5 rounded-full shadow-md shadow-brand-primary/20"
+         >
+           {updating ? <ActivityIndicator size="small" color="white" /> : <Text className="text-white font-jakarta font-bold text-sm">Save</Text>}
+         </TouchableOpacity>
+      </View>
+
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1" contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 150 }}>
         
         {/* Parent Header (High Fidelity) */}
-        <View className="items-center mt-12">
+        <View className="items-center mt-8">
           <CircularProgress 
             size={140} 
             progress={85} 
             imageUri={parentProfile?.img}
             updating={updating}
+            onPress={() => showImageOptions('parent')}
           />
           <Text className="text-2xl font-jakarta font-black text-text-primary mt-6">{parentProfile?.name} {parentProfile?.surname}</Text>
           <TouchableOpacity 
