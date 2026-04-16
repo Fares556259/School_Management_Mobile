@@ -245,11 +245,12 @@ export const studentService = {
         }
 
         const totalVal = p.amount + (p.deferredAmount || 0);
+        const isActuallyPaid = p.status === 'PAID' || p.status === 'PARTIAL';
         return {
           id: p.id,
           month: `${MONTH_NAMES[cycle.month]} ${cycle.year}`,
           totalAmount: totalVal,
-          paidAmount: p.amount,
+          paidAmount: isActuallyPaid ? p.amount : 0,
           status: p.status === 'PAID' ? 'Paid' : p.status === 'PARTIAL' ? 'Partial' : 'Due',
           isOverdue,
           dueDate,
