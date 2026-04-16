@@ -6,6 +6,7 @@ import { useAppStore } from '../store/useAppStore';
 import { studentService } from '../services/api';
 import { StudentDayData } from '../types';
 import { GlobalHeader } from '../components/GlobalHeader';
+import { notificationService } from '../services/notificationService';
 
 // ─── Icon map ─────────────────────────────────────────────────────────────────
 const ICON_MAP: Record<string, any> = {
@@ -201,6 +202,11 @@ export const HomeScreen = ({ navigation }: any) => {
     // adjust so Monday is first (0) and Sunday is last (6)
     return day === 0 ? 6 : day - 1;
   };
+  
+  // Request notification permissions once on mount
+  React.useEffect(() => {
+    notificationService.requestPermissions();
+  }, []);
 
   // Fetch data when child or date changes
   React.useEffect(() => {
@@ -210,6 +216,14 @@ export const HomeScreen = ({ navigation }: any) => {
         setLoading(true);
         const data = await studentService.fetchDayData(selectedChildId, formatDateStr(selectedFullDate));
         setDayData(data);
+        
+        // Schedule local reminders for exams and homework
+        if (data.homeworkDue?.length > 0) {
+          data.homeworkDue.forEach(item => notificationService.scheduleHomeworkReminder(item));
+        }
+        if (data.exams?.length > 0) {
+          data.exams.forEach(item => notificationService.scheduleExamReminder(item));
+        }
         
         // Determine Alert Visibility
         const payments = await studentService.fetchPayments(selectedChildId);

@@ -331,6 +331,18 @@ export const studentService = {
       body: JSON.stringify({ id: studentId, img: imgUrl }),
     });
   },
+
+  fetchResults: async (studentId: string): Promise<{ results: any[], summary: any }> => {
+    const data = await apiFetch(`/api/mobile/results?studentId=${studentId}`);
+    return data || { results: [], summary: { average: 0, totalSubjects: 0 } };
+  },
+
+  justifyAttendance: async (attendanceId: number, imgUrl?: string, note?: string) => {
+    return apiFetch('/api/mobile/attendance/justify', {
+      method: 'PATCH',
+      body: JSON.stringify({ attendanceId, justificationImg: imgUrl, justificationNote: note }),
+    });
+  },
 };
 
 export const uiService = {

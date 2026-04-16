@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { RefreshControl, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, FlatList, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Calendar, AlertCircle, CheckCircle2, Clock, MessageSquare, Filter } from 'lucide-react-native';
+import { ChevronLeft, Calendar, AlertCircle, CheckCircle2, Clock, MessageSquare, Filter, FileUp, Camera } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useAppStore } from '../store/useAppStore';
-import { studentService } from '../services/api';
+import { studentService, uiService } from '../services/api';
 import { AttendanceHistoryDay } from '../types';
 import { GlobalHeader } from '../components/GlobalHeader';
 
@@ -13,7 +14,7 @@ const STATUS_MAP = {
   LATE: { label: 'Late', color: '#f59e0b', bg: '#fffbeb', icon: Clock },
 };
 
-const AttendanceHistoryItem = ({ day }: { day: AttendanceHistoryDay }) => {
+const AttendanceHistoryItem = ({ day, onJustify }: { day: AttendanceHistoryDay, onJustify: (sessionId: number) => void }) => {
   const [expanded, setExpanded] = useState(false);
   const statusConfig = STATUS_MAP[day.status] || STATUS_MAP.PRESENT;
   const Icon = statusConfig.icon;
@@ -96,8 +97,19 @@ const AttendanceHistoryItem = ({ day }: { day: AttendanceHistoryDay }) => {
           borderColor: '#f1f4f6'
         }}>
           {day.sessions.map((s, i) => (
-            <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, alignItems: 'center' }}>
-              <Text style={{ fontSize: 13, color: '#586064', fontWeight: '600' }}>{s.subject}</Text>
+            <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12, alignItems: 'center' }}>
+              <View>
+                <Text style={{ fontSize: 13, color: '#586064', fontWeight: '600' }}>{s.subject}</Text>
+                {s.status === 'ABSENT' && (
+                  <TouchableOpacity 
+                    onPress={() => onJustify(s.id)}
+                    style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}
+                  >
+                    <FileUp size={12} color="#0055d4" />
+                    <Text style={{ fontSize: 11, color: '#0055d4', fontWeight: 'bold', marginLeft: 4 }}>Justify this absence</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
               <Text style={{ fontSize: 12, color: STATUS_MAP[s.status]?.color || '#9ca3af', fontWeight: 'bold' }}>{s.status}</Text>
             </View>
           ))}
@@ -143,6 +155,37 @@ export const AttendanceScreen = ({ navigation }: any) => {
     setRefreshing(true);
     await loadHistory();
     setRefreshing(false);
+  };
+  
+  const handleJustify = async (sessionId: number) => {
+    try {
+      // 1. Pick Image
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.7,
+      });
+
+      if (result.canceled || !result.assets[0].uri) return;
+
+      const uri = result.assets[0].uri;
+      setLoading(true);
+
+      // 2. Upload Image
+      const uploadRes = await uiService.uploadImage(uri, 'student', selectedChildId!);
+      
+      // 3. Justify in DB
+      await studentService.justifyAttendance(sessionId, uploadRes.url, "Parent uploaded medical certificate via mobile app.");
+      
+      // 4. Reload
+      await loadHistory();
+      alert("Success! Your justification has been submitted for review.");
+    } catch (error) {
+      console.error("Justification error:", error);
+      alert("Failed to submit justification. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const totalAbsences = history.filter(d => d.status === 'ABSENT').length;
@@ -220,7 +263,7 @@ export const AttendanceScreen = ({ navigation }: any) => {
           </View>
         ) : (
           history.filter(d => d.status !== 'PRESENT').map((day, idx) => (
-            <AttendanceHistoryItem key={idx} day={day} />
+            <AttendanceHistoryItem key={idx} day={day} onJustify={handleJustify} />
           ))
         )}
       </ScrollView>
