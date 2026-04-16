@@ -229,13 +229,21 @@ export const HomeScreen = ({ navigation }: any) => {
         
         // Determine Alert Visibility & Global Status
         const payments = await studentService.fetchPayments(selectedChildId);
-        const hasOverdue = payments.some(p => p.status === 'Due' || p.isOverdue);
-        setShowAlert(hasOverdue);
+        
+        // Match the format "Month Year" used in api.ts fetchPayments
+        const currentMonthName = months[today.getMonth()];
+        const currentYearNum = today.getFullYear();
+        const currentMonthKey = `${currentMonthName} ${currentYearNum}`;
+        
+        const currentMonthPayment = payments.find(p => p.month === currentMonthKey);
+        const isNotPaid = currentMonthPayment && currentMonthPayment.status !== 'Paid';
+        
+        setShowAlert(!!isNotPaid);
         
         // Compute and sync global status to store (for Header)
         const hasAbsent = data.sessions?.some((s: any) => s.attendance === 'ABSENT' || s.attendance === 'Abs');
         if (hasAbsent) setStudentStatus(selectedChildId, 'Absent');
-        else if (hasOverdue) setStudentStatus(selectedChildId, 'Due');
+        else if (isNotPaid) setStudentStatus(selectedChildId, 'Due');
         else setStudentStatus(selectedChildId, 'Present');
       } catch (error) {
         console.error("[Home Load Error]", error);
