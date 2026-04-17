@@ -10,6 +10,7 @@ import {
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.120.17:3000';
 
 const PARENT_ID_KEY = 'snapschool_parent_id';
+const SCHOOL_ID_KEY = 'snapschool_school_id';
 const STUDENTS_CACHE_KEY = 'snapschool_students_cache';
 
 // ─── Helper for URL Normalization ───────────────────────────────────────────
@@ -34,7 +35,9 @@ export const getFullImageUrl = (url: string | null): string | null => {
 export const authStorage = {
   saveParentId: (id: string) => AsyncStorage.setItem(PARENT_ID_KEY, id),
   getParentId: () => AsyncStorage.getItem(PARENT_ID_KEY),
-  clear: () => AsyncStorage.multiRemove([PARENT_ID_KEY, STUDENTS_CACHE_KEY]),
+  saveSchoolId: (id: string) => AsyncStorage.setItem(SCHOOL_ID_KEY, id),
+  getSchoolId: () => AsyncStorage.getItem(SCHOOL_ID_KEY),
+  clear: () => AsyncStorage.multiRemove([PARENT_ID_KEY, SCHOOL_ID_KEY, STUDENTS_CACHE_KEY]),
 };
 
 // ─── Helper for Fetching with Deduplication ──────────────────────────────────
@@ -56,6 +59,7 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     try {
       controller = new AbortController();
       timeoutId = setTimeout(() => controller?.abort(), 30000);
+      const schoolId = await authStorage.getSchoolId();
       const url = `${API_BASE_URL}${endpoint}`;
       console.log(`[DEBUG-API] Calling: ${url}`);
 
@@ -64,6 +68,7 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
         signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
+          'x-school-id': schoolId || 'default_school',
           ...options.headers,
         },
       });
@@ -152,7 +157,9 @@ export const authService = {
       return { success: false, error: response.error || 'Authentication aborted.' };
     }
 
-    await authStorage.saveParentId(response.parentId);
+    if (response.parentId) await authStorage.saveParentId(response.parentId);
+    if (response.schoolId) await authStorage.saveSchoolId(response.schoolId);
+    
     if (response.students) {
       await AsyncStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify(response.students));
     }
