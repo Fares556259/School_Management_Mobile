@@ -42,6 +42,31 @@ const EmptyPlaceholder = ({ text, icon: Icon }: any) => (
   </View>
 );
 
+const HolidayBanner = ({ name }: { name: string }) => (
+  <View style={{
+    backgroundColor: '#eff6ff', 
+    padding: 24, 
+    borderRadius: 28, 
+    alignItems: 'center',
+    justifyContent: 'center', 
+    borderWidth: 1, 
+    borderColor: '#dbeafe', 
+    marginBottom: 32,
+    shadowColor: '#0055d4',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2
+  }}>
+    <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10 }}>
+      <Coffee color="#0055d4" size={32} />
+    </View>
+    <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#0055d4', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8 }}>School Holiday</Text>
+    <Text style={{ fontSize: 24, fontWeight: '900', color: '#1e3a8a', textAlign: 'center', marginBottom: 4 }}>{name}</Text>
+    <Text style={{ fontSize: 14, color: '#60a5fa', fontWeight: '600', textAlign: 'center' }}>Enjoy your well-deserved break!</Text>
+  </View>
+);
+
 
 const LoadingSkeleton = () => (
   <View style={{ gap: 16 }}>
@@ -330,30 +355,37 @@ export const HomeScreen = ({ navigation }: any) => {
             <LoadingSkeleton />
           ) : (
             <>
-              {/* Today's Sessions & Attendance */}
-              <View style={{ marginBottom: 8 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>{selectedChild?.name.split(' ')[0]}'s Progress</Text>
-                  <TouchableOpacity 
-                    onPress={() => navigation.navigate('Attendance')}
-                    style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#0055d410', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 }}
-                  >
-                    <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#0055d4', marginRight: 4 }}>History</Text>
-                    <ChevronRight size={14} color="#0055d4" />
-                  </TouchableOpacity>
-                </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 8 }}>
-                  <Text style={{ fontSize: 13, color: '#737c7f', fontWeight: 'bold' }}>Progress</Text>
-                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#586064' }}>{attendancePercent}% marked</Text>
-                </View>
-                <View style={{ width: '100%', height: 10, backgroundColor: '#e2e9ec', borderRadius: 5, overflow: 'hidden', marginBottom: 16 }}>
-                  <View style={{ width: `${attendancePercent}%`, height: '100%', backgroundColor: '#0055d4', borderRadius: 5 }} />
-                </View>
-              </View>
-              {dayData.sessions?.length > 0 ? (
-                <View style={{ marginBottom: 32 }}>{dayData.sessions.map((session: any) => <SessionItem key={session.id} session={session} />)}</View>
+              {/* Holiday State */}
+              {dayData.holidayName ? (
+                <HolidayBanner name={dayData.holidayName} />
               ) : (
-                <EmptyPlaceholder text="No sessions – enjoy your day!" icon={Coffee} />
+                <>
+                  {/* Today's Sessions & Attendance */}
+                  <View style={{ marginBottom: 8 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2b3437' }}>{selectedChild?.name.split(' ')[0]}'s Progress</Text>
+                      <TouchableOpacity 
+                        onPress={() => navigation.navigate('Attendance')}
+                        style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#0055d410', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 }}
+                      >
+                        <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#0055d4', marginRight: 4 }}>History</Text>
+                        <ChevronRight size={14} color="#0055d4" />
+                      </TouchableOpacity>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 8 }}>
+                      <Text style={{ fontSize: 13, color: '#737c7f', fontWeight: 'bold' }}>Progress</Text>
+                      <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#586064' }}>{attendancePercent}% marked</Text>
+                    </View>
+                    <View style={{ width: '100%', height: 10, backgroundColor: '#e2e9ec', borderRadius: 5, overflow: 'hidden', marginBottom: 16 }}>
+                      <View style={{ width: `${attendancePercent}%`, height: '100%', backgroundColor: '#0055d4', borderRadius: 5 }} />
+                    </View>
+                  </View>
+                  {dayData.sessions?.length > 0 ? (
+                    <View style={{ marginBottom: 32 }}>{dayData.sessions.map((session: any) => <SessionItem key={session.id} session={session} />)}</View>
+                  ) : (
+                    <EmptyPlaceholder text="No sessions – enjoy your day!" icon={Coffee} />
+                  )}
+                </>
               )}
 
               {/* Tasks to Submit */}

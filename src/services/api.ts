@@ -246,6 +246,7 @@ export const studentService = {
   fetchDayData: async (studentId: string, _date: string): Promise<StudentDayData> => {
     const home = await studentService.fetchHomeData(studentId, _date);
     return {
+      holidayName: home.holidayName,
       sessions: (home.sessions || []).map((s: any, i: number) => ({
         id: s.id || i,
         subject: s.subject,

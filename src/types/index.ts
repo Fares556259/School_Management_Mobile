@@ -107,6 +107,7 @@ export interface AttendanceHistoryDay {
 }
 
 export interface StudentDayData {
+  holidayName?: string;
   sessions: Session[];
   notes: TeacherNote[];
   files: CourseFile[];
