@@ -50,7 +50,7 @@ const TermCard = ({ period, pdfUrl }: { period: number, pdfUrl?: string }) => {
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2b3437' }}>Term {period}</Text>
         <Text style={{ fontSize: 13, color: '#737c7f', marginTop: 2 }}>
-          {pdfUrl ? 'Official Exam Schedule & Results' : 'Schedule not yet uploaded'}
+          {pdfUrl ? 'Official Exam Schedule' : 'Schedule not yet uploaded'}
         </Text>
       </View>
 

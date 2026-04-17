@@ -125,7 +125,7 @@ export const LandingScreen = ({ onSelectParent }: { onSelectParent: () => void }
             
             <RoleCard 
               title="Student"
-              description="Access homework, schedule, and exam results."
+              description="Access homework, attendance, and official announcements."
               image={require('../../assets/3d/student.png')}
               onPress={() => handleFutureRole('Student')}
             />

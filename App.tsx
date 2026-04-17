@@ -13,7 +13,6 @@ import { ExamDetailScreen } from './src/screens/ExamDetailScreen';
 import { SignInScreen } from './src/screens/SignInScreen';
 import { LinkChildScreen } from './src/screens/LinkChildScreen';
 import { AnnouncementDetailScreen } from './src/screens/AnnouncementDetailScreen';
-import { ResultsScreen } from './src/screens/ResultsScreen';
 import { LandingScreen } from './src/screens/LandingScreen';
 import { Home as HomeIcon, FileText, CreditCard, User, Megaphone, Calendar, BarChart3 } from 'lucide-react-native';
 import { View, ActivityIndicator } from 'react-native';
@@ -62,7 +61,6 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
           let Icon: any;
           if (route.name === 'Home') Icon = HomeIcon;
           else if (route.name === 'Announcements') Icon = Megaphone;
-          else if (route.name === 'Results') Icon = BarChart3;
           else if (route.name === 'Payments') Icon = CreditCard;
           else if (route.name === 'Profile') Icon = User;
           return (
@@ -75,7 +73,6 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Announcements" component={AnnouncementsScreen} />
-      <Tab.Screen name="Results" component={ResultsScreen} />
       <Tab.Screen name="Payments" component={PaymentsScreen} />
       <Tab.Screen
         name="Profile"
@@ -166,7 +163,6 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
                 children={() => <BottomTabs onSignOut={handleSignOut} />}
               />
               <Stack.Screen name="Attendance" component={AttendanceScreen} />
-              <Stack.Screen name="Results" component={ResultsScreen} />
               <Stack.Screen name="Notifications" component={NotificationsScreen} />
               <Stack.Screen name="HomeworkDetail" component={HomeworkDetailScreen} />
               <Stack.Screen name="ExamDetail" component={ExamDetailScreen} />
