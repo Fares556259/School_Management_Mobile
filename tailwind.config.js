@@ -6,7 +6,7 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          primary: "#0055d4",
+          primary: "#0072e6",
           secondary: "#006d4a",
           tertiary: "#865400",
           error: "#9f403d",

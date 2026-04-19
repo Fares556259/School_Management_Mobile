@@ -7,7 +7,7 @@ import {
   Announcement,
 } from '../types';
 
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.106:3000';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:3000';
 
 const PARENT_ID_KEY = 'snapschool_parent_id';
 const SCHOOL_ID_KEY = 'snapschool_school_id';
