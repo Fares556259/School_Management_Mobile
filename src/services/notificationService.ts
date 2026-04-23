@@ -22,6 +22,25 @@ const setupHandler = () => {
         shouldSetBadge: true,
       }),
     });
+
+    // Configure Android Channels
+    if (Platform.OS === 'android') {
+      // 1. Standard Channel
+      Notifications.setNotificationChannelAsync('default', {
+        name: 'SnapSchool Alerts',
+        importance: Notifications.AndroidImportance.DEFAULT,
+        sound: 'notification.wav',
+      });
+
+      // 2. Emergency/Important Channel
+      Notifications.setNotificationChannelAsync('emergency', {
+        name: 'SnapSchool Emergency',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 500, 200, 500],
+        lightColor: '#ff0000',
+        sound: 'alert.wav',
+      });
+    }
   } catch (error) {
     console.warn("Notifications: Failed to set handler (likely Expo Go limitation):", error);
   }
