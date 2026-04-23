@@ -112,21 +112,21 @@ export const LandingScreen = ({ onSelectParent }: { onSelectParent: () => void }
             <RoleCard 
               title="Parent"
               description="Monitor progress, grades, and school schedule."
-              image={require('../../assets/3d/parent.png')}
+              image={require('../../assets/3d/parent.jpg')}
               onPress={onSelectParent}
             />
             
             <RoleCard 
               title="Teacher"
               description="Manage lessons, attendance, and student performance."
-              image={require('../../assets/3d/teacher.png')}
+              image={require('../../assets/3d/teacher.jpg')}
               onPress={() => handleFutureRole('Teacher')}
             />
             
             <RoleCard 
               title="Student"
               description="Access homework, attendance, and official announcements."
-              image={require('../../assets/3d/student.png')}
+              image={require('../../assets/3d/student.jpg')}
               onPress={() => handleFutureRole('Student')}
             />
           </View>

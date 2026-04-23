@@ -55,6 +55,30 @@ export const notificationService = {
   },
 
   /**
+   * Get the Expo push token
+   */
+  getPushToken: async () => {
+    if (isExpoGo) return null;
+    
+    try {
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== 'granted') return null;
+
+      // Project ID is required for standalone apps (EAS)
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
+      
+      const token = (await Notifications.getExpoPushTokenAsync({
+        projectId
+      })).data;
+      
+      return token;
+    } catch (error) {
+      console.error("[NOTIF-TOKEN-FAIL]", error);
+      return null;
+    }
+  },
+
+  /**
    * Schedule a local notification for an upcoming homework task
    * @param task The homework item
    * @param hoursBefore How many hours before the deadline to fire the alert (default 24)

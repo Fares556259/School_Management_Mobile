@@ -1,0 +1,16 @@
+env: load .env
+env: export EXPO_PUBLIC_API_URL
+Starting Metro Bundler
+Android Bundling failed 473ms index.ts (1 module)
+SyntaxError: index.ts: [BABEL]: Cannot find module 'react-native-worklets/plugin'
+Require stack:
+- /Users/faresselmi/projects/hi/SnapSchool_App/node_modules/react-native-reanimated/plugin/index.js
+- /Users/faresselmi/projects/hi/SnapSchool_App/node_modules/@babel/core/lib/config/files/module-types.js
+- /Users/faresselmi/projects/hi/SnapSchool_App/node_modules/@babel/core/lib/config/files/configuration.js
+- /Users/faresselmi/projects/hi/SnapSchool_App/node_modules/@babel/core/lib/config/files/index.js
+- /Users/faresselmi/projects/hi/SnapSchool_App/node_modules/@babel/core/lib/index.js
+- /Users/faresselmi/projects/hi/SnapSchool_App/node_modules/@expo/metro-config/build/transform-worker/metro-transform-worker.js
+- /Users/faresselmi/projects/hi/SnapSchool_App/node_modules/@expo/metro-config/build/transform-worker/supervising-transform-worker.js
+- /Users/faresselmi/projects/hi/SnapSchool_App/node_modules/metro/src/DeltaBundler/Worker.flow.js
+- /Users/faresselmi/projects/hi/SnapSchool_App/node_modules/metro/src/DeltaBundler/Worker.js
+- /Users/faresselmi/projects/hi/SnapSchool_App/node_modules/jest-worker/build/workers/processChild.js (While processing: /Users/faresselmi/projects/hi/SnapSchool_App/node_modules/react-native-reanimated/plugin/index.js)

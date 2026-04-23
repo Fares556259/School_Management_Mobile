@@ -1,0 +1,26 @@
+env: load .env
+env: export EXPO_PUBLIC_API_URL
+Starting Metro Bundler
+Android ./index.ts ▓▓▓▓▓▓░░░░░░░░░░ 38.5% (374/647)
+Android ./index.ts ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 85.4% (2653/2902)
+Android ./index.ts ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (3260/3260)
+Android Bundled 10403ms index.ts (3260 modules)
+
+› Assets (21):
+assets/3d/parent.png (288 kB)
+assets/3d/student.png (331 kB)
+assets/3d/teacher.png (405 kB)
+assets/noavatar.png (80.8 kB)
+node_modules/@react-navigation/elements/lib/module/assets/back-icon-mask.png (653 B)
+node_modules/@react-navigation/elements/lib/module/assets/back-icon.png (4 variations | 152 B)
+node_modules/@react-navigation/elements/lib/module/assets/clear-icon.png (4 variations | 425 B)
+node_modules/@react-navigation/elements/lib/module/assets/close-icon.png (4 variations | 235 B)
+node_modules/@react-navigation/elements/lib/module/assets/search-icon.png (4 variations | 599 B)
+
+› android bundles (1):
+_expo/static/js/android/index-0b776436e35c1c2b5605870dc17df44b.hbc (6.02 MB)
+
+› Files (1):
+metadata.json (1.6 kB)
+
+Exported: dist

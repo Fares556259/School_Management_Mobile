@@ -171,6 +171,13 @@ export const authService = {
     await authStorage.clear();
   },
 
+  registerPushToken: async (parentId: string, pushToken: string) => {
+    return apiFetch('/api/mobile/parent/push-token', {
+      method: 'POST',
+      body: JSON.stringify({ parentId, pushToken }),
+    });
+  },
+
   isLoggedIn: async (): Promise<boolean> => {
     const id = await authStorage.getParentId();
     return !!id;
@@ -179,6 +186,9 @@ export const authService = {
 
 // ─── Parent Data Service ──────────────────────────────────────────────────────
 export const parentService = {
+  getParentId: async () => {
+    return await authStorage.getParentId();
+  },
   fetchChildren: async (): Promise<(Student & { raw?: any })[]> => {
     const parentId = await authStorage.getParentId();
 

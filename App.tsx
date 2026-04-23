@@ -15,12 +15,13 @@ import { LinkChildScreen } from './src/screens/LinkChildScreen';
 import { AnnouncementDetailScreen } from './src/screens/AnnouncementDetailScreen';
 import { LandingScreen } from './src/screens/LandingScreen';
 import { Home as HomeIcon, FileText, CreditCard, User, Megaphone, Calendar, BarChart3 } from 'lucide-react-native';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Alert } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAppStore } from './src/store/useAppStore';
-import { parentService, authService, studentService } from './src/services/api';
+import { parentService, authService, studentService, API_BASE_URL } from './src/services/api';
 import * as Haptics from 'expo-haptics';
+import Constants from 'expo-constants';
 import "./src/styles/global.css";
 
 const Tab = createBottomTabNavigator();
@@ -88,10 +89,43 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
   
     // Check stored auth on launch
     useEffect(() => {
+      // Diagnostic Alert for APK debugging
+      const showDiagnostics = () => {
+        const isNewArch = Constants.expoConfig?.newArchEnabled;
+        Alert.alert(
+          "SnapSchool Diagnostic",
+          `API URL: ${API_BASE_URL}\nNew Arch: ${isNewArch ? 'Enabled' : 'Disabled'}\nVersion: ${Constants.expoConfig?.version}`,
+          [{ text: "Continue", style: "default" }]
+        );
+      };
+      
+      // Only show alert in non-development mode (APK/Build)
+      if (Constants.appOwnership !== 'expo') {
+        showDiagnostics();
+      }
+
+      const registerPush = async (parentId: string) => {
+        try {
+          const hasPermission = await notificationService.requestPermissions();
+          if (hasPermission) {
+            const token = await notificationService.getPushToken();
+            if (token) {
+              await authService.registerPushToken(parentId, token);
+              console.log("[DEBUG-PUSH] Token registered successfully");
+            }
+          }
+        } catch (err) {
+          console.warn("[PUSH-REG-FAIL]", err);
+        }
+      };
+
       const bootstrap = async () => {
         try {
           const loggedIn = await authService.isLoggedIn();
           if (loggedIn) {
+            const parentId = await parentService.getParentId();
+            if (parentId) registerPush(parentId);
+
             // Speed Boost: Parallel fetch of essential data
             const [profile, childrenData] = await Promise.all([
               parentService.fetchParentProfile(),
@@ -126,6 +160,18 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
     const handleSignIn = async () => {
       const parentProfile = await parentService.fetchParentProfile();
       if (parentProfile?.name) setParentName(parentProfile.name);
+
+      // Register Push Token on Login
+      try {
+        const parentId = await parentService.getParentId();
+        const hasPermission = await notificationService.requestPermissions();
+        if (parentId && hasPermission) {
+          const token = await notificationService.getPushToken();
+          if (token) await authService.registerPushToken(parentId, token);
+        }
+      } catch (err) {
+        console.warn("[PUSH-LOGIN-FAIL]", err);
+      }
       
       const data = await parentService.fetchChildren();
       setChildren(data);
