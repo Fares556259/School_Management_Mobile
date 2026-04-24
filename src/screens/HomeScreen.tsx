@@ -16,6 +16,11 @@ import { GlobalHeader } from '../components/GlobalHeader';
 import { notificationService } from '../services/notificationService';
 import { SkeletonBlock } from '../components/SkeletonView';
 
+// ─── Icon map ─────────────────────────────────────────────────────────────────
+const ICON_MAP: Record<string, any> = {
+  Calculator, Book, Languages, Clock, Globe, Palette, Music, Microscope, Briefcase, BookOpen, FileText,
+};
+
 // ─── Sub-components (High Fidelity Redesign) ───────────────────────────────────
 
 const DateItem = ({ day, date, active, isToday, onPress }: any) => (
@@ -102,6 +107,66 @@ const GlanceItem = ({ icon: Icon, title, subtitle, color, onPress }: any) => (
   </TouchableOpacity>
 );
 
+const SessionItem = ({ session }: any) => {
+  const Icon = ICON_MAP[session.iconName] || Book;
+  const getAttendanceBadge = (status: string | null) => {
+    const s = status?.toUpperCase();
+    if (s === 'PRES' || s === 'PRESENT') return { label: 'Present', color: '#22c55e' };
+    if (s === 'ABS' || s === 'ABSENT')  return { label: 'Absent',  color: '#ef4444' };
+    if (s === 'LATE') return { label: 'Late',    color: '#f59e0b' };
+    return null;
+  };
+  const badge = getAttendanceBadge(session.attendance);
+  return (
+    <View style={{ backgroundColor: 'white', padding: 16, borderRadius: 18, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9' }}>
+      <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}><Icon color="#0055d4" size={20} /></View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 15, fontWeight: '900', color: '#1e293b' }}>{session.subject}</Text>
+        <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2, fontWeight: '700' }}>{session.time} • {session.room}</Text>
+      </View>
+      {badge && (
+        <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: badge.color + '15' }}>
+          <Text style={{ color: badge.color, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' }}>{badge.label}</Text>
+        </View>
+      )}
+    </View>
+  );
+};
+
+const HomeworkItem = ({ homework, label, onPress }: any) => (
+  <TouchableOpacity onPress={onPress} style={{ backgroundColor: 'white', padding: 16, borderRadius: 18, marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9', flexDirection: 'row', alignItems: 'center' }}>
+    <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}><Clock size={18} color="#64748b" /></View>
+    <View style={{ flex: 1 }}>
+      <Text style={{ fontSize: 14, fontWeight: '900', color: '#1e293b' }}>{homework.title}</Text>
+      <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2, fontWeight: '700' }}>{label}</Text>
+    </View>
+    <ChevronRight size={16} color="#d1d5db" />
+  </TouchableOpacity>
+);
+
+const NoteItem = ({ note }: any) => (
+  <View style={{ backgroundColor: '#fdfcfe', padding: 16, borderRadius: 18, marginBottom: 12, borderWidth: 1, borderColor: '#f5f3ff', flexDirection: 'row' }}>
+    <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}><MessageSquare color="#8b5cf6" size={18} /></View>
+    <View style={{ flex: 1 }}>
+      <Text style={{ fontSize: 12, fontWeight: '900', color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+        {note.subject || 'Remark'}
+      </Text>
+      <Text style={{ fontSize: 14, color: '#1e293b', lineHeight: 20, fontStyle: 'italic', fontWeight: '600' }}>"{note.text || note.content || ''}"</Text>
+    </View>
+  </View>
+);
+
+const FileItem = ({ file }: any) => (
+  <TouchableOpacity style={{ backgroundColor: 'white', padding: 16, borderRadius: 18, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9' }}>
+    <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: file.type === 'pdf' ? '#fee2e2' : '#dcfce7', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>{file.type === 'pdf' ? <FileText color="#ef4444" size={20} /> : <Book color="#22c55e" size={20} />}</View>
+    <View style={{ flex: 1 }}>
+      <Text style={{ fontSize: 14, fontWeight: '900', color: '#1e293b' }} numberOfLines={1}>{file.name}</Text>
+      <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2, fontWeight: '700' }}>{file.sharedBy}</Text>
+    </View>
+    <Download size={18} color="#0055d4" />
+  </TouchableOpacity>
+);
+
 const EmptyPlaceholder = ({ text, icon: Icon }: any) => (
   <View style={{
     backgroundColor: '#f8fafc', padding: 24, borderRadius: 18, alignItems: 'center',
@@ -150,7 +215,6 @@ export const HomeScreen = ({ navigation }: any) => {
     selectedChildId, 
     children, 
     parentName, 
-    studentStatuses,
     setStudentStatus
   } = useAppStore();
   
@@ -163,6 +227,7 @@ export const HomeScreen = ({ navigation }: any) => {
   const [refreshing, setRefreshing] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [dayData, setDayData] = React.useState<StudentDayData>(EMPTY_DAY);
+  const [activeCategory, setActiveCategory] = React.useState<string | null>(null);
 
   const [viewingMonth, setViewingMonth] = React.useState(today.getMonth());
   const [viewingYear, setViewingYear] = React.useState(today.getFullYear());
@@ -227,7 +292,45 @@ export const HomeScreen = ({ navigation }: any) => {
     return d;
   });
   
-  const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Th', 'Fri', 'Sat'];
+
+  const getCategoryTitle = (cat: string) => {
+    switch (cat) {
+      case 'sessions': return 'Today\'s Sessions';
+      case 'tasksDue': return 'Tasks to Submit';
+      case 'tasksGiven': return 'Tasks Given';
+      case 'resources': return 'Course Resources';
+      case 'remarks': return 'Teacher Remarks';
+      default: return '';
+    }
+  };
+
+  const renderCategoryContent = () => {
+    if (!activeCategory) return null;
+    switch (activeCategory) {
+      case 'sessions':
+        return dayData.sessions?.length > 0 ? (
+          dayData.sessions.map((s: any) => <SessionItem key={s.id} session={s} />)
+        ) : <EmptyPlaceholder text="No sessions today" icon={Layout} />;
+      case 'tasksDue':
+        return dayData.homeworkDue?.length > 0 ? (
+          dayData.homeworkDue.map((h: any) => <HomeworkItem key={h.id} homework={h} label="Submit Today" onPress={() => { setActiveCategory(null); navigation.navigate('HomeworkDetail', { homework: h }); }} />)
+        ) : <EmptyPlaceholder text="No tasks to submit today" icon={Check} />;
+      case 'tasksGiven':
+        return dayData.homeworkGiven?.length > 0 ? (
+          dayData.homeworkGiven.map((h: any) => <HomeworkItem key={h.id} homework={h} label={`Due: ${new Date(h.dueDate).toLocaleDateString()}`} onPress={() => { setActiveCategory(null); navigation.navigate('HomeworkDetail', { homework: h }); }} />)
+        ) : <EmptyPlaceholder text="No new tasks given" icon={FileText} />;
+      case 'resources':
+        return dayData.files?.length > 0 ? (
+          dayData.files.map((f: any) => <FileItem key={f.id} file={f} />)
+        ) : <EmptyPlaceholder text="No resources shared today" icon={BookOpen} />;
+      case 'remarks':
+        return dayData.notes?.length > 0 ? (
+          dayData.notes.map((n: any) => <NoteItem key={n.id} note={n} />)
+        ) : <EmptyPlaceholder text="No remarks for this date" icon={MessageSquare} />;
+      default: return null;
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top']}>
@@ -281,7 +384,7 @@ export const HomeScreen = ({ navigation }: any) => {
                 
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <ProgressRing size={100} progress={attendancePercent} />
-                  <View style={{ ml: 24, flex: 1, marginLeft: 20 }}>
+                  <View style={{ flex: 1, marginLeft: 20 }}>
                     <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>{attendancePercent}% marked</Text>
                     <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '700', marginTop: 4 }}>Let's get started!</Text>
                   </View>
@@ -299,32 +402,35 @@ export const HomeScreen = ({ navigation }: any) => {
                 title="Sessions" 
                 subtitle={dayData.sessions?.length > 0 ? `${dayData.sessions.length} sessions today` : "No sessions today"} 
                 color="#0055d4" 
+                onPress={() => setActiveCategory('sessions')}
               />
               <GlanceItem 
                 icon={Check} 
                 title="Tasks to Submit" 
                 subtitle={dayData.homeworkDue?.length > 0 ? `${dayData.homeworkDue.length} tasks to submit` : "No tasks to submit today"} 
                 color="#10b981" 
-                onPress={() => dayData.homeworkDue?.length > 0 && navigation.navigate('HomeworkDetail', { homework: dayData.homeworkDue[0] })}
+                onPress={() => setActiveCategory('tasksDue')}
               />
               <GlanceItem 
                 icon={FileText} 
                 title="Tasks Given" 
                 subtitle={dayData.homeworkGiven?.length > 0 ? `${dayData.homeworkGiven.length} new tasks given` : "No new tasks given"} 
                 color="#f59e0b" 
+                onPress={() => setActiveCategory('tasksGiven')}
               />
               <GlanceItem 
                 icon={BookOpen} 
                 title="Course Resources" 
                 subtitle={dayData.files?.length > 0 ? `${dayData.files.length} resources shared` : "No resources shared today"} 
                 color="#8b5cf6" 
-                onPress={() => navigation.navigate('DocumentCenter')}
+                onPress={() => setActiveCategory('resources')}
               />
               <GlanceItem 
                 icon={MessageSquare} 
                 title="Teacher Remarks" 
                 subtitle={dayData.notes?.length > 0 ? `${dayData.notes.length} remarks today` : "No remarks for this date"} 
                 color="#ec4899" 
+                onPress={() => setActiveCategory('remarks')}
               />
 
               {/* Promotional/Motivational Banner */}
@@ -332,7 +438,7 @@ export const HomeScreen = ({ navigation }: any) => {
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                     <Star size={16} color="#0055d4" fill="#0055d4" />
-                    <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', ml: 8, marginLeft: 8 }}>Keep it up, {selectedChild?.name.split(' ')[0]}!</Text>
+                    <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', marginLeft: 8 }}>Keep it up, {selectedChild?.name.split(' ')[0]}!</Text>
                   </View>
                   <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '700', lineHeight: 20 }}>Stay consistent and achieve your goals.</Text>
                 </View>
@@ -342,6 +448,31 @@ export const HomeScreen = ({ navigation }: any) => {
           )}
         </View>
       </ScrollView>
+
+      {/* Category Detail Modal */}
+      <Modal visible={!!activeCategory} transparent animationType="slide">
+        <TouchableOpacity 
+          activeOpacity={1} 
+          onPress={() => setActiveCategory(null)}
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
+        >
+          <TouchableOpacity 
+            activeOpacity={1} 
+            style={{ backgroundColor: '#f8fafc', borderTopLeftRadius: 32, borderTopRightRadius: 32, maxHeight: '80%', padding: 24, paddingBottom: 40 }}
+          >
+            <View style={{ width: 40, height: 4, backgroundColor: '#e2e8f0', borderRadius: 2, alignSelf: 'center', marginBottom: 20 }} />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <Text style={{ fontSize: 24, fontWeight: '900', color: '#1e293b' }}>{getCategoryTitle(activeCategory || '')}</Text>
+              <TouchableOpacity onPress={() => setActiveCategory(null)} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5 }}>
+                <X size={20} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {renderCategoryContent()}
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Calendar Modal */}
       <Modal visible={showPicker} transparent animationType="fade" onRequestClose={() => setShowPicker(false)}>
