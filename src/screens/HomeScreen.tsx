@@ -157,7 +157,10 @@ const NoteItem = ({ note }: any) => (
 );
 
 const FileItem = ({ file }: any) => (
-  <TouchableOpacity style={{ backgroundColor: 'white', padding: 16, borderRadius: 18, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9' }}>
+  <TouchableOpacity 
+    onPress={() => file.url && Linking.openURL(file.url)}
+    style={{ backgroundColor: 'white', padding: 16, borderRadius: 18, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9' }}
+  >
     <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: file.type === 'pdf' ? '#fee2e2' : '#dcfce7', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>{file.type === 'pdf' ? <FileText color="#ef4444" size={20} /> : <Book color="#22c55e" size={20} />}</View>
     <View style={{ flex: 1 }}>
       <Text style={{ fontSize: 14, fontWeight: '900', color: '#1e293b' }} numberOfLines={1}>{file.name}</Text>
@@ -297,7 +300,6 @@ export const HomeScreen = ({ navigation }: any) => {
   const getCategoryTitle = (cat: string) => {
     switch (cat) {
       case 'sessions': return 'Today\'s Sessions';
-      case 'tasksDue': return 'Tasks to Submit';
       case 'tasksGiven': return 'Tasks Given';
       case 'resources': return 'Course Resources';
       case 'remarks': return 'Teacher Remarks';
@@ -312,10 +314,6 @@ export const HomeScreen = ({ navigation }: any) => {
         return dayData.sessions?.length > 0 ? (
           dayData.sessions.map((s: any) => <SessionItem key={s.id} session={s} />)
         ) : <EmptyPlaceholder text="No sessions today" icon={Layout} />;
-      case 'tasksDue':
-        return dayData.homeworkDue?.length > 0 ? (
-          dayData.homeworkDue.map((h: any) => <HomeworkItem key={h.id} homework={h} label="Submit Today" onPress={() => { setActiveCategory(null); navigation.navigate('HomeworkDetail', { homework: h }); }} />)
-        ) : <EmptyPlaceholder text="No tasks to submit today" icon={Check} />;
       case 'tasksGiven':
         return dayData.homeworkGiven?.length > 0 ? (
           dayData.homeworkGiven.map((h: any) => <HomeworkItem key={h.id} homework={h} label={`Due: ${new Date(h.dueDate).toLocaleDateString()}`} onPress={() => { setActiveCategory(null); navigation.navigate('HomeworkDetail', { homework: h }); }} />)
@@ -403,13 +401,6 @@ export const HomeScreen = ({ navigation }: any) => {
                 subtitle={dayData.sessions?.length > 0 ? `${dayData.sessions.length} sessions today` : "No sessions today"} 
                 color="#0055d4" 
                 onPress={() => setActiveCategory('sessions')}
-              />
-              <GlanceItem 
-                icon={Check} 
-                title="Tasks to Submit" 
-                subtitle={dayData.homeworkDue?.length > 0 ? `${dayData.homeworkDue.length} tasks to submit` : "No tasks to submit today"} 
-                color="#10b981" 
-                onPress={() => setActiveCategory('tasksDue')}
               />
               <GlanceItem 
                 icon={FileText} 

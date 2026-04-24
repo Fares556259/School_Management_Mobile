@@ -276,7 +276,13 @@ export const studentService = {
         subject: r.subject,
         teacher: r.teacher,
       })),
-      files: [],
+      files: (home.resources || []).map((r: any) => ({
+        id: r.id,
+        name: r.title,
+        url: r.url,
+        sharedBy: r.teacher,
+        type: r.url.toLowerCase().endsWith('.pdf') ? 'pdf' : 'file',
+      })),
       homeworkDue: (home.tasksDue || []),
       homeworkGiven: (home.tasksGiven || []),
       exams: (home.upcomingExams || []).map((e: any) => ({
