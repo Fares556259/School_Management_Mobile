@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput, ActivityIndicator, StatusBar, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bell, Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, User, Pencil, FileText, Info, PhoneCall, MapPin } from 'lucide-react-native';
+import { Bell, Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, User, Pencil, FileText, Info, PhoneCall, MapPin, Image as ImageIcon } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Svg, Circle } from 'react-native-svg';
 import { useAppStore } from '../store/useAppStore';
@@ -222,29 +222,13 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     }
   };
 
+  // Photo Modal State
+  const [photoModalVisible, setPhotoModalVisible] = useState(false);
+  const [photoTarget, setPhotoTarget] = useState<{type: 'parent' | 'student', id?: string} | null>(null);
+
   const showImageOptions = (type: 'parent' | 'student', id?: string) => {
-    const hasImage = type === 'parent' ? !!parentProfile?.img : !!children.find(c => c.id === id)?.avatarUrl;
-
-    const options = [
-      { text: '📁 Choose from Library', onPress: () => pickImage(type, id) },
-      { text: '📸 Take Photo', onPress: () => takePhoto(type, id) },
-    ];
-
-    if (hasImage) {
-      options.push({ 
-        text: '🗑️ Remove Photo', 
-        style: 'destructive', 
-        onPress: () => handleRemoveImage(type, id) 
-      });
-    }
-
-    options.push({ text: 'Cancel', style: 'cancel' });
-
-    Alert.alert(
-      'Profile Photo',
-      'Would you like to update your profile photo?',
-      options
-    );
+    setPhotoTarget({ type, id });
+    setPhotoModalVisible(true);
   };
 
   const takePhoto = async (type: 'parent' | 'student', id?: string) => {
@@ -619,6 +603,60 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
               </TouchableOpacity>
             </View>
           </View>
+        </View>
+      </Modal>
+      {/* Photo Selection Action Sheet */}
+      <Modal visible={photoModalVisible} transparent animationType="fade">
+        <View className="flex-1 bg-black/40 justify-end p-6">
+          <View className="bg-white rounded-[32px] p-6 mb-4">
+            <View className="items-center mb-8">
+              <Text className="text-xl font-jakarta font-black text-text-primary">Update profile photo</Text>
+              <Text className="text-text-muted font-manrope font-bold text-xs mt-1">Choose how you'd like to add your photo</Text>
+            </View>
+
+            <View className="gap-3">
+              <TouchableOpacity 
+                onPress={() => {
+                  setPhotoModalVisible(false);
+                  if (photoTarget) pickImage(photoTarget.type, photoTarget.id);
+                }}
+                className="flex-row items-center bg-white p-4 rounded-2xl border border-surface-low"
+              >
+                <View className="w-12 h-12 bg-blue-50 rounded-2xl items-center justify-center">
+                  <ImageIcon size={22} color="#2563eb" />
+                </View>
+                <View className="ml-4 flex-1">
+                  <Text className="text-base font-jakarta font-bold text-text-primary">Choose from library</Text>
+                  <Text className="text-text-muted text-[10px] font-manrope font-bold">Pick from your photo gallery</Text>
+                </View>
+                <ChevronRight size={18} color="#d1d5db" />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                onPress={() => {
+                  setPhotoModalVisible(false);
+                  if (photoTarget) takePhoto(photoTarget.type, photoTarget.id);
+                }}
+                className="flex-row items-center bg-white p-4 rounded-2xl border border-surface-low"
+              >
+                <View className="w-12 h-12 bg-purple-50 rounded-2xl items-center justify-center">
+                  <Camera size={22} color="#8b5cf6" />
+                </View>
+                <View className="ml-4 flex-1">
+                  <Text className="text-base font-jakarta font-bold text-text-primary">Take a photo</Text>
+                  <Text className="text-text-muted text-[10px] font-manrope font-bold">Use your camera right now</Text>
+                </View>
+                <ChevronRight size={18} color="#d1d5db" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <TouchableOpacity 
+            onPress={() => setPhotoModalVisible(false)}
+            className="bg-[#334155]/20 py-4 rounded-2xl items-center"
+          >
+            <Text className="text-text-primary font-jakarta font-black text-lg">Cancel</Text>
+          </TouchableOpacity>
         </View>
       </Modal>
     </SafeAreaView>
