@@ -32,7 +32,16 @@
     "plugins": [
       "expo-web-browser",
       "expo-notifications",
-      "expo-image-picker"
+      "expo-image-picker",
+      [
+        "expo-asset",
+        {
+          "assets": [
+            "./assets/sounds/notification.m4a",
+            "./assets/sounds/alert.m4a"
+          ]
+        }
+      ]
     ],
     "extra": {
       "eas": {

@@ -29,7 +29,7 @@ const setupHandler = () => {
       Notifications.setNotificationChannelAsync('default', {
         name: 'SnapSchool Alerts',
         importance: Notifications.AndroidImportance.DEFAULT,
-        sound: 'notification.wav',
+        sound: 'notification.m4a',
       });
 
       // 2. Emergency/Important Channel
@@ -38,7 +38,7 @@ const setupHandler = () => {
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 500, 200, 500],
         lightColor: '#ff0000',
-        sound: 'alert.wav',
+        sound: 'alert.m4a',
       });
     }
   } catch (error) {
@@ -168,5 +168,29 @@ export const notificationService = {
     } catch (error) {
       console.log("[NOTIF-FAIL] Could not cancel notifications");
     }
+  },
+
+  // ─── Test Methods ─────────────────────────────────────────────────────────────
+  
+  async testEmergencySiren() {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "🚨 SIREN TEST: Emergency",
+        body: "This is a test of the emergency siren sound.",
+        sound: 'alert.m4a',
+      },
+      trigger: null,
+    });
+  },
+
+  async testStandardNotification() {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "📢 TEST: Standard Notification",
+        body: "This is a test of the standard notification sound.",
+        sound: 'notification.m4a',
+      },
+      trigger: null,
+    });
   }
 };

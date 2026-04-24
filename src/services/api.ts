@@ -232,6 +232,10 @@ export const parentService = {
       body: JSON.stringify({ studentId, parentId, birthday }),
     });
   },
+
+  fetchSchoolInfo: async () => {
+    return apiFetch('/api/mobile/school');
+  },
 };
 
 // ─── Student Data Service ─────────────────────────────────────────────────────
@@ -446,6 +450,15 @@ export const studentService = {
       method: 'PATCH',
       body: JSON.stringify({ attendanceId, justificationImg: imgUrl, justificationNote: note }),
     });
+  },
+
+  fetchAllFiles: async (parentId: string): Promise<any[]> => {
+    const data = await apiFetch(`/api/mobile/parent/files?parentId=${parentId}`);
+    if (!Array.isArray(data)) return [];
+    return data.map(file => ({
+      ...file,
+      url: getFullImageUrl(file.url || file.path),
+    }));
   },
 };
 

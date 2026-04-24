@@ -310,8 +310,21 @@ export const HomeScreen = ({ navigation }: any) => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0055d4']} tintColor="#0055d4" />}
       >
         <View style={{ paddingBottom: 150, paddingHorizontal: 20 }}>
-          {/* Spacing after flat header */}
-          <View style={{ height: 16 }} />
+          {/* Test Buttons (Temporary) */}
+          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
+            <TouchableOpacity 
+              onPress={() => notificationService.testStandardNotification()}
+              style={{ flex: 1, backgroundColor: '#f1f4f6', padding: 12, borderRadius: 16, alignItems: 'center' }}
+            >
+              <Text style={{ color: '#0055d4', fontWeight: 'bold', fontSize: 12 }}>🔔 Test Bell</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => notificationService.testEmergencySiren()}
+              style={{ flex: 1, backgroundColor: '#fee2e2', padding: 12, borderRadius: 16, alignItems: 'center' }}
+            >
+              <Text style={{ color: '#ef4444', fontWeight: 'bold', fontSize: 12 }}>🚨 Test Siren</Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Tuition Alert */}
           {showAlert && (

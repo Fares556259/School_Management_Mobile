@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput, ActivityIndicator, StatusBar, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bell, Edit2, Globe, BellRing, LifeBuoy, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, User, Pencil } from 'lucide-react-native';
+import { Bell, Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, User, Pencil, FileText, Info, PhoneCall, MapPin } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Svg, Circle } from 'react-native-svg';
 import { useAppStore } from '../store/useAppStore';
@@ -125,7 +125,7 @@ const ChildCard = ({ child, isSelected, onSelect, onEditImage }: any) => (
   </TouchableOpacity>
 );
 
-const SettingItemV2 = ({ icon: Icon, label, color, isLast, onPress }: any) => (
+const SettingItemV2 = ({ icon: Icon, label, color, isLast, onPress, badge }: any) => (
   <TouchableOpacity 
     onPress={onPress}
     activeOpacity={0.6}
@@ -135,14 +135,30 @@ const SettingItemV2 = ({ icon: Icon, label, color, isLast, onPress }: any) => (
       <Icon size={20} color="#737c7f" />
     </View>
     <Text className="flex-1 text-lg font-jakarta font-semibold text-text-primary">{label}</Text>
-    <ChevronDown size={20} color="#d1d5db" />
+    {badge && (
+      <View className="bg-brand-primary/10 px-2.5 py-1 rounded-full mr-2">
+        <Text className="text-brand-primary text-[10px] font-jakarta font-black uppercase">{badge}</Text>
+      </View>
+    )}
+    <ChevronRight size={20} color="#d1d5db" />
   </TouchableOpacity>
 );
 
+const StatCard = ({ label, value, icon: Icon, color }: any) => (
+  <View style={{ flex: 1, backgroundColor: 'white', padding: 16, borderRadius: 24, borderWidth: 1, borderColor: '#f1f4f6', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.02, shadowRadius: 8, elevation: 1 }}>
+    <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: color + '15', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+      <Icon size={16} color={color} />
+    </View>
+    <Text style={{ fontSize: 20, fontWeight: '900', color: '#2b3437' }}>{value}</Text>
+    <Text style={{ fontSize: 11, color: '#737c7f', fontWeight: '700', textTransform: 'uppercase', marginTop: 4 }}>{label}</Text>
+  </View>
+);
+
 export const ProfileScreen = ({ navigation, onSignOut }: any) => {
-  const { children, selectedChildId, setSelectedChildId, setChildren, parentName, setParentName, setParentAvatarUrl } = useAppStore();
+  const { children, selectedChildId, setSelectedChildId, setChildren, parentName, setParentName, setParentAvatarUrl, studentStatuses } = useAppStore();
   const selectedChild = children.find((c: any) => c.id === selectedChildId);
   const [parentProfile, setParentProfile] = useState<any>(null);
+  const [schoolInfo, setSchoolInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   
@@ -157,12 +173,23 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
   const loadProfile = async () => {
     setLoading(true);
     try {
-      const profile = await parentService.fetchParentProfile();
+      const [profile, school] = await Promise.all([
+        parentService.fetchParentProfile(),
+        parentService.fetchSchoolInfo()
+      ]);
+      
       if (profile) {
         setParentProfile(profile);
         setParentName(`${profile.name} ${profile.surname}`);
         setParentAvatarUrl(profile.img);
-        setEditData({ name: profile.name, surname: profile.surname, phone: profile.phone });
+        setEditData({
+          name: profile.name,
+          surname: profile.surname,
+          phone: profile.phone
+        });
+      }
+      if (school) {
+        setSchoolInfo(school);
       }
     } catch (error) {
       console.error('Failed to load profile:', error);
@@ -331,11 +358,24 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     ]);
   };
 
+  const calculateCompletion = () => {
+    if (!parentProfile) return 0;
+    const fields = ['name', 'surname', 'phone', 'img'];
+    const filled = fields.filter(f => !!parentProfile[f]).length;
+    return Math.round((filled / fields.length) * 100);
+  };
+
   const isDirty = parentProfile && (
     editData.name !== parentProfile.name || 
     editData.surname !== parentProfile.surname || 
     editData.phone !== parentProfile.phone
   );
+
+  const stats = {
+    childrenCount: children.length,
+    absentCount: Object.values(studentStatuses).filter(s => s === 'Absent').length,
+    duePayments: Object.values(studentStatuses).filter(s => s === 'Due').length,
+  };
 
   if (loading) {
     return (
@@ -368,7 +408,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
         <View className="items-center mt-8">
           <CircularProgress 
             size={140} 
-            progress={85} 
+            progress={calculateCompletion()} 
             imageUri={parentProfile?.img}
             updating={updating}
             onPress={() => showImageOptions('parent')}
@@ -407,15 +447,55 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
           </ScrollView>
         </View>
 
+        {/* Quick Stats Summary */}
+        <View className="mt-12">
+          <Text className="text-2xl font-jakarta font-black text-text-primary mb-6">Quick Summary</Text>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <StatCard icon={User} label="Students" value={stats.childrenCount} color="#0055d4" />
+            <StatCard icon={X} label="Absent" value={stats.absentCount} color={stats.absentCount > 0 ? '#ef4444' : '#22c55e'} />
+            <StatCard icon={Check} label="Tuition" value={stats.duePayments === 0 ? 'Paid' : 'Due'} color={stats.duePayments > 0 ? '#f59e0b' : '#22c55e'} />
+          </View>
+        </View>
+
         {/* Settings Section */}
         <View className="mt-12">
-          <Text className="text-2xl font-jakarta font-black text-text-primary mb-6">Settings</Text>
+          <Text className="text-2xl font-jakarta font-black text-text-primary mb-6">Settings & Tools</Text>
           <View className="bg-white rounded-[32px] overflow-hidden border border-surface-low shadow-sm shadow-black/5">
             <SettingItemV2 icon={UserIcon} label="Profile Details" onPress={() => setEditModalVisible(true)} />
-            <SettingItemV2 icon={Globe} label="Language" />
             <SettingItemV2 icon={BellRing} label="Notifications" />
-            <SettingItemV2 icon={LifeBuoy} label="Support" />
+            <SettingItemV2 icon={FileText} label="Document Center" badge="New" onPress={() => navigation.navigate('DocumentCenter')} />
             <SettingItemV2 icon={LogOut} label="Sign Out" isLast onPress={handleLogout} />
+          </View>
+        </View>
+
+        {/* School Contact Section */}
+        <View className="mt-12">
+          <Text className="text-2xl font-jakarta font-black text-text-primary mb-6">School Support</Text>
+          <View className="bg-brand-primary/5 rounded-[32px] p-6 border border-brand-primary/10">
+            <View className="flex-row items-center mb-6">
+              <View className="w-12 h-12 bg-white rounded-2xl items-center justify-center shadow-sm">
+                <Info size={24} color="#0055d4" />
+              </View>
+              <View className="ml-4">
+                <Text className="text-lg font-jakarta font-black text-brand-primary">{schoolInfo?.schoolName || 'SnapSchool Academy'}</Text>
+                <Text className="text-text-muted text-xs font-bold font-manrope">International Campus</Text>
+              </View>
+            </View>
+            
+            <View className="gap-4">
+              <TouchableOpacity className="flex-row items-center bg-white p-4 rounded-2xl shadow-sm border border-surface-low">
+                <PhoneCall size={18} color="#0055d4" />
+                <Text className="ml-3 flex-1 font-jakarta font-bold text-text-primary">{schoolInfo?.phone || '+216 71 000 000'}</Text>
+                <View className="bg-brand-primary px-3 py-1.5 rounded-lg">
+                  <Text className="text-white text-[10px] font-jakarta font-black">CALL</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity className="flex-row items-center bg-white p-4 rounded-2xl shadow-sm border border-surface-low">
+                <MapPin size={18} color="#0055d4" />
+                <Text className="ml-3 flex-1 font-jakarta font-bold text-text-primary">{schoolInfo?.address || '123 Education Ave, Tunis'}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 

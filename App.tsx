@@ -14,6 +14,7 @@ import { SignInScreen } from './src/screens/SignInScreen';
 import { LinkChildScreen } from './src/screens/LinkChildScreen';
 import { AnnouncementDetailScreen } from './src/screens/AnnouncementDetailScreen';
 import { LandingScreen } from './src/screens/LandingScreen';
+import { DocumentCenterScreen } from './src/screens/DocumentCenterScreen';
 import { Home as HomeIcon, FileText, CreditCard, User, Megaphone, Calendar, BarChart3 } from 'lucide-react-native';
 import { View, ActivityIndicator, Alert } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -214,6 +215,7 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
               <Stack.Screen name="ExamDetail" component={ExamDetailScreen} />
               <Stack.Screen name="AnnouncementDetail" component={AnnouncementDetailScreen} />
               <Stack.Screen name="LinkChild" component={LinkChildScreen} />
+              <Stack.Screen name="DocumentCenter" component={DocumentCenterScreen} />
             </Stack.Navigator>
           )}
         </NavigationContainer>
