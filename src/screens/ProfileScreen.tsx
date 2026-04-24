@@ -463,7 +463,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
           <View className="bg-white rounded-[32px] overflow-hidden border border-surface-low shadow-sm shadow-black/5">
             <SettingItemV2 icon={UserIcon} label="Profile Details" onPress={() => setEditModalVisible(true)} />
             <SettingItemV2 icon={BellRing} label="Notifications" />
-            <SettingItemV2 icon={FileText} label="Document Center" badge="New" onPress={() => navigation.navigate('DocumentCenter')} />
+            <SettingItemV2 icon={FileText} label="Document Center" onPress={() => navigation.navigate('DocumentCenter')} />
             <SettingItemV2 icon={LogOut} label="Sign Out" isLast onPress={handleLogout} />
           </View>
         </View>
