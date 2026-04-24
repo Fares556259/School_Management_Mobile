@@ -12,11 +12,12 @@ import { Image } from 'expo-image';
 
 const { width } = Dimensions.get('window');
 
-const CircularProgress = ({ size, progress, imageUri, updating, onPress }: any) => {
-  const strokeWidth = 5;
+const CircularProgress = ({ size, progress, imageUri, name, updating, onPress }: any) => {
+  const strokeWidth = 6;
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
+  const initial = name ? name.charAt(0).toUpperCase() : 'P';
 
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
@@ -42,13 +43,17 @@ const CircularProgress = ({ size, progress, imageUri, updating, onPress }: any) 
           transform={`rotate(-90, ${size / 2}, ${size / 2})`}
         />
       </Svg>
-      <View style={{ position: 'absolute', width: size - 15, height: size - 15, borderRadius: (size - 15) / 2, overflow: 'hidden', backgroundColor: '#f1f4f6' }}>
-        <Image 
-          source={imageUri ? { uri: imageUri } : require('../../assets/noavatar.png')} 
-          style={{ width: '100%', height: '100%' }}
-          contentFit="cover"
-          transition={200}
-        />
+      <View style={{ position: 'absolute', width: size - 20, height: size - 20, borderRadius: (size - 20) / 2, overflow: 'hidden', backgroundColor: '#e2e9ec', alignItems: 'center', justifyContent: 'center' }}>
+        {imageUri ? (
+          <Image 
+            source={{ uri: imageUri }} 
+            style={{ width: '100%', height: '100%' }}
+            contentFit="cover"
+            transition={200}
+          />
+        ) : (
+          <Text style={{ fontSize: size / 3, fontWeight: '900', color: '#737c7f', fontFamily: 'PlusJakartaSans-ExtraBold' }}>{initial}</Text>
+        )}
         {updating && (
           <View className="absolute inset-0 bg-black/20 items-center justify-center">
             <ActivityIndicator size="small" color="white" />
@@ -60,70 +65,84 @@ const CircularProgress = ({ size, progress, imageUri, updating, onPress }: any) 
       <TouchableOpacity 
         onPress={onPress}
         activeOpacity={0.8}
-        className="absolute bottom-1 right-1 bg-white p-2.5 rounded-full border border-surface-low shadow-md"
+        className="absolute bottom-1 right-1 bg-white p-2 rounded-full border border-brand-primary/10 shadow-lg"
       >
-        <Camera size={20} color="#0055d4" />
+        <Camera size={18} color="#0055d4" />
       </TouchableOpacity>
 
-      {/* Percentage Badge */}
+      {/* Percentage Badge - Positioned at Top Right of the ring */}
       <View style={{
         position: 'absolute',
-        top: 0,
-        right: size / 4,
-        backgroundColor: '#f1f4f6',
-        paddingHorizontal: 6,
+        top: 8,
+        right: 8,
+        backgroundColor: 'white',
+        paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#e2e9ec',
-        shadowColor: '#000',
+        borderColor: '#0055d4',
+        shadowColor: '#0055d4',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 3,
       }}>
-        <Text style={{ fontSize: 10, fontWeight: '900', color: '#0055d4' }}>{progress}%</Text>
+        <Text style={{ fontSize: 9, fontWeight: '900', color: '#0055d4', fontFamily: 'PlusJakartaSans-ExtraBold' }}>{progress}%</Text>
       </View>
     </View>
   );
 };
 
-const ChildCard = ({ child, isSelected, onSelect, onEditImage }: any) => (
-  <TouchableOpacity 
-    onPress={onSelect}
-    activeOpacity={0.9}
-    className="mr-3 overflow-hidden bg-white rounded-[28px] border border-surface-low"
-    style={{
-      width: 170,
-      shadowColor: '#2b3437',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.05,
-      shadowRadius: 12,
-      elevation: 3,
-    }}
-  >
-    <View className="relative">
-      <Image 
-        source={child.avatarUrl ? { uri: child.avatarUrl } : require('../../assets/noavatar.png')} 
-        style={{ width: '100%', height: 170, backgroundColor: '#f1f4f6' }}
-        contentFit="cover"
-        transition={200}
-      />
-      <TouchableOpacity 
-        onPress={onEditImage}
-        className="absolute bottom-2 right-2 bg-white/90 p-2 rounded-full border border-surface-low shadow-sm"
-      >
-        <Camera size={18} color="#0055d4" />
-      </TouchableOpacity>
-    </View>
-    <View className="p-4 flex-row justify-between items-center bg-white">
-      <View>
-        <Text className="text-[#0055d4] font-jakarta font-black text-lg" numberOfLines={1}>{child.name.split(' ')[0].toLowerCase()}</Text>
-        <Text className="text-text-muted font-manrope text-xs font-bold leading-tight">{child.class}</Text>
+const CHILD_COLORS = ['#eff6ff', '#f5f3ff', '#fff7ed', '#fdf2f8'];
+const CHILD_TEXT_COLORS = ['#0055d4', '#8b5cf6', '#f59e0b', '#ec4899'];
+
+const ChildCard = ({ child, index, onSelect, onEditImage }: any) => {
+  const bgColor = CHILD_COLORS[index % CHILD_COLORS.length];
+  const textColor = CHILD_TEXT_COLORS[index % CHILD_TEXT_COLORS.length];
+  
+  return (
+    <TouchableOpacity 
+      onPress={onSelect}
+      activeOpacity={0.9}
+      className="mr-4 overflow-hidden bg-white rounded-[32px] border border-surface-low"
+      style={{
+        width: 175,
+        shadowColor: '#2b3437',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.05,
+        shadowRadius: 15,
+        elevation: 4,
+      }}
+    >
+      <View style={{ backgroundColor: bgColor, height: 160, alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+        {child.avatarUrl ? (
+          <Image 
+            source={{ uri: child.avatarUrl }} 
+            style={{ width: '100%', height: '100%' }}
+            contentFit="cover"
+            transition={200}
+          />
+        ) : (
+          <User size={60} color={textColor} strokeWidth={1} />
+        )}
+        <TouchableOpacity 
+          onPress={onEditImage}
+          className="absolute bottom-3 right-3 bg-white/90 p-2 rounded-full shadow-sm"
+        >
+          <Camera size={16} color={textColor} />
+        </TouchableOpacity>
       </View>
-    </View>
-  </TouchableOpacity>
-);
+      <View className="p-4 bg-white">
+        <Text className="font-jakarta font-black text-lg mb-1" style={{ color: textColor }} numberOfLines={1}>
+          {child.name.split(' ')[0].toLowerCase()}
+        </Text>
+        <View style={{ backgroundColor: bgColor, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, alignSelf: 'flex-start' }}>
+          <Text style={{ color: textColor, fontSize: 10, fontWeight: '800', fontFamily: 'PlusJakartaSans-ExtraBold' }}>{child.class}</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 const SettingItemV2 = ({ icon: Icon, label, color, isLast, onPress, badge }: any) => (
   <TouchableOpacity 
@@ -145,12 +164,12 @@ const SettingItemV2 = ({ icon: Icon, label, color, isLast, onPress, badge }: any
 );
 
 const StatCard = ({ label, value, icon: Icon, color }: any) => (
-  <View style={{ flex: 1, backgroundColor: 'white', padding: 16, borderRadius: 24, borderWidth: 1, borderColor: '#f1f4f6', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.02, shadowRadius: 8, elevation: 1 }}>
-    <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: color + '15', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-      <Icon size={16} color={color} />
+  <View style={{ flex: 1, backgroundColor: 'white', padding: 16, borderRadius: 28, borderWidth: 1, borderColor: '#f1f4f6', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10, elevation: 2 }}>
+    <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: color + '15', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+      <Icon size={18} color={color} />
     </View>
-    <Text style={{ fontSize: 20, fontWeight: '900', color: '#2b3437' }}>{value}</Text>
-    <Text style={{ fontSize: 11, color: '#737c7f', fontWeight: '700', textTransform: 'uppercase', marginTop: 4 }}>{label}</Text>
+    <Text style={{ fontSize: 22, fontWeight: '900', color: '#2b3437', fontFamily: 'PlusJakartaSans-ExtraBold' }}>{value}</Text>
+    <Text style={{ fontSize: 12, color: '#737c7f', fontWeight: '700', fontFamily: 'PlusJakartaSans-Bold', marginTop: 2 }}>{label}</Text>
   </View>
 );
 
@@ -404,42 +423,47 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
 
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1" contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 150 }}>
         
-        {/* Parent Header (High Fidelity) */}
+        {/* Parent Header (High Fidelity Redesign) */}
         <View className="items-center mt-8">
           <CircularProgress 
-            size={140} 
+            size={145} 
             progress={calculateCompletion()} 
             imageUri={parentProfile?.img}
+            name={parentProfile?.name}
             updating={updating}
             onPress={() => showImageOptions('parent')}
           />
-          <Text className="text-2xl font-jakarta font-black text-text-primary mt-6">{parentProfile?.name} {parentProfile?.surname}</Text>
+          <Text className="text-3xl font-jakarta font-black text-text-primary mt-6">{parentProfile?.name} {parentProfile?.surname}</Text>
+          <Text className="text-text-muted font-manrope font-bold text-sm mt-1">Parent Account • {children.length} children linked</Text>
+          
           <TouchableOpacity 
              onPress={() => setEditModalVisible(true)}
-             className="mt-4 p-2 bg-white rounded-xl border border-surface-low shadow-sm"
+             className="mt-6 flex-row items-center bg-white px-6 py-3 rounded-full border border-surface-low shadow-sm"
           >
-            <Pencil size={20} color="#737c7f" />
+            <Pencil size={18} color="#737c7f" />
+            <Text className="ml-2 text-text-primary font-jakarta font-bold">Edit profile</Text>
           </TouchableOpacity>
         </View>
 
         {/* My Children Section */}
         <View className="mt-12">
           <View className="flex-row items-center justify-between mb-6">
-            <Text className="text-2xl font-jakarta font-black text-text-primary">My Children</Text>
-            <TouchableOpacity className="bg-surface-low px-4 py-2 rounded-xl">
-              <Text className="text-text-muted font-jakarta font-bold text-sm">Manage</Text>
+            <Text className="text-2xl font-jakarta font-black text-text-primary">My children</Text>
+            <TouchableOpacity className="bg-brand-primary/5 px-4 py-2 rounded-2xl">
+              <Text className="text-brand-primary font-jakarta font-black text-xs">Manage</Text>
             </TouchableOpacity>
           </View>
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={false} 
             className="py-2 -mx-2 px-2 overflow-visible"
+            contentContainerStyle={{ paddingRight: 40 }}
           >
-            {children.map(child => (
+            {children.map((child, index) => (
               <ChildCard 
                 key={child.id} 
                 child={child} 
-                isSelected={selectedChildId === child.id}
+                index={index}
                 onSelect={() => setSelectedChildId(child.id)}
                 onEditImage={() => showImageOptions('student', child.id)}
               />

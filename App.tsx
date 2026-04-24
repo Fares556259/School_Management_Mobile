@@ -57,17 +57,30 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
           elevation: 10,
         },
         tabBarActiveTintColor: '#0055d4',
-        tabBarInactiveTintColor: '#737c7f',
-        tabBarLabelStyle: { fontWeight: '900', fontSize: 9, marginTop: 2 },
+        tabBarInactiveTintColor: '#b0b8bc',
+        tabBarLabelStyle: { 
+          fontWeight: '900', 
+          fontSize: 10, 
+          marginTop: 4,
+          fontFamily: 'PlusJakartaSans-ExtraBold'
+        },
         tabBarIcon: ({ color, focused }) => {
           let Icon: any;
           if (route.name === 'Home') Icon = HomeIcon;
           else if (route.name === 'Announcements') Icon = Megaphone;
           else if (route.name === 'Payments') Icon = CreditCard;
           else if (route.name === 'Profile') Icon = User;
+          
           return (
-            <View className={focused ? "bg-brand-primary/10 px-4 py-2 rounded-2xl transform scale-110" : ""}>
-              <Icon color={color} size={focused ? 24 : 20} strokeWidth={focused ? 3 : 2} />
+            <View className="items-center justify-center pt-2">
+              <Icon 
+                color={color} 
+                size={22} 
+                strokeWidth={focused ? 3 : 2} 
+              />
+              {focused && (
+                <View className="w-1.5 h-1.5 rounded-full bg-brand-primary mt-1.5" />
+              )}
             </View>
           );
         },
