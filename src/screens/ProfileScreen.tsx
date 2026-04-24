@@ -436,12 +436,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
 
         {/* My Children Section */}
         <View className="mt-12">
-          <View className="flex-row items-center justify-between mb-6">
-            <Text className="text-2xl font-jakarta font-black text-text-primary">My children</Text>
-            <TouchableOpacity className="bg-brand-primary/5 px-4 py-2 rounded-2xl">
-              <Text className="text-brand-primary font-jakarta font-black text-xs">Manage</Text>
-            </TouchableOpacity>
-          </View>
+          <Text className="text-2xl font-jakarta font-black text-text-primary mb-6">My children</Text>
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={false} 
