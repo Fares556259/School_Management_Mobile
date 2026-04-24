@@ -607,8 +607,12 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
       </Modal>
       {/* Photo Selection Action Sheet */}
       <Modal visible={photoModalVisible} transparent animationType="fade">
-        <View className="flex-1 bg-black/40 justify-end p-6">
-          <View className="bg-white rounded-[32px] p-6 mb-4">
+        <TouchableOpacity 
+          activeOpacity={1} 
+          onPress={() => setPhotoModalVisible(false)}
+          className="flex-1 bg-black/40 justify-end p-6"
+        >
+          <TouchableOpacity activeOpacity={1} className="bg-white rounded-[32px] p-6 mb-4">
             <View className="items-center mb-8">
               <Text className="text-xl font-jakarta font-black text-text-primary">Update profile photo</Text>
               <Text className="text-text-muted font-manrope font-bold text-xs mt-1">Choose how you'd like to add your photo</Text>
@@ -649,7 +653,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
                 <ChevronRight size={18} color="#d1d5db" />
               </TouchableOpacity>
             </View>
-          </View>
+          </TouchableOpacity>
 
           <TouchableOpacity 
             onPress={() => setPhotoModalVisible(false)}
@@ -657,7 +661,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
           >
             <Text className="text-text-primary font-jakarta font-black text-lg">Cancel</Text>
           </TouchableOpacity>
-        </View>
+        </TouchableOpacity>
       </Modal>
     </SafeAreaView>
   );
