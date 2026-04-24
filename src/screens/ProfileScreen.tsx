@@ -144,16 +144,21 @@ const ChildCard = ({ child, index, onSelect, onEditImage }: any) => {
   );
 };
 
-const SettingItemV2 = ({ icon: Icon, label, color, isLast, onPress, badge }: any) => (
+const SettingItemV2 = ({ icon: Icon, label, color, labelColor, isLast, onPress, badge }: any) => (
   <TouchableOpacity 
     onPress={onPress}
     activeOpacity={0.6}
     className={`flex-row items-center py-4 px-4 ${!isLast ? 'border-b border-surface-low' : ''}`}
   >
     <View className={`w-10 h-10 rounded-xl items-center justify-center mr-4 ${color || 'bg-surface-low'}`}>
-      <Icon size={20} color="#737c7f" />
+      <Icon size={20} color={labelColor || "#737c7f"} />
     </View>
-    <Text className="flex-1 text-lg font-jakarta font-semibold text-text-primary">{label}</Text>
+    <Text 
+      className="flex-1 text-lg font-jakarta font-semibold"
+      style={{ color: labelColor || "#2b3437" }}
+    >
+      {label}
+    </Text>
     {badge && (
       <View className="bg-brand-primary/10 px-2.5 py-1 rounded-full mr-2">
         <Text className="text-brand-primary text-[10px] font-jakarta font-black uppercase">{badge}</Text>
@@ -481,69 +486,69 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
           </View>
         </View>
 
-        {/* Settings Section */}
-        <View className="mt-12">
-          <Text className="text-2xl font-jakarta font-black text-text-primary mb-6">Settings & Tools</Text>
-          <View className="bg-white rounded-[32px] overflow-hidden border border-surface-low shadow-sm shadow-black/5">
-            <SettingItemV2 icon={UserIcon} label="Profile Details" onPress={() => setEditModalVisible(true)} />
-            <SettingItemV2 icon={BellRing} label="Notifications" />
-            <SettingItemV2 icon={FileText} label="Document Center" onPress={() => navigation.navigate('DocumentCenter')} />
-            <SettingItemV2 icon={LogOut} label="Sign Out" isLast onPress={handleLogout} />
+        {/* Settings Section (Refined) */}
+        <View className="mt-10">
+          <Text className="text-xl font-jakarta font-extrabold text-text-primary mb-4 ml-1">Settings & Tools</Text>
+          <View className="bg-white rounded-[18px] overflow-hidden border border-surface-low shadow-sm shadow-black/5">
+            <SettingItemV2 icon={UserIcon} label="Profile details" color="bg-[#f1f4f6]" />
+            <SettingItemV2 icon={BellRing} label="Notifications" color="bg-[#f1f4f6]" />
+            <SettingItemV2 icon={FileText} label="Document center" color="bg-[#f1f4f6]" onPress={() => navigation.navigate('DocumentCenter')} />
+            <SettingItemV2 icon={LogOut} label="Sign out" color="bg-[#fef2f2]" labelColor="#ef4444" isLast onPress={handleLogout} />
           </View>
         </View>
 
-        {/* School Support Section (Native Integration) */}
-        <View className="mt-12">
-          <Text className="text-2xl font-jakarta font-black text-text-primary mb-6">School Support</Text>
+        {/* School Support Section (Refined) */}
+        <View className="mt-10">
+          <Text className="text-xl font-jakarta font-extrabold text-text-primary mb-4 ml-1">School support</Text>
           
-          <View className="bg-white rounded-[32px] overflow-hidden border border-surface-low shadow-sm shadow-black/5 p-6">
-            <View className="flex-row items-center mb-6">
-              <View className="w-12 h-12 bg-brand-primary/5 rounded-2xl items-center justify-center">
-                <Info size={24} color="#0055d4" strokeWidth={2.5} />
+          <View className="bg-[#2563eb] rounded-[18px] p-6 mb-3 shadow-lg shadow-blue-600/20">
+            <View className="flex-row items-center">
+              <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center border border-white/30">
+                <Info size={24} color="white" strokeWidth={2.5} />
               </View>
               <View className="ml-4 flex-1">
-                <Text className="text-lg font-jakarta font-bold text-text-primary leading-tight">
-                  {schoolInfo?.schoolName || 'SnapSchool Academy'}
+                <Text className="text-xl font-jakarta font-black text-white leading-tight">
+                  {schoolInfo?.schoolName || '111'}
                 </Text>
-                <Text className="text-text-muted text-[10px] font-jakarta font-black uppercase tracking-widest mt-0.5">
+                <Text className="text-white/70 text-[10px] font-jakarta font-black uppercase tracking-[2px] mt-0.5">
                   Official Support
                 </Text>
               </View>
             </View>
-            
-            <View className="gap-3">
-              <TouchableOpacity 
-                onPress={() => Linking.openURL(`tel:${schoolInfo?.phone || '+216 71 000 000'}`)}
-                className="flex-row items-center bg-surface-lowest p-4 rounded-2xl border border-surface-low"
-              >
-                <View className="w-9 h-9 bg-white rounded-xl items-center justify-center shadow-sm">
-                  <PhoneCall size={16} color="#0055d4" />
-                </View>
-                <View className="ml-3 flex-1">
-                  <Text className="text-[10px] font-jakarta font-black text-text-muted uppercase tracking-[1px]">Call Support</Text>
-                  <Text className="text-sm font-jakarta font-bold text-text-primary">{schoolInfo?.phone || '+216 71 000 000'}</Text>
-                </View>
-                <View className="bg-brand-primary/10 px-3 py-1.5 rounded-lg">
-                  <Text className="text-brand-primary text-[10px] font-jakarta font-black">CALL</Text>
-                </View>
-              </TouchableOpacity>
+          </View>
 
-              <TouchableOpacity 
-                onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(schoolInfo?.address || 'SnapSchool')}`)}
-                className="flex-row items-center bg-surface-lowest p-4 rounded-2xl border border-surface-low"
-              >
-                <View className="w-9 h-9 bg-white rounded-xl items-center justify-center shadow-sm">
-                  <MapPin size={16} color="#0055d4" />
-                </View>
-                <View className="ml-3 flex-1">
-                  <Text className="text-[10px] font-jakarta font-black text-text-muted uppercase tracking-[1px]">Visit Us</Text>
-                  <Text className="text-sm font-jakarta font-bold text-text-primary" numberOfLines={1}>{schoolInfo?.address || '123 Education Ave, Tunis'}</Text>
-                </View>
-                <View className="bg-surface-low px-3 py-1.5 rounded-lg border border-surface-low">
-                  <Text className="text-text-primary text-[10px] font-jakarta font-black">MAP</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
+          <View className="bg-white rounded-[18px] border border-surface-low shadow-sm shadow-black/5 p-4 gap-3">
+            <TouchableOpacity 
+              onPress={() => Linking.openURL(`tel:${schoolInfo?.phone || '1111'}`)}
+              className="flex-row items-center bg-[#f8fafc] p-4 rounded-[14px] border border-slate-100"
+            >
+              <View className="w-10 h-10 bg-[#eff6ff] rounded-xl items-center justify-center">
+                <PhoneCall size={18} color="#2563eb" />
+              </View>
+              <View className="ml-3 flex-1">
+                <Text className="text-[9px] font-jakarta font-black text-text-muted uppercase tracking-[1px]">Call Support</Text>
+                <Text className="text-sm font-jakarta font-bold text-text-primary mt-0.5">{schoolInfo?.phone || '1111'}</Text>
+              </View>
+              <View className="bg-[#2563eb] px-5 py-2 rounded-xl">
+                <Text className="text-white text-[11px] font-jakarta font-black">Call</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(schoolInfo?.address || '111')}`)}
+              className="flex-row items-center bg-[#f8fafc] p-4 rounded-[14px] border border-slate-100"
+            >
+              <View className="w-10 h-10 bg-[#eff6ff] rounded-xl items-center justify-center">
+                <MapPin size={18} color="#2563eb" />
+              </View>
+              <View className="ml-3 flex-1">
+                <Text className="text-[9px] font-jakarta font-black text-text-muted uppercase tracking-[1px]">Visit Us</Text>
+                <Text className="text-sm font-jakarta font-bold text-text-primary mt-0.5" numberOfLines={1}>{schoolInfo?.address || '111'}</Text>
+              </View>
+              <View className="bg-white px-5 py-2 rounded-xl border border-[#e2e8f0]">
+                <Text className="text-text-primary text-[11px] font-jakarta font-black">Map</Text>
+              </View>
+            </TouchableOpacity>
           </View>
         </View>
 
