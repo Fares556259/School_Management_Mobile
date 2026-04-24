@@ -36,7 +36,7 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
       if (pId) {
         try {
           const notes = await studentService.fetchNotifications(pId, selectedChildId);
-          setUnreadNotificationsCount(notes.filter(n => !n.isRead).length);
+          setUnreadNotificationsCount(notes.filter(n => n.isNew).length);
         } catch (e) {
           console.log("[NOTIF-LOAD-ERROR] Silent skip");
         }
