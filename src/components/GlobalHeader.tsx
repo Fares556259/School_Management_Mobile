@@ -122,6 +122,7 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
         <TouchableOpacity
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setUnreadNotificationsCount(0);
             navigation.navigate('Notifications');
           }}
           className="w-11 h-11 rounded-full bg-white items-center justify-center border border-surface-low shadow-sm"
