@@ -468,33 +468,66 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
           </View>
         </View>
 
-        {/* School Contact Section */}
+        {/* School Contact Section (Premium Redesign) */}
         <View className="mt-12">
-          <Text className="text-2xl font-jakarta font-black text-text-primary mb-6">School Support</Text>
-          <View className="bg-brand-primary/5 rounded-[32px] p-6 border border-brand-primary/10">
-            <View className="flex-row items-center mb-6">
-              <View className="w-12 h-12 bg-white rounded-2xl items-center justify-center shadow-sm">
-                <Info size={24} color="#0055d4" />
-              </View>
-              <View className="ml-4">
-                <Text className="text-lg font-jakarta font-black text-brand-primary">{schoolInfo?.schoolName || 'SnapSchool Academy'}</Text>
-                <Text className="text-text-muted text-xs font-bold font-manrope">International Campus</Text>
-              </View>
+          <View className="flex-row items-center justify-between mb-6">
+            <Text className="text-2xl font-jakarta font-black text-text-primary">School Support</Text>
+            <View className="bg-brand-primary/10 px-3 py-1 rounded-full">
+              <Text className="text-[10px] font-jakarta font-black text-brand-primary uppercase tracking-widest">Always Here</Text>
             </View>
-            
-            <View className="gap-4">
-              <TouchableOpacity className="flex-row items-center bg-white p-4 rounded-2xl shadow-sm border border-surface-low">
-                <PhoneCall size={18} color="#0055d4" />
-                <Text className="ml-3 flex-1 font-jakarta font-bold text-text-primary">{schoolInfo?.phone || '+216 71 000 000'}</Text>
-                <View className="bg-brand-primary px-3 py-1.5 rounded-lg">
-                  <Text className="text-white text-[10px] font-jakarta font-black">CALL</Text>
+          </View>
+          
+          <View className="bg-white rounded-[40px] p-2 border border-surface-low shadow-xl shadow-black/5">
+            <View className="bg-brand-primary/5 rounded-[36px] p-6">
+              <View className="flex-row items-center mb-8">
+                <View className="w-16 h-16 bg-white rounded-3xl items-center justify-center shadow-md shadow-brand-primary/10 border border-brand-primary/5">
+                  <Info size={28} color="#0055d4" strokeWidth={2.5} />
                 </View>
-              </TouchableOpacity>
+                <View className="ml-5 flex-1">
+                  <Text className="text-xl font-jakarta font-black text-text-primary leading-tight" numberOfLines={2}>
+                    {schoolInfo?.schoolName || 'SnapSchool Academy'}
+                  </Text>
+                  <Text className="text-brand-primary/60 text-xs font-jakarta font-extrabold uppercase tracking-widest mt-1">
+                    Official Support Channel
+                  </Text>
+                </View>
+              </View>
+              
+              <View className="gap-3">
+                <TouchableOpacity 
+                  onPress={() => Linking.openURL(`tel:${schoolInfo?.phone || '+216 71 000 000'}`)}
+                  activeOpacity={0.7}
+                  className="flex-row items-center bg-white p-5 rounded-[28px] shadow-sm border border-brand-primary/5"
+                >
+                  <View className="w-10 h-10 bg-brand-primary/10 rounded-2xl items-center justify-center">
+                    <PhoneCall size={18} color="#0055d4" />
+                  </View>
+                  <View className="ml-4 flex-1">
+                    <Text className="text-[10px] font-jakarta font-black text-text-muted uppercase tracking-widest">Phone Support</Text>
+                    <Text className="text-sm font-jakarta font-bold text-text-primary mt-0.5">{schoolInfo?.phone || '+216 71 000 000'}</Text>
+                  </View>
+                  <View className="bg-brand-primary px-4 py-2 rounded-xl">
+                    <Text className="text-white text-[10px] font-jakarta font-black">CALL</Text>
+                  </View>
+                </TouchableOpacity>
 
-              <TouchableOpacity className="flex-row items-center bg-white p-4 rounded-2xl shadow-sm border border-surface-low">
-                <MapPin size={18} color="#0055d4" />
-                <Text className="ml-3 flex-1 font-jakarta font-bold text-text-primary">{schoolInfo?.address || '123 Education Ave, Tunis'}</Text>
-              </TouchableOpacity>
+                <TouchableOpacity 
+                  onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(schoolInfo?.address || 'SnapSchool')}`)}
+                  activeOpacity={0.7}
+                  className="flex-row items-center bg-white p-5 rounded-[28px] shadow-sm border border-brand-primary/5"
+                >
+                  <View className="w-10 h-10 bg-brand-primary/10 rounded-2xl items-center justify-center">
+                    <MapPin size={18} color="#0055d4" />
+                  </View>
+                  <View className="ml-4 flex-1">
+                    <Text className="text-[10px] font-jakarta font-black text-text-muted uppercase tracking-widest">Location</Text>
+                    <Text className="text-sm font-jakarta font-bold text-text-primary mt-0.5" numberOfLines={1}>{schoolInfo?.address || '123 Education Ave, Tunis'}</Text>
+                  </View>
+                  <View className="bg-surface-low px-4 py-2 rounded-xl border border-surface-low">
+                    <Text className="text-brand-primary text-[10px] font-jakarta font-black">MAP</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>
