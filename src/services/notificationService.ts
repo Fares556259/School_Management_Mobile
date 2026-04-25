@@ -192,5 +192,12 @@ export const notificationService = {
       },
       trigger: null,
     });
+  },
+
+  /**
+   * Listen for notification tap responses
+   */
+  addNotificationResponseReceivedListener: (handler: (response: Notifications.NotificationResponse) => void) => {
+    return Notifications.addNotificationResponseReceivedListener(handler);
   }
 };

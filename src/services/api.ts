@@ -9,7 +9,8 @@ import {
 
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:3000';
 
-const PARENT_ID_KEY = 'snapschool_parent_id';
+const USER_ID_KEY = 'snapschool_user_id';
+const USER_ROLE_KEY = 'snapschool_user_role';
 const SCHOOL_ID_KEY = 'snapschool_school_id';
 const STUDENTS_CACHE_KEY = 'snapschool_students_cache';
 
@@ -33,11 +34,15 @@ export const getFullImageUrl = (url: string | null): string | null => {
 
 // ─── Auth Storage ────────────────────────────────────────────────────────────
 export const authStorage = {
-  saveParentId: (id: string) => AsyncStorage.setItem(PARENT_ID_KEY, id),
-  getParentId: () => AsyncStorage.getItem(PARENT_ID_KEY),
+  saveUserId: (id: string) => AsyncStorage.setItem(USER_ID_KEY, id),
+  getUserId: () => AsyncStorage.getItem(USER_ID_KEY),
+  saveUserRole: (role: string) => AsyncStorage.setItem(USER_ROLE_KEY, role),
+  getUserRole: () => AsyncStorage.getItem(USER_ROLE_KEY),
   saveSchoolId: (id: string) => AsyncStorage.setItem(SCHOOL_ID_KEY, id),
   getSchoolId: () => AsyncStorage.getItem(SCHOOL_ID_KEY),
-  clear: () => AsyncStorage.multiRemove([PARENT_ID_KEY, SCHOOL_ID_KEY, STUDENTS_CACHE_KEY]),
+  clear: () => AsyncStorage.multiRemove([USER_ID_KEY, USER_ROLE_KEY, SCHOOL_ID_KEY, STUDENTS_CACHE_KEY]),
+  // Legacy compatibility wrappers
+  getParentId: () => AsyncStorage.getItem(USER_ID_KEY),
 };
 
 // ─── Helper for Fetching with Deduplication ──────────────────────────────────
@@ -116,12 +121,8 @@ const mapStudent = (s: any): Student & { raw: any } => ({
   raw: s,
 });
 
-// ─── Parent Auth Service ──────────────────────────────────────────────────────
+// ─── Auth Service ────────────────────────────────────────────────────────────
 export const authService = {
-  /**
-   * Check if a parent exists and determine if they need to set up a password
-   * or enter an existing one.
-   */
   checkPhoneStatus: async (phone: string): Promise<{ success: boolean; status?: 'NEEDS_SETUP' | 'NEEDS_PASSWORD'; error?: string; name?: string; img?: string }> => {
     const data = await apiFetch('/api/mobile/login', {
       method: 'POST',
@@ -137,27 +138,22 @@ export const authService = {
     };
   },
 
-  /**
-   * Finalize authentication (Setup or SignIn)
-   */
   authenticate: async (phone: string, password: string, action: 'setup' | 'signin'): Promise<{ success: boolean; error?: string }> => {
     const response = await apiFetch('/api/mobile/auth', {
       method: 'POST',
       body: JSON.stringify({ phone: phone.trim(), password, action }),
     });
 
-    // Handle generic network failure
     if (!response) {
       return { success: false, error: 'Network error. Please try again.' };
     }
 
-    // Since apiFetch returns null on !response.ok, we need to check if 
-    // it returned an object with success: true.
     if (!response.success) {
       return { success: false, error: response.error || 'Authentication aborted.' };
     }
 
-    if (response.parentId) await authStorage.saveParentId(response.parentId);
+    if (response.userId) await authStorage.saveUserId(response.userId);
+    if (response.userType) await authStorage.saveUserRole(response.userType);
     if (response.schoolId) await authStorage.saveSchoolId(response.schoolId);
     
     if (response.students) {
@@ -171,10 +167,14 @@ export const authService = {
     await authStorage.clear();
   },
 
-  registerPushToken: async (parentId: string, pushToken: string) => {
-    return apiFetch('/api/mobile/parent/push-token', {
+  registerPushToken: async (uid: string, pushToken: string) => {
+    const role = await authStorage.getUserRole();
+    const endpoint = role === 'teacher' ? '/api/mobile/teacher/push-token' : '/api/mobile/parent/push-token';
+    const body = role === 'teacher' ? { teacherId: uid, pushToken } : { parentId: uid, pushToken };
+    
+    return apiFetch(endpoint, {
       method: 'POST',
-      body: JSON.stringify({ parentId, pushToken }),
+      body: JSON.stringify(body),
     });
   },
 
@@ -190,12 +190,12 @@ export const parentService = {
     return await authStorage.getParentId();
   },
   fetchChildren: async (): Promise<(Student & { raw?: any })[]> => {
-    const parentId = await authStorage.getParentId();
+    const uid = await authStorage.getUserId();
 
     // Try cache first while fetching
     const cached = await AsyncStorage.getItem(STUDENTS_CACHE_KEY);
 
-    const data = await apiFetch(`/api/mobile/students?parentId=${parentId}`);
+    const data = await apiFetch(`/api/mobile/students?parentId=${uid}`);
 
     if (!data && cached) {
       const parsed = JSON.parse(cached);
@@ -208,9 +208,13 @@ export const parentService = {
   },
 
   fetchParentProfile: async (): Promise<{ name: string; surname: string; phone: string; img: string | null } | null> => {
-    const parentId = await authStorage.getParentId();
-    if (!parentId) return null;
-    const data = await apiFetch(`/api/mobile/parent?id=${parentId}`);
+    const uid = await authStorage.getUserId();
+    const role = await authStorage.getUserRole();
+    if (!uid) return null;
+    
+    const endpoint = role === 'teacher' ? `/api/mobile/teacher?id=${uid}` : `/api/mobile/parent?id=${uid}`;
+    const data = await apiFetch(endpoint);
+    
     if (data && data.img) {
       data.img = getFullImageUrl(data.img);
     }
@@ -218,18 +222,21 @@ export const parentService = {
   },
 
   updateProfile: async (data: { name?: string; surname?: string; phone?: string; img?: string }) => {
-    const parentId = await authStorage.getParentId();
-    return apiFetch('/api/mobile/parent', {
+    const uid = await authStorage.getUserId();
+    const role = await authStorage.getUserRole();
+    const endpoint = role === 'teacher' ? '/api/mobile/teacher' : '/api/mobile/parent';
+    
+    return apiFetch(endpoint, {
       method: 'PATCH',
-      body: JSON.stringify({ id: parentId, ...data }),
+      body: JSON.stringify({ id: uid, ...data }),
     });
   },
 
   linkStudent: async (studentId: string, birthday: string) => {
-    const parentId = await authStorage.getParentId();
+    const pId = await authStorage.getUserId();
     return apiFetch('/api/mobile/students', {
       method: 'POST',
-      body: JSON.stringify({ studentId, parentId, birthday }),
+      body: JSON.stringify({ studentId, parentId: pId, birthday }),
     });
   },
 
@@ -276,15 +283,18 @@ export const studentService = {
         subject: r.subject,
         teacher: r.teacher,
       })),
-      files: (home.resources || []).map((r: any) => ({
-        id: r.id,
-        name: r.title,
-        url: r.url,
-        sharedBy: r.teacher,
-        type: r.url.toLowerCase().endsWith('.pdf') ? 'pdf' : 'file',
-      })),
-      homeworkDue: (home.tasksDue || []),
-      homeworkGiven: (home.tasksGiven || []),
+      files: (home.resources || []).flatMap((r: any) => {
+        const urls = r.url ? r.url.split(',') : [];
+        return urls.map((url: string, index: number) => ({
+          id: `${r.id}-${index}`,
+          name: urls.length > 1 ? `${r.title} (${index + 1})` : r.title,
+          url: url,
+          sharedBy: r.teacher,
+          type: url.toLowerCase().endsWith('.pdf') ? 'pdf' : 'file',
+        }));
+      }),
+      homeworkDue: home.homeworkDue || home.tasksDue || [],
+      homeworkGiven: home.homeworkGiven || home.tasksGiven || [],
       exams: (home.upcomingExams || []).map((e: any) => ({
         id: e.id,
         subject: e.subject,

@@ -3,16 +3,20 @@ import { Student } from '../types';
 
 interface AppState {
   children: Student[];
-  parentName: string;
-  parentAvatarUrl: string | null;
+  userRole: 'parent' | 'teacher' | null;
+  userId: string | null;
+  userName: string;
+  userAvatarUrl: string | null;
   selectedChildId: string | null;
   isLoading: boolean;
   error: string | null;
   unreadNotificationsCount: number;
   studentStatuses: Record<string, 'Present' | 'Absent' | 'Due'>;
   setChildren: (children: Student[]) => void;
-  setParentName: (name: string) => void;
-  setParentAvatarUrl: (url: string | null) => void;
+  setUserRole: (role: 'parent' | 'teacher' | null) => void;
+  setUserId: (id: string | null) => void;
+  setUserName: (name: string) => void;
+  setUserAvatarUrl: (url: string | null) => void;
   setSelectedChildId: (id: string) => void;
   setUnreadNotificationsCount: (count: number) => void;
   setStudentStatus: (childId: string, status: 'Present' | 'Absent' | 'Due') => void;
@@ -22,14 +26,18 @@ interface AppState {
 }
 export const useAppStore = create<AppState>((set, get) => ({
   children: [],
-  parentName: 'Parent',
-  parentAvatarUrl: null,
+  userRole: null,
+  userId: null,
+  userName: 'User',
+  userAvatarUrl: null,
   selectedChildId: null,
   unreadNotificationsCount: 0,
   studentStatuses: {},
   setChildren: (children) => set({ children }),
-  setParentName: (parentName) => set({ parentName }),
-  setParentAvatarUrl: (parentAvatarUrl) => set({ parentAvatarUrl }),
+  setUserRole: (userRole) => set({ userRole }),
+  setUserId: (userId) => set({ userId }),
+  setUserName: (userName) => set({ userName }),
+  setUserAvatarUrl: (userAvatarUrl) => set({ userAvatarUrl }),
   setSelectedChildId: (selectedChildId) => set({ selectedChildId }),
   setUnreadNotificationsCount: (unreadNotificationsCount) => set({ unreadNotificationsCount }),
   setStudentStatus: (childId, status) => set((state) => ({ 

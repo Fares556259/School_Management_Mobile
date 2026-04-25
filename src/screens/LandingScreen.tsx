@@ -47,11 +47,11 @@ const RoleCard = ({ title, description, image, onPress }: any) => (
   </TouchableOpacity>
 );
 
-export const LandingScreen = ({ onSelectParent }: { onSelectParent: () => void }) => {
+export const LandingScreen = ({ onSelectRole }: { onSelectRole: (role: 'parent' | 'teacher') => void }) => {
   const handleFutureRole = (role: string) => {
     Alert.alert(
       "Feature Coming Soon", 
-      `We are currently working on the ${role} portal! This feature will be added in a future update. Please use the Parent profile for now.`,
+      `We are currently working on the ${role} portal! This feature will be added in a future update. Please use the Parent or Teacher profile for now.`,
       [{ text: "OK", style: "default" }]
     );
   };
@@ -113,14 +113,14 @@ export const LandingScreen = ({ onSelectParent }: { onSelectParent: () => void }
               title="Parent"
               description="Monitor progress, grades, and school schedule."
               image={require('../../assets/3d/parent.jpg')}
-              onPress={onSelectParent}
+              onPress={() => onSelectRole('parent')}
             />
             
             <RoleCard 
               title="Teacher"
               description="Manage lessons, attendance, and student performance."
               image={require('../../assets/3d/teacher.jpg')}
-              onPress={() => handleFutureRole('Teacher')}
+              onPress={() => onSelectRole('teacher')}
             />
             
             <RoleCard 

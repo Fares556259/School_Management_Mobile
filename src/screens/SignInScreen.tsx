@@ -17,7 +17,7 @@ import { useAppStore } from '../store/useAppStore';
 
 // ─── Main Sign-In Screen ────────────────────────────────────────────────────
 export const SignInScreen = ({ onSignIn }: { onSignIn: () => void }) => {
-  const { setParentName, setParentAvatarUrl } = useAppStore();
+  const { setUserName, setUserAvatarUrl } = useAppStore();
   
   // State Machine
   const [step, setStep] = useState<'PHONE' | 'NEEDS_PASSWORD' | 'NEEDS_SETUP'>('PHONE');
@@ -41,7 +41,7 @@ export const SignInScreen = ({ onSignIn }: { onSignIn: () => void }) => {
     try {
       const result = await authService.checkPhoneStatus(phone.trim());
       if (result.success && result.status) {
-        setTempParent({ name: result.name || 'Parent', img: result.img || null });
+        setTempParent({ name: result.name || 'User', img: result.img || null });
         setStep(result.status);
       } else {
         setError(result.error || 'Account not found. Please contact support.');
@@ -76,8 +76,8 @@ export const SignInScreen = ({ onSignIn }: { onSignIn: () => void }) => {
           return;
         }
 
-        setParentName(tempParent?.name || 'Parent');
-        setParentAvatarUrl(tempParent?.img || null);
+        setUserName(tempParent?.name || 'User');
+        setUserAvatarUrl(tempParent?.img || null);
         setHint('Glad to see you again!');
         setTimeout(() => onSignIn(), 800);
       } else {
@@ -137,7 +137,7 @@ export const SignInScreen = ({ onSignIn }: { onSignIn: () => void }) => {
                 SnapSchool
               </Text>
               <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', fontWeight: '500' }}>
-                Official Parent Portal
+                Secure Login Portal
               </Text>
             </View>
 

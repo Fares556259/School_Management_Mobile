@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -21,12 +21,14 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAppStore } from './src/store/useAppStore';
 import { parentService, authService, studentService, API_BASE_URL } from './src/services/api';
+import { notificationService } from './src/services/notificationService';
 import * as Haptics from 'expo-haptics';
 import Constants from 'expo-constants';
 import "./src/styles/global.css";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
+const navigationRef = createNavigationContainerRef();
 
 function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
   return (
@@ -97,108 +99,169 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
   );
 }
 
-  export default function App() {
-    const { setChildren, setSelectedChildId, setError, setParentName, setParentAvatarUrl } = useAppStore();
-    const [authState, setAuthState] = useState<'loading' | 'landing' | 'signedIn' | 'signedOut'>('loading');
-  
-    // Check stored auth on launch
-    useEffect(() => {
-      // Diagnostic Alert for APK debugging
-      const showDiagnostics = () => {
-        const isNewArch = Constants.expoConfig?.newArchEnabled;
-        Alert.alert(
-          "SnapSchool Diagnostic",
-          `API URL: ${API_BASE_URL}\nNew Arch: ${isNewArch ? 'Enabled' : 'Disabled'}\nVersion: ${Constants.expoConfig?.version}`,
-          [{ text: "Continue", style: "default" }]
-        );
-      };
-      
-      // Only show alert in non-development mode (APK/Build)
-      if (Constants.appOwnership !== 'expo') {
-        showDiagnostics();
-      }
+export default function App() {
+  const { 
+    setChildren, 
+    setSelectedChildId, 
+    setError, 
+    setUserName, 
+    setUserAvatarUrl,
+    setUserRole,
+    setUserId,
+    userRole,
+    userId
+  } = useAppStore();
+  const [authState, setAuthState] = useState<'loading' | 'landing' | 'signedIn' | 'signedOut'>('loading');
+  const [selectedRole, setSelectedRole] = useState<'parent' | 'teacher'>('parent');
 
-      const registerPush = async (parentId: string) => {
-        try {
-          const hasPermission = await notificationService.requestPermissions();
-          if (hasPermission) {
-            const token = await notificationService.getPushToken();
-            if (token) {
-              await authService.registerPushToken(parentId, token);
-              console.log("[DEBUG-PUSH] Token registered successfully");
-            }
+  // Check stored auth on launch
+  useEffect(() => {
+    // Diagnostic Alert for APK debugging
+    const showDiagnostics = () => {
+      const isNewArch = Constants.expoConfig?.newArchEnabled;
+      Alert.alert(
+        "SnapSchool Diagnostic",
+        `API URL: ${API_BASE_URL}\nNew Arch: ${isNewArch ? 'Enabled' : 'Disabled'}\nVersion: ${Constants.expoConfig?.version}`,
+        [{ text: "Continue", style: "default" }]
+      );
+    };
+    
+    // Only show alert in non-development mode (APK/Build)
+    if (Constants.appOwnership !== 'expo') {
+      showDiagnostics();
+    }
+
+    const registerPush = async (uid: string) => {
+      try {
+        const hasPermission = await notificationService.requestPermissions();
+        if (hasPermission) {
+          const token = await notificationService.getPushToken();
+          if (token) {
+            await authService.registerPushToken(uid, token);
+            console.log("[DEBUG-PUSH] Token registered successfully");
           }
-        } catch (err) {
-          console.warn("[PUSH-REG-FAIL]", err);
         }
-      };
+      } catch (err) {
+        console.warn("[PUSH-REG-FAIL]", err);
+      }
+    };
 
-      const bootstrap = async () => {
-        try {
-          const loggedIn = await authService.isLoggedIn();
-          if (loggedIn) {
-            const parentId = await parentService.getParentId();
-            if (parentId) registerPush(parentId);
+    const bootstrap = async () => {
+      try {
+        const loggedIn = await authService.isLoggedIn();
+        if (loggedIn) {
+          const uid = await authService.getUserId();
+          const role = await authService.getUserRole();
+          
+          if (uid) {
+            setUserId(uid);
+            setUserRole(role as any);
+            registerPush(uid);
+          }
 
-            // Speed Boost: Parallel fetch of essential data
-            const [profile, childrenData] = await Promise.all([
-              parentService.fetchParentProfile(),
-              parentService.fetchChildren()
-            ]);
-
-            if (profile) {
-              setParentName(`${profile.name} ${profile.surname}`);
-              setParentAvatarUrl(profile.img || null);
-            }
-
+          // Fetch profile
+          let profile: any = null;
+          if (role === 'parent') {
+            profile = await parentService.fetchParentProfile();
+            const childrenData = await parentService.fetchChildren();
             if (childrenData && childrenData.length > 0) {
               setChildren(childrenData);
               setSelectedChildId(childrenData[0].id);
-              setAuthState('signedIn');
-            } else {
-              // Stale session or server unreachable — require login
-              await authService.logout();
-              setAuthState('landing');
             }
           } else {
+             // Teacher profile fetching can be added here
+             profile = await teacherService.fetchProfile();
+          }
+
+          if (profile) {
+            setUserName(`${profile.name} ${profile.surname}`);
+            setUserAvatarUrl(profile.img || null);
+            setAuthState('signedIn');
+          } else {
+            // Stale session or server unreachable — require login
+            await authService.logout();
             setAuthState('landing');
           }
-        } catch (error) {
-          console.error("[BOOTSTRAP-ERROR]", error);
+        } else {
           setAuthState('landing');
         }
-      };
-      bootstrap();
-    }, []);
-  
-    const handleSignIn = async () => {
-      const parentProfile = await parentService.fetchParentProfile();
-      if (parentProfile?.name) setParentName(parentProfile.name);
-
-      // Register Push Token on Login
-      try {
-        const parentId = await parentService.getParentId();
-        const hasPermission = await notificationService.requestPermissions();
-        if (parentId && hasPermission) {
-          const token = await notificationService.getPushToken();
-          if (token) await authService.registerPushToken(parentId, token);
-        }
-      } catch (err) {
-        console.warn("[PUSH-LOGIN-FAIL]", err);
+      } catch (error) {
+        console.error("[BOOTSTRAP-ERROR]", error);
+        setAuthState('landing');
       }
+    };
+    bootstrap();
+  }, []);
+
+  // Notification Response Listener
+  useEffect(() => {
+    const subscription = notificationService.addNotificationResponseReceivedListener(response => {
+      const data = response.notification.request.content.data;
+      console.log("[DEBUG-NOTIF-TAP]", data);
       
+      if (navigationRef.isReady()) {
+        if (data.type === 'HOMEWORK' && data.homeworkId) {
+          navigationRef.navigate('HomeworkDetail' as never, { 
+            homework: { id: data.homeworkId },
+            studentId: data.studentId
+          } as never);
+        } else if (data.type === 'RESOURCE' && data.resourceId) {
+          navigationRef.navigate('DocumentCenter' as never);
+        } else if (data.type === 'ANNOUNCEMENT') {
+          navigationRef.navigate('Announcements' as never);
+        }
+      }
+    });
+    return () => subscription.remove();
+  }, []);
+
+  const handleSignIn = async () => {
+    const uid = await authService.getUserId();
+    const role = await authService.getUserRole();
+    
+    setUserId(uid);
+    setUserRole(role as any);
+
+    let profile: any = null;
+    if (role === 'parent') {
+      profile = await parentService.fetchParentProfile();
       const data = await parentService.fetchChildren();
       setChildren(data);
       if (data.length > 0) setSelectedChildId(data[0].id);
-      setAuthState('signedIn');
-    };
-  
-    const handleSignOut = async () => {
-      await authService.logout();
-      setChildren([]);
-      setParentName("Parent");
-      setAuthState('landing');
-    };
+    } else {
+      profile = await teacherService.fetchProfile();
+    }
+
+    if (profile?.name) setUserName(`${profile.name} ${profile.surname}`);
+    if (profile?.img) setUserAvatarUrl(profile.img);
+
+    // Register Push Token on Login
+    try {
+      const hasPermission = await notificationService.requestPermissions();
+      if (uid && hasPermission) {
+        const token = await notificationService.getPushToken();
+        if (token) await authService.registerPushToken(uid, token);
+      }
+    } catch (err) {
+      console.warn("[PUSH-LOGIN-FAIL]", err);
+    }
+    
+    setAuthState('signedIn');
+  };
+
+  const handleSignOut = async () => {
+    await authService.logout();
+    setChildren([]);
+    setUserName("User");
+    setUserRole(null);
+    setUserId(null);
+    setAuthState('landing');
+  };
+
+  const onSelectRole = (role: 'parent' | 'teacher') => {
+    setSelectedRole(role);
+    setAuthState('signedOut');
+  };
 
   if (authState === 'loading') {
     return (
@@ -211,9 +274,9 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <NavigationContainer>
+        <NavigationContainer ref={navigationRef}>
           {authState === 'landing' ? (
-            <LandingScreen onSelectParent={() => setAuthState('signedOut')} />
+            <LandingScreen onSelectRole={onSelectRole} />
           ) : authState === 'signedOut' ? (
             <SignInScreen onSignIn={handleSignIn} />
           ) : (

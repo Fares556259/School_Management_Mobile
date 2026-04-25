@@ -16,10 +16,10 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
     selectedChildId, 
     setSelectedChildId, 
     children, 
-    parentName, 
-    setParentName, 
-    parentAvatarUrl, 
-    setParentAvatarUrl,
+    userName, 
+    userAvatarUrl, 
+    userRole,
+    userId,
     unreadNotificationsCount,
     setUnreadNotificationsCount,
     studentStatuses
@@ -32,10 +32,11 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
   // Only load Notifications count in the header, profile should be in the store
   useEffect(() => {
     const loadUnreadCount = async () => {
-      const pId = await authStorage.getParentId();
-      if (pId) {
+      const uid = userId || await authStorage.getUserId();
+      if (uid) {
         try {
-          const notes = await studentService.fetchNotifications(pId, selectedChildId);
+          // For teachers we might need a different notifications endpoint eventually
+          const notes = await studentService.fetchNotifications(uid, selectedChildId);
           setUnreadNotificationsCount(notes.filter(n => n.isNew).length);
         } catch (e) {
           console.log("[NOTIF-LOAD-ERROR] Silent skip");
@@ -43,7 +44,7 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
       }
     };
     loadUnreadCount();
-  }, [selectedChildId]);
+  }, [selectedChildId, userId]);
 
   const handleSwitchChild = (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -52,6 +53,7 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
   };
 
   const toggleSwitcher = () => {
+    if (userRole === 'teacher') return; // Teachers don't switch children
     Haptics.selectionAsync();
     setShowSwitcher(!showSwitcher);
   };
@@ -81,40 +83,45 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
             >
               <View className="w-11 h-11 rounded-full border-2 border-surface-low overflow-hidden bg-white shadow-sm">
                 <Image 
-                  source={parentAvatarUrl ? { uri: parentAvatarUrl } : require('../../assets/noavatar.png')} 
+                  source={userAvatarUrl ? { uri: userAvatarUrl } : require('../../assets/noavatar.png')} 
                   contentFit="cover"
                   transition={200}
                   style={{ width: '100%', height: '100%' }}
                 />
               </View>
               
-              <View className="absolute -right-1 -bottom-1 w-6 h-6 rounded-full border-2 border-white overflow-hidden bg-surface-low shadow-sm">
-                <Image 
-                  source={selectedChild?.avatarUrl ? { uri: selectedChild.avatarUrl } : require('../../assets/noavatar.png')} 
-                  contentFit="cover"
-                  transition={200}
-                  style={{ width: '100%', height: '100%' }}
-                />
-              </View>
+              {userRole === 'parent' && (
+                <View className="absolute -right-1 -bottom-1 w-6 h-6 rounded-full border-2 border-white overflow-hidden bg-surface-low shadow-sm">
+                  <Image 
+                    source={selectedChild?.avatarUrl ? { uri: selectedChild.avatarUrl } : require('../../assets/noavatar.png')} 
+                    contentFit="cover"
+                    transition={200}
+                    style={{ width: '100%', height: '100%' }}
+                  />
+                </View>
+              )}
             </TouchableOpacity>
           )}
 
           <View className="ml-3 flex-1">
             <Text className="text-[10px] font-jakarta font-black text-text-muted opacity-40 uppercase tracking-[2px]" numberOfLines={1}>
-              {parentName}
+              {userRole === 'teacher' ? 'SnapSchool Teacher' : userName}
             </Text>
             
             <TouchableOpacity 
               onPress={toggleSwitcher}
+              disabled={userRole === 'teacher'}
               className="flex-row items-center mt-0.5"
             >
               <Text className="text-xl font-jakarta font-black text-brand-primary tracking-tight" numberOfLines={1}>
-                {selectedChild?.name?.split(' ')[0] || 'Select Child'}
+                {userRole === 'teacher' ? userName.split(' ')[0] : (selectedChild?.name?.split(' ')[0] || 'Select Child')}
               </Text>
-              <View className="flex-row items-center ml-2">
-                <View className={`w-1.5 h-1.5 rounded-full mr-2 ${status === 'Absent' ? 'bg-brand-error' : status === 'Due' ? 'bg-orange-500' : 'bg-green-500'}`} />
-                <ChevronDown size={14} color="#0055d4" strokeWidth={3} />
-              </View>
+              {userRole === 'parent' && (
+                <View className="flex-row items-center ml-2">
+                  <View className={`w-1.5 h-1.5 rounded-full mr-2 ${status === 'Absent' ? 'bg-brand-error' : status === 'Due' ? 'bg-orange-500' : 'bg-green-500'}`} />
+                  <ChevronDown size={14} color="#0055d4" strokeWidth={3} />
+                </View>
+              )}
             </TouchableOpacity>
           </View>
         </View>

@@ -179,9 +179,8 @@ const StatCard = ({ label, value, icon: Icon, color }: any) => (
 );
 
 export const ProfileScreen = ({ navigation, onSignOut }: any) => {
-  const { children, selectedChildId, setSelectedChildId, setChildren, parentName, setParentName, setParentAvatarUrl, studentStatuses } = useAppStore();
-  const selectedChild = children.find((c: any) => c.id === selectedChildId);
-  const [parentProfile, setParentProfile] = useState<any>(null);
+  const { children, setSelectedChildId, setChildren, userName, setUserName, setUserAvatarUrl, userRole, userId } = useAppStore();
+  const [profile, setProfile] = useState<any>(null);
   const [schoolInfo, setSchoolInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -197,19 +196,23 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
   const loadProfile = async () => {
     setLoading(true);
     try {
-      const [profile, school] = await Promise.all([
-        parentService.fetchParentProfile(),
-        parentService.fetchSchoolInfo()
-      ]);
+      let userProfile: any = null;
+      if (userRole === 'teacher') {
+        userProfile = await teacherService.fetchProfile();
+      } else {
+        userProfile = await parentService.fetchParentProfile();
+      }
       
-      if (profile) {
-        setParentProfile(profile);
-        setParentName(`${profile.name} ${profile.surname}`);
-        setParentAvatarUrl(profile.img);
+      const school = await parentService.fetchSchoolInfo();
+      
+      if (userProfile) {
+        setProfile(userProfile);
+        setUserName(`${userProfile.name} ${userProfile.surname}`);
+        setUserAvatarUrl(userProfile.img);
         setEditData({
-          name: profile.name,
-          surname: profile.surname,
-          phone: profile.phone
+          name: userProfile.name,
+          surname: userProfile.surname,
+          phone: userProfile.phone
         });
       }
       if (school) {
@@ -224,14 +227,14 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
 
   // Photo Modal State
   const [photoModalVisible, setPhotoModalVisible] = useState(false);
-  const [photoTarget, setPhotoTarget] = useState<{type: 'parent' | 'student', id?: string} | null>(null);
+  const [photoTarget, setPhotoTarget] = useState<{type: 'user' | 'student', id?: string} | null>(null);
 
-  const showImageOptions = (type: 'parent' | 'student', id?: string) => {
+  const showImageOptions = (type: 'user' | 'student', id?: string) => {
     setPhotoTarget({ type, id });
     setPhotoModalVisible(true);
   };
 
-  const takePhoto = async (type: 'parent' | 'student', id?: string) => {
+  const takePhoto = async (type: 'user' | 'student', id?: string) => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
@@ -258,7 +261,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     }
   };
 
-  const pickImage = async (type: 'parent' | 'student', id?: string) => {
+  const pickImage = async (type: 'user' | 'student', id?: string) => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
@@ -282,41 +285,24 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     }
   };
 
-  const handleRemoveImage = async (type: 'parent' | 'student', id?: string) => {
+  const handleUpload = async (uri: string, type: 'user' | 'student', id?: string) => {
     setUpdating(true);
     try {
-      if (type === 'parent') {
-        const updated = await parentService.updateProfile({ img: null });
-        if (updated) {
-          setParentProfile({ ...parentProfile, img: null });
-          setParentAvatarUrl(null);
-        }
-      } else if (id) {
-        const updated = await studentService.updateImage(id, '');
-        if (updated) {
-          const refreshedChildren = await parentService.fetchChildren();
-          setChildren(refreshedChildren);
-        }
-      }
-      Alert.alert('Success', 'Profile photo removed');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to remove photo');
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const handleUpload = async (uri: string, type: 'parent' | 'student', id?: string) => {
-    setUpdating(true);
-    try {
-      const uploadId = type === 'parent' ? parentProfile.id : id;
-      const { url } = await uiService.uploadImage(uri, type === 'parent' ? 'profile' : 'student', uploadId);
+      const uploadId = type === 'user' ? userId : id;
+      const { url } = await uiService.uploadImage(uri, type === 'user' ? 'profile' : 'student', uploadId!);
       
-      if (type === 'parent') {
-        const updated = await parentService.updateProfile({ img: url });
+      if (type === 'user') {
+        let updated = false;
+        if (userRole === 'teacher') {
+          // Add updateTeacherProfile if needed, or use generic
+          updated = !!(await parentService.updateProfile({ img: url }));
+        } else {
+          updated = !!(await parentService.updateProfile({ img: url }));
+        }
+        
         if (updated) {
-          setParentProfile({ ...parentProfile, img: url });
-          setParentAvatarUrl(url);
+          setProfile({ ...profile, img: url });
+          setUserAvatarUrl(url);
         }
       } else if (id) {
         const updated = await studentService.updateImage(id, url);
@@ -339,8 +325,8 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     try {
       const updated = await parentService.updateProfile(editData);
       if (updated) {
-        setParentProfile({ ...parentProfile, ...editData });
-        setParentName(`${editData.name} ${editData.surname}`);
+        setProfile({ ...profile, ...editData });
+        setUserName(`${editData.name} ${editData.surname}`);
         setEditModalVisible(false);
         Alert.alert('Success', 'Profile updated successfully');
       }
@@ -367,23 +353,17 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
   };
 
   const calculateCompletion = () => {
-    if (!parentProfile) return 0;
+    if (!profile) return 0;
     const fields = ['name', 'surname', 'phone', 'img'];
-    const filled = fields.filter(f => !!parentProfile[f]).length;
+    const filled = fields.filter(f => !!profile[f]).length;
     return Math.round((filled / fields.length) * 100);
   };
 
-  const isDirty = parentProfile && (
-    editData.name !== parentProfile.name || 
-    editData.surname !== parentProfile.surname || 
-    editData.phone !== parentProfile.phone
+  const isDirty = profile && (
+    editData.name !== profile.name || 
+    editData.surname !== profile.surname || 
+    editData.phone !== profile.phone
   );
-
-  const stats = {
-    childrenCount: children.length,
-    absentCount: Object.values(studentStatuses).filter(s => s === 'Absent').length,
-    duePayments: Object.values(studentStatuses).filter(s => s === 'Due').length,
-  };
 
   if (loading) {
     return (
@@ -412,18 +392,20 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
 
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1" contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 150 }}>
         
-        {/* Parent Header (High Fidelity Redesign) */}
+        {/* Profile Header */}
         <View className="items-center mt-8">
           <CircularProgress 
             size={145} 
             progress={calculateCompletion()} 
-            imageUri={parentProfile?.img}
-            name={parentProfile?.name}
+            imageUri={profile?.img}
+            name={profile?.name}
             updating={updating}
-            onPress={() => showImageOptions('parent')}
+            onPress={() => showImageOptions('user')}
           />
-          <Text className="text-3xl font-jakarta font-black text-text-primary mt-6">{parentProfile?.name} {parentProfile?.surname}</Text>
-          <Text className="text-text-muted font-manrope font-bold text-sm mt-1">Parent Account • {children.length} children linked</Text>
+          <Text className="text-3xl font-jakarta font-black text-text-primary mt-6">{profile?.name} {profile?.surname}</Text>
+          <Text className="text-text-muted font-manrope font-bold text-sm mt-1">
+            {userRole === 'teacher' ? 'Teacher Account' : `Parent Account • ${children.length} children linked`}
+          </Text>
           
           <TouchableOpacity 
              onPress={() => setEditModalVisible(true)}
@@ -434,49 +416,43 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
           </TouchableOpacity>
         </View>
 
-        {/* My Children Section */}
-        <View className="mt-12">
-          <Text className="text-2xl font-jakarta font-black text-text-primary mb-6">My children</Text>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false} 
-            className="py-2 -mx-2 px-2 overflow-visible"
-            contentContainerStyle={{ paddingRight: 40 }}
-          >
-            {children.map((child, index) => (
-              <ChildCard 
-                key={child.id} 
-                child={child} 
-                index={index}
-                onSelect={() => setSelectedChildId(child.id)}
-                onEditImage={() => showImageOptions('student', child.id)}
-              />
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Quick Stats Summary */}
-        <View className="mt-12">
-          <Text className="text-2xl font-jakarta font-black text-text-primary mb-6">Quick Summary</Text>
-          <View style={{ flexDirection: 'row', gap: 12 }}>
-            <StatCard icon={User} label="Students" value={stats.childrenCount} color="#0055d4" />
-            <StatCard icon={X} label="Absent" value={stats.absentCount} color={stats.absentCount > 0 ? '#ef4444' : '#22c55e'} />
-            <StatCard icon={Check} label="Tuition" value={stats.duePayments === 0 ? 'Paid' : 'Due'} color={stats.duePayments > 0 ? '#f59e0b' : '#22c55e'} />
+        {/* My Children Section - Only for Parents */}
+        {userRole === 'parent' && (
+          <View className="mt-12">
+            <Text className="text-2xl font-jakarta font-black text-text-primary mb-6">My children</Text>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              className="py-2 -mx-2 px-2 overflow-visible"
+              contentContainerStyle={{ paddingRight: 40 }}
+            >
+              {children.map((child, index) => (
+                <ChildCard 
+                  key={child.id} 
+                  child={child} 
+                  index={index}
+                  onSelect={() => setSelectedChildId(child.id)}
+                  onEditImage={() => showImageOptions('student', child.id)}
+                />
+              ))}
+            </ScrollView>
           </View>
-        </View>
+        )}
 
-        {/* Settings Section (Refined) */}
+        {/* Settings Section */}
         <View className="mt-10">
           <Text className="text-xl font-jakarta font-extrabold text-text-primary mb-4 ml-1">Settings & Tools</Text>
           <View className="bg-white rounded-[18px] overflow-hidden border border-surface-low shadow-sm shadow-black/5">
             <SettingItemV2 icon={UserIcon} label="Profile details" color="bg-[#f1f4f6]" />
             <SettingItemV2 icon={BellRing} label="Notifications" color="bg-[#f1f4f6]" />
-            <SettingItemV2 icon={FileText} label="Document center" color="bg-[#f1f4f6]" onPress={() => navigation.navigate('DocumentCenter')} />
+            {userRole === 'parent' && (
+              <SettingItemV2 icon={FileText} label="Document center" color="bg-[#f1f4f6]" onPress={() => navigation.navigate('DocumentCenter')} />
+            )}
             <SettingItemV2 icon={LogOut} label="Sign out" color="bg-[#fef2f2]" labelColor="#ef4444" isLast onPress={handleLogout} />
           </View>
         </View>
 
-        {/* School Support Section (Refined) */}
+        {/* School Support Section */}
         <View className="mt-10">
           <Text className="text-xl font-jakarta font-extrabold text-text-primary mb-4 ml-1">School support</Text>
           
@@ -487,7 +463,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
               </View>
               <View className="ml-4 flex-1">
                 <Text className="text-xl font-jakarta font-black text-white leading-tight">
-                  {schoolInfo?.schoolName || '111'}
+                  {schoolInfo?.schoolName || 'SnapSchool'}
                 </Text>
                 <Text className="text-white/70 text-[10px] font-jakarta font-black uppercase tracking-[2px] mt-0.5">
                   Official Support
@@ -495,45 +471,11 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
               </View>
             </View>
           </View>
-
-          <View className="bg-white rounded-[18px] border border-surface-low shadow-sm shadow-black/5 p-4 gap-3">
-            <TouchableOpacity 
-              onPress={() => Linking.openURL(`tel:${schoolInfo?.phone || '1111'}`)}
-              className="flex-row items-center bg-[#f8fafc] p-4 rounded-[14px] border border-slate-100"
-            >
-              <View className="w-10 h-10 bg-[#eff6ff] rounded-xl items-center justify-center">
-                <PhoneCall size={18} color="#2563eb" />
-              </View>
-              <View className="ml-3 flex-1">
-                <Text className="text-[9px] font-jakarta font-black text-text-muted uppercase tracking-[1px]">Call Support</Text>
-                <Text className="text-sm font-jakarta font-bold text-text-primary mt-0.5">{schoolInfo?.phone || '1111'}</Text>
-              </View>
-              <View className="bg-[#2563eb] px-5 py-2 rounded-xl">
-                <Text className="text-white text-[11px] font-jakarta font-black">Call</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(schoolInfo?.address || '111')}`)}
-              className="flex-row items-center bg-[#f8fafc] p-4 rounded-[14px] border border-slate-100"
-            >
-              <View className="w-10 h-10 bg-[#eff6ff] rounded-xl items-center justify-center">
-                <MapPin size={18} color="#2563eb" />
-              </View>
-              <View className="ml-3 flex-1">
-                <Text className="text-[9px] font-jakarta font-black text-text-muted uppercase tracking-[1px]">Visit Us</Text>
-                <Text className="text-sm font-jakarta font-bold text-text-primary mt-0.5" numberOfLines={1}>{schoolInfo?.address || '111'}</Text>
-              </View>
-              <View className="bg-white px-5 py-2 rounded-xl border border-[#e2e8f0]">
-                <Text className="text-text-primary text-[11px] font-jakarta font-black">Map</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* Footer */}
         <View className="items-center mt-12 mb-10 opacity-40">
-          <Text className="text-text-muted text-[10px] font-jakarta font-black tracking-widest uppercase">SnapSchool Parent V2.5.0</Text>
+          <Text className="text-text-muted text-[10px] font-jakarta font-black tracking-widest uppercase">SnapSchool {userRole === 'teacher' ? 'Teacher' : 'Parent'} V2.5.0</Text>
         </View>
       </ScrollView>
 
