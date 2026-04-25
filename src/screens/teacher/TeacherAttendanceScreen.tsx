@@ -100,6 +100,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
   const [resources, setResources] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState(moment());
   const [hasLesson, setHasLesson] = useState(true);
+  const [lessonId, setLessonId] = useState<number | null>(null);
   const [showClassSwitcher, setShowClassSwitcher] = useState(false);
   
   // Generate dates for the current week around the selected date
@@ -128,10 +129,18 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
   const loadStudents = async (classId: string, date: string) => {
     try {
       setLoading(true);
+      // Reset state for new load
+      setStudents([]);
+      setAttendance({});
+      setInitialAttendance({});
+      setAssignments([]);
+      setResources([]);
+      setHasLesson(true);
+      
       const res = await teacherService.fetchClassStudents(classId, date);
       
       if (!res || !Array.isArray(res.students)) {
-        setStudents([]);
+        setHasLesson(false);
         return;
       }
 
@@ -139,6 +148,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
       setAssignments(res.assignments || []);
       setResources(res.resources || []);
       setHasLesson(res.hasLesson);
+      setLessonId(res.lessonId || null);
       setShowClassSwitcher(false); // Close switcher on selection
 
       const initial: Record<string, string> = {};
@@ -185,7 +195,8 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
       await teacherService.saveAttendance({
         classId: selectedClass.id,
         date: selectedDate.format('YYYY-MM-DD'),
-        attendance: attendanceList
+        records: attendanceList,
+        lessonId: lessonId
       });
       
       setInitialAttendance(attendance);
@@ -309,7 +320,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
 
         {/* Student List */}
         <View>
-          {hasLesson && (
+          {hasLesson && !loading && (
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b', textTransform: 'uppercase', letterSpacing: 1 }}>Student List</Text>
               <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 }}>
@@ -341,7 +352,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
 
       {/* Floating Save Button */}
       {hasChanges && (
-        <View style={{ position: 'absolute', bottom: 40, left: 24, right: 24 }}>
+        <View style={{ position: 'absolute', bottom: 110, left: 24, right: 24 }}>
           <TouchableOpacity 
             onPress={handleSave}
             disabled={loading}
