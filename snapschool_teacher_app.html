@@ -1,0 +1,711 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue-50: #E6F1FB; --blue-100: #B5D4F4; --blue-200: #85B7EB;
+    --blue-400: #378ADD; --blue-600: #185FA5; --blue-800: #0C447C; --blue-900: #042C53;
+    --green-50: #EAF3DE; --green-200: #97C459; --green-600: #3B6D11; --green-800: #27500A;
+    --amber-50: #FAEEDA; --amber-200: #EF9F27; --amber-600: #854F0B;
+    --red-50: #FCEBEB; --red-200: #F09595; --red-600: #A32D2D;
+    --gray-50: #F1EFE8; --gray-100: #D3D1C7; --gray-200: #B4B2A9; --gray-400: #888780; --gray-600: #5F5E5A; --gray-800: #444441;
+    --teal-50: #E1F5EE; --teal-200: #5DCAA5; --teal-600: #0F6E56;
+    --bg: #F8F9FB; --surface: #fff; --text: #1a1a2e; --muted: #7a7a8c;
+  }
+
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); }
+
+  .app-wrapper {
+    display: flex; gap: 16px; padding: 12px 0; overflow-x: auto; align-items: flex-start;
+    scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+  }
+
+  .phone {
+    min-width: 320px; width: 320px; background: var(--surface);
+    border-radius: 36px; border: 2px solid #e0e0e8; overflow: hidden;
+    scroll-snap-align: center; flex-shrink: 0;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+
+  .phone-bar {
+    background: var(--surface); padding: 12px 20px 4px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .phone-bar .time { font-size: 13px; font-weight: 600; }
+  .phone-bar .icons { display: flex; gap: 5px; align-items: center; }
+  .phone-bar .icon-bar { width: 18px; height: 9px; display: flex; gap: 2px; align-items: flex-end; }
+  .phone-bar .icon-bar span { display: block; width: 3px; border-radius: 1px; background: var(--text); }
+  .phone-bar .icon-bar span:nth-child(1) { height: 4px; }
+  .phone-bar .icon-bar span:nth-child(2) { height: 6px; }
+  .phone-bar .icon-bar span:nth-child(3) { height: 9px; }
+  .phone-bar .batt { width: 18px; height: 10px; border: 1.5px solid var(--text); border-radius: 2px; position: relative; }
+  .phone-bar .batt::after { content: ''; position: absolute; right: -4px; top: 50%; transform: translateY(-50%); width: 2px; height: 5px; background: var(--text); border-radius: 0 1px 1px 0; }
+  .phone-bar .batt-fill { position: absolute; left: 1px; top: 1px; bottom: 1px; width: 70%; background: var(--text); border-radius: 1px; }
+
+  .screen { padding: 0; overflow: hidden; }
+  .screen-label {
+    background: var(--blue-50); padding: 6px 16px; text-align: center;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--blue-800); border-bottom: 1px solid var(--blue-100);
+  }
+
+  /* === SCREEN 1: DASHBOARD === */
+  .dash-header {
+    background: linear-gradient(135deg, #1a2d5a 0%, #2563C8 100%);
+    padding: 16px 18px 20px;
+  }
+  .dash-greeting { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+  .dash-greeting .greet-text { color: rgba(255,255,255,0.75); font-size: 13px; }
+  .dash-greeting .greet-name { color: #fff; font-size: 18px; font-weight: 600; margin-top: 2px; }
+  .avatar-ring { width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: #fff; border: 2px solid rgba(255,255,255,0.4); }
+  .dash-date-pill { display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.15); border-radius: 20px; padding: 4px 10px; color: rgba(255,255,255,0.85); font-size: 12px; margin-bottom: 12px; }
+  .dot-live { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+  .stats-row { display: flex; gap: 8px; }
+  .stat-chip { flex: 1; background: rgba(255,255,255,0.12); border-radius: 12px; padding: 10px 8px; text-align: center; border: 1px solid rgba(255,255,255,0.15); }
+  .stat-chip .stat-num { color: #fff; font-size: 20px; font-weight: 600; line-height: 1; }
+  .stat-chip .stat-lbl { color: rgba(255,255,255,0.65); font-size: 10px; margin-top: 3px; }
+  .stat-chip.green .stat-num { color: #86efac; }
+  .stat-chip.red .stat-num { color: #fca5a5; }
+  .stat-chip.amber .stat-num { color: #fcd34d; }
+
+  .dash-body { padding: 14px 16px; background: var(--bg); }
+
+  .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .section-head h3 { font-size: 13px; font-weight: 600; color: var(--text); }
+  .section-head a { font-size: 11px; color: var(--blue-600); font-weight: 500; }
+
+  .class-card {
+    background: var(--surface); border-radius: 14px; padding: 12px 14px;
+    margin-bottom: 8px; display: flex; align-items: center; gap: 10px;
+    border: 1px solid #eeeef5; cursor: pointer;
+  }
+  .class-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .class-info { flex: 1; }
+  .class-name { font-size: 14px; font-weight: 500; color: var(--text); }
+  .class-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .class-badge { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; }
+  .badge-live { background: var(--green-50); color: var(--green-600); }
+  .badge-next { background: var(--blue-50); color: var(--blue-600); }
+  .badge-done { background: var(--gray-50); color: var(--gray-600); }
+
+  .quick-actions { display: flex; gap: 8px; margin: 12px 0; }
+  .qa-btn {
+    flex: 1; border-radius: 12px; padding: 10px 6px; text-align: center;
+    border: none; cursor: pointer; font-family: 'DM Sans', sans-serif;
+    font-size: 11px; font-weight: 600;
+  }
+  .qa-btn .qa-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+  .qa-btn.blue { background: var(--blue-400); color: #fff; }
+  .qa-btn.teal { background: #1D9E75; color: #fff; }
+  .qa-btn.amber { background: #BA7517; color: #fff; }
+
+  .upcoming-task { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; background: var(--surface); border-radius: 12px; margin-bottom: 6px; border: 1px solid #eeeef5; }
+  .task-accent { width: 3px; border-radius: 2px; align-self: stretch; min-height: 30px; flex-shrink: 0; }
+  .task-title { font-size: 13px; font-weight: 500; color: var(--text); }
+  .task-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* === SCREEN 2: ATTENDANCE === */
+  .att-header { background: var(--surface); padding: 14px 16px 10px; border-bottom: 1px solid #eeeef5; }
+  .back-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .back-btn { width: 30px; height: 30px; border-radius: 50%; background: var(--gray-50); display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .att-title { font-size: 17px; font-weight: 600; color: var(--text); }
+  .att-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .att-legend { display: flex; gap: 10px; padding: 8px 16px; background: var(--surface); border-bottom: 1px solid #eeeef5; }
+  .leg-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); font-weight: 500; }
+  .leg-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .att-student { display: flex; align-items: center; padding: 10px 16px; border-bottom: 1px solid #f0f0f5; background: var(--surface); gap: 10px; }
+  .student-init { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .student-name { flex: 1; font-size: 14px; font-weight: 500; color: var(--text); }
+  .att-toggle { display: flex; gap: 4px; }
+  .att-btn { width: 28px; height: 28px; border-radius: 8px; border: 1.5px solid transparent; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+  .att-btn.p { background: var(--green-50); border-color: #97C459; color: var(--green-600); }
+  .att-btn.a { background: var(--red-50); border-color: var(--red-200); color: var(--red-600); }
+  .att-btn.l { background: var(--amber-50); border-color: var(--amber-200); color: var(--amber-600); }
+  .att-btn.inactive { background: var(--gray-50); border-color: transparent; color: var(--gray-200); }
+
+  .att-footer { padding: 12px 16px; background: var(--surface); border-top: 1px solid #eeeef5; }
+  .att-summary { display: flex; gap: 8px; margin-bottom: 10px; }
+  .att-sum-chip { flex: 1; text-align: center; padding: 6px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+  .save-btn { width: 100%; padding: 13px; background: var(--blue-400); color: #fff; border-radius: 14px; border: none; font-size: 14px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; }
+
+  /* === SCREEN 3: LESSON === */
+  .lesson-header { background: var(--surface); padding: 14px 16px 12px; border-bottom: 1px solid #eeeef5; }
+  .form-group { padding: 0 16px 10px; background: var(--surface); }
+  .form-label { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; }
+  .form-input { width: 100%; padding: 10px 12px; border: 1.5px solid #e8e8f0; border-radius: 10px; font-size: 14px; color: var(--text); font-family: 'DM Sans', sans-serif; background: var(--bg); }
+  .form-input.focus { border-color: var(--blue-400); background: var(--surface); }
+  .form-textarea { height: 56px; resize: none; }
+  .form-divider { height: 6px; background: var(--bg); }
+  .attach-row { display: flex; gap: 8px; padding: 12px 16px; background: var(--surface); }
+  .attach-btn { flex: 1; padding: 10px 8px; border: 1.5px dashed #d0d0e0; border-radius: 10px; text-align: center; font-size: 12px; color: var(--muted); cursor: pointer; font-weight: 500; }
+  .attach-preview { display: flex; gap: 8px; padding: 0 16px 12px; background: var(--surface); }
+  .file-chip { display: flex; align-items: center; gap: 5px; background: var(--blue-50); border-radius: 8px; padding: 5px 9px; font-size: 11px; font-weight: 600; color: var(--blue-800); }
+
+  .timeline { padding: 12px 16px; background: var(--bg); }
+  .timeline-item { display: flex; gap: 10px; margin-bottom: 12px; }
+  .tl-line { display: flex; flex-direction: column; align-items: center; }
+  .tl-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--blue-400); flex-shrink: 0; margin-top: 4px; }
+  .tl-tail { width: 1.5px; flex: 1; background: #e0e0ea; margin-top: 3px; }
+  .tl-card { flex: 1; background: var(--surface); border-radius: 10px; padding: 9px 11px; border: 1px solid #eeeef5; }
+  .tl-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .tl-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .tl-class-tag { display: inline-block; margin-top: 5px; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 6px; }
+
+  /* NAV BAR */
+  .nav-bar { display: flex; background: var(--surface); border-top: 1px solid #eeeef5; padding: 8px 4px 10px; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 2px; }
+  .nav-icon { font-size: 20px; }
+  .nav-lbl { font-size: 9px; font-weight: 600; color: var(--muted); letter-spacing: 0.02em; }
+  .nav-item.active .nav-lbl { color: var(--blue-600); }
+  .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--blue-400); margin-top: -2px; }
+
+  /* SCREEN LABELS */
+  .screen-tabs { display: flex; gap: 0; background: var(--bg); border-bottom: 1px solid #eeeef5; }
+  .stab { flex: 1; text-align: center; padding: 9px 4px; font-size: 12px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; cursor: pointer; }
+  .stab.active { color: var(--blue-600); border-color: var(--blue-400); }
+
+  /* TASK SCREEN */
+  .task-card-big { background: var(--surface); border-radius: 14px; margin: 10px 14px; border: 1px solid #eeeef5; overflow: hidden; }
+  .tcb-header { padding: 12px 14px; border-bottom: 1px solid #f0f0f5; }
+  .tcb-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .tcb-meta { font-size: 11px; color: var(--muted); margin-top: 3px; display: flex; gap: 8px; align-items: center; }
+  .due-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 6px; }
+  .progress-bar { height: 4px; background: #eef; border-radius: 2px; margin: 10px 14px; }
+  .progress-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--blue-400), #60a5fa); }
+  .sub-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 14px; border-bottom: 1px solid #f5f5fb; }
+  .sub-name { font-size: 13px; color: var(--text); font-weight: 500; }
+  .sub-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
+
+  .screen-wrapper { display: flex; flex-direction: column; }
+  .screen-scroll { overflow-y: auto; max-height: 530px; }
+</style>
+
+<div class="app-wrapper">
+
+  <!-- SCREEN 1: DASHBOARD -->
+  <div class="phone">
+    <div class="phone-bar">
+      <span class="time">9:41</span>
+      <div class="icons">
+        <div class="icon-bar"><span></span><span></span><span></span></div>
+        <div class="batt"><div class="batt-fill"></div></div>
+      </div>
+    </div>
+    <div class="screen-label">Dashboard · Home</div>
+    <div class="screen-wrapper">
+      <div class="screen-scroll">
+        <div class="dash-header">
+          <div class="dash-greeting">
+            <div>
+              <div class="greet-text">Good morning 👋</div>
+              <div class="greet-name">Ms. Leila Hadj</div>
+            </div>
+            <div class="avatar-ring">LH</div>
+          </div>
+          <div class="dash-date-pill">
+            <div class="dot-live"></div>
+            Tuesday, Apr 25 · 4 classes today
+          </div>
+          <div class="stats-row">
+            <div class="stat-chip green">
+              <div class="stat-num">87</div>
+              <div class="stat-lbl">Present</div>
+            </div>
+            <div class="stat-chip red">
+              <div class="stat-num">5</div>
+              <div class="stat-lbl">Absent</div>
+            </div>
+            <div class="stat-chip amber">
+              <div class="stat-num">12</div>
+              <div class="stat-lbl">Tasks Due</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dash-body">
+          <div class="section-head" style="margin-bottom:8px;">
+            <h3>Quick actions</h3>
+          </div>
+          <div class="quick-actions">
+            <button class="qa-btn blue"><span class="qa-icon">✓</span>Attendance</button>
+            <button class="qa-btn teal"><span class="qa-icon">📖</span>Add Lesson</button>
+            <button class="qa-btn amber"><span class="qa-icon">📝</span>Create Task</button>
+          </div>
+
+          <div class="section-head" style="margin-top:4px;">
+            <h3>Today's classes</h3>
+            <a>See all</a>
+          </div>
+
+          <div class="class-card">
+            <div class="class-dot" style="background:#4ade80;"></div>
+            <div class="class-info">
+              <div class="class-name">Mathematics · 3ème A</div>
+              <div class="class-meta">09:00 – 10:30 · Room 201 · 28 students</div>
+            </div>
+            <div class="class-badge badge-live">Live</div>
+          </div>
+          <div class="class-card">
+            <div class="class-dot" style="background:var(--blue-400);"></div>
+            <div class="class-info">
+              <div class="class-name">Physics · 4ème B</div>
+              <div class="class-meta">11:00 – 12:30 · Room 104 · 25 students</div>
+            </div>
+            <div class="class-badge badge-next">Next</div>
+          </div>
+          <div class="class-card">
+            <div class="class-dot" style="background:var(--gray-200);"></div>
+            <div class="class-info">
+              <div class="class-name">Mathematics · 4ème A</div>
+              <div class="class-meta">14:00 – 15:30 · Room 201 · 30 students</div>
+            </div>
+            <div class="class-badge badge-done">Done</div>
+          </div>
+
+          <div class="section-head" style="margin-top:4px;">
+            <h3>Upcoming tasks</h3>
+            <a>View all</a>
+          </div>
+          <div class="upcoming-task">
+            <div class="task-accent" style="background:var(--red-200);"></div>
+            <div>
+              <div class="task-title">Algebra Chapter 5 HW</div>
+              <div class="task-sub">3ème A · Due tomorrow · 8/28 submitted</div>
+            </div>
+          </div>
+          <div class="upcoming-task">
+            <div class="task-accent" style="background:var(--amber-200);"></div>
+            <div>
+              <div class="task-title">Newton's Laws Quiz</div>
+              <div class="task-sub">4ème B · Due Apr 28 · 20/25 submitted</div>
+            </div>
+          </div>
+          <div style="height:8px;"></div>
+        </div>
+      </div>
+      <div class="nav-bar">
+        <div class="nav-item active"><div class="nav-icon">🏠</div><div class="nav-lbl" style="color:var(--blue-600);">Home</div><div class="nav-dot"></div></div>
+        <div class="nav-item"><div class="nav-icon">✓</div><div class="nav-lbl">Attendance</div></div>
+        <div class="nav-item"><div class="nav-icon">📖</div><div class="nav-lbl">Lessons</div></div>
+        <div class="nav-item"><div class="nav-icon">📝</div><div class="nav-lbl">Tasks</div></div>
+        <div class="nav-item"><div class="nav-icon">👥</div><div class="nav-lbl">Classes</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: ATTENDANCE -->
+  <div class="phone">
+    <div class="phone-bar">
+      <span class="time">9:41</span>
+      <div class="icons">
+        <div class="icon-bar"><span></span><span></span><span></span></div>
+        <div class="batt"><div class="batt-fill"></div></div>
+      </div>
+    </div>
+    <div class="screen-label">Attendance · 3ème A</div>
+    <div class="screen-wrapper">
+      <div class="screen-scroll">
+        <div class="att-header">
+          <div class="back-row">
+            <div class="back-btn">←</div>
+            <div>
+              <div class="att-title">3ème A · Mathematics</div>
+              <div class="att-sub">09:00 – 10:30 · Apr 25 · 28 students</div>
+            </div>
+          </div>
+          <div class="screen-tabs">
+            <div class="stab active">All (28)</div>
+            <div class="stab">Present (22)</div>
+            <div class="stab">Absent (4)</div>
+            <div class="stab">Late (2)</div>
+          </div>
+        </div>
+        <div class="att-legend">
+          <div class="leg-item"><div class="leg-dot" style="background:var(--green-200);"></div>Present</div>
+          <div class="leg-item"><div class="leg-dot" style="background:var(--red-200);"></div>Absent</div>
+          <div class="leg-item"><div class="leg-dot" style="background:var(--amber-200);"></div>Late</div>
+        </div>
+
+        <!-- Students -->
+        <div class="att-student">
+          <div class="student-init" style="background:var(--blue-50);color:var(--blue-800);">AM</div>
+          <div class="student-name">Amine Mansour</div>
+          <div class="att-toggle">
+            <div class="att-btn p">P</div>
+            <div class="att-btn inactive">A</div>
+            <div class="att-btn inactive">L</div>
+          </div>
+        </div>
+        <div class="att-student">
+          <div class="student-init" style="background:var(--red-50);color:var(--red-600);">SB</div>
+          <div class="student-name">Sara Benhamed</div>
+          <div class="att-toggle">
+            <div class="att-btn inactive">P</div>
+            <div class="att-btn a">A</div>
+            <div class="att-btn inactive">L</div>
+          </div>
+        </div>
+        <div class="att-student">
+          <div class="student-init" style="background:var(--amber-50);color:var(--amber-600);">YK</div>
+          <div class="student-name">Yassine Khelif</div>
+          <div class="att-toggle">
+            <div class="att-btn inactive">P</div>
+            <div class="att-btn inactive">A</div>
+            <div class="att-btn l">L</div>
+          </div>
+        </div>
+        <div class="att-student">
+          <div class="student-init" style="background:var(--teal-50);color:var(--teal-600);">NZ</div>
+          <div class="student-name">Nour Zaied</div>
+          <div class="att-toggle">
+            <div class="att-btn p">P</div>
+            <div class="att-btn inactive">A</div>
+            <div class="att-btn inactive">L</div>
+          </div>
+        </div>
+        <div class="att-student">
+          <div class="student-init" style="background:var(--blue-50);color:var(--blue-800);">KM</div>
+          <div class="student-name">Khalil Mzabi</div>
+          <div class="att-toggle">
+            <div class="att-btn p">P</div>
+            <div class="att-btn inactive">A</div>
+            <div class="att-btn inactive">L</div>
+          </div>
+        </div>
+        <div class="att-student">
+          <div class="student-init" style="background:var(--red-50);color:var(--red-600);">RB</div>
+          <div class="student-name">Rania Belhadj</div>
+          <div class="att-toggle">
+            <div class="att-btn inactive">P</div>
+            <div class="att-btn a">A</div>
+            <div class="att-btn inactive">L</div>
+          </div>
+        </div>
+        <div style="padding: 6px 16px; color: var(--muted); font-size:12px; background:var(--surface);">
+          + 22 more students…
+        </div>
+      </div>
+      <div class="att-footer">
+        <div class="att-summary">
+          <div class="att-sum-chip" style="background:var(--green-50);color:var(--green-600);">✓ 22 Present</div>
+          <div class="att-sum-chip" style="background:var(--red-50);color:var(--red-600);">✕ 4 Absent</div>
+          <div class="att-sum-chip" style="background:var(--amber-50);color:var(--amber-600);">◑ 2 Late</div>
+        </div>
+        <button class="save-btn">Save attendance · 1 tap</button>
+      </div>
+      <div class="nav-bar">
+        <div class="nav-item"><div class="nav-icon">🏠</div><div class="nav-lbl">Home</div></div>
+        <div class="nav-item active"><div class="nav-icon">✓</div><div class="nav-lbl" style="color:var(--blue-600);">Attendance</div><div class="nav-dot"></div></div>
+        <div class="nav-item"><div class="nav-icon">📖</div><div class="nav-lbl">Lessons</div></div>
+        <div class="nav-item"><div class="nav-icon">📝</div><div class="nav-lbl">Tasks</div></div>
+        <div class="nav-item"><div class="nav-icon">👥</div><div class="nav-lbl">Classes</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: ADD LESSON -->
+  <div class="phone">
+    <div class="phone-bar">
+      <span class="time">9:41</span>
+      <div class="icons">
+        <div class="icon-bar"><span></span><span></span><span></span></div>
+        <div class="batt"><div class="batt-fill"></div></div>
+      </div>
+    </div>
+    <div class="screen-label">Lessons · Add New</div>
+    <div class="screen-wrapper">
+      <div class="screen-scroll">
+        <div class="lesson-header">
+          <div class="back-row">
+            <div class="back-btn">←</div>
+            <div>
+              <div class="att-title">New Lesson</div>
+              <div class="att-sub">Link to class and save</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height:10px;background:var(--bg);"></div>
+        <div class="form-group" style="padding-top:12px;">
+          <div class="form-label">Lesson title</div>
+          <input class="form-input focus" value="Introduction to Derivatives" style="display:block;">
+        </div>
+        <div class="form-group">
+          <div class="form-label">Description</div>
+          <textarea class="form-input form-textarea">Definition, notation, and first principles of differentiation...</textarea>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Link to class</div>
+          <select class="form-input" style="display:block;appearance:none;">
+            <option>3ème A · Mathematics</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Date</div>
+          <input class="form-input" type="text" value="April 25, 2026" style="display:block;">
+        </div>
+        <div class="form-divider"></div>
+        <div class="attach-row">
+          <div class="attach-btn">📄 Add PDF</div>
+          <div class="attach-btn">🖼 Add Image</div>
+        </div>
+        <div class="attach-preview">
+          <div class="file-chip">📄 Chapter5.pdf</div>
+          <div class="file-chip">🖼 diagram.png</div>
+        </div>
+        <div class="form-divider"></div>
+        <div class="timeline" style="padding-top:10px;">
+          <div class="section-head" style="margin-bottom:10px;"><h3>Recent lessons</h3></div>
+          <div class="timeline-item">
+            <div class="tl-line"><div class="tl-dot"></div><div class="tl-tail"></div></div>
+            <div class="tl-card">
+              <div class="tl-title">Limits & Continuity</div>
+              <div class="tl-meta">Apr 22 · 3ème A</div>
+              <div class="tl-class-tag" style="background:var(--blue-50);color:var(--blue-800);">Mathematics</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="tl-line"><div class="tl-dot" style="background:var(--teal-200);"></div><div class="tl-tail"></div></div>
+            <div class="tl-card">
+              <div class="tl-title">Newton's 2nd Law</div>
+              <div class="tl-meta">Apr 20 · 4ème B</div>
+              <div class="tl-class-tag" style="background:var(--teal-50);color:var(--teal-600);">Physics</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="tl-line"><div class="tl-dot" style="background:var(--gray-200);"></div></div>
+            <div class="tl-card">
+              <div class="tl-title">Sequences & Series</div>
+              <div class="tl-meta">Apr 18 · 3ème A</div>
+              <div class="tl-class-tag" style="background:var(--gray-50);color:var(--gray-600);">Mathematics</div>
+            </div>
+          </div>
+        </div>
+        <div style="height:8px;"></div>
+        <div style="padding: 0 14px 14px;">
+          <button class="save-btn">Publish lesson</button>
+        </div>
+      </div>
+      <div class="nav-bar">
+        <div class="nav-item"><div class="nav-icon">🏠</div><div class="nav-lbl">Home</div></div>
+        <div class="nav-item"><div class="nav-icon">✓</div><div class="nav-lbl">Attendance</div></div>
+        <div class="nav-item active"><div class="nav-icon">📖</div><div class="nav-lbl" style="color:var(--blue-600);">Lessons</div><div class="nav-dot"></div></div>
+        <div class="nav-item"><div class="nav-icon">📝</div><div class="nav-lbl">Tasks</div></div>
+        <div class="nav-item"><div class="nav-icon">👥</div><div class="nav-lbl">Classes</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: TASKS -->
+  <div class="phone">
+    <div class="phone-bar">
+      <span class="time">9:41</span>
+      <div class="icons">
+        <div class="icon-bar"><span></span><span></span><span></span></div>
+        <div class="batt"><div class="batt-fill"></div></div>
+      </div>
+    </div>
+    <div class="screen-label">Tasks · Homework tracker</div>
+    <div class="screen-wrapper">
+      <div class="screen-scroll">
+        <div class="att-header">
+          <div class="back-row">
+            <div style="flex:1;">
+              <div class="att-title">Tasks & Homework</div>
+              <div class="att-sub">Track submissions across all classes</div>
+            </div>
+            <div style="background:var(--blue-400);color:#fff;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:600;">+ New</div>
+          </div>
+          <div class="screen-tabs">
+            <div class="stab active">Active</div>
+            <div class="stab">Grading</div>
+            <div class="stab">Closed</div>
+          </div>
+        </div>
+
+        <!-- Task 1 -->
+        <div style="background:var(--bg);padding:10px 14px 0;">
+          <div class="task-card-big">
+            <div class="tcb-header">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div class="tcb-title" style="flex:1;">Algebra Chapter 5 Homework</div>
+                <div class="due-badge" style="background:var(--red-50);color:var(--red-600);flex-shrink:0;margin-left:8px;">Due tomorrow</div>
+              </div>
+              <div class="tcb-meta">
+                <span>3ème A · Mathematics</span>
+                <span style="color:var(--blue-600);font-weight:600;">8 / 28 submitted</span>
+              </div>
+            </div>
+            <div style="padding:8px 14px 4px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:11px;color:var(--muted);">
+                <span>Submission rate</span><span style="font-weight:600;color:var(--text);">29%</span>
+              </div>
+              <div class="progress-bar" style="margin:0 0 10px 0;"><div class="progress-fill" style="width:29%;"></div></div>
+            </div>
+            <div class="sub-row">
+              <div class="student-init" style="width:26px;height:26px;font-size:10px;background:var(--green-50);color:var(--green-600);">AM</div>
+              <div class="sub-name" style="margin-left:8px;">Amine Mansour</div>
+              <div class="sub-badge" style="background:var(--green-50);color:var(--green-600);">Submitted</div>
+            </div>
+            <div class="sub-row">
+              <div class="student-init" style="width:26px;height:26px;font-size:10px;background:var(--gray-50);color:var(--gray-400);">SB</div>
+              <div class="sub-name" style="margin-left:8px;">Sara Benhamed</div>
+              <div class="sub-badge" style="background:var(--gray-50);color:var(--gray-400);">Pending</div>
+            </div>
+            <div class="sub-row">
+              <div class="student-init" style="width:26px;height:26px;font-size:10px;background:var(--green-50);color:var(--green-600);">NZ</div>
+              <div class="sub-name" style="margin-left:8px;">Nour Zaied</div>
+              <div class="sub-badge" style="background:var(--green-50);color:var(--green-600);">Submitted</div>
+            </div>
+            <div style="padding:6px 14px 10px;font-size:11px;color:var(--muted);">+ 25 more students</div>
+          </div>
+        </div>
+
+        <!-- Task 2 -->
+        <div style="background:var(--bg);padding:10px 14px 0;">
+          <div class="task-card-big">
+            <div class="tcb-header">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div class="tcb-title" style="flex:1;">Newton's Laws Quiz</div>
+                <div class="due-badge" style="background:var(--amber-50);color:var(--amber-600);flex-shrink:0;margin-left:8px;">Apr 28</div>
+              </div>
+              <div class="tcb-meta">
+                <span>4ème B · Physics</span>
+                <span style="color:var(--teal-600);font-weight:600;">20 / 25 submitted</span>
+              </div>
+            </div>
+            <div style="padding:8px 14px 4px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:11px;color:var(--muted);">
+                <span>Submission rate</span><span style="font-weight:600;color:var(--text);">80%</span>
+              </div>
+              <div class="progress-bar" style="margin:0 0 10px 0;"><div class="progress-fill" style="width:80%;background:linear-gradient(90deg,#1D9E75,#5DCAA5);"></div></div>
+            </div>
+            <div style="padding:6px 14px 10px;font-size:12px;color:var(--muted);">📎 2 resources attached · 5 pending</div>
+          </div>
+        </div>
+        <div style="height:12px;background:var(--bg);"></div>
+      </div>
+      <div class="nav-bar">
+        <div class="nav-item"><div class="nav-icon">🏠</div><div class="nav-lbl">Home</div></div>
+        <div class="nav-item"><div class="nav-icon">✓</div><div class="nav-lbl">Attendance</div></div>
+        <div class="nav-item"><div class="nav-icon">📖</div><div class="nav-lbl">Lessons</div></div>
+        <div class="nav-item active"><div class="nav-icon">📝</div><div class="nav-lbl" style="color:var(--blue-600);">Tasks</div><div class="nav-dot"></div></div>
+        <div class="nav-item"><div class="nav-icon">👥</div><div class="nav-lbl">Classes</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 5: CLASSES -->
+  <div class="phone">
+    <div class="phone-bar">
+      <span class="time">9:41</span>
+      <div class="icons">
+        <div class="icon-bar"><span></span><span></span><span></span></div>
+        <div class="batt"><div class="batt-fill"></div></div>
+      </div>
+    </div>
+    <div class="screen-label">Classes · Student roster</div>
+    <div class="screen-wrapper">
+      <div class="screen-scroll">
+        <div class="att-header">
+          <div class="back-row">
+            <div style="flex:1;">
+              <div class="att-title">My Classes</div>
+              <div class="att-sub">4 active classes · 108 students total</div>
+            </div>
+          </div>
+          <div style="padding:0 0 8px;">
+            <input class="form-input" placeholder="Search classes or students..." style="background:var(--bg);border-color:#e8e8f0;">
+          </div>
+        </div>
+
+        <div style="padding:10px 14px 0;background:var(--bg);">
+          <!-- Class cards -->
+          <div style="background:var(--surface);border-radius:16px;border:1px solid #eeeef5;margin-bottom:10px;overflow:hidden;">
+            <div style="padding:12px 14px;display:flex;gap:10px;align-items:center;border-bottom:1px solid #f0f0f5;">
+              <div style="width:42px;height:42px;border-radius:12px;background:var(--blue-50);display:flex;align-items:center;justify-content:center;font-size:18px;">📐</div>
+              <div style="flex:1;">
+                <div style="font-size:15px;font-weight:600;color:var(--text);">3ème A</div>
+                <div style="font-size:12px;color:var(--muted);">Mathematics · 28 students</div>
+              </div>
+              <div style="font-size:20px;color:var(--muted);">›</div>
+            </div>
+            <div style="display:flex;padding:8px 14px;gap:8px;">
+              <div style="flex:1;font-size:11px;font-weight:600;color:var(--green-600);background:var(--green-50);border-radius:8px;padding:5px 8px;text-align:center;">92% attend.</div>
+              <div style="flex:1;font-size:11px;font-weight:600;color:var(--blue-600);background:var(--blue-50);border-radius:8px;padding:5px 8px;text-align:center;">14 lessons</div>
+              <div style="flex:1;font-size:11px;font-weight:600;color:var(--amber-600);background:var(--amber-50);border-radius:8px;padding:5px 8px;text-align:center;">2 tasks</div>
+            </div>
+          </div>
+
+          <div style="background:var(--surface);border-radius:16px;border:1px solid #eeeef5;margin-bottom:10px;overflow:hidden;">
+            <div style="padding:12px 14px;display:flex;gap:10px;align-items:center;border-bottom:1px solid #f0f0f5;">
+              <div style="width:42px;height:42px;border-radius:12px;background:var(--teal-50);display:flex;align-items:center;justify-content:center;font-size:18px;">⚗️</div>
+              <div style="flex:1;">
+                <div style="font-size:15px;font-weight:600;color:var(--text);">4ème B</div>
+                <div style="font-size:12px;color:var(--muted);">Physics · 25 students</div>
+              </div>
+              <div style="font-size:20px;color:var(--muted);">›</div>
+            </div>
+            <div style="display:flex;padding:8px 14px;gap:8px;">
+              <div style="flex:1;font-size:11px;font-weight:600;color:var(--green-600);background:var(--green-50);border-radius:8px;padding:5px 8px;text-align:center;">88% attend.</div>
+              <div style="flex:1;font-size:11px;font-weight:600;color:var(--blue-600);background:var(--blue-50);border-radius:8px;padding:5px 8px;text-align:center;">11 lessons</div>
+              <div style="flex:1;font-size:11px;font-weight:600;color:var(--amber-600);background:var(--amber-50);border-radius:8px;padding:5px 8px;text-align:center;">3 tasks</div>
+            </div>
+          </div>
+
+          <div style="background:var(--surface);border-radius:16px;border:1px solid #eeeef5;margin-bottom:10px;overflow:hidden;">
+            <div style="padding:12px 14px;display:flex;gap:10px;align-items:center;border-bottom:1px solid #f0f0f5;">
+              <div style="width:42px;height:42px;border-radius:12px;background:var(--blue-50);display:flex;align-items:center;justify-content:center;font-size:18px;">📐</div>
+              <div style="flex:1;">
+                <div style="font-size:15px;font-weight:600;color:var(--text);">4ème A</div>
+                <div style="font-size:12px;color:var(--muted);">Mathematics · 30 students</div>
+              </div>
+              <div style="font-size:20px;color:var(--muted);">›</div>
+            </div>
+            <div style="display:flex;padding:8px 14px;gap:8px;">
+              <div style="flex:1;font-size:11px;font-weight:600;color:var(--amber-600);background:var(--amber-50);border-radius:8px;padding:5px 8px;text-align:center;">79% attend.</div>
+              <div style="flex:1;font-size:11px;font-weight:600;color:var(--blue-600);background:var(--blue-50);border-radius:8px;padding:5px 8px;text-align:center;">12 lessons</div>
+              <div style="flex:1;font-size:11px;font-weight:600;color:var(--amber-600);background:var(--amber-50);border-radius:8px;padding:5px 8px;text-align:center;">1 task</div>
+            </div>
+          </div>
+
+          <!-- Student list preview -->
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin:4px 0 8px;">3ème A · Students</div>
+          <div style="background:var(--surface);border-radius:14px;border:1px solid #eeeef5;overflow:hidden;">
+            <div style="display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid #f5f5fb;gap:10px;">
+              <div class="student-init" style="background:var(--blue-50);color:var(--blue-800);">AM</div>
+              <div style="flex:1;"><div style="font-size:14px;font-weight:500;color:var(--text);">Amine Mansour</div><div style="font-size:11px;color:var(--muted);">92% attendance · Rank 3</div></div>
+              <div style="font-size:20px;color:var(--muted);">›</div>
+            </div>
+            <div style="display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid #f5f5fb;gap:10px;">
+              <div class="student-init" style="background:var(--red-50);color:var(--red-600);">SB</div>
+              <div style="flex:1;"><div style="font-size:14px;font-weight:500;color:var(--text);">Sara Benhamed</div><div style="font-size:11px;color:var(--red-600);">68% attendance · Flagged</div></div>
+              <div style="font-size:20px;color:var(--muted);">›</div>
+            </div>
+            <div style="display:flex;align-items:center;padding:10px 14px;gap:10px;">
+              <div class="student-init" style="background:var(--teal-50);color:var(--teal-600);">NZ</div>
+              <div style="flex:1;"><div style="font-size:14px;font-weight:500;color:var(--text);">Nour Zaied</div><div style="font-size:11px;color:var(--muted);">97% attendance · Top student</div></div>
+              <div style="font-size:20px;color:var(--muted);">›</div>
+            </div>
+          </div>
+          <div style="text-align:center;padding:10px;font-size:12px;color:var(--blue-600);font-weight:500;">View all 28 students →</div>
+        </div>
+      </div>
+      <div class="nav-bar">
+        <div class="nav-item"><div class="nav-icon">🏠</div><div class="nav-lbl">Home</div></div>
+        <div class="nav-item"><div class="nav-icon">✓</div><div class="nav-lbl">Attendance</div></div>
+        <div class="nav-item"><div class="nav-icon">📖</div><div class="nav-lbl">Lessons</div></div>
+        <div class="nav-item"><div class="nav-icon">📝</div><div class="nav-lbl">Tasks</div></div>
+        <div class="nav-item active"><div class="nav-icon">👥</div><div class="nav-lbl" style="color:var(--blue-600);">Classes</div><div class="nav-dot"></div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<div style="text-align:center;padding:6px 0 2px;font-size:11px;color:var(--muted);font-family:'DM Sans',sans-serif;">← Scroll to explore all 5 screens →</div>

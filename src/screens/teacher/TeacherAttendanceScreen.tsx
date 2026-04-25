@@ -18,7 +18,7 @@ import moment from 'moment';
 
 const AttendanceButton = ({ type, active, onPress }: any) => {
   const configs: any = {
-    PRESENT: { color: '#22c55e', bg: '#f0fdf4', label: 'Present' },
+    PRESENT: { color: '#10b981', bg: '#ecfdf5', label: 'Present' },
     ABSENT: { color: '#ef4444', bg: '#fef2f2', label: 'Absent' },
     LATE: { color: '#f59e0b', bg: '#fffbeb', label: 'Late' }
   };
@@ -30,20 +30,25 @@ const AttendanceButton = ({ type, active, onPress }: any) => {
       activeOpacity={0.7}
       style={{
         flex: 1,
-        height: 44,
-        borderRadius: 12,
+        height: 48,
+        borderRadius: 16,
         backgroundColor: active ? config.color : 'white',
-        borderWidth: 1,
-        borderColor: active ? config.color : '#f1f4f6',
+        borderWidth: 1.5,
+        borderColor: active ? config.color : '#f1f5f9',
         alignItems: 'center',
         justifyContent: 'center',
-        marginHorizontal: 4
+        marginHorizontal: 4,
+        shadowColor: active ? config.color : '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: active ? 0.2 : 0,
+        shadowRadius: 8,
+        elevation: active ? 4 : 0
       }}
     >
       <Text style={{ 
-        fontSize: 12, 
-        fontWeight: 'bold', 
-        color: active ? 'white' : '#737c7f' 
+        fontSize: 13, 
+        fontWeight: '900', 
+        color: active ? 'white' : '#64748b' 
       }}>
         {config.label}
       </Text>
@@ -54,24 +59,24 @@ const AttendanceButton = ({ type, active, onPress }: any) => {
 const StudentRow = ({ student, status, onStatusChange }: any) => (
   <View style={{ 
     backgroundColor: 'white', 
-    padding: 16, 
-    borderRadius: 24, 
-    marginBottom: 12,
+    padding: 20, 
+    borderRadius: 28, 
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#f1f4f6',
+    borderColor: '#f1f5f9',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 1
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 15,
+    elevation: 2
   }}>
-    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-      <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#f8f9fa', alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontSize: 18, fontWeight: '900', color: '#0055d4' }}>{student.name.charAt(0)}</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+      <View style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}>
+        <Text style={{ fontSize: 20, fontWeight: '900', color: '#0055d4' }}>{student.name.charAt(0)}</Text>
       </View>
-      <View style={{ marginLeft: 12, flex: 1 }}>
-        <Text style={{ fontSize: 16, fontWeight: '900', color: '#2b3437' }}>{student.name} {student.surname}</Text>
-        <Text style={{ fontSize: 12, color: '#b0b8bc', marginTop: 2 }}>ID: {student.id}</Text>
+      <View style={{ marginLeft: 16, flex: 1 }}>
+        <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b' }}>{student.name} {student.surname}</Text>
+        <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 2, textTransform: 'uppercase' }}>Student ID: {student.id}</Text>
       </View>
     </View>
 
@@ -194,48 +199,67 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       
-      {/* Header with Class Switcher Toggle */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f1f4f6' }}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#f8f9fa', alignItems: 'center', justifyContent: 'center' }}>
-          <ChevronLeft size={20} color="#2b3437" />
+      {/* Premium Header */}
+      <View style={{ 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        paddingHorizontal: 24, 
+        paddingVertical: 16, 
+        backgroundColor: 'white',
+        borderBottomWidth: 1, 
+        borderBottomColor: '#f1f5f9' 
+      }}>
+        <TouchableOpacity 
+          onPress={() => navigation.goBack()} 
+          style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}
+        >
+          <ChevronLeft size={22} color="#1e293b" />
         </TouchableOpacity>
         
         <TouchableOpacity 
           onPress={() => setShowClassSwitcher(true)}
-          style={{ flex: 1, marginLeft: 16, flexDirection: 'row', alignItems: 'center' }}
+          style={{ flex: 1, marginHorizontal: 16, alignItems: 'center' }}
         >
-          <View>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ fontSize: 16, fontWeight: '900', color: '#2b3437' }}>{selectedClass?.name || 'Select Class'}</Text>
-              <ChevronDown size={14} color="#0055d4" style={{ marginLeft: 6 }} />
-            </View>
-            <Text style={{ fontSize: 12, color: '#737c7f' }}>Tap to switch class</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>{selectedClass?.name || 'Select Class'}</Text>
+            <ChevronDown size={16} color="#0055d4" style={{ marginLeft: 6 }} />
           </View>
+          <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', marginTop: 2 }}>Tap to switch</Text>
         </TouchableOpacity>
 
-        {hasChanges && (
-          <TouchableOpacity 
-            onPress={handleSave}
-            disabled={loading}
-            style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Save size={20} color="#0055d4" />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity 
+          onPress={handleSave}
+          disabled={loading || !hasChanges}
+          style={{ 
+            width: 44, 
+            height: 44, 
+            borderRadius: 14, 
+            backgroundColor: hasChanges ? '#eff6ff' : '#f8fafc', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            borderWidth: 1,
+            borderColor: hasChanges ? '#dbeafe' : '#f1f5f9'
+          }}
+        >
+          <Save size={22} color={hasChanges ? '#0055d4' : '#94a3b8'} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView 
-        contentContainerStyle={{ padding: 20, paddingBottom: 200 }}
+        contentContainerStyle={{ padding: 24, paddingBottom: 200 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {/* Date Selector */}
-        <View style={{ marginBottom: 24 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <Text style={{ fontSize: 20, fontWeight: '900', color: '#2b3437' }}>{selectedDate.isSame(moment(), 'day') ? "Today's Schedule" : `${selectedDate.format('dddd')}'s Schedule`}</Text>
-            <TouchableOpacity style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 }}>
+        <View style={{ marginBottom: 32 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b' }}>
+              {selectedDate.isSame(moment(), 'day') ? "Today's Schedule" : `${selectedDate.format('dddd')}'s Schedule`}
+            </Text>
+            <TouchableOpacity style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 }}>
               <CalendarIcon size={22} color="#0055d4" />
             </TouchableOpacity>
           </View>
@@ -254,26 +278,28 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
                   }}
                   activeOpacity={0.8}
                   style={{ 
-                    width: 65, 
-                    height: 85, 
-                    borderRadius: 16, 
-                    backgroundColor: isSelected ? '#0055d4' : '#f8f9fa',
+                    width: 72, 
+                    height: 96, 
+                    borderRadius: 20, 
+                    backgroundColor: isSelected ? '#0055d4' : 'white',
                     alignItems: 'center', 
                     justifyContent: 'center',
-                    borderWidth: 1,
-                    borderColor: isSelected ? '#0055d4' : '#f1f4f6',
+                    borderWidth: 1.5,
+                    borderColor: isSelected ? '#0055d4' : '#f1f5f9',
+                    shadowColor: isSelected ? '#0055d4' : '#000',
+                    shadowOpacity: isSelected ? 0.2 : 0,
+                    shadowRadius: 10,
+                    elevation: isSelected ? 5 : 0
                   }}
                 >
-                  <Text style={{ fontSize: 10, fontWeight: 'bold', color: isSelected ? 'rgba(255,255,255,0.7)' : '#737c7f', textTransform: 'uppercase' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '900', color: isSelected ? 'rgba(255,255,255,0.7)' : '#94a3b8', textTransform: 'uppercase' }}>
                     {dateObj.format('ddd')}
                   </Text>
-                  <Text style={{ fontSize: 20, fontWeight: '900', color: isSelected ? 'white' : '#2b3437', marginTop: 4 }}>
+                  <Text style={{ fontSize: 24, fontWeight: '900', color: isSelected ? 'white' : '#1e293b', marginTop: 4 }}>
                     {dateObj.format('D')}
                   </Text>
                   {isToday && (
-                    <Text style={{ fontSize: 8, fontWeight: 'bold', color: isSelected ? 'white' : '#0055d4', marginTop: 2 }}>
-                      Today
-                    </Text>
+                    <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: isSelected ? 'white' : '#0055d4', marginTop: 6 }} />
                   )}
                 </TouchableOpacity>
               );
@@ -283,20 +309,22 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
 
         {/* Student List */}
         <View>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <Text style={{ fontSize: 16, fontWeight: '900', color: '#2b3437', textTransform: 'uppercase', letterSpacing: 1 }}>Student List</Text>
-            <View style={{ backgroundColor: '#f1f4f6', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
-              <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#737c7f' }}>{students.length} students</Text>
+          {hasLesson && (
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b', textTransform: 'uppercase', letterSpacing: 1 }}>Student List</Text>
+              <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 }}>
+                <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4' }}>{students.length} students</Text>
+              </View>
             </View>
-          </View>
+          )}
 
           {loading && !refreshing ? (
             <ActivityIndicator size="small" color="#0055d4" style={{ marginTop: 20 }} />
           ) : !hasLesson ? (
-            <View style={{ alignItems: 'center', marginTop: 40, backgroundColor: '#f8f9fa', padding: 32, borderRadius: 32 }}>
-              <Clock size={32} color="#0055d4" />
-              <Text style={{ fontSize: 18, fontWeight: '900', color: '#2b3437', textAlign: 'center', marginTop: 16 }}>No class today</Text>
-              <Text style={{ fontSize: 14, color: '#737c7f', textAlign: 'center', marginTop: 4 }}>You don't have any scheduled lessons for this class on this date.</Text>
+            <View style={{ alignItems: 'center', marginTop: 40, backgroundColor: 'white', padding: 40, borderRadius: 32, borderWidth: 1, borderColor: '#f1f5f9' }}>
+              <Clock size={48} color="#0055d4" strokeWidth={1.5} />
+              <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b', textAlign: 'center', marginTop: 20 }}>No class today</Text>
+              <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '600', textAlign: 'center', marginTop: 8, lineHeight: 20 }}>You don't have any scheduled lessons for this class on this date.</Text>
             </View>
           ) : (
             students.map(s => (
@@ -313,15 +341,15 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
 
       {/* Floating Save Button */}
       {hasChanges && (
-        <View style={{ position: 'absolute', bottom: 30, left: 20, right: 20 }}>
+        <View style={{ position: 'absolute', bottom: 40, left: 24, right: 24 }}>
           <TouchableOpacity 
             onPress={handleSave}
             disabled={loading}
             activeOpacity={0.9}
             style={{ 
               backgroundColor: '#0055d4', 
-              paddingVertical: 18, 
-              borderRadius: 20, 
+              paddingVertical: 20, 
+              borderRadius: 24, 
               flexDirection: 'row', 
               alignItems: 'center', 
               justifyContent: 'center',
@@ -336,26 +364,39 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
               <ActivityIndicator color="white" />
             ) : (
               <>
-                <Save size={20} color="white" style={{ marginRight: 10 }} />
-                <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>Save Changes</Text>
+                <Save size={22} color="white" style={{ marginRight: 12 }} />
+                <Text style={{ color: 'white', fontSize: 16, fontWeight: '900' }}>Save Changes</Text>
               </>
             )}
           </TouchableOpacity>
         </View>
       )}
+
       {/* Class Switcher Modal */}
       {showClassSwitcher && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end', zIndex: 1000 }}>
-          <TouchableOpacity 
-            activeOpacity={1} 
-            onPress={() => setShowClassSwitcher(false)} 
-            style={{ flex: 1 }} 
-          />
-          <View style={{ backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 60 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <Text style={{ fontSize: 20, fontWeight: '900', color: '#2b3437' }}>Switch Class</Text>
-              <TouchableOpacity onPress={() => setShowClassSwitcher(false)} style={{ padding: 8 }}>
-                <X size={24} color="#737c7f" />
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.5)', justifyContent: 'flex-end', zIndex: 1000 }}>
+          <TouchableOpacity activeOpacity={1} onPress={() => setShowClassSwitcher(false)} style={{ flex: 1 }} />
+          <View style={{ 
+            backgroundColor: 'white', 
+            borderTopLeftRadius: 40, 
+            borderTopRightRadius: 40, 
+            padding: 32, 
+            paddingBottom: 60,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: -10 },
+            shadowOpacity: 0.1,
+            shadowRadius: 30,
+            elevation: 20
+          }}>
+            <View style={{ width: 40, height: 5, backgroundColor: '#e2e8f0', borderRadius: 10, alignSelf: 'center', marginBottom: 24 }} />
+            
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
+              <Text style={{ fontSize: 24, fontWeight: '900', color: '#1e293b' }}>Switch Class</Text>
+              <TouchableOpacity 
+                onPress={() => setShowClassSwitcher(false)} 
+                style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X size={20} color="#64748b" />
               </TouchableOpacity>
             </View>
             
@@ -364,32 +405,41 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
                 <TouchableOpacity 
                   key={cls.id}
                   onPress={() => handleClassSelect(cls)}
+                  activeOpacity={0.8}
                   style={{ 
                     flexDirection: 'row', 
                     alignItems: 'center', 
-                    padding: 16, 
-                    borderRadius: 20, 
+                    padding: 20, 
+                    borderRadius: 24, 
                     backgroundColor: selectedClass?.id === cls.id ? '#eff6ff' : 'white',
-                    marginBottom: 8,
-                    borderWidth: 1,
-                    borderColor: selectedClass?.id === cls.id ? '#0055d4' : '#f1f4f6'
+                    marginBottom: 12,
+                    borderWidth: 1.5,
+                    borderColor: selectedClass?.id === cls.id ? '#0055d4' : '#f1f5f9',
+                    shadowColor: selectedClass?.id === cls.id ? '#0055d4' : '#000',
+                    shadowOpacity: selectedClass?.id === cls.id ? 0.05 : 0.02,
+                    shadowRadius: 10,
+                    elevation: 1
                   }}
                 >
                   <View style={{ 
-                    width: 48, 
-                    height: 48, 
-                    borderRadius: 14, 
-                    backgroundColor: selectedClass?.id === cls.id ? '#0055d4' : '#f8f9fa', 
+                    width: 56, 
+                    height: 56, 
+                    borderRadius: 18, 
+                    backgroundColor: selectedClass?.id === cls.id ? '#0055d4' : '#f8fafc', 
                     alignItems: 'center', 
                     justifyContent: 'center' 
                   }}>
-                    <Layout size={24} color={selectedClass?.id === cls.id ? 'white' : '#737c7f'} />
+                    <Layout size={28} color={selectedClass?.id === cls.id ? 'white' : '#94a3b8'} />
                   </View>
-                  <View style={{ marginLeft: 16, flex: 1 }}>
-                    <Text style={{ fontSize: 16, fontWeight: '900', color: selectedClass?.id === cls.id ? '#0055d4' : '#2b3437' }}>{cls.name}</Text>
-                    <Text style={{ fontSize: 12, color: '#737c7f', marginTop: 2 }}>{cls.level || 'Standard'}</Text>
+                  <View style={{ marginLeft: 20, flex: 1 }}>
+                    <Text style={{ fontSize: 18, fontWeight: '900', color: selectedClass?.id === cls.id ? '#0055d4' : '#1e293b' }}>{cls.name}</Text>
+                    <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '700', marginTop: 2 }}>{cls.level || 'Standard'}</Text>
                   </View>
-                  {selectedClass?.id === cls.id && <Check size={20} color="#0055d4" />}
+                  {selectedClass?.id === cls.id && (
+                    <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#0055d4', alignItems: 'center', justifyContent: 'center' }}>
+                      <Check size={16} color="white" strokeWidth={3} />
+                    </View>
+                  )}
                 </TouchableOpacity>
               ))}
             </ScrollView>

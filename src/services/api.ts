@@ -536,7 +536,8 @@ export const teacherService = {
   },
 
   fetchClassStudents: async (classId: string, date?: string) => {
-    let url = `/api/mobile/teacher/students?classId=${classId}`;
+    const teacherId = await authStorage.getUserId();
+    let url = `/api/mobile/teacher/students?classId=${classId}&teacherId=${teacherId}`;
     if (date) url += `&date=${date}`;
     return apiFetch(url);
   },
