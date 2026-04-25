@@ -5,7 +5,7 @@ import { Bell, Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIco
 import * as ImagePicker from 'expo-image-picker';
 import { Svg, Circle } from 'react-native-svg';
 import { useAppStore } from '../store/useAppStore';
-import { authService, parentService, studentService, uiService } from '../services/api';
+import { authService, parentService, studentService, uiService, teacherService } from '../services/api';
 
 import { GlobalHeader } from '../components/GlobalHeader';
 import { Image } from 'expo-image';
@@ -123,7 +123,7 @@ const ChildCard = ({ child, index, onSelect, onEditImage }: any) => {
             transition={200}
           />
         ) : (
-          <User size={60} color={textColor} strokeWidth={1} />
+          <UserIcon size={60} color={textColor} strokeWidth={1} />
         )}
         <TouchableOpacity 
           onPress={onEditImage}
@@ -294,7 +294,6 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
       if (type === 'user') {
         let updated = false;
         if (userRole === 'teacher') {
-          // Add updateTeacherProfile if needed, or use generic
           updated = !!(await parentService.updateProfile({ img: url }));
         } else {
           updated = !!(await parentService.updateProfile({ img: url }));
@@ -377,7 +376,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }} edges={['top']}>
       <StatusBar barStyle="dark-content" />
 
-      {/* Modern Header Save Button - Only show if dirty */}
+      {/* Header Save Button */}
       <View className="flex-row justify-end px-6 pt-2 h-12">
         {isDirty && (
           <TouchableOpacity 
@@ -542,6 +541,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
           </View>
         </View>
       </Modal>
+
       {/* Photo Selection Action Sheet */}
       <Modal visible={photoModalVisible} transparent animationType="fade">
         <TouchableOpacity 

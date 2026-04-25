@@ -15,12 +15,17 @@ import { LinkChildScreen } from './src/screens/LinkChildScreen';
 import { AnnouncementDetailScreen } from './src/screens/AnnouncementDetailScreen';
 import { LandingScreen } from './src/screens/LandingScreen';
 import { DocumentCenterScreen } from './src/screens/DocumentCenterScreen';
-import { Home as HomeIcon, FileText, CreditCard, User, Megaphone, Calendar, BarChart3 } from 'lucide-react-native';
+import { TeacherHomeScreen } from './src/screens/teacher/TeacherHomeScreen';
+import { TeacherAttendanceScreen } from './src/screens/teacher/TeacherAttendanceScreen';
+import { TeacherLessonsScreen } from './src/screens/teacher/TeacherLessonsScreen';
+import { TeacherTasksScreen } from './src/screens/teacher/TeacherTasksScreen';
+import { TeacherClassesScreen } from './src/screens/teacher/TeacherClassesScreen';
+import { Home as HomeIcon, FileText, CreditCard, User, Megaphone, Calendar, BarChart3, ClipboardList, BookOpen, Users, ClipboardCheck } from 'lucide-react-native';
 import { View, ActivityIndicator, Alert } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAppStore } from './src/store/useAppStore';
-import { parentService, authService, studentService, API_BASE_URL } from './src/services/api';
+import { parentService, authService, authStorage, studentService, API_BASE_URL, teacherService } from './src/services/api';
 import { notificationService } from './src/services/notificationService';
 import * as Haptics from 'expo-haptics';
 import Constants from 'expo-constants';
@@ -31,6 +36,9 @@ const Stack = createNativeStackNavigator();
 const navigationRef = createNavigationContainerRef();
 
 function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
+  const { userRole } = useAppStore();
+  const isTeacher = userRole === 'teacher';
+
   return (
     <Tab.Navigator
       screenListeners={{
@@ -72,6 +80,10 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
           else if (route.name === 'Announcements') Icon = Megaphone;
           else if (route.name === 'Payments') Icon = CreditCard;
           else if (route.name === 'Profile') Icon = User;
+          else if (route.name === 'Attendance') Icon = ClipboardList;
+          else if (route.name === 'Lessons') Icon = BookOpen;
+          else if (route.name === 'Tasks') Icon = ClipboardCheck;
+          else if (route.name === 'Classes') Icon = Users;
           
           return (
             <View className="items-center justify-center pt-2">
@@ -88,9 +100,21 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Announcements" component={AnnouncementsScreen} />
-      <Tab.Screen name="Payments" component={PaymentsScreen} />
+      {isTeacher ? (
+        <>
+          <Tab.Screen name="Home" component={TeacherHomeScreen} />
+          <Tab.Screen name="Attendance" component={TeacherAttendanceScreen} />
+          <Tab.Screen name="Lessons" component={TeacherLessonsScreen} />
+          <Tab.Screen name="Tasks" component={TeacherTasksScreen} />
+          <Tab.Screen name="Classes" component={TeacherClassesScreen} />
+        </>
+      ) : (
+        <>
+          <Tab.Screen name="Home" component={HomeScreen} />
+          <Tab.Screen name="Announcements" component={AnnouncementsScreen} />
+          <Tab.Screen name="Payments" component={PaymentsScreen} />
+        </>
+      )}
       <Tab.Screen
         name="Profile"
         children={(props: any) => <ProfileScreen {...props} onSignOut={onSignOut} />}
@@ -148,10 +172,10 @@ export default function App() {
 
     const bootstrap = async () => {
       try {
-        const loggedIn = await authService.isLoggedIn();
+        const loggedIn = await authStorage.isLoggedIn();
         if (loggedIn) {
-          const uid = await authService.getUserId();
-          const role = await authService.getUserRole();
+          const uid = await authStorage.getUserId();
+          const role = await authStorage.getUserRole();
           
           if (uid) {
             setUserId(uid);
@@ -216,8 +240,8 @@ export default function App() {
   }, []);
 
   const handleSignIn = async () => {
-    const uid = await authService.getUserId();
-    const role = await authService.getUserRole();
+    const uid = await authStorage.getUserId();
+    const role = await authStorage.getUserRole();
     
     setUserId(uid);
     setUserRole(role as any);

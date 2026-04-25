@@ -41,6 +41,10 @@ export const authStorage = {
   saveSchoolId: (id: string) => AsyncStorage.setItem(SCHOOL_ID_KEY, id),
   getSchoolId: () => AsyncStorage.getItem(SCHOOL_ID_KEY),
   clear: () => AsyncStorage.multiRemove([USER_ID_KEY, USER_ROLE_KEY, SCHOOL_ID_KEY, STUDENTS_CACHE_KEY]),
+  isLoggedIn: async () => {
+    const id = await AsyncStorage.getItem(USER_ID_KEY);
+    return !!id;
+  },
   // Legacy compatibility wrappers
   getParentId: () => AsyncStorage.getItem(USER_ID_KEY),
 };
@@ -508,5 +512,52 @@ export const uiService = {
     }
 
     return await response.json();
+  },
+};
+
+// ─── Teacher Service ────────────────────────────────────────────────────────────
+export const teacherService = {
+  fetchProfile: async () => {
+    const id = await authStorage.getUserId();
+    if (!id) return null;
+    return apiFetch(`/api/mobile/teacher?id=${id}`);
+  },
+
+  fetchHomeData: async () => {
+    const teacherId = await authStorage.getUserId();
+    if (!teacherId) return null;
+    return apiFetch(`/api/mobile/teacher/home?teacherId=${teacherId}`);
+  },
+
+  fetchClasses: async () => {
+    const teacherId = await authStorage.getUserId();
+    if (!teacherId) return [];
+    return apiFetch(`/api/mobile/teacher/classes?teacherId=${teacherId}`);
+  },
+
+  fetchClassStudents: async (classId: string, date?: string) => {
+    let url = `/api/mobile/teacher/students?classId=${classId}`;
+    if (date) url += `&date=${date}`;
+    return apiFetch(url);
+  },
+
+  saveAttendance: async ({ classId, records, date, lessonId }: any) => {
+    const teacherId = await authStorage.getUserId();
+    return apiFetch('/api/mobile/teacher/attendance', {
+      method: 'POST',
+      body: JSON.stringify({ teacherId, classId, records, date, lessonId }),
+    });
+  },
+
+  saveLesson: async (lessonData: any) => {
+    return apiFetch('/api/mobile/teacher/lessons', {
+      method: 'POST',
+      body: JSON.stringify(lessonData),
+    });
+  },
+
+  fetchTasks: async () => {
+    const teacherId = await authStorage.getUserId();
+    return apiFetch(`/api/mobile/teacher/tasks?teacherId=${teacherId}`);
   },
 };
