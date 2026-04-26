@@ -315,6 +315,10 @@ export const studentService = {
     };
   },
 
+  fetchCourses: async (studentId: string): Promise<any[]> => {
+    return await apiFetch(`/api/mobile/courses?studentId=${studentId}`);
+  },
+
   fetchPayments: async (studentId: string): Promise<PaymentRecord[]> => {
     const cached = await AsyncStorage.getItem(STUDENTS_CACHE_KEY);
     if (!cached) return [];

@@ -450,20 +450,6 @@ export const HomeScreen = ({ navigation }: any) => {
                 onPress={() => setActiveCategory('sessions')}
               />
               <GlanceItem 
-                icon={FileText} 
-                title="Tasks Given" 
-                subtitle={dayData.homeworkGiven?.length > 0 ? `${dayData.homeworkGiven.length} new tasks given` : "No new tasks given"} 
-                color="#f59e0b" 
-                onPress={() => setActiveCategory('tasksGiven')}
-              />
-              <GlanceItem 
-                icon={BookOpen} 
-                title="Course Resources" 
-                subtitle={dayData.files?.length > 0 ? `${dayData.files.length} resources shared` : "No resources shared today"} 
-                color="#8b5cf6" 
-                onPress={() => setActiveCategory('resources')}
-              />
-              <GlanceItem 
                 icon={MessageSquare} 
                 title="Teacher Remarks" 
                 subtitle={dayData.notes?.length > 0 ? `${dayData.notes.length} remarks today` : "No remarks for this date"} 

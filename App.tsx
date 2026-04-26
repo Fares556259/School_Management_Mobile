@@ -15,12 +15,9 @@ import { LinkChildScreen } from './src/screens/LinkChildScreen';
 import { AnnouncementDetailScreen } from './src/screens/AnnouncementDetailScreen';
 import { LandingScreen } from './src/screens/LandingScreen';
 import { DocumentCenterScreen } from './src/screens/DocumentCenterScreen';
-import { TeacherHomeScreen } from './src/screens/teacher/TeacherHomeScreen';
-import { TeacherAttendanceScreen } from './src/screens/teacher/TeacherAttendanceScreen';
-import { TeacherLessonsScreen } from './src/screens/teacher/TeacherLessonsScreen';
-import { TeacherTasksScreen } from './src/screens/teacher/TeacherTasksScreen';
 import { TeacherClassesScreen } from './src/screens/teacher/TeacherClassesScreen';
-import { Home as HomeIcon, FileText, CreditCard, User, Megaphone, Calendar, BarChart3, ClipboardList, BookOpen, Users, ClipboardCheck } from 'lucide-react-native';
+import { CoursesScreen } from './src/screens/CoursesScreen';
+import { Home as HomeIcon, FileText, CreditCard, User, Megaphone, Calendar, BarChart3, ClipboardList, BookOpen, Users, ClipboardCheck, GraduationCap } from 'lucide-react-native';
 import { View, ActivityIndicator, Alert } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -84,6 +81,7 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
           else if (route.name === 'Lessons') Icon = BookOpen;
           else if (route.name === 'Tasks') Icon = ClipboardCheck;
           else if (route.name === 'Classes') Icon = Users;
+          else if (route.name === 'Courses') Icon = GraduationCap;
           
           return (
             <View className="items-center justify-center pt-2">
@@ -111,6 +109,7 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
       ) : (
         <>
           <Tab.Screen name="Home" component={HomeScreen} />
+          <Tab.Screen name="Courses" component={CoursesScreen} />
           <Tab.Screen name="Announcements" component={AnnouncementsScreen} />
           <Tab.Screen name="Payments" component={PaymentsScreen} />
         </>
