@@ -64,17 +64,17 @@ const AttendanceButton = ({ type, active, onPress }: any) => {
 
 const StarRating = ({ score, onScoreChange }: any) => {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
       {[1, 2, 3, 4, 5].map((star) => {
-        const isSelected = score >= star * 2;
+        const isSelected = score >= star;
         return (
           <TouchableOpacity 
             key={star} 
-            onPress={() => onScoreChange(star * 2)}
+            onPress={() => onScoreChange(star)}
             activeOpacity={0.7}
           >
             <Star 
-              size={24} 
+              size={28} 
               color={isSelected ? '#f59e0b' : '#e2e8f0'} 
               fill={isSelected ? '#f59e0b' : 'none'}
               strokeWidth={isSelected ? 0 : 2}
@@ -82,8 +82,8 @@ const StarRating = ({ score, onScoreChange }: any) => {
           </TouchableOpacity>
         );
       })}
-      <View style={{ marginLeft: 8, backgroundColor: '#fffbeb', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-        <Text style={{ fontSize: 13, fontWeight: '900', color: '#f59e0b' }}>{score || 0}/10</Text>
+      <View style={{ marginLeft: 12, backgroundColor: '#fffbeb', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 }}>
+        <Text style={{ fontSize: 14, fontWeight: '900', color: '#f59e0b' }}>{score || 0}/5</Text>
       </View>
     </View>
   );

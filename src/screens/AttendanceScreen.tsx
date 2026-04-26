@@ -104,7 +104,7 @@ const AttendanceHistoryItem = ({ day, onJustify }: { day: AttendanceHistoryDay, 
                   {(s as any).score > 0 && (
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8, backgroundColor: '#fffbeb', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
                       <Star size={10} color="#f59e0b" fill="#f59e0b" />
-                      <Text style={{ fontSize: 10, fontWeight: '900', color: '#f59e0b', marginLeft: 4 }}>{(s as any).score}/10</Text>
+                      <Text style={{ fontSize: 10, fontWeight: '900', color: '#f59e0b', marginLeft: 4 }}>{(s as any).score}/5</Text>
                     </View>
                   )}
                 </View>
