@@ -96,31 +96,61 @@ const AttendanceHistoryItem = ({ day, onJustify }: { day: AttendanceHistoryDay, 
           borderTopWidth: 0,
           borderColor: '#f1f4f6'
         }}>
-          {day.sessions.map((s, i) => (
-            <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12, alignItems: 'center' }}>
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={{ fontSize: 13, color: '#586064', fontWeight: '600' }}>{s.subject}</Text>
-                  {(s as any).score > 0 && (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8, backgroundColor: '#fffbeb', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-                      <Star size={10} color="#f59e0b" fill="#f59e0b" />
-                      <Text style={{ fontSize: 10, fontWeight: '900', color: '#f59e0b', marginLeft: 4 }}>{(s as any).score}/5</Text>
+          {day.sessions.map((s: any, i) => {
+            const getStatusConfig = (status: string | null) => {
+              const st = status?.toUpperCase();
+              if (st === 'PRES' || st === 'PRESENT') return { label: 'Present', color: '#10b981', bg: '#ecfdf5' };
+              if (st === 'ABS' || st === 'ABSENT')  return { label: 'Absent',  color: '#ef4444', bg: '#fef2f2' };
+              if (st === 'LATE') return { label: 'Late',    color: '#f59e0b', bg: '#fffbeb' };
+              return { label: 'Pending', color: '#64748b', bg: '#f1f5f9' };
+            };
+            const config = getStatusConfig(s.status);
+
+            return (
+              <View key={i} style={{ 
+                backgroundColor: 'white', 
+                padding: 16, 
+                borderRadius: 20, 
+                marginBottom: 12,
+                borderWidth: 1,
+                borderColor: '#f1f5f9'
+              }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, color: '#1e293b', fontWeight: '900' }}>{s.subject}</Text>
+                    <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: config.bg, alignSelf: 'flex-start', marginTop: 6 }}>
+                      <Text style={{ color: config.color, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' }}>{config.label}</Text>
                     </View>
+                  </View>
+                  
+                  {s.status === 'ABSENT' && (
+                    <TouchableOpacity 
+                      onPress={() => onJustify(s.id)}
+                      style={{ backgroundColor: '#eff6ff', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, flexDirection: 'row', alignItems: 'center' }}
+                    >
+                      <FileUp size={12} color="#0055d4" />
+                      <Text style={{ fontSize: 10, color: '#0055d4', fontWeight: '900', marginLeft: 4 }}>Justify</Text>
+                    </TouchableOpacity>
                   )}
                 </View>
-                {s.status === 'ABSENT' && (
-                  <TouchableOpacity 
-                    onPress={() => onJustify(s.id)}
-                    style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}
-                  >
-                    <FileUp size={12} color="#0055d4" />
-                    <Text style={{ fontSize: 11, color: '#0055d4', fontWeight: 'bold', marginLeft: 4 }}>Justify this absence</Text>
-                  </TouchableOpacity>
+
+                {s.score > 0 && (
+                  <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 10, flexDirection: 'row', alignItems: 'center' }}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star 
+                        key={star} 
+                        size={12} 
+                        color={s.score >= star ? '#f59e0b' : '#e2e8f0'} 
+                        fill={s.score >= star ? '#f59e0b' : 'none'}
+                        style={{ marginRight: 3 }}
+                      />
+                    ))}
+                    <Text style={{ fontSize: 11, fontWeight: '900', color: '#f59e0b', marginLeft: 4 }}>{s.score}/5</Text>
+                  </View>
                 )}
               </View>
-              <Text style={{ fontSize: 12, color: STATUS_MAP[s.status]?.color || '#9ca3af', fontWeight: 'bold' }}>{s.status}</Text>
-            </View>
-          ))}
+            );
+          })}
           
           {day.notes.length > 0 && (
             <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#e5e7eb' }}>

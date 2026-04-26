@@ -109,38 +109,76 @@ const GlanceItem = ({ icon: Icon, title, subtitle, color, onPress }: any) => (
 
 const SessionItem = ({ session }: any) => {
   const Icon = ICON_MAP[session.iconName] || Book;
-  const getAttendanceBadge = (status: string | null) => {
-    const s = status?.toUpperCase();
-    if (s === 'PRES' || s === 'PRESENT') return { label: 'Present', color: '#22c55e' };
-    if (s === 'ABS' || s === 'ABSENT')  return { label: 'Absent',  color: '#ef4444' };
-    if (s === 'LATE') return { label: 'Late',    color: '#f59e0b' };
-    return null;
-  };
-  const badge = getAttendanceBadge(session.attendance);
   
-  return (
-    <View style={{ backgroundColor: 'white', padding: 16, borderRadius: 18, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9' }}>
-      <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}><Icon color="#0055d4" size={20} /></View>
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 15, fontWeight: '900', color: '#1e293b' }}>{session.subject}</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-          <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '700' }}>{session.startTime} - {session.endTime}</Text>
-          {session.score > 0 && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 12, backgroundColor: '#fffbeb', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-              <Star size={10} color="#f59e0b" fill="#f59e0b" />
-              <Text style={{ fontSize: 10, fontWeight: '900', color: '#f59e0b', marginLeft: 4 }}>{session.score}/5</Text>
-            </View>
-          )}
+  const getStatusConfig = (status: string | null) => {
+    const s = status?.toUpperCase();
+    if (s === 'PRES' || s === 'PRESENT') return { label: 'Present', color: '#10b981', bg: '#ecfdf5' };
+    if (s === 'ABS' || s === 'ABSENT')  return { label: 'Absent',  color: '#ef4444', bg: '#fef2f2' };
+    if (s === 'LATE') return { label: 'Late',    color: '#f59e0b', bg: '#fffbeb' };
+    return { label: 'Pending', color: '#64748b', bg: '#f1f5f9' };
+  };
+
+  const config = getStatusConfig(session.attendance);
+  
+  const renderStars = (score: number) => {
+    if (!score || score === 0) return null;
+    return (
+      <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 12 }}>
+        <Text style={{ fontSize: 10, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 0.5 }}>Teacher's Evaluation</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {[1, 2, 3, 4, 5].map((star) => (
+            <Star 
+              key={star} 
+              size={14} 
+              color={score >= star ? '#f59e0b' : '#e2e8f0'} 
+              fill={score >= star ? '#f59e0b' : 'none'}
+              style={{ marginRight: 4 }}
+            />
+          ))}
+          <Text style={{ fontSize: 12, fontWeight: '900', color: '#f59e0b', marginLeft: 6 }}>{score}/5</Text>
         </View>
       </View>
-      {badge && (
-        <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: badge.color + '15' }}>
-          <Text style={{ color: badge.color, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' }}>{badge.label}</Text>
+    );
+  };
+
+  return (
+    <View style={{ 
+      backgroundColor: 'white', 
+      padding: 20, 
+      borderRadius: 24, 
+      marginBottom: 16, 
+      borderWidth: 1, 
+      borderColor: '#f1f5f9',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.02,
+      shadowRadius: 10,
+      elevation: 2
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}>
+          <Icon color="#0055d4" size={22} />
         </View>
-      )}
+        <View style={{ flex: 1, marginLeft: 16 }}>
+          <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b' }}>{session.subject}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+            <Clock size={12} color="#94a3b8" />
+            <Text style={{ fontSize: 12, color: '#64748b', fontWeight: '700', marginLeft: 4 }}>{session.startTime} - {session.endTime}</Text>
+            {session.room && (
+              <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700', marginLeft: 12 }}>• {session.room}</Text>
+            )}
+          </View>
+        </View>
+        <View style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: config.bg, borderWidth: 1, borderColor: config.color + '20' }}>
+          <Text style={{ color: config.color, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' }}>{config.label}</Text>
+        </View>
+      </View>
+
+      {renderStars(session.score)}
     </View>
   );
 };
+
 
 const HomeworkItem = ({ homework, label, onPress }: any) => (
   <TouchableOpacity onPress={onPress} style={{ backgroundColor: 'white', padding: 16, borderRadius: 18, marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9', flexDirection: 'row', alignItems: 'center' }}>
