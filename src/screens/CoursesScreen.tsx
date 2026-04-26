@@ -200,7 +200,3 @@ export const CoursesScreen = () => {
     </SafeAreaView>
   );
 };
-      </ScrollView>
-    </SafeAreaView>
-  );
-};
