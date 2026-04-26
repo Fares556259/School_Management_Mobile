@@ -117,12 +117,21 @@ const SessionItem = ({ session }: any) => {
     return null;
   };
   const badge = getAttendanceBadge(session.attendance);
+  
   return (
     <View style={{ backgroundColor: 'white', padding: 16, borderRadius: 18, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9' }}>
       <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}><Icon color="#0055d4" size={20} /></View>
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 15, fontWeight: '900', color: '#1e293b' }}>{session.subject}</Text>
-        <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2, fontWeight: '700' }}>{session.time} • {session.room}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+          <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '700' }}>{session.startTime} - {session.endTime}</Text>
+          {session.score > 0 && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 12, backgroundColor: '#fffbeb', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+              <Star size={10} color="#f59e0b" fill="#f59e0b" />
+              <Text style={{ fontSize: 10, fontWeight: '900', color: '#f59e0b', marginLeft: 4 }}>{session.score}/10</Text>
+            </View>
+          )}
+        </View>
       </View>
       {badge && (
         <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: badge.color + '15' }}>

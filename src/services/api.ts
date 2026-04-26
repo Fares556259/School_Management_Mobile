@@ -545,7 +545,7 @@ export const teacherService = {
   saveAttendance: async (data: { 
     classId: string; 
     date: string; 
-    records: { studentId: string; status: string; note?: string }[];
+    records: { studentId: string; status: string; note?: string; score?: number }[];
     lessonId: number | null;
     task?: { title: string; description?: string };
     resource?: { title: string; url: string };

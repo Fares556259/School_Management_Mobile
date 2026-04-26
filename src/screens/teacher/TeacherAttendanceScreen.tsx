@@ -15,7 +15,8 @@ import {
   MessageSquare,
   ClipboardList,
   FileText,
-  Plus
+  Plus,
+  Star
 } from 'lucide-react-native';
 import { teacherService } from '../../services/api';
 import moment from 'moment';
@@ -61,6 +62,33 @@ const AttendanceButton = ({ type, active, onPress }: any) => {
   );
 };
 
+const StarRating = ({ score, onScoreChange }: any) => {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+      {[1, 2, 3, 4, 5].map((star) => {
+        const isSelected = score >= star * 2;
+        return (
+          <TouchableOpacity 
+            key={star} 
+            onPress={() => onScoreChange(star * 2)}
+            activeOpacity={0.7}
+          >
+            <Star 
+              size={24} 
+              color={isSelected ? '#f59e0b' : '#e2e8f0'} 
+              fill={isSelected ? '#f59e0b' : 'none'}
+              strokeWidth={isSelected ? 0 : 2}
+            />
+          </TouchableOpacity>
+        );
+      })}
+      <View style={{ marginLeft: 8, backgroundColor: '#fffbeb', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+        <Text style={{ fontSize: 13, fontWeight: '900', color: '#f59e0b' }}>{score || 0}/10</Text>
+      </View>
+    </View>
+  );
+};
+
 const QUICK_TAGS = [
   'Excused',
   'Unexcused',
@@ -73,7 +101,7 @@ const QUICK_TAGS = [
   'Monitor closely'
 ];
 
-const StudentRow = ({ student, status, onStatusChange, note, onNoteChange }: any) => {
+const StudentRow = ({ student, status, onStatusChange, note, onNoteChange, score, onScoreChange }: any) => {
   const [showNote, setShowNote] = useState(note?.length > 0);
 
   const handleTagPress = (tag: string) => {
@@ -110,6 +138,11 @@ const StudentRow = ({ student, status, onStatusChange, note, onNoteChange }: any
         >
           <MessageSquare size={20} color={showNote ? '#0055d4' : '#64748b'} />
         </TouchableOpacity>
+      </View>
+
+      <View style={{ marginBottom: 20 }}>
+        <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 12, letterSpacing: 0.5 }}>Participation Score</Text>
+        <StarRating score={score} onScoreChange={onScoreChange} />
       </View>
 
       <View style={{ flexDirection: 'row', marginBottom: showNote ? 16 : 0 }}>
@@ -183,6 +216,8 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [newTask, setNewTask] = useState({ title: '', description: '', show: false });
   const [newResource, setNewResource] = useState({ title: '', url: '', show: false });
+  const [scores, setScores] = useState<Record<string, number>>({});
+  const [initialScores, setInitialScores] = useState<Record<string, number>>({});
   
   // Generate dates for the current week around the selected date
   const weekDates = Array.from({ length: 7 }, (_, i) => {
@@ -193,6 +228,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
 
   const hasChanges = JSON.stringify(attendance) !== JSON.stringify(initialAttendance) || 
                      JSON.stringify(notes) !== JSON.stringify(initialNotes) ||
+                     JSON.stringify(scores) !== JSON.stringify(initialScores) ||
                      newTask.title.length > 0 ||
                      newResource.title.length > 0;
 
@@ -239,14 +275,18 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
 
       const initialAtt: Record<string, string> = {};
       const initialN: Record<string, string> = {};
+      const initialS: Record<string, number> = {};
       res.students.forEach((s: any) => {
         initialAtt[s.id] = s.attendanceStatus || 'PRESENT';
         initialN[s.id] = s.note || '';
+        initialS[s.id] = s.score || 0;
       });
       setAttendance(initialAtt);
       setInitialAttendance(initialAtt);
       setNotes(initialN);
       setInitialNotes(initialN);
+      setScores(initialS);
+      setInitialScores(initialS);
     } catch (err) {
       console.error("[TEACHER-STUDENTS-LOAD]", err);
     } finally {
@@ -286,7 +326,8 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
         records: Object.keys(attendance).map(studentId => ({
           studentId,
           status: attendance[studentId],
-          note: notes[studentId]
+          note: notes[studentId],
+          score: scores[studentId]
         })),
         lessonId: lessonId,
         task: newTask.title ? { title: newTask.title, description: newTask.description } : undefined,
@@ -295,6 +336,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
       
       setInitialAttendance(attendance);
       setInitialNotes(notes);
+      setInitialScores(scores);
       setNewTask({ title: '', description: '', show: false });
       setNewResource({ title: '', url: '', show: false });
       alert('Attendance and feedback saved successfully!');
@@ -443,6 +485,8 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
                 onStatusChange={(status: string) => handleStatusChange(s.id, status)} 
                 note={notes[s.id]}
                 onNoteChange={(text: string) => setNotes(prev => ({ ...prev, [s.id]: text }))}
+                score={scores[s.id]}
+                onScoreChange={(score: number) => setScores(prev => ({ ...prev, [s.id]: score }))}
               />
             ))
           )}

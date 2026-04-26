@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { RefreshControl, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, FlatList, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Calendar, AlertCircle, CheckCircle2, Clock, MessageSquare, Filter, FileUp, Camera } from 'lucide-react-native';
+import { ChevronLeft, Calendar, AlertCircle, CheckCircle2, Clock, MessageSquare, Filter, FileUp, Camera, Star } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAppStore } from '../store/useAppStore';
 import { studentService, uiService } from '../services/api';
@@ -98,8 +98,16 @@ const AttendanceHistoryItem = ({ day, onJustify }: { day: AttendanceHistoryDay, 
         }}>
           {day.sessions.map((s, i) => (
             <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12, alignItems: 'center' }}>
-              <View>
-                <Text style={{ fontSize: 13, color: '#586064', fontWeight: '600' }}>{s.subject}</Text>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 13, color: '#586064', fontWeight: '600' }}>{s.subject}</Text>
+                  {(s as any).score > 0 && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8, backgroundColor: '#fffbeb', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                      <Star size={10} color="#f59e0b" fill="#f59e0b" />
+                      <Text style={{ fontSize: 10, fontWeight: '900', color: '#f59e0b', marginLeft: 4 }}>{(s as any).score}/10</Text>
+                    </View>
+                  )}
+                </View>
                 {s.status === 'ABSENT' && (
                   <TouchableOpacity 
                     onPress={() => onJustify(s.id)}
