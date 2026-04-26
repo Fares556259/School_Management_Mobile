@@ -11,10 +11,15 @@ import {
   Calendar as CalendarIcon,
   X,
   Check,
-  Layout
+  Layout,
+  MessageSquare,
+  ClipboardList,
+  FileText,
+  Plus
 } from 'lucide-react-native';
 import { teacherService } from '../../services/api';
 import moment from 'moment';
+import { TextInput } from 'react-native-gesture-handler';
 
 const AttendanceButton = ({ type, active, onPress }: any) => {
   const configs: any = {
@@ -56,37 +61,110 @@ const AttendanceButton = ({ type, active, onPress }: any) => {
   );
 };
 
-const StudentRow = ({ student, status, onStatusChange }: any) => (
-  <View style={{ 
-    backgroundColor: 'white', 
-    padding: 20, 
-    borderRadius: 28, 
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 15,
-    elevation: 2
-  }}>
-    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
-      <View style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}>
-        <Text style={{ fontSize: 20, fontWeight: '900', color: '#0055d4' }}>{student.name.charAt(0)}</Text>
-      </View>
-      <View style={{ marginLeft: 16, flex: 1 }}>
-        <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b' }}>{student.name} {student.surname}</Text>
-        <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 2, textTransform: 'uppercase' }}>Student ID: {student.id}</Text>
-      </View>
-    </View>
+const QUICK_TAGS = [
+  'Excused',
+  'Unexcused',
+  'Parent notified',
+  'Missing homework',
+  'Disruptive',
+  'Needs support',
+  'Great participation',
+  'Conflict with peer',
+  'Monitor closely'
+];
 
-    <View style={{ flexDirection: 'row' }}>
-      <AttendanceButton type="PRESENT" active={status === 'PRESENT'} onPress={() => onStatusChange('PRESENT')} />
-      <AttendanceButton type="ABSENT" active={status === 'ABSENT'} onPress={() => onStatusChange('ABSENT')} />
-      <AttendanceButton type="LATE" active={status === 'LATE'} onPress={() => onStatusChange('LATE')} />
+const StudentRow = ({ student, status, onStatusChange, note, onNoteChange }: any) => {
+  const [showNote, setShowNote] = useState(note?.length > 0);
+
+  const handleTagPress = (tag: string) => {
+    const currentNote = note || '';
+    const newNote = currentNote.length > 0 ? `${currentNote}, ${tag}` : tag;
+    onNoteChange(newNote);
+  };
+
+  return (
+    <View style={{ 
+      backgroundColor: 'white', 
+      padding: 20, 
+      borderRadius: 28, 
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: '#f1f5f9',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.02,
+      shadowRadius: 15,
+      elevation: 2
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+        <View style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}>
+          <Text style={{ fontSize: 20, fontWeight: '900', color: '#0055d4' }}>{student.name.charAt(0)}</Text>
+        </View>
+        <View style={{ marginLeft: 16, flex: 1 }}>
+          <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b' }}>{student.name} {student.surname}</Text>
+          <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 2, textTransform: 'uppercase' }}>Student ID: {student.id}</Text>
+        </View>
+        <TouchableOpacity 
+          onPress={() => setShowNote(!showNote)}
+          style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: showNote ? '#eff6ff' : '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: showNote ? '#dbeafe' : '#f1f5f9' }}
+        >
+          <MessageSquare size={20} color={showNote ? '#0055d4' : '#64748b'} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={{ flexDirection: 'row', marginBottom: showNote ? 16 : 0 }}>
+        <AttendanceButton type="PRESENT" active={status === 'PRESENT'} onPress={() => onStatusChange('PRESENT')} />
+        <AttendanceButton type="ABSENT" active={status === 'ABSENT'} onPress={() => onStatusChange('ABSENT')} />
+        <AttendanceButton type="LATE" active={status === 'LATE'} onPress={() => onStatusChange('LATE')} />
+      </View>
+
+      {showNote && (
+        <View style={{ marginTop: 4 }}>
+          <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 10, letterSpacing: 0.5 }}>Quick Tags</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+            {QUICK_TAGS.map(tag => (
+              <TouchableOpacity 
+                key={tag}
+                onPress={() => handleTagPress(tag)}
+                style={{ 
+                  paddingHorizontal: 12, 
+                  paddingVertical: 6, 
+                  borderRadius: 10, 
+                  backgroundColor: '#f1f5f9',
+                  borderWidth: 1,
+                  borderColor: '#e2e8f0'
+                }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569' }}>{tag}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <View style={{ backgroundColor: '#f8fafc', borderRadius: 18, padding: 16, borderWidth: 1, borderColor: '#f1f5f9' }}>
+            <TextInput
+              placeholder="Add a detailed note about this student..."
+              placeholderTextColor="#94a3b8"
+              multiline
+              value={note}
+              onChangeText={onNoteChange}
+              style={{ 
+                fontSize: 14, 
+                color: '#1e293b', 
+                fontWeight: '600',
+                minHeight: 80,
+                textAlignVertical: 'top',
+                padding: 0
+              }}
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
+              <Text style={{ fontSize: 11, color: '#cbd5e1', fontWeight: '700' }}>{(note || '').length}/200</Text>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
-  </View>
-);
+  );
+};
 
 export const TeacherAttendanceScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(true);
@@ -102,13 +180,21 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
   const [hasLesson, setHasLesson] = useState(true);
   const [lessonId, setLessonId] = useState<number | null>(null);
   const [showClassSwitcher, setShowClassSwitcher] = useState(false);
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [newTask, setNewTask] = useState({ title: '', description: '', show: false });
+  const [newResource, setNewResource] = useState({ title: '', url: '', show: false });
   
   // Generate dates for the current week around the selected date
   const weekDates = Array.from({ length: 7 }, (_, i) => {
     return moment().startOf('week').add(i, 'days');
   });
 
-  const hasChanges = JSON.stringify(attendance) !== JSON.stringify(initialAttendance);
+  const [initialNotes, setInitialNotes] = useState<Record<string, string>>({});
+
+  const hasChanges = JSON.stringify(attendance) !== JSON.stringify(initialAttendance) || 
+                     JSON.stringify(notes) !== JSON.stringify(initialNotes) ||
+                     newTask.title.length > 0 ||
+                     newResource.title.length > 0;
 
   const loadClasses = async () => {
     try {
@@ -151,10 +237,16 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
       setLessonId(res.lessonId || null);
       setShowClassSwitcher(false); // Close switcher on selection
 
-      const initial: Record<string, string> = {};
-      res.students.forEach((s: any) => initial[s.id] = s.attendanceStatus || 'PRESENT');
-      setAttendance(initial);
-      setInitialAttendance(initial);
+      const initialAtt: Record<string, string> = {};
+      const initialN: Record<string, string> = {};
+      res.students.forEach((s: any) => {
+        initialAtt[s.id] = s.attendanceStatus || 'PRESENT';
+        initialN[s.id] = s.note || '';
+      });
+      setAttendance(initialAtt);
+      setInitialAttendance(initialAtt);
+      setNotes(initialN);
+      setInitialNotes(initialN);
     } catch (err) {
       console.error("[TEACHER-STUDENTS-LOAD]", err);
     } finally {
@@ -187,20 +279,25 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
     if (!selectedClass) return;
     try {
       setLoading(true);
-      const attendanceList = Object.keys(attendance).map(studentId => ({
-        studentId,
-        status: attendance[studentId]
-      }));
       
       await teacherService.saveAttendance({
         classId: selectedClass.id,
         date: selectedDate.format('YYYY-MM-DD'),
-        records: attendanceList,
-        lessonId: lessonId
+        records: Object.keys(attendance).map(studentId => ({
+          studentId,
+          status: attendance[studentId],
+          note: notes[studentId]
+        })),
+        lessonId: lessonId,
+        task: newTask.title ? { title: newTask.title, description: newTask.description } : undefined,
+        resource: newResource.title ? { title: newResource.title, url: newResource.url } : undefined
       });
       
       setInitialAttendance(attendance);
-      alert('Attendance saved successfully!');
+      setInitialNotes(notes);
+      setNewTask({ title: '', description: '', show: false });
+      setNewResource({ title: '', url: '', show: false });
+      alert('Attendance and feedback saved successfully!');
     } catch (err) {
       console.error("[TEACHER-SAVE-ERROR]", err);
       alert('Failed to save attendance');
@@ -344,8 +441,93 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
                 student={s} 
                 status={attendance[s.id]} 
                 onStatusChange={(status: string) => handleStatusChange(s.id, status)} 
+                note={notes[s.id]}
+                onNoteChange={(text: string) => setNotes(prev => ({ ...prev, [s.id]: text }))}
               />
             ))
+          )}
+
+          {/* Quick Actions: Tasks & Resources */}
+          {hasLesson && !loading && (
+            <View style={{ marginTop: 24, gap: 16 }}>
+              {/* Task Section */}
+              <View style={{ backgroundColor: 'white', borderRadius: 28, padding: 20, borderWidth: 1, borderColor: '#f1f5f9' }}>
+                <TouchableOpacity 
+                  onPress={() => setNewTask(prev => ({ ...prev, show: !prev.show }))}
+                  style={{ flexDirection: 'row', alignItems: 'center' }}
+                >
+                  <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#fff7ed', alignItems: 'center', justifyContent: 'center' }}>
+                    <ClipboardList size={22} color="#f59e0b" />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 16 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>Assign a Task</Text>
+                    <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 2 }}>For the whole class</Text>
+                  </View>
+                  <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}>
+                    <Plus size={18} color="#64748b" />
+                  </View>
+                </TouchableOpacity>
+
+                {newTask.show && (
+                  <View style={{ marginTop: 20, gap: 12 }}>
+                    <TextInput 
+                      placeholder="Task Title"
+                      placeholderTextColor="#94a3b8"
+                      value={newTask.title}
+                      onChangeText={(t) => setNewTask(prev => ({ ...prev, title: t }))}
+                      style={{ backgroundColor: '#f8fafc', borderRadius: 16, padding: 16, fontSize: 14, fontWeight: '700', color: '#1e293b', borderWidth: 1, borderColor: '#f1f5f9' }}
+                    />
+                    <TextInput 
+                      placeholder="Description (optional)"
+                      placeholderTextColor="#94a3b8"
+                      multiline
+                      value={newTask.description}
+                      onChangeText={(t) => setNewTask(prev => ({ ...prev, description: t }))}
+                      style={{ backgroundColor: '#f8fafc', borderRadius: 16, padding: 16, fontSize: 14, fontWeight: '600', color: '#1e293b', borderWidth: 1, borderColor: '#f1f5f9', minHeight: 80, textAlignVertical: 'top' }}
+                    />
+                  </View>
+                )}
+              </View>
+
+              {/* Resource Section */}
+              <View style={{ backgroundColor: 'white', borderRadius: 28, padding: 20, borderWidth: 1, borderColor: '#f1f5f9' }}>
+                <TouchableOpacity 
+                  onPress={() => setNewResource(prev => ({ ...prev, show: !prev.show }))}
+                  style={{ flexDirection: 'row', alignItems: 'center' }}
+                >
+                  <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center' }}>
+                    <FileText size={22} color="#8b5cf6" />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 16 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>Share a Resource</Text>
+                    <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 2 }}>Link or document URL</Text>
+                  </View>
+                  <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}>
+                    <Plus size={18} color="#64748b" />
+                  </View>
+                </TouchableOpacity>
+
+                {newResource.show && (
+                  <View style={{ marginTop: 20, gap: 12 }}>
+                    <TextInput 
+                      placeholder="Resource Title (e.g., Lesson PDF)"
+                      placeholderTextColor="#94a3b8"
+                      value={newResource.title}
+                      onChangeText={(t) => setNewResource(prev => ({ ...prev, title: t }))}
+                      style={{ backgroundColor: '#f8fafc', borderRadius: 16, padding: 16, fontSize: 14, fontWeight: '700', color: '#1e293b', borderWidth: 1, borderColor: '#f1f5f9' }}
+                    />
+                    <TextInput 
+                      placeholder="URL (https://...)"
+                      placeholderTextColor="#94a3b8"
+                      value={newResource.url}
+                      onChangeText={(t) => setNewResource(prev => ({ ...prev, url: t }))}
+                      autoCapitalize="none"
+                      style={{ backgroundColor: '#f8fafc', borderRadius: 16, padding: 16, fontSize: 14, fontWeight: '600', color: '#1e293b', borderWidth: 1, borderColor: '#f1f5f9' }}
+                    />
+                  </View>
+                )}
+              </View>
+            </View>
           )}
         </View>
       </ScrollView>

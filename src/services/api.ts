@@ -542,12 +542,22 @@ export const teacherService = {
     return apiFetch(url);
   },
 
-  saveAttendance: async ({ classId, records, date, lessonId }: any) => {
+  saveAttendance: async (data: { 
+    classId: string; 
+    date: string; 
+    records: { studentId: string; status: string; note?: string }[];
+    lessonId: number | null;
+    task?: { title: string; description?: string };
+    resource?: { title: string; url: string };
+  }) => {
     const teacherId = await authStorage.getUserId();
-    return apiFetch('/api/mobile/teacher/attendance', {
-      method: 'POST',
-      body: JSON.stringify({ teacherId, classId, records, date, lessonId }),
+    const response = await fetch(`${API_BASE_URL}/api/mobile/teacher/attendance`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...data, teacherId }),
     });
+    if (!response.ok) throw new Error("Failed to save attendance");
+    return response.json();
   },
 
   saveLesson: async (lessonData: any) => {
