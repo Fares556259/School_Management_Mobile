@@ -430,6 +430,12 @@ export const studentService = {
     }));
   },
 
+  deleteNotification: async (id: number) => {
+    return apiFetch(`/api/mobile/notifications?id=${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   markNotificationsAsRead: async (notificationIds: number[]) => {
     return apiFetch('/api/mobile/notifications', {
       method: 'PATCH',
@@ -571,6 +577,14 @@ export const teacherService = {
     return apiFetch('/api/mobile/teacher/lessons', {
       method: 'POST',
       body: JSON.stringify(lessonData),
+    });
+  },
+
+  createTask: async (data: { title: string; description?: string; classId: string; attachments?: any[] }) => {
+    const teacherId = await authStorage.getUserId();
+    return apiFetch('/api/mobile/teacher/tasks', {
+      method: 'POST',
+      body: JSON.stringify({ ...data, teacherId }),
     });
   },
 

@@ -1,558 +1,337 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, Platform, RefreshControl, Animated, StatusBar, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Platform, RefreshControl, StatusBar, ActivityIndicator, Linking, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
-  Book, Microscope, Clock, Globe, Palette, Calculator, Music, Languages, 
-  MessageSquare, AlertCircle, FileText, Download, Briefcase, 
-  Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, BookOpen, 
-  Bell, Coffee, Info, ChevronDown, Check, User, Star, Layout
+  Book, Microscope, Clock, Globe, Palette, Coffee, Calculator, Music, Languages, 
+  MessageSquare, FileText, ChevronRight, BookOpen, 
+  Calendar as CalendarIcon, Star, Layout, Briefcase, ChevronLeft, CheckCircle2
 } from 'lucide-react-native';
-import Svg, { Circle } from 'react-native-svg';
 import { useAppStore } from '../store/useAppStore';
 import { studentService } from '../services/api';
 import { StudentDayData } from '../types';
 import { GlobalHeader } from '../components/GlobalHeader';
-import { notificationService } from '../services/notificationService';
 import { SkeletonBlock } from '../components/SkeletonView';
 
-// ─── Icon map ─────────────────────────────────────────────────────────────────
+const Monitor = (props: any) => <Layout {...props} />;
+
 const ICON_MAP: Record<string, any> = {
-  Calculator, Book, Languages, Clock, Globe, Palette, Music, Microscope, Briefcase, BookOpen, FileText,
+  Calculator, Book, Languages, Clock, Globe, Palette, Coffee, Music, Microscope, Briefcase, BookOpen, FileText, 
+  ICT: Monitor, Art: Palette, History: Book, English: Languages
 };
 
-// ─── Sub-components (High Fidelity Redesign) ───────────────────────────────────
+// ─── Reusable Components ──────────────────────────────────────────────────────
 
 const DateItem = ({ day, date, active, isToday, onPress }: any) => (
   <TouchableOpacity
     onPress={onPress}
     activeOpacity={0.8}
-    style={{
-      width: 72, 
-      height: 96, 
-      borderRadius: 18, 
-      alignItems: 'center', 
-      justifyContent: 'center',
-      marginRight: 12, 
-      backgroundColor: active ? '#0055d4' : '#f8fafc',
-      borderWidth: 1,
-      borderColor: active ? '#0055d4' : '#f1f5f9',
-      shadowColor: '#0055d4', 
-      shadowOffset: { width: 0, height: active ? 10 : 0 },
-      shadowOpacity: active ? 0.2 : 0, 
-      shadowRadius: 15, 
-      elevation: active ? 10 : 0,
-    }}
+    style={[styles.dateCard, active && styles.activeDateCard]}
   >
-    <Text style={{ fontSize: 11, fontWeight: '900', color: active ? 'white' : '#94a3b8', textTransform: 'uppercase', marginBottom: 6 }}>{day}</Text>
-    <Text style={{ fontSize: 22, fontWeight: '900', color: active ? 'white' : '#1e293b' }}>{date}</Text>
+    <Text style={[styles.dateDay, active && styles.activeDateText]}>{day}</Text>
+    <Text style={[styles.dateNum, active && styles.activeDateText]}>{date}</Text>
     {isToday && (
-      <Text style={{ fontSize: 9, fontWeight: '900', color: active ? 'white' : '#64748b', marginTop: 4 }}>Today</Text>
-    )}
-    {!active && isToday && (
-      <View style={{ position: 'absolute', bottom: 8, width: 4, height: 4, borderRadius: 2, backgroundColor: '#0055d4' }} />
+      <Text style={[styles.dateToday, active && styles.activeDateText]}>Today</Text>
     )}
   </TouchableOpacity>
 );
 
-const ProgressRing = ({ size, progress }: any) => {
-  const strokeWidth = 10;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
-
-  return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <Svg width={size} height={size}>
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="#f1f5f9"
-          strokeWidth={strokeWidth}
-          fill="transparent"
-        />
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="#0055d4"
-          strokeWidth={strokeWidth}
-          fill="transparent"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
-          transform={`rotate(-90, ${size / 2}, ${size / 2})`}
-        />
-      </Svg>
-      <Text style={{ position: 'absolute', fontSize: 20, fontWeight: '900', color: '#1e293b' }}>{progress}%</Text>
-    </View>
-  );
-};
-
-const GlanceItem = ({ icon: Icon, title, subtitle, color, onPress }: any) => (
-  <TouchableOpacity 
-    onPress={onPress}
-    activeOpacity={0.7}
-    style={{ backgroundColor: 'white', padding: 16, borderRadius: 18, borderWidth: 1, borderColor: '#f1f5f9', flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}
-  >
-    <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: color + '15', alignItems: 'center', justifyContent: 'center' }}>
-      <Icon size={20} color={color} />
-    </View>
-    <View style={{ marginLeft: 16, flex: 1 }}>
-      <Text style={{ fontSize: 14, fontWeight: '900', color: '#1e293b' }}>{title}</Text>
-      <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748b', marginTop: 2 }}>{subtitle}</Text>
-    </View>
-    <ChevronRight size={18} color="#d1d5db" />
-  </TouchableOpacity>
+const StatPill = ({ count, label, color, bgColor }: any) => (
+  <View style={[styles.statPill, { backgroundColor: bgColor }]}>
+    <Text style={[styles.statValue, { color }]}>{count}</Text>
+    <Text style={[styles.statLabel, { color: '#64748b' }]}>{label}</Text>
+  </View>
 );
 
-const SessionItem = ({ session }: any) => {
-  const Icon = ICON_MAP[session.iconName] || Book;
-  
-  const getStatusConfig = (status: string | null) => {
-    const s = status?.toUpperCase();
-    if (s === 'PRES' || s === 'PRESENT') return { label: 'Present', color: '#10b981', bg: '#ecfdf5' };
-    if (s === 'ABS' || s === 'ABSENT')  return { label: 'Absent',  color: '#ef4444', bg: '#fef2f2' };
-    if (s === 'LATE') return { label: 'Late',    color: '#f59e0b', bg: '#fffbeb' };
-    return { label: 'Pending', color: '#64748b', bg: '#f1f5f9' };
-  };
+const EmptySessionsUI = () => (
+  <View style={styles.emptySessionsContainer}>
+    <View style={styles.emptySessionsIconCircle}>
+      <Coffee size={32} color="#0055d4" />
+    </View>
+    <Text style={styles.emptySessionsTitle}>No classes scheduled</Text>
+    <Text style={styles.emptySessionsSub}>Take some time to relax or catch up on your reading. Enjoy your day!</Text>
+  </View>
+);
 
-  const config = getStatusConfig(session.attendance);
-  
-  const renderStars = (score: number) => {
-    if (!score || score === 0) return null;
-    return (
-      <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 12 }}>
-        <Text style={{ fontSize: 10, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 0.5 }}>Teacher's Evaluation</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          {[1, 2, 3, 4, 5].map((star) => (
-            <Star 
-              key={star} 
-              size={14} 
-              color={score >= star ? '#f59e0b' : '#e2e8f0'} 
-              fill={score >= star ? '#f59e0b' : 'none'}
-              style={{ marginRight: 4 }}
-            />
-          ))}
-          <Text style={{ fontSize: 12, fontWeight: '900', color: '#f59e0b', marginLeft: 6 }}>{score}/5</Text>
-        </View>
-      </View>
-    );
-  };
+const SessionCard = ({ session }: any) => {
+  const Icon = ICON_MAP[session.subject] || Book;
+  const isAbsent = session.attendance?.toUpperCase() === 'ABSENT' || session.attendance?.toUpperCase() === 'ABS';
+  const isPresent = session.attendance?.toUpperCase() === 'PRESENT' || session.attendance?.toUpperCase() === 'PRES';
+  const isUpcoming = !session.attendance;
+
+  const accentColor = isAbsent ? '#ef4444' : isPresent ? '#10b981' : '#e2e8f0';
+  const badgeBg = isAbsent ? '#fee2e2' : isPresent ? '#d1fae5' : '#f1f5f9';
+  const badgeText = isAbsent ? '#ef4444' : isPresent ? '#059669' : '#64748b';
+  const statusLabel = isAbsent ? 'Absent' : isPresent ? 'Present' : 'Upcoming';
 
   return (
-    <View style={{ 
-      backgroundColor: 'white', 
-      padding: 20, 
-      borderRadius: 24, 
-      marginBottom: 16, 
-      borderWidth: 1, 
-      borderColor: '#f1f5f9',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.02,
-      shadowRadius: 10,
-      elevation: 2
-    }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}>
-          <Icon color="#0055d4" size={22} />
-        </View>
-        <View style={{ flex: 1, marginLeft: 16 }}>
-          <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b' }}>{session.subject}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-            <Clock size={12} color="#94a3b8" />
-            <Text style={{ fontSize: 12, color: '#64748b', fontWeight: '700', marginLeft: 4 }}>{session.startTime} - {session.endTime}</Text>
-            {session.room && (
-              <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700', marginLeft: 12 }}>• {session.room}</Text>
-            )}
+    <View style={styles.sessionItem}>
+      <View style={[styles.sessionAccent, { backgroundColor: accentColor }]} />
+      <View style={styles.sessionMain}>
+        <View style={styles.sessionHeader}>
+          <View style={styles.sessionIconWrapper}>
+            <Icon size={20} color="#0055d4" />
+          </View>
+          <View style={styles.sessionTitleGroup}>
+            <Text style={styles.sessionTitle}>{session.subject}</Text>
+            <Text style={styles.sessionTime}>{session.startTime} — {session.endTime}</Text>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: badgeBg }]}>
+            <Text style={[styles.statusBadgeText, { color: badgeText }]}>{statusLabel}</Text>
           </View>
         </View>
-        <View style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: config.bg, borderWidth: 1, borderColor: config.color + '20' }}>
-          <Text style={{ color: config.color, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' }}>{config.label}</Text>
+
+        <View style={styles.ratingSection}>
+          <Text style={styles.ratingLabel}>TEACHER RATING</Text>
+          {isUpcoming ? (
+            <Text style={styles.ratingNote}>Session not started</Text>
+          ) : isAbsent ? (
+            <Text style={styles.ratingNote}>No rating — absent</Text>
+          ) : (
+            <View style={styles.starsRow}>
+              {[1, 2, 3, 4, 5].map(s => (
+                <Star key={s} size={16} color={session.score >= s ? '#f59e0b' : '#e2e8f0'} fill={session.score >= s ? '#f59e0b' : 'none'} style={{ marginRight: 4 }} />
+              ))}
+            </View>
+          )}
         </View>
       </View>
-
-      {renderStars(session.score)}
     </View>
   );
 };
 
-
-const HomeworkItem = ({ homework, label, onPress }: any) => (
-  <TouchableOpacity onPress={onPress} style={{ backgroundColor: 'white', padding: 16, borderRadius: 18, marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9', flexDirection: 'row', alignItems: 'center' }}>
-    <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}><Clock size={18} color="#64748b" /></View>
-    <View style={{ flex: 1 }}>
-      <Text style={{ fontSize: 14, fontWeight: '900', color: '#1e293b' }}>{homework.title}</Text>
-      <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2, fontWeight: '700' }}>{label}</Text>
-    </View>
-    <ChevronRight size={16} color="#d1d5db" />
-  </TouchableOpacity>
-);
-
-const NoteItem = ({ note }: any) => (
-  <View style={{ backgroundColor: '#fdfcfe', padding: 16, borderRadius: 18, marginBottom: 12, borderWidth: 1, borderColor: '#f5f3ff', flexDirection: 'row' }}>
-    <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}><MessageSquare color="#8b5cf6" size={18} /></View>
-    <View style={{ flex: 1 }}>
-      <Text style={{ fontSize: 12, fontWeight: '900', color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
-        {note.subject || 'Remark'}
-      </Text>
-      <Text style={{ fontSize: 14, color: '#1e293b', lineHeight: 20, fontStyle: 'italic', fontWeight: '600' }}>"{note.text || note.content || ''}"</Text>
-    </View>
-  </View>
-);
-
-const FileItem = ({ file }: any) => (
-  <TouchableOpacity 
-    onPress={() => file.url && Linking.openURL(file.url)}
-    style={{ backgroundColor: 'white', padding: 16, borderRadius: 18, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9' }}
-  >
-    <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: file.type === 'pdf' ? '#fee2e2' : '#dcfce7', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>{file.type === 'pdf' ? <FileText color="#ef4444" size={20} /> : <Book color="#22c55e" size={20} />}</View>
-    <View style={{ flex: 1 }}>
-      <Text style={{ fontSize: 14, fontWeight: '900', color: '#1e293b' }} numberOfLines={1}>{file.name}</Text>
-      <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2, fontWeight: '700' }}>{file.sharedBy}</Text>
-    </View>
-    <Download size={18} color="#0055d4" />
-  </TouchableOpacity>
-);
-
-const EmptyPlaceholder = ({ text, icon: Icon }: any) => (
-  <View style={{
-    backgroundColor: '#f8fafc', padding: 24, borderRadius: 18, alignItems: 'center',
-    justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9', borderStyle: 'dashed', marginBottom: 16,
-  }}>
-    <Icon color="#94a3b8" size={32} style={{ marginBottom: 12 }} />
-    <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '700', textAlign: 'center' }}>{text}</Text>
-  </View>
-);
-
-const HolidayBanner = ({ name }: { name: string }) => (
-  <View style={{
-    backgroundColor: '#eff6ff', padding: 32, borderRadius: 32, alignItems: 'center',
-    justifyContent: 'center', borderWidth: 1, borderColor: '#dbeafe', marginBottom: 32
-  }}>
-    <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', marginBottom: 16, shadowColor: '#0055d4', shadowOpacity: 0.1, shadowRadius: 10 }}>
-      <Coffee color="#0055d4" size={32} />
-    </View>
-    <Text style={{ fontSize: 11, fontWeight: '900', color: '#0055d4', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8 }}>School Holiday</Text>
-    <Text style={{ fontSize: 26, fontWeight: '900', color: '#1e3a8a', textAlign: 'center', marginBottom: 8 }}>{name}</Text>
-    <Text style={{ fontSize: 14, color: '#60a5fa', fontWeight: '700', textAlign: 'center' }}>Enjoy your break!</Text>
-  </View>
-);
-
-const LoadingSkeleton = () => (
-  <View style={{ gap: 20 }}>
-    <View style={{ flexDirection: 'row', gap: 12 }}>
-       {[1,2,3,4].map(i => <SkeletonBlock key={i} width={72} height={96} borderRadius={18} />)}
-    </View>
-    <SkeletonBlock width="100%" height={160} borderRadius={28} />
-    <SkeletonBlock width="50%" height={24} borderRadius={10} marginTop={10} />
-    {[1,2,3,4,5].map(i => <SkeletonBlock key={i} width="100%" height={80} borderRadius={18} />)}
-  </View>
-);
-
-// ─── Main Screen ───────────────────────────────────────────────────────────────
-
-const formatDateStr = (date: Date) => {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-};
-
-const EMPTY_DAY: StudentDayData = { sessions: [], notes: [], files: [], homeworkDue: [], homeworkGiven: [], exams: [] };
-
 export const HomeScreen = ({ navigation }: any) => {
-  const { 
-    selectedChildId, 
-    children, 
-    parentName, 
-    setStudentStatus
-  } = useAppStore();
-  
-  const selectedChild = children.find((c: any) => c.id === selectedChildId);
-
-  const today = new Date();
-  const [selectedFullDate, setSelectedFullDate] = React.useState(today);
-  const [showPicker, setShowPicker] = React.useState(false);
-  const [showAlert, setShowAlert] = React.useState(false);
-  const [refreshing, setRefreshing] = React.useState(false);
+  const { selectedChildId, children, setStudentStatus } = useAppStore();
   const [loading, setLoading] = React.useState(false);
-  const [dayData, setDayData] = React.useState<StudentDayData>(EMPTY_DAY);
-  const [activeCategory, setActiveCategory] = React.useState<string | null>(null);
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [dayData, setDayData] = React.useState<StudentDayData>({ sessions: [], notes: [], files: [], homeworkDue: [], homeworkGiven: [], exams: [] });
+  const [selectedDate, setSelectedDate] = React.useState(new Date());
 
-  const [viewingMonth, setViewingMonth] = React.useState(today.getMonth());
-  const [viewingYear, setViewingYear] = React.useState(today.getFullYear());
-  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
-  const changeMonth = (delta: number) => {
-    let newMonth = viewingMonth + delta;
-    let newYear = viewingYear;
-    if (newMonth > 11) { newMonth = 0; newYear++; } else if (newMonth < 0) { newMonth = 11; newYear--; }
-    setViewingMonth(newMonth); 
-    setViewingYear(newYear);
-  };
-  
-  const getDaysInMonth = (m: number, y: number) => new Date(y, m + 1, 0).getDate();
-  const getFirstDayOfMonth = (m: number, y: number) => {
-    const day = new Date(y, m, 1).getDay();
-    return day === 0 ? 6 : day - 1;
-  };
-
-  React.useEffect(() => {
+  const fetchHome = async () => {
     if (!selectedChildId) return;
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const data = await studentService.fetchDayData(selectedChildId, formatDateStr(selectedFullDate));
-        setDayData(data);
-        
-        const payments = await studentService.fetchPayments(selectedChildId);
-        const currentMonthKey = `${months[today.getMonth()]} ${today.getFullYear()}`;
-        const currentMonthPayment = payments.find(p => p.month === currentMonthKey);
-        const isNotPaid = currentMonthPayment && currentMonthPayment.status !== 'Paid';
-        
-        setShowAlert(!!isNotPaid);
-        
-        const hasAbsent = data.sessions?.some((s: any) => s.attendance === 'ABSENT' || s.attendance === 'Abs');
-        if (hasAbsent) setStudentStatus(selectedChildId, 'Absent');
-        else if (isNotPaid) setStudentStatus(selectedChildId, 'Due');
-        else setStudentStatus(selectedChildId, 'Present');
-      } catch (error) {
-        console.error("[Home Load Error]", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
-  }, [selectedChildId, selectedFullDate]);
+    try {
+      setLoading(true);
+      const dateStr = selectedDate.toISOString().split('T')[0];
+      const data = await studentService.fetchDayData(selectedChildId, dateStr);
+      setDayData(data);
 
-  const onRefresh = React.useCallback(async () => {
-    if (!selectedChildId) return;
+      const hasAbsent = data.sessions?.some((s: any) => s.attendance?.toUpperCase() === 'ABSENT' || s.attendance?.toUpperCase() === 'ABS');
+      setStudentStatus(selectedChildId, hasAbsent ? 'Absent' : 'Present');
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  React.useEffect(() => { fetchHome(); }, [selectedChildId, selectedDate]);
+
+  const onRefresh = React.useCallback(() => {
     setRefreshing(true);
-    const data = await studentService.fetchDayData(selectedChildId, formatDateStr(selectedFullDate));
-    setDayData(data);
-    setRefreshing(false);
-  }, [selectedChildId, selectedFullDate]);
-
-  const presentCount = dayData.sessions?.filter(s => s.attendance === 'Pres' || s.attendance === 'Present').length || 0;
-  const attendancePercent = (dayData.sessions?.length || 0) > 0 ? Math.round((presentCount / dayData.sessions.length) * 100) : 0;
+    fetchHome();
+  }, [selectedChildId, selectedDate]);
 
   const sliderDates = Array.from({ length: 7 }).map((_, i) => {
-    const d = new Date(today);
+    const d = new Date();
     d.setDate(d.getDate() - 3 + i);
     return d;
   });
-  
-  const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Th', 'Fri', 'Sat'];
 
-  const getCategoryTitle = (cat: string) => {
-    switch (cat) {
-      case 'sessions': return 'Today\'s Sessions';
-      case 'tasksGiven': return 'Tasks Given';
-      case 'resources': return 'Course Resources';
-      case 'remarks': return 'Teacher Remarks';
-      default: return '';
-    }
-  };
-
-  const renderCategoryContent = () => {
-    if (!activeCategory) return null;
-    switch (activeCategory) {
-      case 'sessions':
-        return dayData.sessions?.length > 0 ? (
-          dayData.sessions.map((s: any) => <SessionItem key={s.id} session={s} />)
-        ) : <EmptyPlaceholder text="No sessions today" icon={Layout} />;
-      case 'tasksGiven':
-        return dayData.homeworkGiven?.length > 0 ? (
-          dayData.homeworkGiven.map((h: any) => <HomeworkItem key={h.id} homework={h} label={`Due: ${new Date(h.dueDate).toLocaleDateString()}`} onPress={() => { setActiveCategory(null); navigation.navigate('HomeworkDetail', { homework: h }); }} />)
-        ) : <EmptyPlaceholder text="No new tasks given" icon={FileText} />;
-      case 'resources':
-        return dayData.files?.length > 0 ? (
-          dayData.files.map((f: any) => <FileItem key={f.id} file={f} />)
-        ) : <EmptyPlaceholder text="No resources shared today" icon={BookOpen} />;
-      case 'remarks':
-        return dayData.notes?.length > 0 ? (
-          dayData.notes.map((n: any) => <NoteItem key={n.id} note={n} />)
-        ) : <EmptyPlaceholder text="No remarks for this date" icon={MessageSquare} />;
-      default: return null;
-    }
-  };
+  const presentCount = dayData.sessions?.filter(s => s.attendance?.toUpperCase() === 'PRESENT' || s.attendance?.toUpperCase() === 'PRES').length || 0;
+  const absentCount = dayData.sessions?.filter(s => s.attendance?.toUpperCase() === 'ABSENT' || s.attendance?.toUpperCase() === 'ABS').length || 0;
+  const lateCount = dayData.sessions?.filter(s => s.attendance?.toUpperCase() === 'LATE').length || 0;
+  const upcomingCount = dayData.sessions?.filter(s => !s.attendance).length || 0;
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       <GlobalHeader navigation={navigation} />
 
-      <ScrollView
+      <ScrollView 
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0055d4']} tintColor="#0055d4" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0055d4" />}
       >
-        <View style={{ paddingHorizontal: 24, paddingBottom: 150, paddingTop: 10 }}>
+        <View style={styles.content}>
           
-          {/* Today's Schedule Header */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b' }}>Today's Schedule</Text>
-            <TouchableOpacity onPress={() => setShowPicker(true)} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 }}>
-              <CalendarIcon size={22} color="#0055d4" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Date Slider */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 32 }} contentContainerStyle={{ paddingVertical: 10 }}>
+          <Text style={styles.sectionTitle}>Today's Schedule</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateSlider}>
             {sliderDates.map(d => (
               <DateItem 
-                key={formatDateStr(d)} 
-                day={DAYS_SHORT[d.getDay()]} 
-                date={d.getDate().toString()} 
-                active={formatDateStr(selectedFullDate) === formatDateStr(d)} 
-                isToday={formatDateStr(today) === formatDateStr(d)}
-                onPress={() => setSelectedFullDate(d)} 
+                key={d.toISOString()} 
+                day={['SUN','MON','TUE','WED','THU','FRI','SAT'][d.getDay()]} 
+                date={d.getDate()} 
+                active={d.toDateString() === selectedDate.toDateString()} 
+                isToday={d.toDateString() === new Date().toDateString()}
+                onPress={() => setSelectedDate(d)}
               />
             ))}
           </ScrollView>
 
           {loading ? (
-            <LoadingSkeleton />
+            <ActivityIndicator color="#0055d4" style={{ marginTop: 40 }} />
           ) : (
             <>
-              {/* Progress Overview Card */}
-              <View style={{ backgroundColor: 'white', padding: 24, borderRadius: 28, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 20, elevation: 5, marginBottom: 32 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                  <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>Progress Overview</Text>
-                  <TouchableOpacity 
-                    onPress={() => navigation.navigate('Attendance')}
-                    style={{ backgroundColor: '#eff6ff', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, flexDirection: 'row', alignItems: 'center' }}
-                  >
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4', marginRight: 4 }}>History</Text>
-                    <ChevronRight size={14} color="#0055d4" />
+              {/* Today's Sessions Main Card */}
+              <View style={styles.mainCard}>
+                <View style={styles.mainCardHeader}>
+                  <Text style={styles.cardTitle}>Today's Sessions</Text>
+                  <TouchableOpacity onPress={() => navigation.navigate('Attendance')} style={styles.historyBtn}>
+                    <Text style={styles.historyBtnText}>History</Text>
+                    <ChevronRight size={16} color="#1e293b" />
                   </TouchableOpacity>
                 </View>
-                
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <ProgressRing size={100} progress={attendancePercent} />
-                  <View style={{ flex: 1, marginLeft: 20 }}>
-                    <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>{attendancePercent}% marked</Text>
-                    <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '700', marginTop: 4 }}>Let's get started!</Text>
-                  </View>
-                  <View style={{ width: 80, height: 80, opacity: 0.8 }}>
-                     <Image source={require('../../assets/3d/student.jpg')} style={{ width: '100%', height: '100%', borderRadius: 16 }} contentFit="cover" />
-                  </View>
+
+                <View style={styles.statsRow}>
+                  <StatPill count={presentCount} label="Present" color="#10b981" bgColor="#d1fae5" />
+                  <StatPill count={absentCount} label="Absent" color="#ef4444" bgColor="#fee2e2" />
+                  <StatPill count={lateCount} label="Late" color="#f59e0b" bgColor="#fef3c7" />
+                  <StatPill count={upcomingCount} label="Upcoming" color="#64748b" bgColor="#f1f5f9" />
+                </View>
+
+                <View style={styles.sessionList}>
+                  {dayData.sessions.length > 0 ? (
+                    dayData.sessions.map((s: any) => <SessionCard key={s.id} session={s} />)
+                  ) : (
+                    <EmptySessionsUI />
+                  )}
                 </View>
               </View>
 
-              {/* Today at a Glance */}
-              <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b', marginBottom: 20 }}>Today at a Glance</Text>
-              
-              <GlanceItem 
-                icon={Layout} 
-                title="Sessions" 
-                subtitle={dayData.sessions?.length > 0 ? `${dayData.sessions.length} sessions today` : "No sessions today"} 
-                color="#0055d4" 
-                onPress={() => setActiveCategory('sessions')}
-              />
-              <GlanceItem 
-                icon={MessageSquare} 
-                title="Teacher Remarks" 
-                subtitle={dayData.notes?.length > 0 ? `${dayData.notes.length} remarks today` : "No remarks for this date"} 
-                color="#ec4899" 
-                onPress={() => setActiveCategory('remarks')}
-              />
-
-              {/* Promotional/Motivational Banner */}
-              <View style={{ backgroundColor: '#f0f9ff', borderRadius: 28, padding: 24, marginTop: 24, borderLeftWidth: 6, borderLeftColor: '#0055d4', flexDirection: 'row', alignItems: 'center' }}>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                    <Star size={16} color="#0055d4" fill="#0055d4" />
-                    <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', marginLeft: 8 }}>Keep it up, {selectedChild?.name.split(' ')[0]}!</Text>
+              {/* Today at a Glance - Teacher Remarks */}
+              <Text style={styles.glanceTitle}>Today at a Glance</Text>
+              <View style={styles.glanceCard}>
+                <View style={styles.glanceHeader}>
+                  <View style={styles.glanceIconWrapper}>
+                    <MessageSquare size={18} color="#ec4899" />
                   </View>
-                  <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '700', lineHeight: 20 }}>Stay consistent and achieve your goals.</Text>
+                  <View>
+                    <Text style={styles.glanceItemTitle}>Teacher Remarks</Text>
+                    <Text style={styles.glanceItemSub}>{dayData.notes?.length || 0} remarks today</Text>
+                  </View>
                 </View>
-                <Image source={require('../../assets/icon.png')} style={{ width: 60, height: 60, opacity: 0.1 }} contentFit="contain" />
+
+                {dayData.notes.length > 0 ? (
+                  dayData.notes.map((note: any, idx: number) => (
+                    <View key={note.id} style={[styles.remarkItem, idx === 0 && { borderTopWidth: 0 }]}>
+                      <View style={styles.remarkSubjectTag}>
+                        <Text style={styles.remarkSubjectText}>{note.subject || 'ICT'}</Text>
+                      </View>
+                      <View style={styles.remarkContent}>
+                        <Text style={styles.remarkText}>{note.text || 'No content'}</Text>
+                        <Text style={styles.remarkMeta}>{note.teacher || 'Mr. Teacher'} • {note.time || '08:00 AM'}</Text>
+                      </View>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.emptyNoteText}>No remarks for today.</Text>
+                )}
+              </View>
+
+              {/* Tasks Section */}
+              <Text style={styles.glanceTitle}>Tasks</Text>
+              <View style={styles.tasksCard}>
+                {(dayData.homeworkDue || []).concat(dayData.homeworkGiven || []).length > 0 ? (
+                  (dayData.homeworkDue || []).concat(dayData.homeworkGiven || []).map((task: any, idx: number) => (
+                    <TouchableOpacity 
+                      key={task.id} 
+                      onPress={() => navigation.navigate('HomeworkDetail', { homework: task })}
+                      style={[styles.taskItem, idx > 0 && { borderTopWidth: 1, borderTopColor: '#f1f5f9' }]}
+                    >
+                      <View style={styles.taskIconWrapper}>
+                        <CheckCircle2 size={20} color="#0055d4" />
+                      </View>
+                      <View style={styles.taskInfo}>
+                        <Text style={styles.taskTitle}>{task.subject} — {task.title}</Text>
+                        <Text style={styles.taskMeta}>Assigned by {task.teacher || 'Teacher'}</Text>
+                      </View>
+                      <View style={[styles.taskBadge, { backgroundColor: '#fee2e2' }]}>
+                        <Text style={[styles.taskBadgeText, { color: '#ef4444' }]}>Due today</Text>
+                      </View>
+                      <ChevronRight size={18} color="#d1d5db" />
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <View style={{ padding: 20 }}>
+                    <Text style={styles.emptyNoteText}>No tasks assigned for today.</Text>
+                  </View>
+                )}
               </View>
             </>
           )}
+
+          <View style={{ height: 100 }} />
         </View>
       </ScrollView>
-
-      {/* Category Detail Modal */}
-      <Modal visible={!!activeCategory} transparent animationType="slide">
-        <TouchableOpacity 
-          activeOpacity={1} 
-          onPress={() => setActiveCategory(null)}
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
-        >
-          <TouchableOpacity 
-            activeOpacity={1} 
-            style={{ backgroundColor: '#f8fafc', borderTopLeftRadius: 32, borderTopRightRadius: 32, maxHeight: '80%', padding: 24, paddingBottom: 40 }}
-          >
-            <View style={{ width: 40, height: 4, backgroundColor: '#e2e8f0', borderRadius: 2, alignSelf: 'center', marginBottom: 20 }} />
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <Text style={{ fontSize: 24, fontWeight: '900', color: '#1e293b' }}>{getCategoryTitle(activeCategory || '')}</Text>
-              <TouchableOpacity onPress={() => setActiveCategory(null)} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5 }}>
-                <X size={20} color="#64748b" />
-              </TouchableOpacity>
-            </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {renderCategoryContent()}
-            </ScrollView>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Calendar Modal */}
-      <Modal visible={showPicker} transparent animationType="fade" onRequestClose={() => setShowPicker(false)}>
-        <TouchableOpacity activeOpacity={1} onPress={() => setShowPicker(false)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-          <TouchableOpacity activeOpacity={1} style={{ backgroundColor: 'white', borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 32, paddingBottom: 50 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <Text style={{ fontSize: 26, fontWeight: '900', color: '#1e293b' }}>Academic Calendar</Text>
-              <TouchableOpacity onPress={() => setShowPicker(false)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}>
-                <X size={20} color="#64748b" />
-              </TouchableOpacity>
-            </View>
-            
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-              <TouchableOpacity onPress={() => changeMonth(-1)} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}>
-                <ChevronLeft size={20} color="#0055d4" />
-              </TouchableOpacity>
-              <View style={{ alignItems: 'center' }}>
-                <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b' }}>{months[viewingMonth]}</Text>
-                <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '800' }}>{viewingYear}</Text>
-              </View>
-              <TouchableOpacity onPress={() => changeMonth(1)} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}>
-                <ChevronRight size={20} color="#0055d4" />
-              </TouchableOpacity>
-            </View>
-            
-            <View style={{ flexDirection: 'row', marginBottom: 16 }}>
-              {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(day => (
-                <Text key={day} style={{ flex: 1, textAlign: 'center', fontSize: 13, fontWeight: '900', color: '#94a3b8' }}>{day}</Text>
-              ))}
-            </View>
-
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              {Array.from({ length: getFirstDayOfMonth(viewingMonth, viewingYear) }).map((_, i) => (
-                <View key={`empty-${i}`} style={{ width: '14.28%', aspectRatio: 1 }} />
-              ))}
-              {Array.from({ length: getDaysInMonth(viewingMonth, viewingYear) }, (_, i) => i + 1).map(day => {
-                const isSelected = selectedFullDate.getDate() === day && selectedFullDate.getMonth() === viewingMonth && selectedFullDate.getFullYear() === viewingYear;
-                return (
-                  <TouchableOpacity
-                    key={day}
-                    onPress={() => { 
-                      setSelectedFullDate(new Date(viewingYear, viewingMonth, day));
-                      setShowPicker(false);
-                    }}
-                    style={{ width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    <View style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: isSelected ? '#0055d4' : 'transparent' }}>
-                      <Text style={{ fontSize: 16, fontWeight: '900', color: isSelected ? 'white' : '#1e293b' }}>{day}</Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: 'white' },
+  content: { paddingHorizontal: 20, paddingTop: 10 },
+  sectionTitle: { fontSize: 24, fontWeight: '900', color: '#0f172a', marginBottom: 20 },
+  dateSlider: { marginBottom: 30 },
+  dateCard: { width: 68, height: 86, borderRadius: 16, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 1, borderColor: '#f1f5f9' },
+  activeDateCard: { backgroundColor: '#0055d4', borderColor: '#0055d4' },
+  dateDay: { fontSize: 11, fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 4 },
+  dateNum: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
+  dateToday: { fontSize: 9, fontWeight: '800', color: '#64748b', marginTop: 2 },
+  activeDateText: { color: 'white' },
+  
+  mainCard: { backgroundColor: 'white', borderRadius: 28, padding: 20, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 15, elevation: 2, marginBottom: 30 },
+  mainCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  cardTitle: { fontSize: 20, fontWeight: '900', color: '#0f172a' },
+  historyBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: '#f1f5f9' },
+  historyBtnText: { fontSize: 13, fontWeight: '900', color: '#1e293b', marginRight: 4 },
+  
+  statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
+  statPill: { width: '23%', paddingVertical: 12, borderRadius: 12, alignItems: 'center' },
+  statValue: { fontSize: 16, fontWeight: '900' },
+  statLabel: { fontSize: 10, fontWeight: '800', marginTop: 2 },
+
+  sessionItem: { flexDirection: 'row', borderRadius: 20, backgroundColor: 'white', borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 12, overflow: 'hidden' },
+  sessionAccent: { width: 4 },
+  sessionMain: { flex: 1, padding: 16 },
+  sessionHeader: { flexDirection: 'row', alignItems: 'center' },
+  sessionIconWrapper: { width: 40, height: 40, borderRadius: 10, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' },
+  sessionTitleGroup: { flex: 1, marginLeft: 12 },
+  sessionTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
+  sessionTime: { fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 2 },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  statusBadgeText: { fontSize: 11, fontWeight: '800' },
+  
+  ratingSection: { marginTop: 12, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  ratingLabel: { fontSize: 10, fontWeight: '900', color: '#cbd5e1', letterSpacing: 0.5 },
+  ratingNote: { fontSize: 12, color: '#94a3b8', fontWeight: '700', fontStyle: 'italic' },
+  starsRow: { flexDirection: 'row' },
+
+  glanceTitle: { fontSize: 20, fontWeight: '900', color: '#0f172a', marginBottom: 20 },
+  glanceCard: { backgroundColor: 'white', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 30 },
+  glanceHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  glanceIconWrapper: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#fdf2f8', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  glanceItemTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
+  glanceItemSub: { fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 1 },
+  
+  remarkItem: { flexDirection: 'row', paddingVertical: 16, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
+  remarkSubjectTag: { backgroundColor: '#eff6ff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, alignSelf: 'flex-start', marginRight: 12 },
+  remarkSubjectText: { fontSize: 10, fontWeight: '900', color: '#0055d4' },
+  remarkContent: { flex: 1 },
+  remarkText: { fontSize: 14, color: '#334155', fontWeight: '600', lineHeight: 20 },
+  remarkMeta: { fontSize: 11, color: '#94a3b8', fontWeight: '700', marginTop: 4 },
+
+  tasksCard: { backgroundColor: 'white', borderRadius: 24, padding: 0, borderWidth: 1, borderColor: '#f1f5f9', overflow: 'hidden' },
+  taskItem: { flexDirection: 'row', alignItems: 'center', padding: 20 },
+  taskIconWrapper: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginRight: 16 },
+  taskInfo: { flex: 1 },
+  taskTitle: { fontSize: 15, fontWeight: '800', color: '#0f172a' },
+  taskMeta: { fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 2 },
+  taskBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, marginRight: 8 },
+  taskBadgeText: { fontSize: 11, fontWeight: '800' },
+
+  emptySessionsContainer: { padding: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9', marginTop: 10 },
+  emptySessionsIconCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', marginBottom: 16, shadowColor: '#0055d4', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 4 },
+  emptySessionsTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b', marginBottom: 8 },
+  emptySessionsSub: { fontSize: 13, color: '#64748b', fontWeight: '700', textAlign: 'center', lineHeight: 20, paddingHorizontal: 10 },
+  emptyNoteText: { fontSize: 14, color: '#94a3b8', fontWeight: '600', fontStyle: 'italic', textAlign: 'center', width: '100%' },
+});

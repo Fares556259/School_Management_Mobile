@@ -7,6 +7,7 @@ import { AnnouncementsScreen } from './src/screens/AnnouncementsScreen';
 import { PaymentsScreen } from './src/screens/PaymentsScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { NotificationsScreen } from './src/screens/NotificationsScreen';
+import { NotificationDetailScreen } from './src/screens/NotificationDetailScreen';
 import { AttendanceScreen } from './src/screens/AttendanceScreen';
 import { HomeworkDetailScreen } from './src/screens/HomeworkDetailScreen';
 import { ExamDetailScreen } from './src/screens/ExamDetailScreen';
@@ -16,6 +17,10 @@ import { AnnouncementDetailScreen } from './src/screens/AnnouncementDetailScreen
 import { LandingScreen } from './src/screens/LandingScreen';
 import { DocumentCenterScreen } from './src/screens/DocumentCenterScreen';
 import { TeacherClassesScreen } from './src/screens/teacher/TeacherClassesScreen';
+import { TeacherHomeScreen } from './src/screens/teacher/TeacherHomeScreen';
+import { TeacherAttendanceScreen } from './src/screens/teacher/TeacherAttendanceScreen';
+import { TeacherLessonsScreen } from './src/screens/teacher/TeacherLessonsScreen';
+import { TeacherTasksScreen } from './src/screens/teacher/TeacherTasksScreen';
 import { CoursesScreen } from './src/screens/CoursesScreen';
 import { Home as HomeIcon, FileText, CreditCard, User, Megaphone, Calendar, BarChart3, ClipboardList, BookOpen, Users, ClipboardCheck, GraduationCap } from 'lucide-react-native';
 import { View, ActivityIndicator, Alert } from 'react-native';
@@ -230,8 +235,16 @@ export default function App() {
           } as never);
         } else if (data.type === 'RESOURCE' && data.resourceId) {
           navigationRef.navigate('DocumentCenter' as never);
-        } else if (data.type === 'ANNOUNCEMENT') {
-          navigationRef.navigate('Announcements' as never);
+        } else if (data.type === 'ANNOUNCEMENT' || data.type === 'ATTENDANCE') {
+          navigationRef.navigate('NotificationDetail' as never, { 
+            notification: { 
+              ...data, 
+              type: data.type, 
+              message: data.message || data.body || "Detailed message unavailable.",
+              studentName: data.studentName || "Student Update",
+              time: "Just now" 
+            } 
+          } as never);
         }
       }
     });
@@ -310,6 +323,7 @@ export default function App() {
               />
               <Stack.Screen name="Attendance" component={AttendanceScreen} />
               <Stack.Screen name="Notifications" component={NotificationsScreen} />
+              <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
               <Stack.Screen name="HomeworkDetail" component={HomeworkDetailScreen} />
               <Stack.Screen name="ExamDetail" component={ExamDetailScreen} />
               <Stack.Screen name="AnnouncementDetail" component={AnnouncementDetailScreen} />
