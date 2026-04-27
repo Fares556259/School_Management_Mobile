@@ -21,6 +21,8 @@ import { TeacherHomeScreen } from './src/screens/teacher/TeacherHomeScreen';
 import { TeacherAttendanceScreen } from './src/screens/teacher/TeacherAttendanceScreen';
 import { TeacherLessonsScreen } from './src/screens/teacher/TeacherLessonsScreen';
 import { TeacherTasksScreen } from './src/screens/teacher/TeacherTasksScreen';
+import { TeacherTaskDetailScreen } from './src/screens/teacher/TeacherTaskDetailScreen';
+import { StudentSubmissionScreen } from './src/screens/teacher/StudentSubmissionScreen';
 import { CoursesScreen } from './src/screens/CoursesScreen';
 import { Home as HomeIcon, FileText, CreditCard, User, Megaphone, Calendar, BarChart3, ClipboardList, BookOpen, Users, ClipboardCheck, GraduationCap } from 'lucide-react-native';
 import { View, ActivityIndicator, Alert } from 'react-native';
@@ -329,6 +331,8 @@ export default function App() {
               <Stack.Screen name="AnnouncementDetail" component={AnnouncementDetailScreen} />
               <Stack.Screen name="LinkChild" component={LinkChildScreen} />
               <Stack.Screen name="DocumentCenter" component={DocumentCenterScreen} />
+              <Stack.Screen name="TeacherTaskDetail" component={TeacherTaskDetailScreen} />
+              <Stack.Screen name="StudentSubmission" component={StudentSubmissionScreen} />
             </Stack.Navigator>
           )}
         </NavigationContainer>

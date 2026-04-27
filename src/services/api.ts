@@ -493,6 +493,22 @@ export const studentService = {
       url: getFullImageUrl(file.url || file.path),
     }));
   },
+
+  checkTaskStatus: async (studentId: string, assignmentId: number): Promise<boolean> => {
+    try {
+      const data = await apiFetch(`/api/mobile/tasks/submit?studentId=${studentId}&assignmentId=${assignmentId}`);
+      return data?.isCompleted === true;
+    } catch {
+      return false;
+    }
+  },
+
+  submitTask: async (studentId: string, assignmentId: number, imageUrl?: string) => {
+    return apiFetch('/api/mobile/tasks/submit', {
+      method: 'POST',
+      body: JSON.stringify({ studentId, assignmentId, imageUrl }),
+    });
+  },
 };
 
 export const uiService = {
@@ -586,6 +602,10 @@ export const teacherService = {
       method: 'POST',
       body: JSON.stringify({ ...data, teacherId }),
     });
+  },
+
+  fetchTaskSubmissions: async (assignmentId: number) => {
+    return apiFetch(`/api/mobile/teacher/task-submissions?assignmentId=${assignmentId}`);
   },
 
   fetchTasks: async () => {

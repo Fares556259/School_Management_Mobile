@@ -235,17 +235,25 @@ export const HomeScreen = ({ navigation }: any) => {
                   (dayData.homeworkDue || []).concat(dayData.homeworkGiven || []).map((task: any, idx: number) => (
                     <TouchableOpacity 
                       key={task.id} 
-                      onPress={() => navigation.navigate('HomeworkDetail', { homework: task })}
+                      onPress={() => navigation.navigate('HomeworkDetail', { homework: task, studentId: selectedChildId })}
                       style={[styles.taskItem, idx > 0 && { borderTopWidth: 1, borderTopColor: '#f1f5f9' }]}
                     >
-                      <View style={styles.taskIconWrapper}>
-                        <CheckCircle2 size={20} color="#0055d4" />
+                      <View style={[styles.taskIconWrapper, { backgroundColor: task.isCompleted ? '#dcfce7' : '#eff6ff' }]}>
+                        <CheckCircle2 size={20} color={task.isCompleted ? '#16a34a' : '#0055d4'} />
                       </View>
                       <View style={styles.taskInfo}>
                         <Text style={styles.taskTitle}>{task.subject} — {task.title}</Text>
                         <Text style={styles.taskMeta}>Assigned by {task.teacher || 'Teacher'}</Text>
                       </View>
-                      
+                      <View style={[styles.taskBadge, { 
+                        backgroundColor: task.isCompleted ? '#dcfce7' : '#fff7ed',
+                        borderWidth: 1,
+                        borderColor: task.isCompleted ? '#bbf7d0' : '#fed7aa'
+                      }]}>
+                        <Text style={[styles.taskBadgeText, { color: task.isCompleted ? '#16a34a' : '#ea580c' }]}>
+                          {task.isCompleted ? '✓ Done' : '⏳ Pending'}
+                        </Text>
+                      </View>
                       <ChevronRight size={18} color="#d1d5db" />
                     </TouchableOpacity>
                   ))

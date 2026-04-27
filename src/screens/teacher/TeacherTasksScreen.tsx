@@ -156,7 +156,7 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
         </View>
 
         {tasks.map(task => (
-          <View key={task.id} style={{ backgroundColor: 'white', padding: 24, borderRadius: 32, marginBottom: 16, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOpacity: 0.02, shadowRadius: 15, elevation: 2 }}>
+          <TouchableOpacity key={task.id} activeOpacity={0.85} onPress={() => navigation.navigate('TeacherTaskDetail', { task })} style={{ backgroundColor: 'white', padding: 24, borderRadius: 32, marginBottom: 16, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOpacity: 0.02, shadowRadius: 15, elevation: 2 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 19, fontWeight: '900', color: '#1e293b' }}>{task.title}</Text>
@@ -190,12 +190,38 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
                       <Text style={{ fontSize: 11, color: '#cbd5e1', fontWeight: '700', marginLeft: 6 }}>No attachments</Text>
                    </View>
                 )}
+
+                {/* Submission Progress */}
+                {task.total > 0 && (
+                  <View style={{ marginTop: 20 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>Submissions</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 13, fontWeight: '900', color: task.submitted === task.total ? '#16a34a' : '#0055d4' }}>
+                          {task.submitted}
+                        </Text>
+                        <Text style={{ fontSize: 13, fontWeight: '600', color: '#94a3b8' }}>/{task.total} students</Text>
+                      </View>
+                    </View>
+                    <View style={{ height: 8, backgroundColor: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
+                      <View style={{ 
+                        height: '100%', 
+                        width: `${task.total > 0 ? Math.round((task.submitted / task.total) * 100) : 0}%`, 
+                        backgroundColor: task.submitted === task.total ? '#16a34a' : '#0055d4',
+                        borderRadius: 4 
+                      }} />
+                    </View>
+                    <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '700', marginTop: 6 }}>
+                      {task.total > 0 ? Math.round((task.submitted / task.total) * 100) : 0}% completed
+                    </Text>
+                  </View>
+                )}
               </View>
               <View style={{ backgroundColor: '#f8fafc', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: '#f1f5f9' }}>
                 <Text style={{ fontSize: 11, fontWeight: '900', color: '#64748b' }}>{task.className}</Text>
               </View>
             </View>
-          </View>
+          </TouchableOpacity>
         ))}
 
         {tasks.length === 0 && !loading && (
