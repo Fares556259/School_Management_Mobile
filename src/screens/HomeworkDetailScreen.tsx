@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { getFullImageUrl } from '../services/api';
 import { ChevronLeft, Calendar, FileText, Image as ImageIcon, Download, Clock, ArrowUp, MoreHorizontal } from 'lucide-react-native';
 import { downloadAndPreviewPDF } from '../utils/fileUtils';
 
@@ -52,7 +53,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
   const description = homework.description || 'No description provided.';
   
   // Parse multiple attachments
-  const attachmentUrls = homework.img ? homework.img.split(',') : [];
+  const attachmentUrls = (homework.img ? homework.img.split(',') : []).map(getFullImageUrl).filter(Boolean);
 
   const handleDownload = async (url: string, name: string) => {
     setDownloading(url);
@@ -210,51 +211,20 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
           <Text style={{ fontSize: 15, color: '#586064', fontWeight: '600' }}>{teacherName}</Text>
         </View>
 
-        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
-          <View style={{ flex: 1, backgroundColor: '#ffffff', borderRadius: 24, padding: 18, borderWidth: 1.5, borderColor: '#f1f3f5' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-              <Calendar size={14} color="#0055d4" strokeWidth={2.5} />
-              <Text style={{ fontSize: 11, fontWeight: '800', color: '#0055d4', marginLeft: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Assigned</Text>
+        <View style={{ marginBottom: 32 }}>
+          <View style={{ backgroundColor: '#ffffff', borderRadius: 24, padding: 20, borderWidth: 1.5, borderColor: '#f1f3f5', flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
+              <Calendar size={20} color="#0055d4" strokeWidth={2.5} />
             </View>
-            <Text style={{ fontSize: 16, fontWeight: '800', color: '#1a1d1e' }}>{assignedDate.main}</Text>
-            <Text style={{ fontSize: 12, color: '#adb5bd', marginTop: 2, fontWeight: '500' }}>{assignedDate.sub}</Text>
-          </View>
-
-          <View style={{ flex: 1, backgroundColor: '#ffffff', borderRadius: 24, padding: 18, borderWidth: 1.5, borderColor: '#f1f3f5' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-              <Clock size={14} color="#ef4444" strokeWidth={2.5} />
-              <Text style={{ fontSize: 11, fontWeight: '800', color: '#ef4444', marginLeft: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Due</Text>
-            </View>
-            <Text style={{ fontSize: 16, fontWeight: '800', color: '#1a1d1e' }}>{dueDate.main}</Text>
-            <Text style={{ fontSize: 12, color: '#ef4444', marginTop: 2, fontWeight: '600' }}>{dueDate.sub}</Text>
-          </View>
-        </View>
-
-        <View style={{ 
-          backgroundColor: urgency.color === '#ef4444' ? '#fef2f2' : '#fff7ed', 
-          borderRadius: 24, 
-          padding: 20, 
-          marginBottom: 32, 
-          flexDirection: 'row', 
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderWidth: 1,
-          borderColor: urgency.color === '#ef4444' ? '#fee2e2' : '#ffedd5'
-        }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-            <Text style={{ fontSize: 24, marginRight: 12 }}>{urgency.color === '#ef4444' ? '🚫' : '⌛'}</Text>
             <View>
-              <Text style={{ fontSize: 15, fontWeight: '800', color: urgency.color }}>
-                {urgency.label.split(' ')[0]} <Text style={{ color: '#9a3412', fontWeight: '500' }}>{urgency.label.split(' ').slice(1).join(' ')}</Text>
-              </Text>
-              <Text style={{ fontSize: 15, fontWeight: '500', color: '#9a3412' }}>submit</Text>
+              <Text style={{ fontSize: 12, fontWeight: '800', color: '#0055d4', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>Assigned Date</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: '#1a1d1e' }}>{assignedDate.main}</Text>
+                <Text style={{ fontSize: 13, color: '#adb5bd', marginLeft: 8, fontWeight: '600' }}>({assignedDate.sub})</Text>
+              </View>
             </View>
           </View>
-          <View style={{ width: 120, height: 8, backgroundColor: 'rgba(255,255,255,0.5)', borderRadius: 4, overflow: 'hidden' }}>
-            <View style={{ width: `${urgency.percent}%`, height: '100%', backgroundColor: urgency.color, borderRadius: 4 }} />
-          </View>
         </View>
-
         <View style={{ marginBottom: 32 }}>
           <Text style={{ fontSize: 12, fontWeight: '800', color: '#adb5bd', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 16 }}>Instructions</Text>
           <Text style={{ fontSize: 16, color: '#495057', lineHeight: 26, fontWeight: '500' }}>

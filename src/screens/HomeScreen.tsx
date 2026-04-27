@@ -245,9 +245,7 @@ export const HomeScreen = ({ navigation }: any) => {
                         <Text style={styles.taskTitle}>{task.subject} — {task.title}</Text>
                         <Text style={styles.taskMeta}>Assigned by {task.teacher || 'Teacher'}</Text>
                       </View>
-                      <View style={[styles.taskBadge, { backgroundColor: '#fee2e2' }]}>
-                        <Text style={[styles.taskBadgeText, { color: '#ef4444' }]}>Due today</Text>
-                      </View>
+                      
                       <ChevronRight size={18} color="#d1d5db" />
                     </TouchableOpacity>
                   ))
