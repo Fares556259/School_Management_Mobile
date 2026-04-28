@@ -20,14 +20,17 @@ import {
   File as FileIcon
 } from 'lucide-react-native';
 import { teacherService } from '../../services/api';
+import { Skeleton } from '../../components/Skeleton';
+import { useAppStore } from '../../store/useAppStore';
 import moment from 'moment';
 
 export const TeacherTasksScreen = ({ navigation }: any) => {
+  const { selectedTeacherClass, setSelectedTeacherClass } = useAppStore();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [tasks, setTasks] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
-  const [selectedClass, setSelectedClass] = useState<any>(null);
+  const selectedClass = selectedTeacherClass;
   const [showAddForm, setShowAddForm] = useState(false);
   const [showClassSwitcher, setShowClassSwitcher] = useState(false);
   const [selectedDate, setSelectedDate] = useState(moment());
@@ -46,9 +49,11 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
       ]);
       setTasks(tasksRes);
       setClasses(classesRes);
-      if (classesRes.length > 0 && !selectedClass) {
-        setSelectedClass(classesRes[0]);
+      if (classesRes.length > 0 && !selectedTeacherClass) {
+        setSelectedTeacherClass(classesRes[0]);
         setSelectedClassId(classesRes[0].id);
+      } else if (selectedTeacherClass) {
+        setSelectedClassId(selectedTeacherClass.id);
       }
     } catch (err) {
       console.error("[TEACHER-TASKS-LOAD]", err);
@@ -92,7 +97,7 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
   };
 
   const handleClassSelect = (cls: any) => {
-    setSelectedClass(cls);
+    setSelectedTeacherClass(cls);
     setSelectedClassId(cls.id);
     setShowClassSwitcher(false);
   };
@@ -155,7 +160,26 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        {tasks.map(task => (
+        {loading && tasks.length === 0 && (
+          <View style={{ gap: 16 }}>
+            {[1, 2, 3].map((i) => (
+              <View key={i} style={{ backgroundColor: 'white', padding: 24, borderRadius: 32, marginBottom: 16, height: 160 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <Skeleton width="70%" height={20} borderRadius={4} />
+                  <Skeleton width={40} height={20} borderRadius={10} />
+                </View>
+                <Skeleton width="100%" height={14} borderRadius={4} style={{ marginBottom: 8 }} />
+                <Skeleton width="80%" height={14} borderRadius={4} style={{ marginBottom: 20 }} />
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Skeleton width={80} height={12} borderRadius={4} />
+                  <Skeleton width={60} height={20} borderRadius={10} />
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {tasks.filter(t => !selectedClass || t.classId === selectedClass.id || t.className === selectedClass.name).map(task => (
           <TouchableOpacity key={task.id} activeOpacity={0.85} onPress={() => navigation.navigate('TeacherTaskDetail', { task })} style={{ backgroundColor: 'white', padding: 24, borderRadius: 32, marginBottom: 16, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOpacity: 0.02, shadowRadius: 15, elevation: 2 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <View style={{ flex: 1 }}>

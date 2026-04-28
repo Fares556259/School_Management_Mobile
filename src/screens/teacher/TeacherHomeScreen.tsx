@@ -14,6 +14,7 @@ import {
 } from 'lucide-react-native';
 import { useAppStore } from '../../store/useAppStore';
 import { teacherService } from '../../services/api';
+import { Skeleton } from '../../components/Skeleton';
 
 const QuickAction = ({ icon: Icon, title, color, onPress }: any) => (
   <TouchableOpacity 
@@ -67,59 +68,80 @@ const SummaryCard = ({ value, label, color }: any) => (
   </View>
 );
 
-const ClassCard = ({ subject, className, time, room, students, status }: any) => (
-  <TouchableOpacity 
-    activeOpacity={0.9}
-    style={{ 
-      backgroundColor: 'white', 
-      borderRadius: 24, 
-      padding: 16, 
-      marginBottom: 12,
-      flexDirection: 'row',
-      alignItems: 'center',
-      borderWidth: 1,
-      borderColor: '#f1f4f6',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.03,
-      shadowRadius: 8,
-      elevation: 1
-    }}
-  >
-    <View style={{ width: 4, height: 40, borderRadius: 2, backgroundColor: status === 'Live' ? '#22c55e' : '#0055d4', marginRight: 12 }} />
-    
-    <View style={{ flex: 1 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={{ fontSize: 15, fontWeight: '900', color: '#2b3437' }}>{subject} · {className}</Text>
-        <View style={{ 
-          paddingHorizontal: 8, 
-          paddingVertical: 4, 
-          borderRadius: 8, 
-          backgroundColor: status === 'Live' ? '#f0fdf4' : '#eff6ff' 
-        }}>
-          <Text style={{ 
-            fontSize: 10, 
-            fontWeight: '900', 
-            color: status === 'Live' ? '#22c55e' : '#0055d4' 
-          }}>{status}</Text>
-        </View>
-      </View>
+const ClassCard = ({ subject, className, time, room, students, status }: any) => {
+  let statusColor = '#0055d4';
+  let bgColor = '#eff6ff';
+  let barColor = '#0055d4';
+
+  if (status === 'Live') {
+    statusColor = '#22c55e';
+    bgColor = '#f0fdf4';
+    barColor = '#22c55e';
+  } else if (status === 'Completed') {
+    statusColor = '#64748b';
+    bgColor = '#f8fafc';
+    barColor = '#cbd5e1';
+  } else if (status === 'Upcoming') {
+    statusColor = '#64748b';
+    bgColor = '#f8fafc';
+    barColor = '#e2e8f0';
+  }
+
+  return (
+    <TouchableOpacity 
+      activeOpacity={0.9}
+      style={{ 
+        backgroundColor: 'white', 
+        borderRadius: 24, 
+        padding: 16, 
+        marginBottom: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#f1f4f6',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.03,
+        shadowRadius: 8,
+        elevation: 1,
+        opacity: status === 'Completed' ? 0.7 : 1
+      }}
+    >
+      <View style={{ width: 4, height: 40, borderRadius: 2, backgroundColor: barColor, marginRight: 12 }} />
       
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 12 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <Clock size={12} color="#737c7f" />
-          <Text style={{ fontSize: 12, color: '#737c7f' }}>{time}</Text>
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={{ fontSize: 15, fontWeight: '900', color: status === 'Completed' ? '#64748b' : '#2b3437' }}>{subject} · {className}</Text>
+          <View style={{ 
+            paddingHorizontal: 8, 
+            paddingVertical: 4, 
+            borderRadius: 8, 
+            backgroundColor: bgColor 
+          }}>
+            <Text style={{ 
+              fontSize: 10, 
+              fontWeight: '900', 
+              color: statusColor 
+            }}>{status}</Text>
+          </View>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <MapPin size={12} color="#737c7f" />
-          <Text style={{ fontSize: 12, color: '#737c7f' }}>Room {room}</Text>
+        
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Clock size={12} color="#737c7f" />
+            <Text style={{ fontSize: 12, color: '#737c7f' }}>{time}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <MapPin size={12} color="#737c7f" />
+            <Text style={{ fontSize: 12, color: '#737c7f' }}>Room {room}</Text>
+          </View>
         </View>
+        
+        <Text style={{ fontSize: 12, color: '#b0b8bc', marginTop: 4 }}>{students} students enrolled</Text>
       </View>
-      
-      <Text style={{ fontSize: 12, color: '#b0b8bc', marginTop: 4 }}>{students} students enrolled</Text>
-    </View>
-  </TouchableOpacity>
-);
+    </TouchableOpacity>
+  );
+};
 
 export const TeacherHomeScreen = ({ navigation }: any) => {
   const { userName, userAvatarUrl } = useAppStore();
@@ -157,9 +179,57 @@ export const TeacherHomeScreen = ({ navigation }: any) => {
 
   if (loading && !refreshing) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8f9fa' }}>
-        <ActivityIndicator size="large" color="#0055d4" />
-      </View>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }} edges={['top']}>
+        <View style={{ backgroundColor: '#0055d4', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 60, borderBottomLeftRadius: 40, borderBottomRightRadius: 40 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View>
+              <Skeleton width={100} height={14} borderRadius={4} style={{ marginBottom: 8, backgroundColor: 'rgba(255,255,255,0.2)' }} />
+              <Skeleton width={150} height={28} borderRadius={6} style={{ backgroundColor: 'rgba(255,255,255,0.3)' }} />
+            </View>
+            <Skeleton width={50} height={50} borderRadius={25} style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
+          </View>
+          <View style={{ flexDirection: 'row', gap: 12, marginTop: 40, marginBottom: -65 }}>
+            {[1, 2, 3].map((i) => (
+              <View key={i} style={{ flex: 1, backgroundColor: 'white', borderRadius: 24, padding: 16, alignItems: 'center', height: 80, justifyContent: 'center' }}>
+                <Skeleton width="60%" height={20} borderRadius={4} style={{ marginBottom: 8 }} />
+                <Skeleton width="40%" height={10} borderRadius={2} />
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={{ marginTop: 80, paddingHorizontal: 20 }}>
+          <Skeleton width={120} height={16} borderRadius={4} style={{ marginBottom: 16 }} />
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            {[1, 2, 3].map((i) => (
+              <View key={i} style={{ flex: 1, height: 100, backgroundColor: 'white', borderRadius: 20, padding: 16, alignItems: 'center', justifyContent: 'center' }}>
+                <Skeleton width={40} height={40} borderRadius={12} style={{ marginBottom: 8 }} />
+                <Skeleton width="70%" height={10} borderRadius={2} />
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={{ marginTop: 32, paddingHorizontal: 20 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+            <Skeleton width={140} height={16} borderRadius={4} />
+            <Skeleton width={50} height={16} borderRadius={4} />
+          </View>
+          {[1, 2, 3].map((i) => (
+            <View key={i} style={{ backgroundColor: 'white', borderRadius: 24, padding: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center', height: 100 }}>
+              <Skeleton width={4} height={40} borderRadius={2} style={{ marginRight: 12 }} />
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <Skeleton width="50%" height={15} borderRadius={4} />
+                  <Skeleton width={60} height={20} borderRadius={8} />
+                </View>
+                <Skeleton width="80%" height={12} borderRadius={4} style={{ marginBottom: 8 }} />
+                <Skeleton width="40%" height={10} borderRadius={2} />
+              </View>
+            </View>
+          ))}
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -214,9 +284,9 @@ export const TeacherHomeScreen = ({ navigation }: any) => {
             marginTop: 32,
             marginBottom: -65 // Pull into the next section
           }}>
-            <SummaryCard value={data?.presentCount || 0} label="Present" color="#22c55e" />
-            <SummaryCard value={data?.absentCount || 0} label="Absent" color="#ef4444" />
-            <SummaryCard value={data?.tasksDueCount || 0} label="Tasks Due" color="#f59e0b" />
+            <SummaryCard value={data?.totalClasses || 0} label="Classes" />
+            <SummaryCard value={data?.totalTasksGiven || 0} label="Tasks given" />
+            <SummaryCard value={data?.totalResources || 0} label="Resources" />
           </View>
         </View>
 

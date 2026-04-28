@@ -10,6 +10,8 @@ import {
   Calendar, Upload
 } from 'lucide-react-native';
 import { teacherService, API_BASE_URL } from '../../services/api';
+import { Skeleton } from '../../components/Skeleton';
+import { useAppStore } from '../../store/useAppStore';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -58,12 +60,13 @@ const ResourceCard = ({ item }: any) => {
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 export const TeacherLessonsScreen = ({ navigation }: any) => {
+  const { selectedTeacherClass, setSelectedTeacherClass } = useAppStore();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [resources, setResources] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
-  const [selectedClass, setSelectedClass] = useState<any>(null);
+  const selectedClass = selectedTeacherClass;
   const [showAddForm, setShowAddForm] = useState(false);
   const [showClassSwitcher, setShowClassSwitcher] = useState(false);
 
@@ -86,7 +89,9 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
         
         if (Array.isArray(classesRes) && classesRes.length > 0) {
           setClasses(classesRes);
-          setSelectedClass(classesRes[0]);
+          if (!selectedTeacherClass) {
+            setSelectedTeacherClass(classesRes[0]);
+          }
         }
         
         if (profileRes && profileRes.subjects) {
@@ -194,7 +199,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
   };
 
   const handleClassSelect = (cls: any) => {
-    setSelectedClass(cls);
+    setSelectedTeacherClass(cls);
     setShowClassSwitcher(false);
   };
 
@@ -321,8 +326,27 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
 
         {/* Resource List */}
         {loading && !refreshing ? (
-          <ActivityIndicator size="large" color="#0055d4" style={{ marginTop: 60 }} />
-        ) : resources.length === 0 ? (
+          <View style={{ gap: 16 }}>
+            {[1, 2, 3].map((i) => (
+              <View key={i} style={{ marginBottom: 24 }}>
+                <Skeleton width={120} height={16} borderRadius={4} style={{ marginBottom: 16 }} />
+                {[1, 2].map((j) => (
+                  <View key={j} style={{ backgroundColor: 'white', borderRadius: 20, padding: 18, marginBottom: 12, flexDirection: 'row', alignItems: 'center', height: 85 }}>
+                    <Skeleton width={48} height={48} borderRadius={14} style={{ marginRight: 16 }} />
+                    <View style={{ flex: 1 }}>
+                      <Skeleton width="60%" height={16} borderRadius={4} style={{ marginBottom: 8 }} />
+                      <Skeleton width="40%" height={12} borderRadius={4} />
+                    </View>
+                    <Skeleton width={20} height={20} borderRadius={10} />
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View>
+            {/* Class Materials Header */}
+            {resources.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: 80 }}>
             <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
               <BookOpen size={44} color="#0055d4" strokeWidth={2} />
@@ -360,9 +384,11 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
                 {items.map((r: any) => <ResourceCard key={r.id} item={r} />)}
               </View>
             ))}
-          </View>
-        )}
-      </ScrollView>
+            </View>
+          )}
+        </View>
+      )}
+    </ScrollView>
 
       {/* Class Switcher Modal */}
       {showClassSwitcher && (

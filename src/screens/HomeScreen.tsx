@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Platform, RefreshControl, StatusBar, ActivityIndicator, Linking, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Platform, RefreshControl, StatusBar, ActivityIndicator, Linking, StyleSheet, Modal } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   Book, Microscope, Clock, Globe, Palette, Coffee, Calculator, Music, Languages, 
   MessageSquare, FileText, ChevronRight, BookOpen, 
   Calendar as CalendarIcon, Star, Layout, Briefcase, ChevronLeft, CheckCircle2,
-  Download
+  Download, X
 } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { studentService } from '../services/api';
@@ -77,6 +77,9 @@ const SessionCard = ({ session }: any) => {
           <View style={styles.sessionTitleGroup}>
             <Text style={styles.sessionTitle}>{session.subject}</Text>
             <Text style={styles.sessionTime}>{session.startTime} — {session.endTime}</Text>
+            {session.teacher && (
+              <Text style={styles.sessionTeacher}>{session.teacher}</Text>
+            )}
           </View>
           <View style={[styles.statusBadge, { backgroundColor: badgeBg }]}>
             <Text style={[styles.statusBadgeText, { color: badgeText }]}>{statusLabel}</Text>
@@ -108,6 +111,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
   const [refreshing, setRefreshing] = React.useState(false);
   const [dayData, setDayData] = React.useState<StudentDayData>({ sessions: [], notes: [], files: [], homeworkDue: [], homeworkGiven: [], exams: [] });
   const [selectedDate, setSelectedDate] = React.useState(new Date());
+  const [selectedRemark, setSelectedRemark] = React.useState<any>(null);
 
   const scrollViewRef = React.useRef<ScrollView>(null);
   const [tasksYPosition, setTasksYPosition] = React.useState<number>(0);
@@ -237,20 +241,72 @@ export const HomeScreen = ({ navigation, route }: any) => {
 
                 {dayData.notes.length > 0 ? (
                   dayData.notes.map((note: any, idx: number) => (
-                    <View key={note.id} style={[styles.remarkItem, idx === 0 && { borderTopWidth: 0 }]}>
+                    <TouchableOpacity 
+                      key={note.id} 
+                      activeOpacity={0.7}
+                      onPress={() => setSelectedRemark(note)}
+                      style={[styles.remarkItem, idx === 0 && { borderTopWidth: 0 }]}
+                    >
                       <View style={styles.remarkSubjectTag}>
                         <Text style={styles.remarkSubjectText}>{note.subject || 'ICT'}</Text>
                       </View>
                       <View style={styles.remarkContent}>
-                        <Text style={styles.remarkText}>{note.text || 'No content'}</Text>
+                        <Text style={styles.remarkText} numberOfLines={2}>{note.text || 'No content'}</Text>
                         <Text style={styles.remarkMeta}>{note.teacher || 'Mr. Teacher'} • {note.time || '08:00 AM'}</Text>
                       </View>
-                    </View>
+                      <ChevronRight size={16} color="#cbd5e1" style={{ alignSelf: 'center', marginLeft: 8 }} />
+                    </TouchableOpacity>
                   ))
                 ) : (
                   <Text style={styles.emptyNoteText}>No remarks for today.</Text>
                 )}
               </View>
+
+              {/* Minimal Remark Modal */}
+              <Modal
+                visible={!!selectedRemark}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setSelectedRemark(null)}
+              >
+                <TouchableOpacity 
+                  activeOpacity={1} 
+                  onPress={() => setSelectedRemark(null)}
+                  style={styles.modalOverlay}
+                >
+                  <View style={styles.minimalModalContent}>
+                    <View style={styles.modalHeader}>
+                      <View style={styles.modalHeaderTitleGroup}>
+                        <View style={styles.modalIconWrapper}>
+                          <MessageSquare size={20} color="#ec4899" />
+                        </View>
+                        <View>
+                          <Text style={styles.modalTitle}>Teacher Remark</Text>
+                          <Text style={styles.modalSubtitle}>{selectedRemark?.subject || 'General'}</Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity onPress={() => setSelectedRemark(null)} style={styles.closeBtn}>
+                        <X size={20} color="#64748b" />
+                      </TouchableOpacity>
+                    </View>
+
+                    <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                      <Text style={styles.modalFullText}>{selectedRemark?.text}</Text>
+                      
+                      <View style={styles.modalFooter}>
+                        <View style={styles.footerInfo}>
+                          <Text style={styles.footerLabel}>WRITTEN BY</Text>
+                          <Text style={styles.footerValue}>{selectedRemark?.teacher}</Text>
+                        </View>
+                        <View style={styles.footerInfo}>
+                          <Text style={styles.footerLabel}>TIME</Text>
+                          <Text style={styles.footerValue}>{selectedRemark?.time}</Text>
+                        </View>
+                      </View>
+                    </ScrollView>
+                  </View>
+                </TouchableOpacity>
+              </Modal>
 
               {/* Tasks Section */}
               <Text 
@@ -356,6 +412,7 @@ const styles = StyleSheet.create({
   sessionTitleGroup: { flex: 1, marginLeft: 12 },
   sessionTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
   sessionTime: { fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 2 },
+  sessionTeacher: { fontSize: 11, color: '#0055d4', fontWeight: '800', marginTop: 1 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   statusBadgeText: { fontSize: 11, fontWeight: '800' },
   
@@ -392,4 +449,20 @@ const styles = StyleSheet.create({
   emptySessionsTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b', marginBottom: 8 },
   emptySessionsSub: { fontSize: 13, color: '#64748b', fontWeight: '700', textAlign: 'center', lineHeight: 20, paddingHorizontal: 10 },
   emptyNoteText: { fontSize: 14, color: '#94a3b8', fontWeight: '600', fontStyle: 'italic', textAlign: 'center', width: '100%' },
+
+  // Modal Styles
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.4)', justifyContent: 'center', padding: 24 },
+  minimalModalContent: { backgroundColor: 'white', borderRadius: 32, padding: 24, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20, elevation: 5, maxHeight: '80%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
+  modalHeaderTitleGroup: { flexDirection: 'row', alignItems: 'center' },
+  modalIconWrapper: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#fdf2f8', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  modalTitle: { fontSize: 18, fontWeight: '900', color: '#0f172a' },
+  modalSubtitle: { fontSize: 13, color: '#94a3b8', fontWeight: '700', marginTop: 1 },
+  closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' },
+  modalScroll: { marginBottom: 8 },
+  modalFullText: { fontSize: 16, color: '#334155', fontWeight: '600', lineHeight: 26, marginBottom: 32 },
+  modalFooter: { borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 20, flexDirection: 'row', justifyContent: 'space-between' },
+  footerInfo: { flex: 1 },
+  footerLabel: { fontSize: 10, fontWeight: '900', color: '#cbd5e1', letterSpacing: 1, marginBottom: 4 },
+  footerValue: { fontSize: 14, fontWeight: '800', color: '#0f172a' },
 });

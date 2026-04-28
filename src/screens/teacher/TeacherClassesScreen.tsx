@@ -11,18 +11,22 @@ import {
   GraduationCap
 } from 'lucide-react-native';
 import { teacherService } from '../../services/api';
+import { useAppStore } from '../../store/useAppStore';
 
-const ClassCard = ({ item, navigation }: any) => (
+const ClassCard = ({ item, navigation, setSelectedTeacherClass }: any) => (
   <TouchableOpacity 
     activeOpacity={0.9}
-    onPress={() => navigation.navigate('TeacherClassRoster', { classItem: item })}
+    onPress={() => {
+      setSelectedTeacherClass(item);
+      navigation.navigate('TeacherClassRoster', { classItem: item });
+    }}
     style={{ 
       backgroundColor: 'white', 
       borderRadius: 24, 
       padding: 16, 
       marginBottom: 16,
       borderWidth: 1,
-      borderColor: '#f1f4f6',
+      borderColor: item.id === item.selectedId ? '#0055d4' : '#f1f4f6',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.03,
@@ -60,6 +64,7 @@ const ClassCard = ({ item, navigation }: any) => (
 );
 
 export const TeacherClassesScreen = ({ navigation }: any) => {
+  const { selectedTeacherClass, setSelectedTeacherClass } = useAppStore();
   const [loading, setLoading] = useState(true);
   const [classes, setClasses] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -70,6 +75,10 @@ export const TeacherClassesScreen = ({ navigation }: any) => {
       setLoading(true);
       const res = await teacherService.fetchClasses();
       setClasses(res);
+      // Auto-select if none
+      if (res.length > 0 && !selectedTeacherClass) {
+        setSelectedTeacherClass(res[0]);
+      }
     } catch (err) {
       console.error("[TEACHER-CLASSES-LOAD]", err);
     } finally {
@@ -139,7 +148,7 @@ export const TeacherClassesScreen = ({ navigation }: any) => {
             <Text style={{ fontSize: 16, color: '#64748b', fontWeight: 'bold', marginTop: 16 }}>No classes found</Text>
           </View>
         ) : (
-          filteredClasses.map(c => <ClassCard key={c.id} item={c} navigation={navigation} />)
+          filteredClasses.map(c => <ClassCard key={c.id} item={{ ...c, selectedId: selectedTeacherClass?.id }} navigation={navigation} setSelectedTeacherClass={setSelectedTeacherClass} />)
         )}
       </ScrollView>
     </SafeAreaView>

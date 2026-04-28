@@ -281,6 +281,7 @@ export const studentService = {
         time: `${s.startTime} - ${s.endTime}`,
         attendance: s.attendance,
         score: s.score || 0,
+        teacher: s.teacher,
         iconName: 'Book',
         color: '#0055d4',
       })),
