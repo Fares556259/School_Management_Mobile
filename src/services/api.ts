@@ -612,4 +612,17 @@ export const teacherService = {
     const teacherId = await authStorage.getUserId();
     return apiFetch(`/api/mobile/teacher/tasks?teacherId=${teacherId}`);
   },
+
+  fetchResources: async (classId: string) => {
+    const teacherId = await authStorage.getUserId();
+    return apiFetch(`/api/mobile/teacher/resources?classId=${classId}&teacherId=${teacherId}`);
+  },
+
+  uploadResource: async (data: { classId: string; title: string; description?: string; url: string }) => {
+    const teacherId = await authStorage.getUserId();
+    return apiFetch('/api/mobile/teacher/resources', {
+      method: 'POST',
+      body: JSON.stringify({ ...data, teacherId }),
+    });
+  },
 };

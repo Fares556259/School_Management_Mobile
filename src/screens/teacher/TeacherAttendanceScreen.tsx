@@ -47,7 +47,7 @@ const StarRating = ({ score, onScoreChange }: any) => {
       {[1, 2, 3, 4, 5].map((star) => {
         const isSelected = score >= star;
         return (
-          <TouchableOpacity key={star} onPress={() => onScoreChange(star)} activeOpacity={0.7}>
+          <TouchableOpacity key={star} onPress={() => onScoreChange(score === star ? 0 : star)} activeOpacity={0.7}>
             <Star size={28} color={isSelected ? '#f59e0b' : '#e2e8f0'} fill={isSelected ? '#f59e0b' : 'none'} strokeWidth={isSelected ? 0 : 2} />
           </TouchableOpacity>
         );
@@ -200,7 +200,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
           {hasLesson && !loading && <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}><Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b', textTransform: 'uppercase', letterSpacing: 1 }}>Student List</Text><View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 }}><Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4' }}>{students.length} students</Text></View></View>}
           {loading && !refreshing ? <ActivityIndicator size="small" color="#0055d4" style={{ marginTop: 20 }} /> : !hasLesson ? <View style={{ alignItems: 'center', marginTop: 40, backgroundColor: 'white', padding: 40, borderRadius: 32, borderWidth: 1, borderColor: '#f1f5f9' }}><Clock size={48} color="#0055d4" strokeWidth={1.5} /><Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b', textAlign: 'center', marginTop: 20 }}>No class today</Text><Text style={{ fontSize: 14, color: '#64748b', fontWeight: '600', textAlign: 'center', marginTop: 8, lineHeight: 20 }}>You don't have any scheduled lessons for this class on this date.</Text></View> : (
             <View>
-              {students.map(s => <StudentRow key={s.id} student={s} status={attendance[s.id]} onStatusChange={(status: string) => handleStatusChange(s.id, status)} note={notes[s.id]} onNoteChange={(text: string) => setNotes(prev => ({ ...prev, [s.id]: text }))} score={scores[s.id]} onScoreChange={(score: number) => setScores(prev => ({ ...prev, [s.id]: score }))} />)}
+              {students.map(s => <StudentRow key={s.id} student={s} status={attendance[s.id]} onStatusChange={(status: string) => setAttendance(prev => ({ ...prev, [s.id]: status }))} note={notes[s.id]} onNoteChange={(text: string) => setNotes(prev => ({ ...prev, [s.id]: text }))} score={scores[s.id]} onScoreChange={(score: number) => setScores(prev => ({ ...prev, [s.id]: score }))} />)}
               
               <View style={{ marginTop: 24, gap: 16 }}>
                 <View style={{ backgroundColor: 'white', borderRadius: 28, padding: 20, borderWidth: 1, borderColor: '#f1f5f9' }}>

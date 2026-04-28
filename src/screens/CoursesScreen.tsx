@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BookOpen, FileText, Download, ChevronRight, GraduationCap, User } from 'lucide-react-native';
+import { BookOpen, FileText, Download, ChevronRight, GraduationCap, User, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { studentService } from '../services/api';
 import moment from 'moment';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SUBJECT_THEMES: any = {
   'Mathematics': { color: '#ef4444', icon: GraduationCap, bg: '#fef2f2' },
@@ -21,11 +22,38 @@ export const CoursesScreen = () => {
   const { selectedChildId, children } = useAppStore();
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<any[]>([]);
+  const [viewedResources, setViewedResources] = useState<string[]>([]);
+  const [expandedCourses, setExpandedCourses] = useState<Record<string, boolean>>({});
   const child = children.find(c => c.id === selectedChildId);
 
   useEffect(() => {
     loadCourses();
+    loadViewedResources();
   }, [selectedChildId]);
+
+  const loadViewedResources = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('@viewed_resources');
+      if (stored) {
+        setViewedResources(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error('Failed to load viewed resources', e);
+    }
+  };
+
+  const markAsViewed = async (id: number) => {
+    const strId = id.toString();
+    if (!viewedResources.includes(strId)) {
+      const updated = [...viewedResources, strId];
+      setViewedResources(updated);
+      try {
+        await AsyncStorage.setItem('@viewed_resources', JSON.stringify(updated));
+      } catch (e) {
+        console.error('Failed to save viewed resources', e);
+      }
+    }
+  };
 
   const loadCourses = async () => {
     if (!selectedChildId) return;
@@ -40,8 +68,13 @@ export const CoursesScreen = () => {
     }
   };
 
-  const handleDownload = (url: string) => {
-    if (url) Linking.openURL(url);
+  const handleDownload = (res: any) => {
+    markAsViewed(res.id);
+    if (res.url) Linking.openURL(res.url);
+  };
+
+  const toggleCourse = (id: string) => {
+    setExpandedCourses(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   if (loading) {
@@ -110,57 +143,37 @@ export const CoursesScreen = () => {
                 </View>
 
                 {/* Content Stats */}
-                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
-                  <View style={{ flex: 1, padding: 16, borderRadius: 20, backgroundColor: '#f8fafc', borderSize: 1, borderColor: '#f1f5f9' }}>
-                    <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b' }}>{course.tasks.length}</Text>
-                    <Text style={{ fontSize: 11, fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginTop: 2 }}>Tasks</Text>
+                <TouchableOpacity 
+                  activeOpacity={0.7}
+                  onPress={() => toggleCourse(course.id)}
+                  disabled={course.resources.length === 0}
+                  style={{ flexDirection: 'row', gap: 12, marginBottom: expandedCourses[course.id] ? 16 : 0 }}
+                >
+                  <View style={{ flex: 1, padding: 16, borderRadius: 20, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#f1f5f9', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View>
+                      <Text style={{ fontSize: 11, fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>Learning Materials</Text>
+                      <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b', marginTop: 2 }}>{course.resources.length} Files</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <FileText size={20} color={course.resources.length > 0 ? "#0055d4" : "#94a3b8"} style={{ marginRight: 12 }} />
+                      {course.resources.length > 0 && (
+                        expandedCourses[course.id] ? <ChevronUp size={20} color="#94a3b8" /> : <ChevronDown size={20} color="#94a3b8" />
+                      )}
+                    </View>
                   </View>
-                  <View style={{ flex: 1, padding: 16, borderRadius: 20, backgroundColor: '#f8fafc', borderSize: 1, borderColor: '#f1f5f9' }}>
-                    <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b' }}>{course.resources.length}</Text>
-                    <Text style={{ fontSize: 11, fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginTop: 2 }}>Files</Text>
-                  </View>
-                </View>
-
-                {/* Priority Tasks */}
-                {course.tasks.length > 0 && (
-                  <View style={{ marginBottom: 20 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Active Assignments</Text>
-                    {course.tasks.map((task: any) => (
-                      <View key={task.id} style={{ 
-                        backgroundColor: '#ffffff', 
-                        borderRadius: 20, 
-                        padding: 18, 
-                        marginBottom: 10, 
-                        borderWidth: 1, 
-                        borderColor: '#fff7ed',
-                        backgroundColor: '#fffcf8',
-                        shadowColor: '#f59e0b',
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.05,
-                        shadowRadius: 5
-                      }}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <View style={{ flex: 1 }}>
-                            <Text style={{ fontSize: 15, fontWeight: '900', color: '#92400e' }}>{task.title}</Text>
-                            <Text style={{ fontSize: 13, color: '#b45309', marginTop: 4, fontWeight: '600' }} numberOfLines={1}>{task.description}</Text>
-                          </View>
-                          <View style={{ backgroundColor: '#ffedd5', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-                            <Text style={{ fontSize: 10, fontWeight: '900', color: '#ea580c' }}>{moment(task.dueDate).format('MMM D')}</Text>
-                          </View>
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                )}
+                </TouchableOpacity>
 
                 {/* Resources */}
-                {course.resources.length > 0 && (
+                {expandedCourses[course.id] && course.resources.length > 0 && (
                   <View>
                     <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Learning Materials</Text>
-                    {course.resources.slice(0, 2).map((res: any) => (
+                    {course.resources.map((res: any) => {
+                      const isNew = !viewedResources.includes(res.id.toString());
+                      
+                      return (
                       <TouchableOpacity 
                         key={res.id} 
-                        onPress={() => handleDownload(res.url)}
+                        onPress={() => handleDownload(res)}
                         style={{ 
                           flexDirection: 'row', 
                           alignItems: 'center', 
@@ -169,21 +182,26 @@ export const CoursesScreen = () => {
                           padding: 16, 
                           marginBottom: 8,
                           borderWidth: 1,
-                          borderColor: '#f1f5f9'
+                          borderColor: isNew ? '#bfdbfe' : '#f1f5f9'
                         }}
                       >
-                        <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}>
+                        <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: isNew ? '#eff6ff' : 'white', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: isNew ? '#bfdbfe' : '#f1f5f9' }}>
                           <Download size={16} color={theme.color} />
                         </View>
-                        <Text style={{ flex: 1, fontSize: 14, fontWeight: '700', color: '#1e293b', marginLeft: 14 }} numberOfLines={1}>{res.title}</Text>
+                        <View style={{ flex: 1, marginLeft: 14 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Text style={{ fontSize: 14, fontWeight: '700', color: '#1e293b' }} numberOfLines={1}>{res.title}</Text>
+                            {isNew && (
+                              <View style={{ backgroundColor: '#ef4444', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 8 }}>
+                                <Text style={{ fontSize: 9, fontWeight: '900', color: 'white' }}>NEW</Text>
+                              </View>
+                            )}
+                          </View>
+                        </View>
                         <ChevronRight size={16} color="#cbd5e1" />
                       </TouchableOpacity>
-                    ))}
-                    {course.resources.length > 2 && (
-                      <TouchableOpacity style={{ marginTop: 8, alignItems: 'center' }}>
-                        <Text style={{ fontSize: 13, fontWeight: '800', color: theme.color }}>View all {course.resources.length} resources</Text>
-                      </TouchableOpacity>
-                    )}
+                      )
+                    })}
                   </View>
                 )}
 

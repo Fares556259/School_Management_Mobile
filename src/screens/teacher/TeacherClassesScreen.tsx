@@ -12,9 +12,10 @@ import {
 } from 'lucide-react-native';
 import { teacherService } from '../../services/api';
 
-const ClassCard = ({ item }: any) => (
+const ClassCard = ({ item, navigation }: any) => (
   <TouchableOpacity 
     activeOpacity={0.9}
+    onPress={() => navigation.navigate('TeacherClassRoster', { classItem: item })}
     style={{ 
       backgroundColor: 'white', 
       borderRadius: 24, 
@@ -51,14 +52,8 @@ const ClassCard = ({ item }: any) => (
     </View>
 
     <View style={{ flexDirection: 'row', gap: 8, marginTop: 16, pt: 12, borderTopWidth: 1, borderTopColor: '#f1f4f6' }}>
-      <View style={{ flex: 1, backgroundColor: '#f0fdf4', padding: 8, borderRadius: 12, alignItems: 'center' }}>
-        <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#22c55e' }}>{item.avgAttendance || '92%'} attend.</Text>
-      </View>
       <View style={{ flex: 1, backgroundColor: '#eff6ff', padding: 8, borderRadius: 12, alignItems: 'center' }}>
         <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#0055d4' }}>{item.lessons || 14} lessons</Text>
-      </View>
-      <View style={{ flex: 1, backgroundColor: '#fffbeb', padding: 8, borderRadius: 12, alignItems: 'center' }}>
-        <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#f59e0b' }}>{item.tasks || 2} tasks</Text>
       </View>
     </View>
   </TouchableOpacity>
@@ -144,7 +139,7 @@ export const TeacherClassesScreen = ({ navigation }: any) => {
             <Text style={{ fontSize: 16, color: '#64748b', fontWeight: 'bold', marginTop: 16 }}>No classes found</Text>
           </View>
         ) : (
-          filteredClasses.map(c => <ClassCard key={c.id} item={c} />)
+          filteredClasses.map(c => <ClassCard key={c.id} item={c} navigation={navigation} />)
         )}
       </ScrollView>
     </SafeAreaView>

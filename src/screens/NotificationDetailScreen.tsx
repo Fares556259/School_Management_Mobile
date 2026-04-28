@@ -132,6 +132,18 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
               <Info size={18} color="#64748b" />
               <Text style={styles.infoText}>This is a school announcement. For any questions, please contact your child's teacher via the Courses tab.</Text>
             </View>
+
+            {notification.message?.toLowerCase().includes('task') && (
+              <TouchableOpacity 
+                onPress={() => navigation.navigate('MainTabs', { 
+                  screen: 'Home', 
+                  params: { targetDate: notification.rawDate, scrollTo: 'tasks' } 
+                })}
+                style={[styles.callButton, { backgroundColor: '#0055d4', borderWidth: 0, marginTop: 24, marginHorizontal: 0 }]}
+              >
+                <Text style={[styles.callButtonText, { color: 'white' }]}>View Task</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </ScrollView>

@@ -5,7 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   Book, Microscope, Clock, Globe, Palette, Coffee, Calculator, Music, Languages, 
   MessageSquare, FileText, ChevronRight, BookOpen, 
-  Calendar as CalendarIcon, Star, Layout, Briefcase, ChevronLeft, CheckCircle2
+  Calendar as CalendarIcon, Star, Layout, Briefcase, ChevronLeft, CheckCircle2,
+  Download
 } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { studentService } from '../services/api';
@@ -100,12 +101,33 @@ const SessionCard = ({ session }: any) => {
   );
 };
 
-export const HomeScreen = ({ navigation }: any) => {
+export const HomeScreen = ({ navigation, route }: any) => {
   const { selectedChildId, children, setStudentStatus } = useAppStore();
   const [loading, setLoading] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
   const [dayData, setDayData] = React.useState<StudentDayData>({ sessions: [], notes: [], files: [], homeworkDue: [], homeworkGiven: [], exams: [] });
   const [selectedDate, setSelectedDate] = React.useState(new Date());
+
+  const scrollViewRef = React.useRef<ScrollView>(null);
+  const [tasksYPosition, setTasksYPosition] = React.useState<number>(0);
+
+  React.useEffect(() => {
+    if (route?.params?.targetDate) {
+      const tDate = new Date(route.params.targetDate);
+      if (!isNaN(tDate.getTime())) {
+        setSelectedDate(tDate);
+      }
+    }
+  }, [route?.params?.targetDate]);
+
+  React.useEffect(() => {
+    if (route?.params?.scrollTo === 'tasks' && !loading && tasksYPosition > 0) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ y: tasksYPosition, animated: true });
+        navigation.setParams({ scrollTo: undefined, targetDate: undefined });
+      }, 300);
+    }
+  }, [route?.params?.scrollTo, loading, tasksYPosition, navigation]);
 
   const fetchHome = async () => {
     if (!selectedChildId) return;
@@ -149,6 +171,7 @@ export const HomeScreen = ({ navigation }: any) => {
       <GlobalHeader navigation={navigation} />
 
       <ScrollView 
+        ref={scrollViewRef}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0055d4" />}
       >
@@ -229,7 +252,10 @@ export const HomeScreen = ({ navigation }: any) => {
               </View>
 
               {/* Tasks Section */}
-              <Text style={styles.glanceTitle}>Tasks</Text>
+              <Text 
+                onLayout={(e) => setTasksYPosition(e.nativeEvent.layout.y)}
+                style={styles.glanceTitle}
+              >Tasks</Text>
               <View style={styles.tasksCard}>
                 {(dayData.homeworkDue || []).concat(dayData.homeworkGiven || []).length > 0 ? (
                   (dayData.homeworkDue || []).concat(dayData.homeworkGiven || []).map((task: any, idx: number) => (
@@ -261,6 +287,31 @@ export const HomeScreen = ({ navigation }: any) => {
                   <View style={{ padding: 20 }}>
                     <Text style={styles.emptyNoteText}>No tasks assigned for today.</Text>
                   </View>
+                )}
+              </View>
+
+              {/* Learning Materials Section */}
+              <Text style={[styles.glanceTitle, { marginTop: 30 }]}>Learning Materials</Text>
+              <View style={styles.glanceCard}>
+                {dayData.resources && dayData.resources.length > 0 ? (
+                  dayData.resources.map((res: any, idx: number) => (
+                    <TouchableOpacity 
+                      key={res.id} 
+                      onPress={() => res.url && Linking.openURL(res.url)}
+                      style={[styles.remarkItem, idx === 0 && { borderTopWidth: 0 }]}
+                    >
+                      <View style={[styles.remarkSubjectTag, { backgroundColor: '#f5f3ff' }]}>
+                        <Text style={[styles.remarkSubjectText, { color: '#8b5cf6' }]}>{res.subject || 'Material'}</Text>
+                      </View>
+                      <View style={styles.remarkContent}>
+                        <Text style={styles.remarkText}>{res.title}</Text>
+                        <Text style={styles.remarkMeta}>Added by {res.teacher || 'Teacher'}</Text>
+                      </View>
+                      <Download size={18} color="#94a3b8" />
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <Text style={styles.emptyNoteText}>No materials uploaded today.</Text>
                 )}
               </View>
             </>
