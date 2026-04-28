@@ -197,6 +197,14 @@ export const CoursesScreen = () => {
                               </View>
                             )}
                           </View>
+                          {res.description ? (
+                            <Text style={{ fontSize: 12, color: '#64748b', fontWeight: '500', marginTop: 3, lineHeight: 16 }} numberOfLines={2}>
+                              {res.description}
+                            </Text>
+                          ) : null}
+                          <Text style={{ fontSize: 10, color: '#94a3b8', fontWeight: '700', marginTop: res.description ? 4 : 2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                            {res.teacher || course.teacher || 'Teacher'} · {new Date(res.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </Text>
                         </View>
                         <ChevronRight size={16} color="#cbd5e1" />
                       </TouchableOpacity>

@@ -284,12 +284,20 @@ export const studentService = {
         iconName: 'Book',
         color: '#0055d4',
       })),
-      notes: (home.teacherRemarks || []).map((r: any) => ({
-        id: r.id,
-        text: r.note,
-        subject: r.subject,
-        teacher: r.teacher,
-      })),
+      notes: (home.teacherRemarks || []).map((r: any) => {
+        let timeString = '';
+        if (r.date) {
+           const d = new Date(r.date);
+           timeString = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        return {
+          id: r.id,
+          text: r.note,
+          subject: r.subject,
+          teacher: r.teacher,
+          time: timeString
+        };
+      }),
       files: (home.resources || []).flatMap((r: any) => {
         const urls = r.url ? r.url.split(',') : [];
         return urls.map((url: string, index: number) => ({

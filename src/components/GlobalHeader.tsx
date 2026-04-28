@@ -59,7 +59,7 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
   };
 
   return (
-    <View className="bg-white/90 border-b border-surface-low backdrop-blur-xl">
+    <View className="bg-white border-b border-surface-low z-50">
       <View className="flex-row items-center justify-between px-6 py-4">
         <View className="flex-row items-center flex-1">
           {showBack ? (

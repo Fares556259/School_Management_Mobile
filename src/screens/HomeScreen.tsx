@@ -58,12 +58,13 @@ const SessionCard = ({ session }: any) => {
   const Icon = ICON_MAP[session.subject] || Book;
   const isAbsent = session.attendance?.toUpperCase() === 'ABSENT' || session.attendance?.toUpperCase() === 'ABS';
   const isPresent = session.attendance?.toUpperCase() === 'PRESENT' || session.attendance?.toUpperCase() === 'PRES';
+  const isLate = session.attendance?.toUpperCase() === 'LATE';
   const isUpcoming = !session.attendance;
 
-  const accentColor = isAbsent ? '#ef4444' : isPresent ? '#10b981' : '#e2e8f0';
-  const badgeBg = isAbsent ? '#fee2e2' : isPresent ? '#d1fae5' : '#f1f5f9';
-  const badgeText = isAbsent ? '#ef4444' : isPresent ? '#059669' : '#64748b';
-  const statusLabel = isAbsent ? 'Absent' : isPresent ? 'Present' : 'Upcoming';
+  const accentColor = isAbsent ? '#ef4444' : isPresent ? '#10b981' : isLate ? '#f59e0b' : '#e2e8f0';
+  const badgeBg = isAbsent ? '#fee2e2' : isPresent ? '#d1fae5' : isLate ? '#fef3c7' : '#f1f5f9';
+  const badgeText = isAbsent ? '#ef4444' : isPresent ? '#059669' : isLate ? '#d97706' : '#64748b';
+  const statusLabel = isAbsent ? 'Absent' : isPresent ? 'Present' : isLate ? 'Late' : 'Upcoming';
 
   return (
     <View style={styles.sessionItem}>

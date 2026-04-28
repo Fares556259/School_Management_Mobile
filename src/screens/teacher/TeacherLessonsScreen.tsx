@@ -40,9 +40,14 @@ const ResourceCard = ({ item }: any) => {
       }}>
         {isPdf ? <FileText size={24} color="#f59e0b" /> : <LinkIcon size={24} color="#0055d4" />}
       </View>
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, paddingRight: 8 }}>
         <Text style={{ fontSize: 15, fontWeight: '800', color: '#1e293b' }} numberOfLines={1}>{item.title}</Text>
-        <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '600', marginTop: 2 }}>
+        {item.description ? (
+          <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '500', marginTop: 3, marginBottom: 2, lineHeight: 18 }} numberOfLines={2}>
+            {item.description}
+          </Text>
+        ) : null}
+        <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '700', marginTop: item.description ? 4 : 2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
           {item.subject} · {new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
         </Text>
       </View>
@@ -103,7 +108,17 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
     try {
       setLoading(true);
       const res = await teacherService.fetchResources(selectedClass.id.toString());
-      setResources(Array.isArray(res) ? res : []);
+      if (res && res.resources) {
+        setResources(res.resources);
+        if (res.classSubjects && Array.isArray(res.classSubjects)) {
+          setSubjects(res.classSubjects);
+          if (res.classSubjects.length > 0) {
+            setSelectedSubjectId(res.classSubjects[0].id.toString());
+          }
+        }
+      } else {
+        setResources(Array.isArray(res) ? res : []);
+      }
     } catch (e) {
       console.error('[Resources Load]', e);
     } finally {
@@ -121,7 +136,9 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
       if (!result.canceled && result.assets[0]) {
         const f = result.assets[0];
         setAttachedFile({ name: f.name, uri: f.uri });
-        setFormTitle(f.name.replace(/\.[^.]+$/, ''));
+        if (!formTitle) {
+          setFormTitle(f.name.replace(/\.[^.]+$/, ''));
+        }
       }
     } catch (e: any) {
       Alert.alert('Error', 'Could not pick file');
@@ -319,15 +336,31 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
             </TouchableOpacity>
           </View>
         ) : (
-          <>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <Text style={{ fontSize: 13, fontWeight: '900', color: '#1e293b', textTransform: 'uppercase', letterSpacing: 1 }}>Materials</Text>
+          <View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>Class Materials</Text>
               <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}>
-                <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4' }}>{resources.length} files</Text>
+                <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4' }}>{resources.length} total files</Text>
               </View>
             </View>
-            {resources.map(r => <ResourceCard key={r.id} item={r} />)}
-          </>
+
+            {Object.entries(
+              resources.reduce((acc, r) => {
+                const s = r.subject || 'General';
+                if (!acc[s]) acc[s] = [];
+                acc[s].push(r);
+                return acc;
+              }, {} as Record<string, any[]>)
+            ).map(([subjectName, items]: [string, any]) => (
+              <View key={subjectName} style={{ marginBottom: 28 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
+                  <Text style={{ fontSize: 13, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 }}>{subjectName}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#94a3b8' }}>{items.length} {items.length === 1 ? 'file' : 'files'}</Text>
+                </View>
+                {items.map((r: any) => <ResourceCard key={r.id} item={r} />)}
+              </View>
+            ))}
+          </View>
         )}
       </ScrollView>
 
