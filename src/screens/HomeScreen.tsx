@@ -220,7 +220,20 @@ export const HomeScreen = ({ navigation, route }: any) => {
 
 
           {/* Date Slider */}
-          <SectionHeader title="Today's Schedule" action="History" onAction={() => navigation.navigate('Attendance')} />
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Today's Schedule</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+              {selectedDate.toDateString() !== new Date().toDateString() && (
+                <TouchableOpacity onPress={() => setSelectedDate(new Date())}>
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#1e293b' }}>Back to Today</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity onPress={() => navigation.navigate('Attendance')} style={styles.sectionActionBtn}>
+                <Text style={styles.sectionActionText}>History</Text>
+                <ChevronRight size={14} color="#0072e6" strokeWidth={3} />
+              </TouchableOpacity>
+            </View>
+          </View>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.calendarBtn}>
               <CalendarIcon size={24} color="#64748b" />
