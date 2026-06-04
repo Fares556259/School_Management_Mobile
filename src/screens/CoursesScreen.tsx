@@ -143,7 +143,7 @@ export const CoursesScreen = () => {
                       <ThemeIcon color={theme.color} size={24} />
                     </View>
                     <View style={{ flex: 1, marginLeft: 16 }}>
-                      <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>{course.name}</Text>
+                      <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>{course.name.split('|')[0]?.trim() || course.name}</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
                         <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: '#f1f5f9', borderWidth: 1.5, borderColor: '#e2e8f0' }}>
                           <Text style={{ fontSize: 10, color: '#64748b', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.3 }}>{course.teacher}</Text>
