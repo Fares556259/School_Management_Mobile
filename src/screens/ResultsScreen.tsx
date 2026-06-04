@@ -9,16 +9,42 @@ import { useAppStore } from '../store/useAppStore';
 import { studentService } from '../services/api';
 import { GlobalHeader } from '../components/GlobalHeader';
 
-const SUBJECT_THEMES: Record<string, { color: string, bg: string, icon: any }> = {
-  'Mathematics': { color: '#3b82f6', bg: '#eff6ff', icon: Calculator },
-  'Science': { color: '#10b981', bg: '#ecfdf5', icon: Microscope },
-  'English': { color: '#8b5cf6', bg: '#f5f3ff', icon: Languages },
-  'French': { color: '#f59e0b', bg: '#fffbeb', icon: Languages },
-  'History': { color: '#ec4899', bg: '#fdf2f8', icon: Book },
-  'Geography': { color: '#06b6d4', bg: '#ecfeff', icon: Globe },
-  'Art': { color: '#f43f5e', bg: '#fff1f2', icon: Palette },
-  'Music': { color: '#0ea5e9', bg: '#f0f9ff', icon: Music },
-  'Default': { color: '#64748b', bg: '#f1f5f9', icon: BookOpen }
+const SUBJECT_THEMES: Record<string, { icon: any }> = {
+  'Mathematics': { icon: Calculator },
+  'Science': { icon: Microscope },
+  'English': { icon: Languages },
+  'French': { icon: Languages },
+  'History': { icon: Book },
+  'Geography': { icon: Globe },
+  'Art': { icon: Palette },
+  'Music': { icon: Music },
+  'Default': { icon: BookOpen }
+};
+
+const DOMAIN_GROUPS = [
+  { id: 'SCIENCES', title: 'SCIENCES', color: '#3b82f6', bg: '#eff6ff', keywords: ['Science', 'Math', 'الإيقاظ', 'الرياضيات', 'Scientifique', 'Mathématiques'] },
+  { id: 'LANGUAGES', title: 'LANGUAGES', color: '#8b5cf6', bg: '#f5f3ff', keywords: ['Language', 'Arabe', 'Français', 'English', 'اللغة'] },
+  { id: 'ARTS_TECH', title: 'ARTS & TECHNOLOGY', color: '#ec4899', bg: '#fdf2f8', keywords: ['Art', 'Technologique', 'Musicale', 'تكنولوجية', 'موسيقية', 'تشكيلية', 'Plastiques'] },
+  { id: 'HUMANITIES', title: 'HUMANITIES', color: '#f59e0b', bg: '#fffbeb', keywords: ['History', 'Geography', 'التاريخ', 'الجغرافيا', 'Histoire', 'Géographie'] },
+  { id: 'RELIGION', title: 'RELIGION & VALUES', color: '#10b981', bg: '#ecfdf5', keywords: ['Islamique', 'Civique', 'إسلامية', 'مدنية'] },
+  { id: 'SPORT', title: 'SPORT', color: '#f43f5e', bg: '#fff1f2', keywords: ['Sport', 'Physique', 'بدنية'] },
+];
+
+const getSubjectDomain = (subjectName: string) => {
+  for (const domain of DOMAIN_GROUPS) {
+    if (domain.keywords.some(kw => subjectName.toLowerCase().includes(kw.toLowerCase()))) {
+      return domain;
+    }
+  }
+  return { id: 'OTHER', title: 'OTHER SUBJECTS', color: '#64748b', bg: '#f1f5f9' };
+};
+
+const getArabicName = (subjectName: string) => {
+  const parts = subjectName.split('|');
+  for (const part of parts) {
+    if (/[\u0600-\u06FF]/.test(part)) return part.trim();
+  }
+  return subjectName.split('|')[0].trim();
 };
 
 export const ResultsScreen = ({ navigation }: any) => {
@@ -72,6 +98,23 @@ export const ResultsScreen = ({ navigation }: any) => {
   const termResults = useMemo(() => {
     return resultsData.results.filter(r => r.term === selectedTerm);
   }, [resultsData.results, selectedTerm]);
+
+  // Group results for selected term by domain
+  const groupedResults = useMemo(() => {
+    const groups: Record<string, typeof termResults> = {};
+    termResults.forEach(r => {
+      const domain = getSubjectDomain(r.subject);
+      if (!groups[domain.id]) groups[domain.id] = [];
+      groups[domain.id].push(r);
+    });
+    
+    // Sort domains by their appearance in DOMAIN_GROUPS
+    const sortedGroups = DOMAIN_GROUPS.map(d => ({ domain: d, items: groups[d.id] || [] })).filter(g => g.items.length > 0);
+    if (groups['OTHER'] && groups['OTHER'].length > 0) {
+      sortedGroups.push({ domain: getSubjectDomain('OTHER'), items: groups['OTHER'] });
+    }
+    return sortedGroups;
+  }, [termResults]);
 
   // Calculate current term average
   const termAverage = useMemo(() => {
@@ -188,65 +231,67 @@ export const ResultsScreen = ({ navigation }: any) => {
 
             {/* Grades List */}
             <View style={styles.gradesList}>
-              {termResults.length > 0 ? (
-                termResults.map(item => {
-                  const theme = SUBJECT_THEMES[item.subject] || SUBJECT_THEMES.Default;
-                  const ThemeIcon = theme.icon;
-                  const isAboveClassAvg = item.score >= (item.classAverage || item.score);
-                  
-                  // Score percentage mapping to draw progress bar track (graded out of 20)
-                  const scorePercent = (item.score / 20) * 100;
-                  const avgPercent = ((item.classAverage || item.score) / 20) * 100;
-
-                  return (
-                    <View key={item.id} style={styles.gradeCard}>
-                      <View style={styles.gradeCardHeader}>
-                        <View style={[styles.subjectIconCircle, { backgroundColor: theme.bg }]}>
-                          <ThemeIcon color={theme.color} size={22} />
-                        </View>
-                        <View style={styles.subjectTextGroup}>
-                          <Text style={styles.subjectName}>{item.subject}</Text>
-                          <Text style={styles.gradeDate}>
-                            Recorded {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </Text>
-                        </View>
-                        <View style={styles.scoreTextGroup}>
-                          <Text style={styles.subjectScore}>{item.score}</Text>
-                          <Text style={styles.maxScore}>/ 20</Text>
-                        </View>
-                      </View>
-
-                      {/* Performance Bar Comparison */}
-                      <View style={styles.comparisonBarSection}>
-                        <View style={styles.barLabelRow}>
-                          <Text style={styles.barLabel}>Student mark vs Class average</Text>
-                          <Text style={[styles.comparisonIndicatorText, { color: isAboveClassAvg ? '#10b981' : '#ef4444' }]}>
-                            {isAboveClassAvg ? 'Above Avg' : 'Below Avg'}
-                          </Text>
-                        </View>
-
-                        <View style={styles.barContainer}>
-                          {/* Main Progress track */}
-                          <View style={styles.barTrack}>
-                            {/* Student score fill */}
-                            <View style={[styles.studentFillBar, { width: `${scorePercent}%`, backgroundColor: theme.color }]} />
-                            {/* Class Average indicator dot */}
-                            <View style={[styles.classAvgTick, { left: `${avgPercent}%` }]} />
-                          </View>
-                          
-                          {/* Labels under the bar */}
-                          <View style={styles.barLegendRow}>
-                            <Text style={styles.legendText}>0</Text>
-                            <View style={[styles.legendTickLabel, { left: `${avgPercent}%` }]}>
-                              <Text style={styles.legendAvgText}>Avg: {item.classAverage}</Text>
-                            </View>
-                            <Text style={styles.legendText}>20</Text>
-                          </View>
-                        </View>
-                      </View>
+              {groupedResults.length > 0 ? (
+                groupedResults.map((group) => (
+                  <View key={group.domain.id} style={{ backgroundColor: 'white', borderRadius: 28, padding: 20, marginBottom: 8, borderWidth: 2, borderColor: '#e2e8f0', borderBottomWidth: 6, borderBottomColor: '#cbd5e1' }}>
+                    <View style={{ backgroundColor: group.domain.color, paddingVertical: 14, borderRadius: 16, alignItems: 'center', marginBottom: 20, borderBottomWidth: 4, borderBottomColor: 'rgba(0,0,0,0.2)' }}>
+                      <Text style={{ color: 'white', fontWeight: '900', fontSize: 16, letterSpacing: 1 }}>{group.domain.title}</Text>
                     </View>
-                  );
-                })
+                    
+                    <View style={{ gap: 16 }}>
+                      {group.items.map((item, index) => {
+                        const theme = Object.values(SUBJECT_THEMES).find(t => item.subject.includes(Object.keys(SUBJECT_THEMES).find(k => SUBJECT_THEMES[k] === t) || '')) || SUBJECT_THEMES.Default;
+                        const ThemeIcon = theme.icon;
+                        const isAboveClassAvg = item.score >= (item.classAverage || item.score);
+                        
+                        const scorePercent = (item.score / 20) * 100;
+                        const avgPercent = ((item.classAverage || item.score) / 20) * 100;
+
+                        return (
+                          <View key={item.id} style={{ paddingBottom: index === group.items.length - 1 ? 0 : 16, borderBottomWidth: index === group.items.length - 1 ? 0 : 2, borderBottomColor: '#f1f5f9', borderStyle: 'dashed' }}>
+                            <View style={styles.gradeCardHeader}>
+                              <View style={[styles.subjectIconCircle, { backgroundColor: group.domain.bg, borderWidth: 2, borderColor: group.domain.color + '30' }]}>
+                                <ThemeIcon color={group.domain.color} size={20} strokeWidth={2.5} />
+                              </View>
+                              <View style={styles.subjectTextGroup}>
+                                <Text style={styles.subjectName}>{getArabicName(item.subject)}</Text>
+                                <Text style={styles.gradeDate}>
+                                  Recorded {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                </Text>
+                              </View>
+                              <View style={styles.scoreTextGroup}>
+                                <Text style={styles.subjectScore}>{item.score}</Text>
+                                <Text style={styles.maxScore}>/ 20</Text>
+                              </View>
+                            </View>
+
+                            <View style={styles.comparisonBarSection}>
+                              <View style={styles.barLabelRow}>
+                                <Text style={styles.barLabel}>Student mark vs Class average</Text>
+                                <Text style={[styles.comparisonIndicatorText, { color: isAboveClassAvg ? '#10b981' : '#ef4444' }]}>
+                                  {isAboveClassAvg ? 'Above Avg' : 'Below Avg'}
+                                </Text>
+                              </View>
+                              <View style={styles.barContainer}>
+                                <View style={styles.barTrack}>
+                                  <View style={[styles.studentFillBar, { width: `${scorePercent}%`, backgroundColor: group.domain.color }]} />
+                                  <View style={[styles.classAvgTick, { left: `${avgPercent}%` }]} />
+                                </View>
+                                <View style={styles.barLegendRow}>
+                                  <Text style={styles.legendText}>0</Text>
+                                  <View style={[styles.legendTickLabel, { left: `${avgPercent}%` }]}>
+                                    <Text style={styles.legendAvgText}>Avg: {item.classAverage}</Text>
+                                  </View>
+                                  <Text style={styles.legendText}>20</Text>
+                                </View>
+                              </View>
+                            </View>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ))
               ) : (
                 <View style={styles.emptyTermContainer}>
                   <Text style={styles.emptyTermText}>No grades recorded for Term {selectedTerm} yet.</Text>
