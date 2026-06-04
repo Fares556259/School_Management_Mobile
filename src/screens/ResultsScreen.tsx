@@ -242,10 +242,10 @@ export const ResultsScreen = ({ navigation }: any) => {
                       {group.items.map((item, index) => {
                         const theme = Object.values(SUBJECT_THEMES).find(t => item.subject.includes(Object.keys(SUBJECT_THEMES).find(k => SUBJECT_THEMES[k] === t) || '')) || SUBJECT_THEMES.Default;
                         const ThemeIcon = theme.icon;
-                        const isAboveClassAvg = item.score >= (item.classAverage || item.score);
-                        
-                        const scorePercent = (item.score / 20) * 100;
-                        const avgPercent = ((item.classAverage || item.score) / 20) * 100;
+                        const classAvg = item.classAverage !== undefined && item.classAverage !== null ? item.classAverage : item.score;
+                        const diff = item.score - classAvg;
+                        const statusText = diff > 0 ? 'Above Avg' : diff < 0 ? 'Below Avg' : 'Average';
+                        const statusColor = diff > 0 ? '#10b981' : diff < 0 ? '#ef4444' : '#f59e0b';
 
                         return (
                           <View key={item.id} style={{ paddingBottom: index === group.items.length - 1 ? 0 : 16, borderBottomWidth: index === group.items.length - 1 ? 0 : 2, borderBottomColor: '#f1f5f9', borderStyle: 'dashed' }}>
@@ -265,25 +265,12 @@ export const ResultsScreen = ({ navigation }: any) => {
                               </View>
                             </View>
 
-                            <View style={styles.comparisonBarSection}>
-                              <View style={styles.barLabelRow}>
-                                <Text style={styles.barLabel}>Student mark vs Class average</Text>
-                                <Text style={[styles.comparisonIndicatorText, { color: isAboveClassAvg ? '#10b981' : '#ef4444' }]}>
-                                  {isAboveClassAvg ? 'Above Avg' : 'Below Avg'}
+                            <View style={[styles.comparisonBarSection, { borderBottomWidth: 0, paddingBottom: 4 }]}>
+                              <View style={[styles.barLabelRow, { marginBottom: 0 }]}>
+                                <Text style={styles.barLabel}>Student mark vs Class avg ({classAvg})</Text>
+                                <Text style={[styles.comparisonIndicatorText, { color: statusColor }]}>
+                                  {statusText}
                                 </Text>
-                              </View>
-                              <View style={styles.barContainer}>
-                                <View style={styles.barTrack}>
-                                  <View style={[styles.studentFillBar, { width: `${scorePercent}%`, backgroundColor: group.domain.color }]} />
-                                  <View style={[styles.classAvgTick, { left: `${avgPercent}%` }]} />
-                                </View>
-                                <View style={styles.barLegendRow}>
-                                  <Text style={styles.legendText}>0</Text>
-                                  <View style={[styles.legendTickLabel, { left: `${avgPercent}%` }]}>
-                                    <Text style={styles.legendAvgText}>Avg: {item.classAverage}</Text>
-                                  </View>
-                                  <Text style={styles.legendText}>20</Text>
-                                </View>
                               </View>
                             </View>
                           </View>
