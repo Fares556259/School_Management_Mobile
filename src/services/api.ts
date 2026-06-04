@@ -335,11 +335,18 @@ export const studentService = {
     return await apiFetch(`/api/mobile/courses?studentId=${studentId}`);
   },
 
-  fetchPayments: async (studentId: string): Promise<PaymentRecord[]> => {
+  fetchPayments: async (studentId: string, forceRefresh = false): Promise<PaymentRecord[]> => {
+    if (forceRefresh) {
+      await parentService.fetchChildren();
+    }
     const cached = await AsyncStorage.getItem(STUDENTS_CACHE_KEY);
-    if (!cached) return [];
+    if (!cached) {
+      await parentService.fetchChildren(); // Ensure we have data
+      const freshCache = await AsyncStorage.getItem(STUDENTS_CACHE_KEY);
+      if (!freshCache) return [];
+    }
 
-    const students: any[] = JSON.parse(cached);
+    const students: any[] = JSON.parse(await AsyncStorage.getItem(STUDENTS_CACHE_KEY) || '[]');
     const s = students.find((x) => x.id === studentId);
     if (!s) return [];
 

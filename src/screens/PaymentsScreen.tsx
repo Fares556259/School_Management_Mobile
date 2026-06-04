@@ -32,7 +32,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
 
   const loadData = useCallback(async (id: string, isRefreshing = false) => {
     if (!isRefreshing) setLoading(true);
-    const data = await studentService.fetchPayments(id);
+    const data = await studentService.fetchPayments(id, isRefreshing);
     setHistory(data);
     setLoading(false);
     setRefreshing(false);
