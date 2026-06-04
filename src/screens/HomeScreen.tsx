@@ -5,6 +5,7 @@ import {
   StyleSheet, Modal, Animated
 } from 'react-native';
 import { Image } from 'expo-image';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Book, Microscope, Clock, Globe, Palette, Coffee, Calculator, Music, Languages,
@@ -145,6 +146,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
   const [refreshing, setRefreshing] = React.useState(false);
   const [dayData, setDayData] = React.useState<StudentDayData>({ sessions: [], notes: [], files: [], homeworkDue: [], homeworkGiven: [], exams: [] });
   const [selectedDate, setSelectedDate] = React.useState(new Date());
+  const [showDatePicker, setShowDatePicker] = React.useState(false);
   const [selectedRemark, setSelectedRemark] = React.useState<any>(null);
 
   const scrollViewRef = React.useRef<ScrollView>(null);
@@ -191,7 +193,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
   }, [selectedChildId, selectedDate]);
 
   const sliderDates = Array.from({ length: 7 }).map((_, i) => {
-    const d = new Date();
+    const d = new Date(selectedDate);
     d.setDate(d.getDate() - 3 + i);
     return d;
   });
@@ -219,18 +221,35 @@ export const HomeScreen = ({ navigation, route }: any) => {
 
           {/* Date Slider */}
           <SectionHeader title="Today's Schedule" action="History" onAction={() => navigation.navigate('Attendance')} />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateSlider} contentContainerStyle={{ paddingRight: 8 }}>
-            {sliderDates.map(d => (
-              <DateItem
-                key={d.toISOString()}
-                day={['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][d.getDay()]}
-                date={d.getDate()}
-                active={d.toDateString() === selectedDate.toDateString()}
-                isToday={d.toDateString() === new Date().toDateString()}
-                onPress={() => setSelectedDate(d)}
-              />
-            ))}
-          </ScrollView>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.calendarBtn}>
+              <CalendarIcon size={24} color="#64748b" />
+            </TouchableOpacity>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateSlider} contentContainerStyle={{ paddingRight: 8 }}>
+              {sliderDates.map(d => (
+                <DateItem
+                  key={d.toISOString()}
+                  day={['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][d.getDay()]}
+                  date={d.getDate()}
+                  active={d.toDateString() === selectedDate.toDateString()}
+                  isToday={d.toDateString() === new Date().toDateString()}
+                  onPress={() => setSelectedDate(d)}
+                />
+              ))}
+            </ScrollView>
+          </View>
+
+          {showDatePicker && (
+            <DateTimePicker
+              value={selectedDate}
+              mode="date"
+              display="default"
+              onChange={(event, date) => {
+                setShowDatePicker(false);
+                if (date) setSelectedDate(date);
+              }}
+            />
+          )}
 
           {loading ? (
             <View style={{ gap: 12 }}>
@@ -403,6 +422,11 @@ const styles = StyleSheet.create({
   sectionActionText: { fontSize: 13, fontWeight: '800', color: '#0072e6' },
 
   // Date Slider
+  calendarBtn: {
+    width: 50, height: 86, borderRadius: 24,
+    backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center',
+    marginRight: 10, borderWidth: 2, borderColor: '#e2e8f0', borderStyle: 'dashed'
+  },
   dateSlider: { marginBottom: 0 },
   dateCard: {
     width: 70, height: 86, borderRadius: 24,
