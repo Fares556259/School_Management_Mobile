@@ -168,19 +168,6 @@ export const ExamsScreen = ({ navigation }: any) => {
               </View>
             )}
           </View>
-
-          {/* Section: Simplified Upcoming List */}
-          {upcomingExams.length > 0 && (
-            <View style={{ backgroundColor: 'white', borderRadius: 24, padding: 20, borderWidth: 2, borderColor: '#e2e8f0', borderBottomWidth: 6, borderBottomColor: '#cbd5e1' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-                <Calendar color="#0072e6" size={24} />
-                <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', marginLeft: 10 }}>Upcoming Reminders</Text>
-              </View>
-              {upcomingExams.map((exam) => (
-                <UpcomingExamRow key={exam.id} exam={exam} />
-              ))}
-            </View>
-          )}
         </View>
       </ScrollView>
     </SafeAreaView>
