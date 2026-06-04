@@ -144,54 +144,70 @@ export const CoursesScreen = () => {
             return (
               <View key={course.id} style={{
                 backgroundColor: 'white',
-                borderRadius: 24,
+                borderRadius: 20,
                 marginBottom: 16,
                 borderWidth: 2,
-                borderColor: theme.color + '33',
-                shadowColor: theme.color + '55',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 1,
-                shadowRadius: 0,
-                elevation: 3,
+                borderColor: '#e2e8f0',
                 overflow: 'hidden',
               }}>
-                {/* Subject Header */}
-                <View style={{ padding: 20, borderBottomWidth: isExpanded ? 2 : 0, borderBottomColor: '#f1f5f9' }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <View style={{
-                      width: 52, height: 52, borderRadius: 16,
-                      backgroundColor: theme.bg, borderWidth: 2, borderColor: theme.color + '33',
-                      alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <GraduationCap color={theme.color} size={24} />
-                    </View>
-                    <View style={{ flex: 1, marginLeft: 16 }}>
-                      {/* Arabic name — right-aligned, RTL direction */}
-                      <Text
-                        style={{
-                          fontSize: 18, fontWeight: '900', color: '#1e293b',
-                          textAlign: 'right', writingDirection: 'rtl',
-                        }}
-                      >
-                        {arabicName}
-                      </Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, justifyContent: 'flex-end' }}>
-                        <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: '#f1f5f9', borderWidth: 1.5, borderColor: '#e2e8f0' }}>
-                          <Text style={{ fontSize: 10, color: '#64748b', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.3 }}>{course.teacher}</Text>
-                        </View>
-                      </View>
-                    </View>
-                    {/* File count badge */}
-                    <View style={{
-                      paddingHorizontal: 12, paddingVertical: 8,
-                      borderRadius: 12, borderWidth: 2,
-                      backgroundColor: theme.bg, borderColor: theme.color + '55',
-                    }}>
-                      <Text style={{ fontSize: 16, fontWeight: '900', color: theme.color }}>{course.resources.length}</Text>
-                      <Text style={{ fontSize: 9, fontWeight: '900', color: theme.color, textTransform: 'uppercase', letterSpacing: 0.3 }}>Files</Text>
-                    </View>
+                {/* Colored top accent bar */}
+                <View style={{
+                  backgroundColor: theme.bg,
+                  borderBottomWidth: 2,
+                  borderBottomColor: theme.color + '33',
+                  paddingHorizontal: 20,
+                  paddingVertical: 14,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}>
+                  {/* Icon */}
+                  <View style={{
+                    width: 44, height: 44, borderRadius: 14,
+                    backgroundColor: '#ffffff',
+                    borderWidth: 2, borderColor: theme.color + '44',
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <GraduationCap color={theme.color} size={22} />
+                  </View>
+
+                  {/* Arabic subject name — large, centered */}
+                  <Text style={{
+                    flex: 1,
+                    fontSize: 19, fontWeight: '900', color: '#1e293b',
+                    textAlign: 'center',
+                    writingDirection: 'rtl',
+                    marginHorizontal: 8,
+                  }}>
+                    {arabicName}
+                  </Text>
+
+                  {/* File count */}
+                  <View style={{
+                    minWidth: 44, height: 44, borderRadius: 14,
+                    backgroundColor: '#ffffff',
+                    borderWidth: 2, borderColor: theme.color + '44',
+                    alignItems: 'center', justifyContent: 'center',
+                    paddingHorizontal: 8,
+                  }}>
+                    <Text style={{ fontSize: 16, fontWeight: '900', color: theme.color }}>{course.resources.length}</Text>
+                    <Text style={{ fontSize: 8, fontWeight: '900', color: theme.color, textTransform: 'uppercase', letterSpacing: 0.3 }}>Files</Text>
                   </View>
                 </View>
+
+                {/* Teacher row */}
+                <View style={{
+                  flexDirection: 'row', alignItems: 'center',
+                  paddingHorizontal: 20, paddingVertical: 10,
+                  borderBottomWidth: isExpanded || course.resources.length > 0 ? 1 : 0,
+                  borderBottomColor: '#f1f5f9',
+                }}>
+                  <User size={13} color="#94a3b8" strokeWidth={2.5} />
+                  <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '800', marginLeft: 6, textTransform: 'uppercase', letterSpacing: 0.3 }}>
+                    {course.teacher}
+                  </Text>
+                </View>
+
 
                 {/* Expand Toggle */}
                 {course.resources.length > 0 && (
