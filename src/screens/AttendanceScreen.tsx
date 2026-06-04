@@ -35,11 +35,8 @@ const AttendanceHistoryItem = ({ day, onJustify }: { day: AttendanceHistoryDay, 
           alignItems: 'center',
           borderWidth: 2,
           borderColor: expanded ? statusConfig.color : '#e2e8f0',
-          shadowColor: expanded ? statusConfig.color : '#e2e8f0',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 1,
-          shadowRadius: 0,
-          elevation: 2,
+          borderBottomWidth: 5,
+          borderBottomColor: expanded ? statusConfig.color : '#cbd5e1',
         }}
       >
         {/* Date Box */}
@@ -48,6 +45,7 @@ const AttendanceHistoryItem = ({ day, onJustify }: { day: AttendanceHistoryDay, 
           backgroundColor: '#f8fafc',
           alignItems: 'center', justifyContent: 'center',
           marginRight: 16, borderWidth: 2, borderColor: '#e2e8f0',
+          borderBottomWidth: 4, borderBottomColor: '#cbd5e1'
         }}>
           <Text style={{ fontSize: 10, fontWeight: '900', color: '#64748b', textTransform: 'uppercase' }}>{dayName}</Text>
           <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b' }}>{dayNum}</Text>
@@ -65,6 +63,7 @@ const AttendanceHistoryItem = ({ day, onJustify }: { day: AttendanceHistoryDay, 
         <View style={{
           paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12,
           backgroundColor: statusConfig.bg, borderWidth: 2, borderColor: statusConfig.border,
+          borderBottomWidth: 4, borderBottomColor: statusConfig.border,
           flexDirection: 'row', alignItems: 'center', gap: 6,
         }}>
           <Icon size={14} color={statusConfig.color} strokeWidth={3} />
@@ -112,7 +111,7 @@ const AttendanceHistoryItem = ({ day, onJustify }: { day: AttendanceHistoryDay, 
                     <TouchableOpacity
                       onPress={() => onJustify(s.id)}
                       activeOpacity={0.8}
-                      style={{ backgroundColor: '#eff6ff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 2, borderColor: '#bfdbfe', flexDirection: 'row', alignItems: 'center' }}
+                      style={{ backgroundColor: '#eff6ff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 2, borderColor: '#bfdbfe', borderBottomWidth: 4, borderBottomColor: '#93c5fd', flexDirection: 'row', alignItems: 'center' }}
                     >
                       <FileUp size={14} color="#0072e6" strokeWidth={2.5} />
                       <Text style={{ fontSize: 12, color: '#0072e6', fontWeight: '900', marginLeft: 6 }}>Justify</Text>
@@ -237,7 +236,7 @@ export const AttendanceScreen = ({ navigation }: any) => {
         <View style={{
           backgroundColor: '#0072e6', borderRadius: 28, padding: 24, marginBottom: 24, overflow: 'hidden',
           borderWidth: 2, borderColor: '#0055b3',
-          shadowColor: '#0055b3', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5
+          borderBottomWidth: 6, borderBottomColor: '#004085'
         }}>
           <View style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.1)' }} />
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -254,15 +253,15 @@ export const AttendanceScreen = ({ navigation }: any) => {
 
         {/* Summary Dashboard */}
         <View style={{ flexDirection: 'row', gap: 12, marginBottom: 32 }}>
-          <View style={{ flex: 1, backgroundColor: '#dcfce7', padding: 16, borderRadius: 20, borderWidth: 2, borderColor: '#86efac' }}>
+          <View style={{ flex: 1, backgroundColor: '#dcfce7', padding: 16, borderRadius: 20, borderWidth: 2, borderColor: '#86efac', borderBottomWidth: 5, borderBottomColor: '#4ade80' }}>
             <Text style={{ fontSize: 24, fontWeight: '900', color: '#16a34a' }}>{totalPresences}</Text>
             <Text style={{ fontSize: 11, color: '#16a34a', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4 }}>Presences</Text>
           </View>
-          <View style={{ flex: 1, backgroundColor: '#fee2e2', padding: 16, borderRadius: 20, borderWidth: 2, borderColor: '#fca5a5' }}>
+          <View style={{ flex: 1, backgroundColor: '#fee2e2', padding: 16, borderRadius: 20, borderWidth: 2, borderColor: '#fca5a5', borderBottomWidth: 5, borderBottomColor: '#f87171' }}>
             <Text style={{ fontSize: 24, fontWeight: '900', color: '#dc2626' }}>{totalAbsences}</Text>
             <Text style={{ fontSize: 11, color: '#dc2626', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4 }}>Absences</Text>
           </View>
-          <View style={{ flex: 1, backgroundColor: '#fef3c7', padding: 16, borderRadius: 20, borderWidth: 2, borderColor: '#fcd34d' }}>
+          <View style={{ flex: 1, backgroundColor: '#fef3c7', padding: 16, borderRadius: 20, borderWidth: 2, borderColor: '#fcd34d', borderBottomWidth: 5, borderBottomColor: '#fbbf24' }}>
             <Text style={{ fontSize: 24, fontWeight: '900', color: '#d97706' }}>{totalLates}</Text>
             <Text style={{ fontSize: 11, color: '#d97706', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4 }}>Lates</Text>
           </View>
