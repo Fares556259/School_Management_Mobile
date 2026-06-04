@@ -253,6 +253,46 @@ export const HomeScreen = ({ navigation, route }: any) => {
                 )}
               </View>
 
+              {/* Tasks */}
+              <Text
+                onLayout={(e) => setTasksYPosition(e.nativeEvent.layout.y)}
+                style={{ height: 0 }}
+              />
+              <SectionHeader title="Tasks" />
+              <View style={[styles.card, { padding: 12 }]}>
+                {allTasks.length > 0 ? (
+                  allTasks.map((task: any, idx: number) => (
+                    <TouchableOpacity
+                      key={task.id}
+                      onPress={() => navigation.navigate('HomeworkDetail', { homework: task, studentId: selectedChildId })}
+                      activeOpacity={0.85}
+                      style={[styles.listCard, idx !== 0 && { marginTop: 10 }]}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                        <View style={[styles.taskBadge, {
+                          backgroundColor: task.isCompleted ? '#dcfce7' : '#fff7ed',
+                          borderColor: task.isCompleted ? '#86efac' : '#fed7aa',
+                        }]}>
+                          <Text style={[styles.taskBadgeText, { color: task.isCompleted ? '#16a34a' : '#ea580c' }]}>
+                            {task.isCompleted ? '✓ Done' : 'Pending'}
+                          </Text>
+                        </View>
+                        <View style={[styles.taskIcon, { backgroundColor: task.isCompleted ? '#dcfce7' : '#eff6ff', width: 32, height: 32 }]}>
+                          <CheckCircle2 size={16} color={task.isCompleted ? '#16a34a' : '#0072e6'} />
+                        </View>
+                      </View>
+                      <Text style={styles.listRowTitle}>{task.subject?.split('|')[0]?.trim()} — {task.title}</Text>
+                      <Text style={styles.listRowMeta}>By {task.teacher || 'Teacher'}</Text>
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <View style={styles.emptyStateBox}>
+                    <CheckCircle2 size={24} color="#94a3b8" />
+                    <Text style={styles.emptyStateText}>No tasks for today.</Text>
+                  </View>
+                )}
+              </View>
+
               {/* Teacher Remarks */}
               <SectionHeader title="Teacher Remarks" />
               <View style={[styles.card, { padding: 12 }]}>
@@ -311,46 +351,6 @@ export const HomeScreen = ({ navigation, route }: any) => {
                   </View>
                 </TouchableOpacity>
               </Modal>
-
-              {/* Tasks */}
-              <Text
-                onLayout={(e) => setTasksYPosition(e.nativeEvent.layout.y)}
-                style={{ height: 0 }}
-              />
-              <SectionHeader title="Tasks" />
-              <View style={[styles.card, { padding: 12 }]}>
-                {allTasks.length > 0 ? (
-                  allTasks.map((task: any, idx: number) => (
-                    <TouchableOpacity
-                      key={task.id}
-                      onPress={() => navigation.navigate('HomeworkDetail', { homework: task, studentId: selectedChildId })}
-                      activeOpacity={0.85}
-                      style={[styles.listCard, idx !== 0 && { marginTop: 10 }]}
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                        <View style={[styles.taskBadge, {
-                          backgroundColor: task.isCompleted ? '#dcfce7' : '#fff7ed',
-                          borderColor: task.isCompleted ? '#86efac' : '#fed7aa',
-                        }]}>
-                          <Text style={[styles.taskBadgeText, { color: task.isCompleted ? '#16a34a' : '#ea580c' }]}>
-                            {task.isCompleted ? '✓ Done' : 'Pending'}
-                          </Text>
-                        </View>
-                        <View style={[styles.taskIcon, { backgroundColor: task.isCompleted ? '#dcfce7' : '#eff6ff', width: 32, height: 32 }]}>
-                          <CheckCircle2 size={16} color={task.isCompleted ? '#16a34a' : '#0072e6'} />
-                        </View>
-                      </View>
-                      <Text style={styles.listRowTitle}>{task.subject?.split('|')[0]?.trim()} — {task.title}</Text>
-                      <Text style={styles.listRowMeta}>By {task.teacher || 'Teacher'}</Text>
-                    </TouchableOpacity>
-                  ))
-                ) : (
-                  <View style={styles.emptyStateBox}>
-                    <CheckCircle2 size={24} color="#94a3b8" />
-                    <Text style={styles.emptyStateText}>No tasks for today.</Text>
-                  </View>
-                )}
-              </View>
 
               {/* Upcoming Exams */}
               <SectionHeader title="Upcoming Exams" action="See All" onAction={() => navigation.navigate('Exams')} />
