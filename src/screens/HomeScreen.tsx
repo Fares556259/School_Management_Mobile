@@ -296,8 +296,8 @@ export const HomeScreen = ({ navigation, route }: any) => {
               {/* Teacher Remarks */}
               <SectionHeader title="Teacher Remarks" />
               <View style={{ gap: 12 }}>
-                {dayData.notes.length > 0 ? (
-                  dayData.notes.map((note: any) => (
+                {dayData.notes?.filter((n: any) => n.text !== 'INITIALIZED_BULK').length > 0 ? (
+                  dayData.notes.filter((n: any) => n.text !== 'INITIALIZED_BULK').map((note: any) => (
                     <TouchableOpacity
                       key={note.id}
                       activeOpacity={0.8}
