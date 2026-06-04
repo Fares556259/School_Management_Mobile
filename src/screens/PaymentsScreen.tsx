@@ -201,16 +201,25 @@ export const PaymentsScreen = ({ navigation }: any) => {
                 <View
                   key={`${item.id}-${item.month}`}
                   style={{
-                    backgroundColor: 'white', borderRadius: 16, marginBottom: 12,
+                    backgroundColor: isPaid ? '#f0fdf4' : 'white', 
+                    borderRadius: 16, marginBottom: 12,
                     borderWidth: 1,
-                    borderColor: '#f1f5f9',
+                    borderColor: isPaid ? '#86efac' : '#f1f5f9',
+                    shadowColor: isPaid ? '#22c55e' : 'transparent',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: isPaid ? 0.15 : 0,
+                    shadowRadius: 4,
+                    elevation: isPaid ? 2 : 0,
                     opacity: isLocked ? 0.6 : 1,
                   }}
                 >
                   {/* Header row */}
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: 16, paddingBottom: 12 }}>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b' }}>{item.month}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ fontSize: 17, fontWeight: '900', color: isPaid ? '#15803d' : '#1e293b' }}>{item.month}</Text>
+                        {isPaid && <CheckCircle2 size={16} color="#16a34a" />}
+                      </View>
                       {/* Overdue info inline — no separate banner */}
                       <Text style={{ fontSize: 13, fontWeight: '600', color: isOverdue ? '#ef4444' : '#94a3b8', marginTop: 3 }}>
                         {isOverdue
@@ -229,14 +238,14 @@ export const PaymentsScreen = ({ navigation }: any) => {
                   </View>
 
                   {/* Divider */}
-                  <View style={{ height: 1, backgroundColor: '#f1f5f9', marginHorizontal: 16 }} />
+                  <View style={{ height: 1, backgroundColor: isPaid ? '#bbf7d0' : '#f1f5f9', marginHorizontal: 16 }} />
 
                   {/* Amount + progress */}
                   <View style={{ padding: 16, paddingTop: 12, paddingBottom: isPaid ? 16 : 12 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>
+                      <Text style={{ fontSize: 16, fontWeight: '900', color: isPaid ? '#15803d' : '#1e293b' }}>
                         {item.paidAmount.toLocaleString()}
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#94a3b8' }}> / {item.totalAmount.toLocaleString()} TND</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: isPaid ? '#16a34a' : '#94a3b8' }}> / {item.totalAmount.toLocaleString()} TND</Text>
                       </Text>
                       <Text style={{ fontSize: 14, fontWeight: '900', color: config.color }}>{Math.round(progress)}%</Text>
                     </View>
