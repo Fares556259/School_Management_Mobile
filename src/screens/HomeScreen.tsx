@@ -252,14 +252,38 @@ export const HomeScreen = ({ navigation, route }: any) => {
             </ScrollView>
           </View>
 
-          {showDatePicker && (
+          {showDatePicker && Platform.OS === 'ios' ? (
+            <Modal transparent animationType="fade" visible={showDatePicker}>
+              <View style={styles.modalOverlay}>
+                <View style={[styles.modalCard, { padding: 0, overflow: 'hidden' }]}>
+                  <DateTimePicker
+                    value={selectedDate}
+                    mode="date"
+                    display="inline"
+                    onChange={(event, date) => {
+                      if (event.type === 'set' && date) {
+                        setSelectedDate(date);
+                        setShowDatePicker(false);
+                      }
+                    }}
+                  />
+                  <TouchableOpacity 
+                    style={{ padding: 16, backgroundColor: '#f8fafc', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#e2e8f0' }}
+                    onPress={() => setShowDatePicker(false)}
+                  >
+                    <Text style={{ fontWeight: '800', color: '#64748b' }}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
+          ) : showDatePicker && (
             <DateTimePicker
               value={selectedDate}
               mode="date"
               display="default"
               onChange={(event, date) => {
                 setShowDatePicker(false);
-                if (date) setSelectedDate(date);
+                if (event.type === 'set' && date) setSelectedDate(date);
               }}
             />
           )}
