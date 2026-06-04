@@ -69,16 +69,21 @@ export const PaymentsScreen = ({ navigation }: any) => {
 
   // Summary Logic
   const summary = useMemo(() => {
-    // Only include unpaid items (Due, Overdue, Partial) in the outstanding total
-    const totalUnpaid = history.reduce((acc, p) => 
-      (p.status !== 'Paid' && p.status !== 'Locked') ? acc + (p.totalAmount - p.paidAmount) : acc, 0);
-    
-    // Nearest unpaid item
+    const activeMonths = history.filter(p => p.status !== 'Locked');
+    const totalOutstanding = activeMonths.reduce((acc, p) =>
+      p.status !== 'Paid' ? acc + (p.totalAmount - p.paidAmount) : acc, 0);
+    const totalPaid = history.reduce((acc, p) => acc + p.paidAmount, 0);
+    const paidMonths = history.filter(p => p.status === 'Paid').length;
+    const totalMonths = activeMonths.length;
     const firstUnfilled = history.find(p => p.status !== 'Paid' && p.status !== 'Locked');
-    
-    return { 
-      outstanding: totalUnpaid, 
-      nextDue: firstUnfilled ? firstUnfilled.month : 'All clear!' 
+    const allPaid = totalOutstanding === 0 && totalMonths > 0;
+    return {
+      outstanding: totalOutstanding,
+      totalPaid,
+      paidMonths,
+      totalMonths,
+      nextDue: firstUnfilled ? firstUnfilled.month : 'All clear!',
+      allPaid,
     };
   }, [history]);
 
@@ -108,36 +113,81 @@ export const PaymentsScreen = ({ navigation }: any) => {
         <Text style={{ paddingHorizontal: 20, marginTop: 20, marginBottom: 4, fontSize: 30, fontWeight: '900', color: '#1e293b', letterSpacing: -0.5 }}>Payment History</Text>
         <Text style={{ paddingHorizontal: 20, marginBottom: 24, fontSize: 13, fontWeight: '700', color: '#64748b', fontStyle: 'italic' }}>Full academic year timeline (Sep – Jun).</Text>
 
+
         {/* Summary Card */}
         <View style={{ marginBottom: 24, paddingHorizontal: 20 }}>
           <View style={{
-            backgroundColor: '#0072e6', padding: 24, borderRadius: 24,
+            backgroundColor: '#0072e6', borderRadius: 24,
             borderWidth: 2, borderColor: '#0055b3',
             shadowColor: '#0055b3', shadowOffset: { width: 0, height: 5 },
             shadowOpacity: 1, shadowRadius: 0, elevation: 5,
-            overflow: 'hidden', position: 'relative',
+            overflow: 'hidden',
           }}>
-            <View style={{ position: 'absolute', right: -30, top: -30, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.1)' }} />
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-              <View>
-                <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 6 }}>Total Outstanding</Text>
-                <Text style={{ color: 'white', fontSize: 32, fontWeight: '900' }}>
-                  {summary.outstanding.toLocaleString()} <Text style={{ fontSize: 16, fontWeight: '700' }}>TND</Text>
-                </Text>
+            {/* Decorative circles */}
+            <View style={{ position: 'absolute', right: -40, top: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.06)' }} />
+            <View style={{ position: 'absolute', left: -30, bottom: -30, width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(255,255,255,0.04)' }} />
+
+            <View style={{ padding: 20 }}>
+              {/* Two stat boxes */}
+              <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
+                <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.13)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' }}>
+                  <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 9, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 6 }}>Outstanding</Text>
+                  <Text style={{ color: 'white', fontSize: 22, fontWeight: '900', letterSpacing: -0.5 }}>
+                    {summary.outstanding.toLocaleString()}
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.65)' }}> TND</Text>
+                  </Text>
+                </View>
+                <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.13)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' }}>
+                  <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 9, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 6 }}>Total Paid</Text>
+                  <Text style={{ color: 'white', fontSize: 22, fontWeight: '900', letterSpacing: -0.5 }}>
+                    {summary.totalPaid.toLocaleString()}
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.65)' }}> TND</Text>
+                  </Text>
+                </View>
               </View>
-              <View style={{ width: 48, height: 48, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 16, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' }}>
-                <Wallet size={24} color="white" />
-              </View>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)', padding: 14, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', gap: 12 }}>
-              <Clock size={18} color="white" />
-              <View>
-                <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1 }}>Next Payment Action</Text>
-                <Text style={{ color: 'white', fontWeight: '900', fontSize: 14, marginTop: 2 }}>{summary.nextDue}</Text>
+
+              {/* Month progress dots */}
+              {summary.totalMonths > 0 && (
+                <View style={{ marginBottom: 16 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 9, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1 }}>Academic Year</Text>
+                    <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '900' }}>{summary.paidMonths}/{summary.totalMonths} months paid</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 4 }}>
+                    {history.filter(p => p.status !== 'Locked').map((p, i) => (
+                      <View
+                        key={i}
+                        style={{
+                          flex: 1, height: 6, borderRadius: 999,
+                          backgroundColor: p.status === 'Paid'
+                            ? 'rgba(255,255,255,0.9)'
+                            : p.isOverdue
+                            ? 'rgba(255,120,120,0.8)'
+                            : 'rgba(255,255,255,0.22)',
+                        }}
+                      />
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Next due row */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.13)', paddingHorizontal: 14, paddingVertical: 11, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', gap: 10 }}>
+                <Clock size={15} color="rgba(255,255,255,0.75)" />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 9, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1 }}>Next Payment</Text>
+                  <Text style={{ color: 'white', fontWeight: '900', fontSize: 13, marginTop: 1 }}>{summary.nextDue}</Text>
+                </View>
+                {summary.allPaid && (
+                  <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 }}>
+                    <Text style={{ color: 'white', fontSize: 10, fontWeight: '900' }}>✓ All Clear</Text>
+                  </View>
+                )}
               </View>
             </View>
           </View>
         </View>
+
 
         {/* Filter Tabs */}
         <View style={{ marginBottom: 20, paddingHorizontal: 20 }}>
