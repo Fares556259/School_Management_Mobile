@@ -405,17 +405,17 @@ const styles = StyleSheet.create({
   // Date Slider
   dateSlider: { marginBottom: 0 },
   dateCard: {
-    width: 64, height: 84, borderRadius: 16,
+    width: 70, height: 86, borderRadius: 24,
     backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center',
     marginRight: 10, borderWidth: 2, borderColor: '#e2e8f0',
-    borderBottomWidth: 4,
+    borderBottomWidth: 5, borderBottomColor: '#cbd5e1'
   },
   activeDateCard: {
     backgroundColor: '#0072e6', borderColor: '#0055b3',
-    borderBottomWidth: 4,
+    borderBottomWidth: 5, borderBottomColor: '#004085'
   },
-  dateDay: { fontSize: 10, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
-  dateNum: { fontSize: 22, fontWeight: '900', color: '#1e293b' },
+  dateDay: { fontSize: 11, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  dateNum: { fontSize: 24, fontWeight: '900', color: '#1e293b' },
   activeDateText: { color: 'white' },
   todayDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#0072e6', marginTop: 4 },
 
