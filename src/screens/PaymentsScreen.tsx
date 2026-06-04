@@ -183,110 +183,112 @@ export const PaymentsScreen = ({ navigation }: any) => {
               const isOverdue = item.isOverdue;
 
               const statusConfig: any = {
-                Paid:    { label: 'Paid',    icon: CheckCircle2, color: '#16a34a', bg: '#dcfce7', border: '#86efac' },
-                Partial: { label: 'Partial', icon: AlertCircle,  color: '#d97706', bg: '#fef3c7', border: '#fcd34d' },
-                Due:     { label: isOverdue ? 'Overdue' : 'Due Soon', icon: isOverdue ? AlertCircle : Info, color: '#dc2626', bg: '#fee2e2', border: '#fca5a5' },
-                Locked:  { label: 'Upcoming', icon: Calendar, color: '#64748b', bg: '#f1f5f9', border: '#e2e8f0' },
+                Paid:    { label: 'Paid',     color: '#16a34a', bg: '#dcfce7', border: '#86efac' },
+                Partial: { label: 'Partial',  color: '#d97706', bg: '#fef3c7', border: '#fcd34d' },
+                Due:     { label: isOverdue ? 'Overdue' : 'Due Soon', color: isOverdue ? '#dc2626' : '#ea580c', bg: isOverdue ? '#fee2e2' : '#fff7ed', border: isOverdue ? '#fca5a5' : '#fed7aa' },
+                Locked:  { label: 'Upcoming', color: '#64748b', bg: '#f1f5f9', border: '#e2e8f0' },
               };
               const config = statusConfig[item.status] || statusConfig.Due;
-              const StatusIcon = config.icon;
 
               return (
                 <View
                   key={`${item.id}-${item.month}`}
                   style={{
-                    backgroundColor: 'white', borderRadius: 24, padding: 20, marginBottom: 12,
+                    backgroundColor: 'white', borderRadius: 20, marginBottom: 12,
                     borderWidth: 2,
-                    borderColor: isOverdue ? '#fca5a5' : isPaid ? '#86efac' : '#e2e8f0',
-                    shadowColor: isOverdue ? '#fca5a5' : isPaid ? '#86efac' : '#e2e8f0',
-                    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 3,
-                    opacity: isLocked ? 0.75 : 1,
+                    borderColor: isPaid ? '#86efac' : isOverdue ? '#fca5a5' : '#e2e8f0',
+                    opacity: isLocked ? 0.7 : 1,
                   }}
                 >
-                  {/* Month + Status */}
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <View>
-                      <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b' }}>{item.month}</Text>
-                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748b', marginTop: 2 }}>Tuition & Academic Fees</Text>
+                  {/* Header row */}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: 16, paddingBottom: 12 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b' }}>{item.month}</Text>
+                      {/* Overdue info inline — no separate banner */}
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: isOverdue ? '#dc2626' : '#94a3b8', marginTop: 3 }}>
+                        {isOverdue
+                          ? `Overdue by ${item.overdueDays} days`
+                          : isPaid
+                          ? 'Tuition & Academic Fees'
+                          : isLocked
+                          ? 'Not available yet'
+                          : `Due ${item.dueDate || 'end of month'}`}
+                      </Text>
                     </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: config.bg, borderWidth: 2, borderColor: config.border }}>
-                      <StatusIcon size={12} color={config.color} />
+                    {/* Status badge */}
+                    <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: config.bg, borderWidth: 1.5, borderColor: config.border }}>
                       <Text style={{ color: config.color, fontSize: 10, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 }}>{config.label}</Text>
                     </View>
                   </View>
 
-                  {/* Progress */}
-                  <View style={{ marginBottom: 16 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 }}>
-                      <View>
-                        <Text style={{ fontSize: 11, fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Payment Progress</Text>
-                        <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b' }}>
-                          {item.paidAmount.toLocaleString()} <Text style={{ fontSize: 14, fontWeight: '700', color: '#64748b' }}>/ {item.totalAmount.toLocaleString()} TND</Text>
-                        </Text>
-                      </View>
-                      <Text style={{ fontSize: 16, fontWeight: '900', color: config.color }}>{Math.round(progress)}%</Text>
+                  {/* Divider */}
+                  <View style={{ height: 1, backgroundColor: '#f1f5f9', marginHorizontal: 16 }} />
+
+                  {/* Amount + progress */}
+                  <View style={{ padding: 16, paddingTop: 12, paddingBottom: isPaid ? 16 : 12 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>
+                        {item.paidAmount.toLocaleString()}
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#94a3b8' }}> / {item.totalAmount.toLocaleString()} TND</Text>
+                      </Text>
+                      <Text style={{ fontSize: 14, fontWeight: '900', color: config.color }}>{Math.round(progress)}%</Text>
                     </View>
-                    {/* Duolingo-style thick progress bar */}
-                    <View style={{ height: 12, width: '100%', backgroundColor: '#f1f5f9', borderRadius: 999, overflow: 'hidden', borderWidth: 1, borderColor: '#e2e8f0' }}>
+                    {/* Progress bar */}
+                    <View style={{ height: 8, width: '100%', backgroundColor: '#f1f5f9', borderRadius: 999, overflow: 'hidden' }}>
                       <View style={{ height: '100%', width: `${Math.min(100, progress)}%`, backgroundColor: config.color, borderRadius: 999 }} />
                     </View>
                   </View>
 
-                  {/* Due Date Warning */}
+                  {/* Action — only if not paid and not locked */}
                   {!isPaid && !isLocked && (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 14, marginBottom: 14, backgroundColor: isOverdue ? '#fee2e2' : '#f1f5f9', borderWidth: 2, borderColor: isOverdue ? '#fca5a5' : '#e2e8f0' }}>
-                      <Calendar size={14} color={isOverdue ? '#dc2626' : '#64748b'} />
-                      <Text style={{ fontSize: 12, fontWeight: '800', color: isOverdue ? '#dc2626' : '#64748b' }}>
-                        {isOverdue ? `Overdue by ${item.overdueDays} days` : `Due on ${item.dueDate || 'End of Month'}`}
-                      </Text>
+                    <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+                      <TouchableOpacity
+                        activeOpacity={0.88}
+                        style={{
+                          height: 48, borderRadius: 14,
+                          backgroundColor: '#0072e6',
+                          alignItems: 'center', justifyContent: 'center',
+                          flexDirection: 'row', gap: 8,
+                          borderBottomWidth: 3, borderBottomColor: '#0055b3',
+                        }}
+                      >
+                        <Text style={{ color: 'white', fontWeight: '900', fontSize: 14 }}>Pay Now</Text>
+                        <ArrowUpRight size={16} color="white" strokeWidth={3} />
+                      </TouchableOpacity>
                     </View>
                   )}
 
-                  {/* Action Buttons */}
-                  <View style={{ flexDirection: 'row', gap: 10 }}>
-                    {isLocked ? (
-                      <View style={{ flex: 1, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', borderWidth: 2, borderColor: '#e2e8f0' }}>
-                        {(item as any).daysUntil > 0 && (item as any).daysUntil <= 5 ? (
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <Clock size={16} color="#0072e6" />
-                            <Text style={{ color: '#0072e6', fontWeight: '900', fontSize: 14 }}>In {(item as any).daysUntil} {(item as any).daysUntil === 1 ? 'day' : 'days'}</Text>
-                          </View>
-                        ) : (
-                          <Text style={{ color: '#94a3b8', fontWeight: '800', fontSize: 14 }}>Not Available Yet</Text>
-                        )}
-                      </View>
-                    ) : !isPaid ? (
-                      // Duolingo 3D Pay Now button
-                      <View style={{ flex: 1 }}>
-                        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '100%', borderRadius: 16, backgroundColor: '#0055b3' }} />
-                        <TouchableOpacity
-                          activeOpacity={0.9}
-                          style={{ height: 56, borderRadius: 16, backgroundColor: '#0072e6', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginBottom: 4 }}
-                        >
-                          <Text style={{ color: 'white', fontWeight: '900', fontSize: 15 }}>Pay Now</Text>
-                          <ArrowUpRight size={18} color="white" strokeWidth={3} />
-                        </TouchableOpacity>
-                      </View>
-                    ) : (
-                      <TouchableOpacity style={{ flex: 1, height: 56, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#dcfce7', borderWidth: 2, borderColor: '#86efac' }}>
-                        <DownloadCloud size={18} color="#16a34a" />
-                        <Text style={{ color: '#16a34a', fontWeight: '900', fontSize: 14 }}>View Receipt</Text>
+                  {isPaid && (
+                    <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+                      <TouchableOpacity
+                        activeOpacity={0.88}
+                        style={{
+                          height: 44, borderRadius: 14,
+                          backgroundColor: '#f0fdf4',
+                          alignItems: 'center', justifyContent: 'center',
+                          flexDirection: 'row', gap: 8,
+                          borderWidth: 1.5, borderColor: '#86efac',
+                        }}
+                      >
+                        <DownloadCloud size={16} color="#16a34a" />
+                        <Text style={{ color: '#16a34a', fontWeight: '900', fontSize: 13 }}>Download Receipt</Text>
                       </TouchableOpacity>
-                    )}
-                    <TouchableOpacity style={{ width: 56, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', borderWidth: 2, borderColor: '#e2e8f0' }}>
-                      <ReceiptText size={20} color="#64748b" />
-                    </TouchableOpacity>
-                  </View>
+                    </View>
+                  )}
                 </View>
               );
             })
           ) : (
-            <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 64, backgroundColor: '#f8fafc', borderRadius: 24, borderWidth: 2, borderColor: '#e2e8f0' }}>
-              <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#dcfce7', borderWidth: 2, borderColor: '#86efac', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-                <CheckCircle2 size={36} color="#16a34a" />
+            <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 64, backgroundColor: '#f8fafc', borderRadius: 20, borderWidth: 2, borderColor: '#e2e8f0' }}>
+              <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#dcfce7', borderWidth: 2, borderColor: '#86efac', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+                <CheckCircle2 size={30} color="#16a34a" />
               </View>
-              <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', textAlign: 'center', marginBottom: 8 }}>Empty Category 🎉</Text>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#64748b', textAlign: 'center', paddingHorizontal: 32, lineHeight: 22 }}>No records matching this filter.</Text>
+              <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b', textAlign: 'center', marginBottom: 6 }}>
+                {activeFilter === 'Paid' ? 'No paid records yet' : activeFilter === 'Unpaid' ? 'All caught up!' : 'No payments found'}
+              </Text>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#64748b', textAlign: 'center', paddingHorizontal: 32, lineHeight: 20 }}>
+                {activeFilter === 'Unpaid' ? 'You have no outstanding payments.' : 'Records will appear here once available.'}
+              </Text>
             </View>
           )}
         </View>
