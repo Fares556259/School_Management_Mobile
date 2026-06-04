@@ -255,11 +255,13 @@ export const HomeScreen = ({ navigation, route }: any) => {
           {showDatePicker && Platform.OS === 'ios' ? (
             <Modal transparent animationType="fade" visible={showDatePicker}>
               <View style={styles.modalOverlay}>
-                <View style={[styles.modalCard, { padding: 0, overflow: 'hidden' }]}>
+                <View style={{ backgroundColor: 'white', borderRadius: 28, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 20 }, shadowOpacity: 0.15, shadowRadius: 30, elevation: 10, width: '90%', alignSelf: 'center' }}>
                   <DateTimePicker
                     value={selectedDate}
                     mode="date"
                     display="inline"
+                    themeVariant="light"
+                    style={{ height: 330 }}
                     onChange={(event, date) => {
                       if (event.type === 'set' && date) {
                         setSelectedDate(date);
@@ -268,10 +270,10 @@ export const HomeScreen = ({ navigation, route }: any) => {
                     }}
                   />
                   <TouchableOpacity 
-                    style={{ padding: 16, backgroundColor: '#f8fafc', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#e2e8f0' }}
+                    style={{ backgroundColor: '#f1f5f9', paddingVertical: 14, borderRadius: 16, alignItems: 'center', marginTop: 8 }}
                     onPress={() => setShowDatePicker(false)}
                   >
-                    <Text style={{ fontWeight: '800', color: '#64748b' }}>Cancel</Text>
+                    <Text style={{ fontWeight: '800', color: '#64748b', fontSize: 16 }}>Cancel</Text>
                   </TouchableOpacity>
                 </View>
               </View>
