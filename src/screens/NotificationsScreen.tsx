@@ -45,31 +45,26 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
           onPress={() => onPress(item)}
           style={styles.cardContent}
         >
-          {/* Left Accent Border */}
-          <View style={{ 
-            position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, 
-            backgroundColor: config.accentColor, 
-            borderTopLeftRadius: 16, borderBottomLeftRadius: 16 
-          }} />
-
-          <View style={[styles.iconContainer, { backgroundColor: config.bgColor }]}>
-            <Icon size={22} color={config.color} strokeWidth={2.5} />
+          <View style={[styles.iconContainer, { backgroundColor: 'transparent', borderWidth: 0, paddingRight: 0 }]}>
+            <Icon size={24} color={config.color} strokeWidth={2} />
           </View>
           
           <View style={styles.textContainer}>
             <View style={styles.cardHeader}>
-              <Text style={styles.typeText}>{item.type} • {item.studentName}</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={styles.timeText}>{item.time}</Text>
-                {item.isNew && (
-                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#0055d4', marginLeft: 8 }} />
-                )}
-              </View>
+              <Text style={styles.titleText}>
+                {item.type === 'ATTENDANCE' ? 'Attendance alert' : (item.title || 'Notification')}
+              </Text>
+              <Text style={styles.timeText}>{item.time}</Text>
             </View>
             
-            <Text style={styles.titleText}>
-              {item.type === 'ATTENDANCE' ? 'Attendance alert' : (item.title || 'Notification')}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+              {item.isNew && (
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#0055d4', marginRight: 6 }} />
+              )}
+              <Text style={styles.typeText}>{item.type} • {item.studentName}</Text>
+            </View>
+            
+
             
             <Text style={styles.messageText} numberOfLines={2}>
               {item.message}
@@ -272,20 +267,11 @@ const styles = StyleSheet.create({
   markAllButton: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#ffffff',
-    shadowColor: '#e2e8f0',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 2,
   },
   markAllText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0f172a',
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0055d4',
   },
   titleSection: {
     paddingHorizontal: 24,
@@ -305,30 +291,21 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   filterTab: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: '#ffffff',
-    borderWidth: 2,
-    borderColor: '#e2e8f0',
-    shadowColor: '#e2e8f0',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+    backgroundColor: 'transparent',
   },
   activeFilterTab: {
-    backgroundColor: '#0072e6',
-    borderColor: '#0055b3',
-    shadowColor: '#0055b3',
-    shadowOffset: { width: 0, height: 3 },
+    backgroundColor: '#f1f5f9',
   },
   filterTabText: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
     color: '#64748b',
   },
   activeFilterTabText: {
-    color: '#ffffff',
+    color: '#0f172a',
   },
   listContent: {
     paddingBottom: 40,
@@ -346,33 +323,21 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#ffffff',
-    marginHorizontal: 20,
-    marginVertical: 8,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#e2e8f0',
-    shadowColor: '#e2e8f0',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 3,
-    position: 'relative',
-    overflow: 'hidden',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
   },
   cardContent: {
     flexDirection: 'row',
-    padding: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
     alignItems: 'flex-start',
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
-    borderWidth: 2,
-    borderColor: 'rgba(0,0,0,0.05)',
+    marginRight: 12,
   },
   textContainer: {
     flex: 1,
@@ -384,11 +349,9 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   typeText: {
-    fontSize: 11,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: '600',
     color: '#94a3b8',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   timeText: {
     fontSize: 12,
@@ -396,10 +359,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   titleText: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#1e293b',
-    marginBottom: 4,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0f172a',
   },
   messageText: {
     fontSize: 14,
@@ -433,9 +395,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     width: 80,
-    marginVertical: 8,
-    marginRight: 20,
-    borderRadius: 16,
   },
   actionText: {
     color: 'white',
