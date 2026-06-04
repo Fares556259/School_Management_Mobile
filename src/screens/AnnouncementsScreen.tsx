@@ -178,7 +178,8 @@ export const AnnouncementsScreen = ({ navigation }: any) => {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 16 }}
+        style={{ maxHeight: 44, flexGrow: 0 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 4, alignItems: 'center' }}
       >
         {categories.map(cat => (
           <CategoryPill
@@ -189,6 +190,9 @@ export const AnnouncementsScreen = ({ navigation }: any) => {
           />
         ))}
       </ScrollView>
+
+      {/* Spacer */}
+      <View style={{ height: 12 }} />
 
       {/* Content */}
       {loading ? (
@@ -213,9 +217,13 @@ export const AnnouncementsScreen = ({ navigation }: any) => {
           <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#eff6ff', borderWidth: 2, borderColor: '#bfdbfe', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
             <Megaphone size={32} color="#0072e6" />
           </View>
-          <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', textAlign: 'center' }}>No announcements</Text>
+          <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', textAlign: 'center' }}>
+            {announcements.length === 0 ? 'No announcements yet' : 'No results found'}
+          </Text>
           <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '700', textAlign: 'center', marginTop: 8, lineHeight: 22 }}>
-            Nothing matches your search or filters. Try a different keyword.
+            {announcements.length === 0
+              ? 'School news and alerts will appear here once published.'
+              : 'Nothing matches your search or filters. Try a different keyword.'}
           </Text>
         </View>
       ) : (
