@@ -88,7 +88,7 @@ const SessionCard = ({ session }: any) => {
           <View style={styles.sessionDivider} />
           
           <View style={styles.sessionTitleGroup}>
-            <Text style={styles.sessionTitle} numberOfLines={2}>{session.subject}</Text>
+            <Text style={styles.sessionTitle} numberOfLines={2}>{session.subject?.split('|')[0]?.trim()}</Text>
             {session.teacher && (
               <Text style={styles.sessionTeacher}>{session.teacher}</Text>
             )}
@@ -291,7 +291,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
                     >
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                         <View style={[styles.subjectTag, { flexShrink: 1, marginRight: 8 }]}>
-                          <Text style={styles.subjectTagText} numberOfLines={2}>{note.subject || 'General'}</Text>
+                          <Text style={styles.subjectTagText} numberOfLines={2}>{note.subject?.split('|')[0]?.trim() || 'General'}</Text>
                         </View>
                         <ChevronRight size={16} color="#cbd5e1" style={{ marginTop: 4 }} />
                       </View>
@@ -314,7 +314,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.modalTitle}>Teacher Remark</Text>
-                        <Text style={styles.modalSub}>{selectedRemark?.subject || 'General'}</Text>
+                        <Text style={styles.modalSub}>{selectedRemark?.subject?.split('|')[0]?.trim() || 'General'}</Text>
                       </View>
                       <TouchableOpacity onPress={() => setSelectedRemark(null)} style={styles.closeBtn}>
                         <X size={18} color="#64748b" />
@@ -365,7 +365,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
                           <CheckCircle2 size={16} color={task.isCompleted ? '#16a34a' : '#0072e6'} />
                         </View>
                       </View>
-                      <Text style={styles.listRowTitle}>{task.subject} — {task.title}</Text>
+                      <Text style={styles.listRowTitle}>{task.subject?.split('|')[0]?.trim()} — {task.title}</Text>
                       <Text style={styles.listRowMeta}>By {task.teacher || 'Teacher'}</Text>
                     </TouchableOpacity>
                   ))
@@ -390,7 +390,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
                     >
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                         <View style={[styles.subjectTag, { backgroundColor: '#eff6ff', borderColor: '#bfdbfe', flexShrink: 1, marginRight: 8 }]}>
-                          <Text style={[styles.subjectTagText, { color: '#0072e6' }]} numberOfLines={2}>{exam.subject || 'Exam'}</Text>
+                          <Text style={[styles.subjectTagText, { color: '#0072e6' }]} numberOfLines={2}>{exam.subject?.split('|')[0]?.trim() || 'Exam'}</Text>
                         </View>
                         <ChevronRight size={16} color="#cbd5e1" style={{ marginTop: 4 }} />
                       </View>
@@ -419,7 +419,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
                     >
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                         <View style={[styles.subjectTag, { backgroundColor: '#f5f3ff', borderColor: '#ddd6fe', flexShrink: 1, marginRight: 8 }]}>
-                          <Text style={[styles.subjectTagText, { color: '#7c3aed' }]} numberOfLines={2}>{res.subject || 'Material'}</Text>
+                          <Text style={[styles.subjectTagText, { color: '#7c3aed' }]} numberOfLines={2}>{res.subject?.split('|')[0]?.trim() || 'Material'}</Text>
                         </View>
                         <Download size={18} color="#94a3b8" style={{ marginTop: 4 }} />
                       </View>
