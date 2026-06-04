@@ -221,24 +221,24 @@ export const HomeScreen = ({ navigation, route }: any) => {
             <TouchableOpacity
               onPress={() => { Haptics.selectionAsync(); navigation.navigate('Exams'); }}
               activeOpacity={0.85}
-              style={[styles.quickCard, { borderColor: '#ddd6fe' }]}
+              style={[styles.quickCard, { borderColor: '#e2e8f0' }]}
             >
-              <View style={[styles.quickIcon, { backgroundColor: '#7c3aed' }]}>
-                <FileText size={22} color="white" />
+              <View style={[styles.quickIcon, { backgroundColor: '#f8fafc', borderWidth: 2, borderColor: '#e2e8f0' }]}>
+                <FileText size={20} color="#1e293b" />
               </View>
-              <Text style={[styles.quickTitle, { color: '#6d28d9' }]}>Exam Center</Text>
+              <Text style={[styles.quickTitle, { color: '#1e293b' }]}>Exam Center</Text>
               <Text style={styles.quickSub}>Dates & schedules</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => { Haptics.selectionAsync(); navigation.navigate('Results'); }}
               activeOpacity={0.85}
-              style={[styles.quickCard, { borderColor: '#bfdbfe' }]}
+              style={[styles.quickCard, { borderColor: '#e2e8f0' }]}
             >
-              <View style={[styles.quickIcon, { backgroundColor: '#0072e6' }]}>
-                <Award size={22} color="white" />
+              <View style={[styles.quickIcon, { backgroundColor: '#f8fafc', borderWidth: 2, borderColor: '#e2e8f0' }]}>
+                <Award size={20} color="#1e293b" />
               </View>
-              <Text style={[styles.quickTitle, { color: '#0072e6' }]}>Report Card</Text>
+              <Text style={[styles.quickTitle, { color: '#1e293b' }]}>Report Card</Text>
               <Text style={styles.quickSub}>Grades & averages</Text>
             </TouchableOpacity>
           </View>
@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
   quickActionsRow: { flexDirection: 'row', gap: 12, marginBottom: 8 },
   quickCard: {
     flex: 1, padding: 16, borderRadius: 20,
-    borderWidth: 2, backgroundColor: '#fafafa',
+    borderWidth: 2, backgroundColor: '#ffffff',
     shadowColor: '#e2e8f0', shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 1, shadowRadius: 0, elevation: 2,
     alignItems: 'flex-start', gap: 6,
