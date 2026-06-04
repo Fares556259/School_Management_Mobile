@@ -259,14 +259,14 @@ export const HomeScreen = ({ navigation, route }: any) => {
                 style={{ height: 0 }}
               />
               <SectionHeader title="Tasks" />
-              <View style={[styles.card, { padding: 12 }]}>
+              <View style={{ gap: 12 }}>
                 {allTasks.length > 0 ? (
-                  allTasks.map((task: any, idx: number) => (
+                  allTasks.map((task: any) => (
                     <TouchableOpacity
                       key={task.id}
                       onPress={() => navigation.navigate('HomeworkDetail', { homework: task, studentId: selectedChildId })}
                       activeOpacity={0.85}
-                      style={[styles.listCard, idx !== 0 && { marginTop: 10 }]}
+                      style={styles.taskCardItem}
                     >
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                         <View style={[styles.taskBadge, {
@@ -295,23 +295,26 @@ export const HomeScreen = ({ navigation, route }: any) => {
 
               {/* Teacher Remarks */}
               <SectionHeader title="Teacher Remarks" />
-              <View style={[styles.card, { padding: 12 }]}>
+              <View style={{ gap: 12 }}>
                 {dayData.notes.length > 0 ? (
-                  dayData.notes.map((note: any, idx: number) => (
+                  dayData.notes.map((note: any) => (
                     <TouchableOpacity
                       key={note.id}
                       activeOpacity={0.8}
                       onPress={() => { Haptics.selectionAsync(); setSelectedRemark(note); }}
-                      style={[styles.listCard, idx !== 0 && { marginTop: 10 }]}
+                      style={styles.remarkCard}
                     >
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                        <View style={[styles.subjectTag, { flexShrink: 1, marginRight: 8 }]}>
-                          <Text style={styles.subjectTagText} numberOfLines={2}>{note.subject?.split('|')[0]?.trim() || 'General'}</Text>
-                        </View>
-                        <ChevronRight size={16} color="#cbd5e1" style={{ marginTop: 4 }} />
+                      <View style={styles.remarkIconWrapper}>
+                        <MessageSquare size={18} color="#94a3b8" />
                       </View>
-                      <Text style={styles.listRowTitle} numberOfLines={2}>{note.text || 'No content'}</Text>
-                      <Text style={styles.listRowMeta}>{note.author || 'Teacher'} · {note.time || ''}</Text>
+                      <View style={styles.remarkContent}>
+                        <View style={styles.remarkHeader}>
+                          <Text style={styles.remarkSubject}>{note.subject?.split('|')[0]?.trim() || 'General'}</Text>
+                          <Text style={styles.remarkTime}>{note.time || ''}</Text>
+                        </View>
+                        <Text style={styles.remarkTitle} numberOfLines={2}>{note.text || 'No content'}</Text>
+                        <Text style={styles.remarkMeta}>By {note.author || 'Teacher'}</Text>
+                      </View>
                     </TouchableOpacity>
                   ))
                 ) : (
@@ -470,6 +473,27 @@ const styles = StyleSheet.create({
   listRowMeta: { fontSize: 12, color: '#64748b', fontWeight: '800', marginTop: 4 },
   subjectTag: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 2, borderColor: '#e2e8f0', backgroundColor: '#ffffff', alignSelf: 'flex-start' },
   subjectTagText: { fontSize: 10, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 },
+
+  // Tasks
+  taskCardItem: { backgroundColor: '#ffffff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#e2e8f0' },
+  taskIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+
+  // Remarks
+  remarkCard: {
+    backgroundColor: '#ffffff', borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: '#e2e8f0',
+    flexDirection: 'row', gap: 12, alignItems: 'flex-start'
+  },
+  remarkIconWrapper: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center'
+  },
+  remarkContent: { flex: 1 },
+  remarkHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  remarkSubject: { fontSize: 11, fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 },
+  remarkTime: { fontSize: 11, color: '#94a3b8', fontWeight: '600' },
+  remarkTitle: { fontSize: 15, fontWeight: '600', color: '#1e293b', lineHeight: 22, marginBottom: 4 },
+  remarkMeta: { fontSize: 12, color: '#64748b', fontWeight: '500' },
 
   // Tasks
   taskIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
