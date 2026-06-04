@@ -45,8 +45,8 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
           onPress={() => onPress(item)}
           style={styles.cardContent}
         >
-          <View style={[styles.iconContainer, { backgroundColor: 'transparent', borderWidth: 0, paddingRight: 0 }]}>
-            <Icon size={24} color={config.color} strokeWidth={2} />
+          <View style={[styles.iconContainer, { backgroundColor: config.bgColor }]}>
+            <Icon size={18} color={config.color} strokeWidth={2.5} />
           </View>
           
           <View style={styles.textContainer}>
@@ -333,11 +333,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   iconContainer: {
-    width: 32,
-    height: 32,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 14,
   },
   textContainer: {
     flex: 1,
