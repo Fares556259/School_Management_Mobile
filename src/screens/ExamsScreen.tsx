@@ -146,7 +146,7 @@ export const ExamsScreen = ({ navigation }: any) => {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0055d4']} tintColor="#0055d4" />}
       >
-        <View style={{ paddingBottom: 120, paddingHorizontal: 20 }}>
+        <View style={{ paddingBottom: 40, paddingHorizontal: 20 }}>
           {/* Title Section */}
           <View style={{ marginTop: 24, marginBottom: 28 }}>
             <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1 }}>Academic Year 2023-24</Text>
@@ -158,8 +158,8 @@ export const ExamsScreen = ({ navigation }: any) => {
           <View style={{ marginBottom: 32 }}>
             <Text style={{ fontSize: 13, fontWeight: '900', color: '#94a3b8', marginBottom: 16, textTransform: 'uppercase', letterSpacing: 0.5 }}>Term Documents</Text>
             {examPeriods.length > 0 ? (
-              examPeriods.map((p) => (
-                <TermCard key={p.id} period={p.period} pdfUrl={p.pdfUrl} />
+              examPeriods.map((p, idx) => (
+                <TermCard key={p.period || idx} period={p.period} pdfUrl={p.pdfUrl} />
               ))
             ) : (
               <View style={{ padding: 40, alignItems: 'center' }}>
