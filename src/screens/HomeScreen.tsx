@@ -64,7 +64,6 @@ const StatPill = ({ count, label, color, bgColor, borderColor }: any) => (
 
 // ─── Session Card ─────────────────────────────────────────────────────────────
 const SessionCard = ({ session }: any) => {
-  const Icon = ICON_MAP[session.subject] || Book;
   const isAbsent = session.attendance?.toUpperCase() === 'ABSENT' || session.attendance?.toUpperCase() === 'ABS';
   const isPresent = session.attendance?.toUpperCase() === 'PRESENT' || session.attendance?.toUpperCase() === 'PRES';
   const isLate = session.attendance?.toUpperCase() === 'LATE';
@@ -74,40 +73,42 @@ const SessionCard = ({ session }: any) => {
   const badgeBorder = isAbsent ? '#fca5a5' : isPresent ? '#86efac' : isLate ? '#fcd34d' : '#e2e8f0';
   const badgeText = isAbsent ? '#dc2626' : isPresent ? '#16a34a' : isLate ? '#d97706' : '#64748b';
   const statusLabel = isAbsent ? 'Absent' : isPresent ? 'Present' : isLate ? 'Late' : 'Upcoming';
+  
+  const hasRating = !isUpcoming && !isAbsent && session.score !== undefined;
 
   return (
     <View style={[styles.sessionItem, isAbsent && styles.sessionItemAbsent]}>
       <View style={styles.sessionMain}>
         <View style={styles.sessionHeader}>
-          <View style={[styles.sessionIconWrapper, { backgroundColor: '#f8fafc', borderWidth: 2, borderColor: '#e2e8f0' }]}>
-            <Icon size={20} color="#1e293b" />
+          <View style={styles.sessionTimeCol}>
+            <Text style={styles.sessionTimeBold}>{session.startTime}</Text>
+            <Text style={styles.sessionTimeMuted}>{session.endTime}</Text>
           </View>
+          
+          <View style={styles.sessionDivider} />
+          
           <View style={styles.sessionTitleGroup}>
             <Text style={styles.sessionTitle} numberOfLines={2}>{session.subject}</Text>
-            <Text style={styles.sessionTime}>{session.startTime} — {session.endTime}</Text>
             {session.teacher && (
               <Text style={styles.sessionTeacher}>{session.teacher}</Text>
             )}
           </View>
+          
           <View style={[styles.statusBadge, { backgroundColor: badgeBg, borderColor: badgeBorder }]}>
             <Text style={[styles.statusBadgeText, { color: badgeText }]}>{statusLabel}</Text>
           </View>
         </View>
 
-        <View style={styles.ratingSection}>
-          <Text style={styles.ratingLabel}>TEACHER RATING</Text>
-          {isUpcoming ? (
-            <Text style={styles.ratingNote}>Session not started</Text>
-          ) : isAbsent ? (
-            <Text style={styles.ratingNote}>No rating — absent</Text>
-          ) : (
+        {hasRating && (
+          <View style={styles.ratingSection}>
+            <Text style={styles.ratingLabel}>TEACHER RATING</Text>
             <View style={styles.starsRow}>
               {[1, 2, 3, 4, 5].map(s => (
                 <Star key={s} size={15} color={session.score >= s ? '#f59e0b' : '#e2e8f0'} fill={session.score >= s ? '#f59e0b' : 'none'} style={{ marginRight: 3 }} />
               ))}
             </View>
-          )}
-        </View>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -242,7 +243,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
           </View>
 
           {/* Date Slider */}
-          <SectionHeader title="Today's Schedule" />
+          <SectionHeader title="Today's Schedule" action="History" onAction={() => navigation.navigate('Attendance')} />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateSlider} contentContainerStyle={{ paddingRight: 8 }}>
             {sliderDates.map(d => (
               <DateItem
@@ -268,31 +269,13 @@ export const HomeScreen = ({ navigation, route }: any) => {
             </View>
           ) : (
             <>
-              {/* Sessions Card */}
-              <View style={styles.card}>
-                {/* Stat Row */}
-                <View style={styles.statsRow}>
-                  <StatPill count={presentCount} label="Present" color="#16a34a" bgColor="#dcfce7" borderColor="#86efac" />
-                  <StatPill count={absentCount} label="Absent" color="#dc2626" bgColor="#fee2e2" borderColor="#fca5a5" />
-                  <StatPill count={lateCount} label="Late" color="#d97706" bgColor="#fef3c7" borderColor="#fcd34d" />
-                  <StatPill count={upcomingCount} label="Next" color="#64748b" bgColor="#f1f5f9" borderColor="#e2e8f0" />
-                </View>
-
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('Attendance')}
-                  style={styles.historyBtn}
-                >
-                  <Text style={styles.historyBtnText}>View Full History</Text>
-                  <ChevronRight size={14} color="#0072e6" strokeWidth={3} />
-                </TouchableOpacity>
-
-                <View style={{ gap: 10, marginTop: 16 }}>
-                  {dayData.sessions.length > 0 ? (
-                    dayData.sessions.map((s: any) => <SessionCard key={s.id} session={s} />)
-                  ) : (
-                    <EmptySessionsUI />
-                  )}
-                </View>
+              {/* Sessions List */}
+              <View style={{ gap: 12, marginTop: 16 }}>
+                {dayData.sessions.length > 0 ? (
+                  dayData.sessions.map((s: any) => <SessionCard key={s.id} session={s} />)
+                ) : (
+                  <EmptySessionsUI />
+                )}
               </View>
 
               {/* Teacher Remarks */}
@@ -512,21 +495,23 @@ const styles = StyleSheet.create({
 
   // Session Item
   sessionItem: {
-    flexDirection: 'row', borderRadius: 18,
-    backgroundColor: 'white', borderWidth: 2, borderColor: '#e2e8f0',
+    flexDirection: 'row', borderRadius: 16,
+    backgroundColor: '#ffffff', borderWidth: 2, borderColor: '#e2e8f0',
     overflow: 'hidden',
   },
   sessionItemAbsent: { borderColor: '#fca5a5' },
   sessionMain: { flex: 1, padding: 16 },
-  sessionHeader: { flexDirection: 'row', alignItems: 'flex-start' },
-  sessionIconWrapper: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
-  sessionTitleGroup: { flex: 1, marginRight: 8 },
+  sessionHeader: { flexDirection: 'row', alignItems: 'center' },
+  sessionTimeCol: { alignItems: 'flex-start', minWidth: 44 },
+  sessionTimeBold: { fontSize: 13, fontWeight: '900', color: '#1e293b' },
+  sessionTimeMuted: { fontSize: 11, fontWeight: '800', color: '#94a3b8', marginTop: 2 },
+  sessionDivider: { width: 2, backgroundColor: '#f1f5f9', height: '100%', marginHorizontal: 12, borderRadius: 2 },
+  sessionTitleGroup: { flex: 1, marginRight: 8, justifyContent: 'center' },
   sessionTitle: { fontSize: 15, fontWeight: '900', color: '#1e293b', lineHeight: 20 },
-  sessionTime: { fontSize: 12, color: '#64748b', fontWeight: '800', marginTop: 4 },
-  sessionTeacher: { fontSize: 11, color: '#0072e6', fontWeight: '900', marginTop: 4 },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, borderWidth: 2 },
+  sessionTeacher: { fontSize: 12, color: '#64748b', fontWeight: '800', marginTop: 4 },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, borderWidth: 2, alignSelf: 'flex-start' },
   statusBadgeText: { fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 },
-  ratingSection: { marginTop: 10, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  ratingSection: { marginTop: 12, borderTopWidth: 2, borderTopColor: '#f8fafc', paddingTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   ratingLabel: { fontSize: 9, fontWeight: '900', color: '#cbd5e1', letterSpacing: 1, textTransform: 'uppercase' },
   ratingNote: { fontSize: 12, color: '#94a3b8', fontWeight: '700', fontStyle: 'italic' },
   starsRow: { flexDirection: 'row' },
