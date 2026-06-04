@@ -352,63 +352,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
                 </TouchableOpacity>
               </Modal>
 
-              {/* Upcoming Exams */}
-              <SectionHeader title="Upcoming Exams" action="See All" onAction={() => navigation.navigate('Exams')} />
-              <View style={[styles.card, { padding: 12 }]}>
-                {dayData.exams?.length > 0 ? (
-                  dayData.exams.map((exam: any, idx: number) => (
-                    <TouchableOpacity
-                      key={exam.id}
-                      onPress={() => navigation.navigate('ExamDetail', { exam })}
-                      activeOpacity={0.85}
-                      style={[styles.listCard, idx !== 0 && { marginTop: 10 }]}
-                    >
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                        <View style={[styles.subjectTag, { backgroundColor: '#eff6ff', borderColor: '#bfdbfe', flexShrink: 1, marginRight: 8 }]}>
-                          <Text style={[styles.subjectTagText, { color: '#0072e6' }]} numberOfLines={2}>{exam.subject?.split('|')[0]?.trim() || 'Exam'}</Text>
-                        </View>
-                        <ChevronRight size={16} color="#cbd5e1" style={{ marginTop: 4 }} />
-                      </View>
-                      <Text style={styles.listRowTitle}>{exam.description || 'Term Exam'}</Text>
-                      <Text style={styles.listRowMeta}>{exam.time || ''}</Text>
-                    </TouchableOpacity>
-                  ))
-                ) : (
-                  <View style={styles.emptyStateBox}>
-                    <CalendarIcon size={24} color="#94a3b8" />
-                    <Text style={styles.emptyStateText}>No exams scheduled soon.</Text>
-                  </View>
-                )}
-              </View>
 
-              {/* Learning Materials */}
-              <SectionHeader title="Learning Materials" />
-              <View style={[styles.card, { padding: 12, marginBottom: 20 }]}>
-                {dayData.files?.length > 0 ? (
-                  dayData.files.map((res: any, idx: number) => (
-                    <TouchableOpacity
-                      key={res.id}
-                      onPress={() => res.url && Linking.openURL(res.url)}
-                      activeOpacity={0.85}
-                      style={[styles.listCard, idx !== 0 && { marginTop: 10 }]}
-                    >
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                        <View style={[styles.subjectTag, { backgroundColor: '#f5f3ff', borderColor: '#ddd6fe', flexShrink: 1, marginRight: 8 }]}>
-                          <Text style={[styles.subjectTagText, { color: '#7c3aed' }]} numberOfLines={2}>{res.subject?.split('|')[0]?.trim() || 'Material'}</Text>
-                        </View>
-                        <Download size={18} color="#94a3b8" style={{ marginTop: 4 }} />
-                      </View>
-                      <Text style={styles.listRowTitle}>{res.name}</Text>
-                      <Text style={styles.listRowMeta}>By {res.sharedBy || 'Teacher'}</Text>
-                    </TouchableOpacity>
-                  ))
-                ) : (
-                  <View style={styles.emptyStateBox}>
-                    <BookOpen size={24} color="#94a3b8" />
-                    <Text style={styles.emptyStateText}>No materials uploaded today.</Text>
-                  </View>
-                )}
-              </View>
 
               {/* Quick Actions */}
               <SectionHeader title="Quick Actions" />
