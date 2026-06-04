@@ -1,60 +1,119 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StatusBar, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bell, Search, Filter, ChevronRight } from 'lucide-react-native';
+import { Search, Megaphone, ChevronRight, Bell } from 'lucide-react-native';
 import { studentService } from '../services/api';
 import { Announcement } from '../types';
 import { useAppStore } from '../store/useAppStore';
 import { GlobalHeader } from '../components/GlobalHeader';
 import { Image } from 'expo-image';
 import { SkeletonBlock } from '../components/SkeletonView';
+import * as Haptics from 'expo-haptics';
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── Category Pill ────────────────────────────────────────────────────────────
+const CategoryPill = ({ label, active, onPress }: any) => {
+  const isUrgent = label === 'URGENT';
+  const activeColor = isUrgent ? '#dc2626' : '#0072e6';
+  const activeBg = isUrgent ? '#fee2e2' : '#eff6ff';
+  const activeBorder = isUrgent ? '#fca5a5' : '#bfdbfe';
 
-const AnnouncementCard = ({ item, onPress }: any) => (
-  <TouchableOpacity
-    onPress={onPress}
-    style={{
-      backgroundColor: 'white', borderRadius: 28, overflow: 'hidden', marginBottom: 20,
-      borderWidth: 1, borderColor: '#f1f4f6',
-      shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10, elevation: 3,
-    }}
-  >
-    <Image 
-      source={item.image} 
-      style={{ width: '100%', height: 180 }} 
-      contentFit="cover"
-      transition={300}
-    />
-    <View style={{ padding: 20 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-        <View style={{ 
-          backgroundColor: item.category === 'URGENT' ? '#fee2e2' : '#0055d410', 
-          paddingHorizontal: 10, 
-          paddingVertical: 4, 
-          borderRadius: 8 
-        }}>
-          <Text style={{ 
-            fontSize: 10, 
-            fontWeight: 'bold', 
-            color: item.category === 'URGENT' ? '#ef4444' : '#0055d4', 
-            textTransform: 'uppercase' 
-          }}>{item.category}</Text>
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      style={{
+        paddingHorizontal: 16, paddingVertical: 9,
+        borderRadius: 999, borderWidth: 2,
+        backgroundColor: active ? activeBg : '#ffffff',
+        borderColor: active ? activeBorder : '#e2e8f0',
+        marginRight: 8,
+      }}
+    >
+      <Text style={{
+        fontSize: 12, fontWeight: '900',
+        color: active ? activeColor : '#94a3b8',
+        textTransform: 'uppercase', letterSpacing: 0.5,
+      }}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+};
+
+// ─── Announcement Card ────────────────────────────────────────────────────────
+const AnnouncementCard = ({ item, onPress }: any) => {
+  const isUrgent = item.category === 'URGENT';
+  return (
+    <TouchableOpacity
+      onPress={() => { Haptics.selectionAsync(); onPress(); }}
+      activeOpacity={0.88}
+      style={{
+        backgroundColor: 'white',
+        borderRadius: 24,
+        overflow: 'hidden',
+        marginBottom: 16,
+        borderWidth: 2,
+        borderColor: isUrgent ? '#fca5a5' : '#e2e8f0',
+        shadowColor: isUrgent ? '#fca5a5' : '#e2e8f0',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 1,
+        shadowRadius: 0,
+        elevation: 3,
+      }}
+    >
+      {/* Image */}
+      <Image
+        source={item.image}
+        style={{ width: '100%', height: 180 }}
+        contentFit="cover"
+        transition={300}
+      />
+
+      {/* Content */}
+      <View style={{ padding: 20 }}>
+        {/* Meta Row */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <View style={{
+            paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 2,
+            backgroundColor: isUrgent ? '#fee2e2' : '#eff6ff',
+            borderColor: isUrgent ? '#fca5a5' : '#bfdbfe',
+          }}>
+            <Text style={{
+              fontSize: 10, fontWeight: '900',
+              color: isUrgent ? '#dc2626' : '#0072e6',
+              textTransform: 'uppercase', letterSpacing: 0.5,
+            }}>
+              {item.category}
+            </Text>
+          </View>
+          <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700' }}>{item.date}</Text>
         </View>
-        <Text style={{ fontSize: 12, color: '#737c7f', marginLeft: 12 }}>{item.date}</Text>
-      </View>
-      <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2b3437', marginBottom: 8 }}>{item.title}</Text>
-      <Text style={{ fontSize: 13, color: '#586064', lineHeight: 20 }} numberOfLines={2}>{item.excerpt}</Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 16 }}>
-        <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#0055d4' }}>Read Full Story</Text>
-        <ChevronRight size={16} color="#0055d4" style={{ marginLeft: 4 }} />
-      </View>
-    </View>
-  </TouchableOpacity>
-);
 
+        <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', marginBottom: 8, letterSpacing: -0.3, lineHeight: 24 }}>
+          {item.title}
+        </Text>
+        <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '700', lineHeight: 22 }} numberOfLines={2}>
+          {item.excerpt}
+        </Text>
+
+        {/* Read CTA */}
+        <View style={{
+          flexDirection: 'row', alignItems: 'center', gap: 4,
+          marginTop: 16, paddingTop: 14,
+          borderTopWidth: 2, borderTopColor: '#f1f5f9',
+        }}>
+          <Text style={{ fontSize: 14, fontWeight: '900', color: '#0072e6' }}>Read Full Story</Text>
+          <ChevronRight size={16} color="#0072e6" strokeWidth={3} />
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 export const AnnouncementsScreen = ({ navigation }: any) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('ALL');
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const { getSelectedChild, selectedChildId } = useAppStore();
@@ -62,77 +121,112 @@ export const AnnouncementsScreen = ({ navigation }: any) => {
   useEffect(() => {
     const fetchWithClass = async () => {
       setLoading(true);
-      const child = getSelectedChild();
+      const child = getSelectedChild() as any;
       const classId = child?.raw?.classId;
       const studentId = child?.id;
       const data = await studentService.fetchAnnouncements(classId, studentId);
       setAnnouncements(data);
       setLoading(false);
     };
-
     fetchWithClass();
   }, [selectedChildId]);
 
-  const filtered = announcements.filter(a =>
-    a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    a.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const categories = ['ALL', ...Array.from(new Set(announcements.map(a => a.category)))];
+
+  const filtered = announcements.filter(a => {
+    const matchSearch = a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      a.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchCat = activeCategory === 'ALL' || a.category === activeCategory;
+    return matchSearch && matchCat;
+  });
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }} edges={['top']}>
-      <StatusBar barStyle="dark-content" />
-
-      {/* Shared Global Header */}
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       <GlobalHeader navigation={navigation} />
 
-      {/* Screen Title & Search Bar */}
-      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24 }}>
-        <View style={{ marginBottom: 24 }}>
-          <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#2b3437', letterSpacing: -0.5 }}>Comm Center</Text>
-          <Text style={{ fontSize: 13, color: '#737c7f', marginTop: 2 }}>School news & student alerts</Text>
-        </View>
+      {/* Header */}
+      <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 }}>
+        <Text style={{ fontSize: 30, fontWeight: '900', color: '#1e293b', letterSpacing: -0.5, marginBottom: 4 }}>
+          Comm Center
+        </Text>
+        <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '700' }}>
+          School news & student alerts
+        </Text>
+      </View>
 
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <View style={{ flex: 1, height: 52, backgroundColor: 'white', borderRadius: 16, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, borderWidth: 1, borderColor: '#f1f4f6' }}>
-            <Search size={20} color="#abb3b7" style={{ marginRight: 12 }} />
-            <TextInput
-              placeholder="Search news..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              style={{ flex: 1, fontSize: 15, color: '#2b3437', fontWeight: '500' }}
-              placeholderTextColor="#abb3b7"
-            />
-          </View>
-          <TouchableOpacity style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f4f6' }}>
-            <Filter size={20} color="#737c7f" />
-          </TouchableOpacity>
+      {/* Search Bar */}
+      <View style={{ paddingHorizontal: 20, marginBottom: 12 }}>
+        <View style={{
+          flexDirection: 'row', alignItems: 'center', gap: 12,
+          backgroundColor: '#f8fafc', borderRadius: 16,
+          borderWidth: 2, borderColor: '#e2e8f0',
+          paddingHorizontal: 16, paddingVertical: 14,
+        }}>
+          <Search size={20} color="#94a3b8" />
+          <TextInput
+            placeholder="Search news..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            style={{ flex: 1, fontSize: 15, color: '#1e293b', fontWeight: '700' }}
+            placeholderTextColor="#cbd5e1"
+          />
         </View>
       </View>
 
+      {/* Category Chips */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 16 }}
+      >
+        {categories.map(cat => (
+          <CategoryPill
+            key={cat}
+            label={cat}
+            active={activeCategory === cat}
+            onPress={() => { Haptics.selectionAsync(); setActiveCategory(cat); }}
+          />
+        ))}
+      </ScrollView>
+
       {/* Content */}
       {loading ? (
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 20 }}>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 20 }}>
           {[1, 2, 3].map(i => (
-            <View key={i} style={{ marginBottom: 24, backgroundColor: 'white', borderRadius: 28, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f4f6' }}>
+            <View key={i} style={{ marginBottom: 16, backgroundColor: 'white', borderRadius: 24, overflow: 'hidden', borderWidth: 2, borderColor: '#e2e8f0' }}>
               <SkeletonBlock height={180} borderRadius={0} />
-              <View style={{ padding: 20 }}>
-                <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
-                  <SkeletonBlock width={60} height={18} borderRadius={8} />
-                  <SkeletonBlock width={80} height={18} borderRadius={8} />
+              <View style={{ padding: 20, gap: 10 }}>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <SkeletonBlock width={60} height={22} borderRadius={999} />
+                  <SkeletonBlock width={80} height={22} borderRadius={8} />
                 </View>
-                <SkeletonBlock width="90%" height={24} marginBottom={10} />
-                <SkeletonBlock width="100%" height={16} marginBottom={6} />
+                <SkeletonBlock width="90%" height={22} />
+                <SkeletonBlock width="100%" height={16} />
                 <SkeletonBlock width="60%" height={16} />
               </View>
             </View>
           ))}
         </ScrollView>
+      ) : filtered.length === 0 ? (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 }}>
+          <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#eff6ff', borderWidth: 2, borderColor: '#bfdbfe', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <Megaphone size={32} color="#0072e6" />
+          </View>
+          <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', textAlign: 'center' }}>No announcements</Text>
+          <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '700', textAlign: 'center', marginTop: 8, lineHeight: 22 }}>
+            Nothing matches your search or filters. Try a different keyword.
+          </Text>
+        </View>
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 150 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
+        >
           {filtered.map(item => (
-            <AnnouncementCard 
-              key={item.id} 
-              item={item} 
+            <AnnouncementCard
+              key={item.id}
+              item={item}
               onPress={() => navigation.navigate('AnnouncementDetail', { announcement: item })}
             />
           ))}

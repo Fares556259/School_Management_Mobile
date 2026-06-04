@@ -209,7 +209,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
         classId: selectedClass.id, date: selectedDate.format('YYYY-MM-DD'),
         records: Object.keys(attendance).map(studentId => ({ studentId, status: attendance[studentId], note: notes[studentId], score: scores[studentId] })),
         lessonId: lessonId,
-        task: newTask.title ? { title: newTask.title, description: newTask.description, attachments: newTask.attachments } : undefined
+        task: newTask.title ? { title: newTask.title, description: newTask.description, attachments: newTask.attachments } as any : undefined
       });
       setInitialAttendance(attendance); setInitialNotes(notes); setInitialScores(scores);
       setNewTask({ title: '', description: '', show: false, attachments: [] });

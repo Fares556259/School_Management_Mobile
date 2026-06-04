@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput, ActivityIndicator, StatusBar, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bell, Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, User, Pencil, FileText, Info, PhoneCall, MapPin, Image as ImageIcon } from 'lucide-react-native';
+import { Bell, Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, User, Pencil, FileText, Info, PhoneCall, MapPin, Image as ImageIcon, Award } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Svg, Circle } from 'react-native-svg';
 import { useAppStore } from '../store/useAppStore';
@@ -445,7 +445,10 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
             <SettingItemV2 icon={UserIcon} label="Profile details" color="bg-[#f1f4f6]" />
             <SettingItemV2 icon={BellRing} label="Notifications" color="bg-[#f1f4f6]" />
             {userRole === 'parent' && (
-              <SettingItemV2 icon={FileText} label="Document center" color="bg-[#f1f4f6]" onPress={() => navigation.navigate('DocumentCenter')} />
+              <>
+                <SettingItemV2 icon={Award} label="Report card" color="bg-[#f1f4f6]" onPress={() => navigation.navigate('Results')} />
+                <SettingItemV2 icon={FileText} label="Document center" color="bg-[#f1f4f6]" onPress={() => navigation.navigate('DocumentCenter')} />
+              </>
             )}
             <SettingItemV2 icon={LogOut} label="Sign out" color="bg-[#fef2f2]" labelColor="#ef4444" isLast onPress={handleLogout} />
           </View>

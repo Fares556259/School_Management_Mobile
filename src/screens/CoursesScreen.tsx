@@ -80,142 +80,173 @@ export const CoursesScreen = () => {
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' }}>
-        <ActivityIndicator size="large" color="#0055d4" />
+        <ActivityIndicator size="large" color="#0072e6" />
       </View>
     );
   }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
-      <ScrollView 
-        contentContainerStyle={{ padding: 24, paddingBottom: 120 }}
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={{ marginBottom: 32 }}>
-          <Text style={{ fontSize: 13, fontWeight: '900', color: '#0055d4', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8 }}>Academic Portal</Text>
-          <Text style={{ fontSize: 32, fontWeight: '900', color: '#1e293b' }}>Courses Hub</Text>
-          <Text style={{ fontSize: 15, color: '#64748b', marginTop: 6, fontWeight: '600', lineHeight: 22 }}>
-            Track learning materials and active assignments for {child?.name || 'your child'}.
+        {/* Header */}
+        <View style={{ marginBottom: 28 }}>
+          <Text style={{ fontSize: 11, fontWeight: '900', color: '#0072e6', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 6 }}>
+            Academic Portal
+          </Text>
+          <Text style={{ fontSize: 30, fontWeight: '900', color: '#1e293b', letterSpacing: -0.5 }}>Courses Hub</Text>
+          <Text style={{ fontSize: 14, color: '#64748b', marginTop: 6, fontWeight: '700', lineHeight: 22 }}>
+            Materials and lessons for {child?.name || 'your child'}.
           </Text>
         </View>
 
         {courses.length === 0 ? (
-          <View style={{ padding: 60, alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 32, marginTop: 20 }}>
-            <View style={{ width: 80, height: 80, borderRadius: 30, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10 }}>
-              <BookOpen size={32} color="#cbd5e1" />
+          <View style={{ padding: 48, alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 28, borderWidth: 2, borderColor: '#e2e8f0' }}>
+            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#eff6ff', borderWidth: 2, borderColor: '#bfdbfe', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <BookOpen size={32} color="#0072e6" />
             </View>
-            <Text style={{ marginTop: 24, color: '#94a3b8', fontWeight: '800', fontSize: 16 }}>No active courses found</Text>
+            <Text style={{ color: '#1e293b', fontWeight: '900', fontSize: 18 }}>No active courses</Text>
+            <Text style={{ color: '#64748b', fontWeight: '700', fontSize: 14, marginTop: 8, textAlign: 'center' }}>
+              Course materials will appear here once your teacher uploads them.
+            </Text>
           </View>
         ) : (
           courses.map((course) => {
             const theme = SUBJECT_THEMES[course.name] || SUBJECT_THEMES.Default;
             const ThemeIcon = theme.icon;
+            const isExpanded = expandedCourses[course.id];
 
             return (
-              <View key={course.id} style={{ 
-                backgroundColor: 'white', 
-                borderRadius: 32, 
-                padding: 24, 
-                marginBottom: 24,
-                borderWidth: 1,
-                borderColor: '#f1f5f9',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 10 },
-                shadowOpacity: 0.04,
-                shadowRadius: 20,
-                elevation: 4
+              <View key={course.id} style={{
+                backgroundColor: 'white',
+                borderRadius: 24,
+                marginBottom: 16,
+                borderWidth: 2,
+                borderColor: theme.color + '33',
+                shadowColor: theme.color + '55',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 1,
+                shadowRadius: 0,
+                elevation: 3,
+                overflow: 'hidden',
               }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>
-                  <View style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center' }}>
-                    <ThemeIcon color={theme.color} size={26} />
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 18 }}>
-                    <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b' }}>{course.name}</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                      <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: '#f1f5f9' }}>
-                        <Text style={{ fontSize: 10, color: '#64748b', fontWeight: '800' }}>{course.teacher}</Text>
+                {/* Subject Header */}
+                <View style={{ padding: 20, borderBottomWidth: isExpanded ? 2 : 0, borderBottomColor: '#f1f5f9' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={{
+                      width: 52, height: 52, borderRadius: 16,
+                      backgroundColor: theme.bg, borderWidth: 2, borderColor: theme.color + '33',
+                      alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <ThemeIcon color={theme.color} size={24} />
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 16 }}>
+                      <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>{course.name}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                        <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: '#f1f5f9', borderWidth: 1.5, borderColor: '#e2e8f0' }}>
+                          <Text style={{ fontSize: 10, color: '#64748b', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.3 }}>{course.teacher}</Text>
+                        </View>
                       </View>
                     </View>
+                    {/* File count badge */}
+                    <View style={{
+                      paddingHorizontal: 12, paddingVertical: 8,
+                      borderRadius: 12, borderWidth: 2,
+                      backgroundColor: theme.bg, borderColor: theme.color + '55',
+                    }}>
+                      <Text style={{ fontSize: 16, fontWeight: '900', color: theme.color }}>{course.resources.length}</Text>
+                      <Text style={{ fontSize: 9, fontWeight: '900', color: theme.color, textTransform: 'uppercase', letterSpacing: 0.3 }}>Files</Text>
+                    </View>
                   </View>
-                  <TouchableOpacity style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}>
-                    <ChevronRight size={18} color="#cbd5e1" />
-                  </TouchableOpacity>
                 </View>
 
-                {/* Content Stats */}
-                <TouchableOpacity 
-                  activeOpacity={0.7}
-                  onPress={() => toggleCourse(course.id)}
-                  disabled={course.resources.length === 0}
-                  style={{ flexDirection: 'row', gap: 12, marginBottom: expandedCourses[course.id] ? 16 : 0 }}
-                >
-                  <View style={{ flex: 1, padding: 16, borderRadius: 20, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#f1f5f9', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <View>
-                      <Text style={{ fontSize: 11, fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>Learning Materials</Text>
-                      <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b', marginTop: 2 }}>{course.resources.length} Files</Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <FileText size={20} color={course.resources.length > 0 ? "#0055d4" : "#94a3b8"} style={{ marginRight: 12 }} />
-                      {course.resources.length > 0 && (
-                        expandedCourses[course.id] ? <ChevronUp size={20} color="#94a3b8" /> : <ChevronDown size={20} color="#94a3b8" />
-                      )}
-                    </View>
-                  </View>
-                </TouchableOpacity>
+                {/* Expand Toggle */}
+                {course.resources.length > 0 && (
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => toggleCourse(course.id)}
+                    style={{
+                      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                      paddingHorizontal: 20, paddingVertical: 14,
+                      backgroundColor: isExpanded ? '#f8fafc' : 'white',
+                    }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: '900', color: isExpanded ? '#0072e6' : '#64748b' }}>
+                      {isExpanded ? 'Hide materials' : 'View learning materials'}
+                    </Text>
+                    {isExpanded ? (
+                      <ChevronDown size={18} color="#0072e6" strokeWidth={2.5} />
+                    ) : (
+                      <ChevronRight size={18} color="#94a3b8" strokeWidth={2} />
+                    )}
+                  </TouchableOpacity>
+                )}
 
                 {/* Resources */}
-                {expandedCourses[course.id] && course.resources.length > 0 && (
-                  <View>
-                    <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Learning Materials</Text>
-                    {course.resources.map((res: any) => {
+                {isExpanded && course.resources.length > 0 && (
+                  <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+                    {course.resources.map((res: any, idx: number) => {
                       const isNew = !viewedResources.includes(res.id.toString());
-                      
                       return (
-                      <TouchableOpacity 
-                        key={res.id} 
-                        onPress={() => handleDownload(res)}
-                        style={{ 
-                          flexDirection: 'row', 
-                          alignItems: 'center', 
-                          backgroundColor: '#f8fafc', 
-                          borderRadius: 20, 
-                          padding: 16, 
-                          marginBottom: 8,
-                          borderWidth: 1,
-                          borderColor: isNew ? '#bfdbfe' : '#f1f5f9'
-                        }}
-                      >
-                        <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: isNew ? '#eff6ff' : 'white', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: isNew ? '#bfdbfe' : '#f1f5f9' }}>
-                          <Download size={16} color={theme.color} />
-                        </View>
-                        <View style={{ flex: 1, marginLeft: 14 }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Text style={{ fontSize: 14, fontWeight: '700', color: '#1e293b' }} numberOfLines={1}>{res.title}</Text>
-                            {isNew && (
-                              <View style={{ backgroundColor: '#ef4444', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 8 }}>
-                                <Text style={{ fontSize: 9, fontWeight: '900', color: 'white' }}>NEW</Text>
-                              </View>
-                            )}
+                        <TouchableOpacity
+                          key={res.id}
+                          onPress={() => handleDownload(res)}
+                          activeOpacity={0.85}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            borderRadius: 16,
+                            padding: 14,
+                            marginBottom: 8,
+                            borderWidth: 2,
+                            borderColor: isNew ? '#bfdbfe' : '#e2e8f0',
+                            backgroundColor: isNew ? '#f8fafc' : '#fafafa',
+                            shadowColor: '#e2e8f0',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 1,
+                            shadowRadius: 0,
+                          }}
+                        >
+                          <View style={{
+                            width: 38, height: 38, borderRadius: 10,
+                            backgroundColor: isNew ? '#eff6ff' : '#f1f5f9',
+                            borderWidth: 2, borderColor: isNew ? '#bfdbfe' : '#e2e8f0',
+                            alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            <Download size={16} color={theme.color} />
                           </View>
-                          {res.description ? (
-                            <Text style={{ fontSize: 12, color: '#64748b', fontWeight: '500', marginTop: 3, lineHeight: 16 }} numberOfLines={2}>
-                              {res.description}
+                          <View style={{ flex: 1, marginLeft: 12 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                              <Text style={{ fontSize: 14, fontWeight: '800', color: '#1e293b' }} numberOfLines={1}>{res.title}</Text>
+                              {isNew && (
+                                <View style={{ backgroundColor: '#0072e6', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                                  <Text style={{ fontSize: 9, fontWeight: '900', color: 'white' }}>NEW</Text>
+                                </View>
+                              )}
+                            </View>
+                            {res.description ? (
+                              <Text style={{ fontSize: 12, color: '#64748b', fontWeight: '700', marginTop: 2, lineHeight: 16 }} numberOfLines={2}>
+                                {res.description}
+                              </Text>
+                            ) : null}
+                            <Text style={{ fontSize: 10, color: '#94a3b8', fontWeight: '800', marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                              {res.teacher || course.teacher} · {new Date(res.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                             </Text>
-                          ) : null}
-                          <Text style={{ fontSize: 10, color: '#94a3b8', fontWeight: '700', marginTop: res.description ? 4 : 2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                            {res.teacher || course.teacher || 'Teacher'} · {new Date(res.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </Text>
-                        </View>
-                        <ChevronRight size={16} color="#cbd5e1" />
-                      </TouchableOpacity>
-                      )
+                          </View>
+                          <Download size={16} color="#94a3b8" />
+                        </TouchableOpacity>
+                      );
                     })}
                   </View>
                 )}
 
                 {course.tasks.length === 0 && course.resources.length === 0 && (
-                  <View style={{ alignItems: 'center', paddingVertical: 12 }}>
-                    <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '600' }}>No new materials for this subject.</Text>
+                  <View style={{ alignItems: 'center', paddingVertical: 20, paddingHorizontal: 24 }}>
+                    <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '800', textAlign: 'center' }}>
+                      No materials uploaded for this course yet.
+                    </Text>
                   </View>
                 )}
               </View>
@@ -226,3 +257,5 @@ export const CoursesScreen = () => {
     </SafeAreaView>
   );
 };
+
+

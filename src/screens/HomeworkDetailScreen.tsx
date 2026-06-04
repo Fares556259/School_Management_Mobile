@@ -304,7 +304,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
           <Text style={{ fontSize: 12, fontWeight: '800', color: '#adb5bd', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 16 }}>Attachments</Text>
           
           {attachmentUrls.length > 0 ? (
-            attachmentUrls.map((url, index) => {
+            attachmentUrls.map((url: any, index: number) => {
               const isPdf = url.toLowerCase().endsWith('.pdf');
               const fileName = url.split('/').pop() || `Attachment_${index + 1}`;
               

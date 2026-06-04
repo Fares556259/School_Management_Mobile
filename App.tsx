@@ -15,6 +15,8 @@ import { SignInScreen } from './src/screens/SignInScreen';
 import { LinkChildScreen } from './src/screens/LinkChildScreen';
 import { AnnouncementDetailScreen } from './src/screens/AnnouncementDetailScreen';
 import { LandingScreen } from './src/screens/LandingScreen';
+import { ExamsScreen } from './src/screens/ExamsScreen';
+import { ResultsScreen } from './src/screens/ResultsScreen';
 import { DocumentCenterScreen } from './src/screens/DocumentCenterScreen';
 import { TeacherClassesScreen } from './src/screens/teacher/TeacherClassesScreen';
 import { TeacherHomeScreen } from './src/screens/teacher/TeacherHomeScreen';
@@ -55,29 +57,22 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: '#ffffff',
-          borderTopWidth: 0,
-          height: 85,
-          paddingBottom: 20,
-          paddingTop: 10,
-          borderTopLeftRadius: 32,
-          borderTopRightRadius: 32,
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -10 },
-          shadowOpacity: 0.04,
-          shadowRadius: 20,
-          elevation: 10,
+          borderTopWidth: 1,
+          borderTopColor: '#e2e8f0',
+          height: 72,
+          paddingBottom: 10,
+          paddingTop: 8,
+          elevation: 0,
+          shadowOpacity: 0,
         },
-        tabBarActiveTintColor: '#0055d4',
-        tabBarInactiveTintColor: '#b0b8bc',
-        tabBarLabelStyle: { 
-          fontWeight: '900', 
-          fontSize: 10, 
-          marginTop: 4,
-          fontFamily: 'PlusJakartaSans-ExtraBold'
+        tabBarActiveTintColor: '#0072e6',
+        tabBarInactiveTintColor: '#94a3b8',
+        tabBarLabelStyle: {
+          fontWeight: '800',
+          fontSize: 10,
+          marginTop: 2,
+          fontFamily: 'PlusJakartaSans-ExtraBold',
+          letterSpacing: 0.2,
         },
         tabBarIcon: ({ color, focused }) => {
           let Icon: any;
@@ -90,17 +85,24 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
           else if (route.name === 'Tasks') Icon = ClipboardCheck;
           else if (route.name === 'Classes') Icon = Users;
           else if (route.name === 'Courses') Icon = GraduationCap;
-          
+
           return (
-            <View className="items-center justify-center pt-2">
-              <Icon 
-                color={color} 
-                size={22} 
-                strokeWidth={focused ? 3 : 2} 
-              />
+            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
               {focused && (
-                <View className="w-1.5 h-1.5 rounded-full bg-brand-primary mt-1.5" />
+                <View style={{
+                  position: 'absolute',
+                  top: -12,
+                  width: 32,
+                  height: 3,
+                  borderRadius: 2,
+                  backgroundColor: '#0072e6',
+                }} />
               )}
+              <Icon
+                color={color}
+                size={22}
+                strokeWidth={focused ? 2.5 : 1.8}
+              />
             </View>
           );
         },
@@ -129,6 +131,7 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
     </Tab.Navigator>
   );
 }
+
 
 export default function App() {
   const { 
@@ -232,14 +235,14 @@ export default function App() {
       
       if (navigationRef.isReady()) {
         if (data.type === 'HOMEWORK' && data.homeworkId) {
-          navigationRef.navigate('HomeworkDetail' as never, { 
+          (navigationRef as any).navigate('HomeworkDetail', { 
             homework: { id: data.homeworkId },
             studentId: data.studentId
-          } as never);
+          });
         } else if (data.type === 'RESOURCE' && data.resourceId) {
-          navigationRef.navigate('DocumentCenter' as never);
+          (navigationRef as any).navigate('DocumentCenter');
         } else if (data.type === 'ANNOUNCEMENT' || data.type === 'ATTENDANCE') {
-          navigationRef.navigate('NotificationDetail' as never, { 
+          (navigationRef as any).navigate('NotificationDetail', { 
             notification: { 
               ...data, 
               type: data.type, 
@@ -247,7 +250,7 @@ export default function App() {
               studentName: data.studentName || "Student Update",
               time: "Just now" 
             } 
-          } as never);
+          });
         }
       }
     });
@@ -332,6 +335,8 @@ export default function App() {
               <Stack.Screen name="AnnouncementDetail" component={AnnouncementDetailScreen} />
               <Stack.Screen name="LinkChild" component={LinkChildScreen} />
               <Stack.Screen name="DocumentCenter" component={DocumentCenterScreen} />
+              <Stack.Screen name="Exams" component={ExamsScreen} />
+              <Stack.Screen name="Results" component={ResultsScreen} />
               <Stack.Screen name="TeacherTaskDetail" component={TeacherTaskDetailScreen} />
               <Stack.Screen name="StudentSubmission" component={StudentSubmissionScreen} />
               <Stack.Screen name="TeacherClassRoster" component={TeacherClassRosterScreen} />

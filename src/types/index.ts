@@ -2,7 +2,7 @@ export interface Student {
   id: string;
   name: string;
   class: string;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
 }
 
 export interface Grade {
@@ -73,11 +73,13 @@ export interface Notification {
   type: string;
   studentName: string;
   studentAvatar?: string | null;
+  title?: string;
   message: string;
   time: string;
   iconName: string;
   iconColor: string;
   isNew: boolean;
+  createdAt: string;
 }
 
 export interface Announcement {

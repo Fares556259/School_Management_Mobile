@@ -1,59 +1,68 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Platform, RefreshControl, StatusBar, ActivityIndicator, Linking, StyleSheet, Modal } from 'react-native';
+import {
+  View, Text, ScrollView, TouchableOpacity, Platform,
+  RefreshControl, StatusBar, ActivityIndicator, Linking,
+  StyleSheet, Modal, Animated
+} from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { 
-  Book, Microscope, Clock, Globe, Palette, Coffee, Calculator, Music, Languages, 
-  MessageSquare, FileText, ChevronRight, BookOpen, 
-  Calendar as CalendarIcon, Star, Layout, Briefcase, ChevronLeft, CheckCircle2,
-  Download, X
+import {
+  Book, Microscope, Clock, Globe, Palette, Coffee, Calculator, Music, Languages,
+  MessageSquare, FileText, ChevronRight, BookOpen,
+  Calendar as CalendarIcon, Star, Layout, Briefcase, CheckCircle2,
+  Download, X, Award
 } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { studentService } from '../services/api';
 import { StudentDayData } from '../types';
 import { GlobalHeader } from '../components/GlobalHeader';
 import { SkeletonBlock } from '../components/SkeletonView';
+import * as Haptics from 'expo-haptics';
 
 const Monitor = (props: any) => <Layout {...props} />;
 
 const ICON_MAP: Record<string, any> = {
-  Calculator, Book, Languages, Clock, Globe, Palette, Coffee, Music, Microscope, Briefcase, BookOpen, FileText, 
+  Calculator, Book, Languages, Clock, Globe, Palette, Coffee, Music, Microscope, Briefcase, BookOpen, FileText,
   ICT: Monitor, Art: Palette, History: Book, English: Languages
 };
 
-// ─── Reusable Components ──────────────────────────────────────────────────────
+// ─── Date Card ───────────────────────────────────────────────────────────────
+const DateItem = ({ day, date, active, isToday, onPress }: any) => {
+  const scale = React.useRef(new Animated.Value(1)).current;
+  const handlePress = () => {
+    Haptics.selectionAsync();
+    Animated.sequence([
+      Animated.spring(scale, { toValue: 0.93, useNativeDriver: true, speed: 60 }),
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 40 }),
+    ]).start();
+    onPress();
+  };
+  return (
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <TouchableOpacity
+        onPress={handlePress}
+        activeOpacity={1}
+        style={[styles.dateCard, active && styles.activeDateCard]}
+      >
+        <Text style={[styles.dateDay, active && styles.activeDateText]}>{day}</Text>
+        <Text style={[styles.dateNum, active && styles.activeDateText]}>{date}</Text>
+        {isToday && (
+          <View style={[styles.todayDot, active && { backgroundColor: 'rgba(255,255,255,0.7)' }]} />
+        )}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
 
-const DateItem = ({ day, date, active, isToday, onPress }: any) => (
-  <TouchableOpacity
-    onPress={onPress}
-    activeOpacity={0.8}
-    style={[styles.dateCard, active && styles.activeDateCard]}
-  >
-    <Text style={[styles.dateDay, active && styles.activeDateText]}>{day}</Text>
-    <Text style={[styles.dateNum, active && styles.activeDateText]}>{date}</Text>
-    {isToday && (
-      <Text style={[styles.dateToday, active && styles.activeDateText]}>Today</Text>
-    )}
-  </TouchableOpacity>
-);
-
-const StatPill = ({ count, label, color, bgColor }: any) => (
-  <View style={[styles.statPill, { backgroundColor: bgColor }]}>
+// ─── Stat Pill ───────────────────────────────────────────────────────────────
+const StatPill = ({ count, label, color, bgColor, borderColor }: any) => (
+  <View style={[styles.statPill, { backgroundColor: bgColor, borderColor }]}>
     <Text style={[styles.statValue, { color }]}>{count}</Text>
-    <Text style={[styles.statLabel, { color: '#64748b' }]}>{label}</Text>
+    <Text style={[styles.statLabel, { color }]}>{label}</Text>
   </View>
 );
 
-const EmptySessionsUI = () => (
-  <View style={styles.emptySessionsContainer}>
-    <View style={styles.emptySessionsIconCircle}>
-      <Coffee size={32} color="#0055d4" />
-    </View>
-    <Text style={styles.emptySessionsTitle}>No classes scheduled</Text>
-    <Text style={styles.emptySessionsSub}>Take some time to relax or catch up on your reading. Enjoy your day!</Text>
-  </View>
-);
-
+// ─── Session Card ─────────────────────────────────────────────────────────────
 const SessionCard = ({ session }: any) => {
   const Icon = ICON_MAP[session.subject] || Book;
   const isAbsent = session.attendance?.toUpperCase() === 'ABSENT' || session.attendance?.toUpperCase() === 'ABS';
@@ -61,18 +70,19 @@ const SessionCard = ({ session }: any) => {
   const isLate = session.attendance?.toUpperCase() === 'LATE';
   const isUpcoming = !session.attendance;
 
-  const accentColor = isAbsent ? '#ef4444' : isPresent ? '#10b981' : isLate ? '#f59e0b' : '#e2e8f0';
-  const badgeBg = isAbsent ? '#fee2e2' : isPresent ? '#d1fae5' : isLate ? '#fef3c7' : '#f1f5f9';
-  const badgeText = isAbsent ? '#ef4444' : isPresent ? '#059669' : isLate ? '#d97706' : '#64748b';
+  const accentColor = isAbsent ? '#dc2626' : isPresent ? '#16a34a' : isLate ? '#d97706' : '#cbd5e1';
+  const badgeBg = isAbsent ? '#fee2e2' : isPresent ? '#dcfce7' : isLate ? '#fef3c7' : '#f1f5f9';
+  const badgeBorder = isAbsent ? '#fca5a5' : isPresent ? '#86efac' : isLate ? '#fcd34d' : '#e2e8f0';
+  const badgeText = isAbsent ? '#dc2626' : isPresent ? '#16a34a' : isLate ? '#d97706' : '#64748b';
   const statusLabel = isAbsent ? 'Absent' : isPresent ? 'Present' : isLate ? 'Late' : 'Upcoming';
 
   return (
-    <View style={styles.sessionItem}>
+    <View style={[styles.sessionItem, isAbsent && styles.sessionItemAbsent]}>
       <View style={[styles.sessionAccent, { backgroundColor: accentColor }]} />
       <View style={styles.sessionMain}>
         <View style={styles.sessionHeader}>
           <View style={styles.sessionIconWrapper}>
-            <Icon size={20} color="#0055d4" />
+            <Icon size={20} color="#0072e6" />
           </View>
           <View style={styles.sessionTitleGroup}>
             <Text style={styles.sessionTitle}>{session.subject}</Text>
@@ -81,7 +91,7 @@ const SessionCard = ({ session }: any) => {
               <Text style={styles.sessionTeacher}>{session.teacher}</Text>
             )}
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: badgeBg }]}>
+          <View style={[styles.statusBadge, { backgroundColor: badgeBg, borderColor: badgeBorder }]}>
             <Text style={[styles.statusBadgeText, { color: badgeText }]}>{statusLabel}</Text>
           </View>
         </View>
@@ -95,7 +105,7 @@ const SessionCard = ({ session }: any) => {
           ) : (
             <View style={styles.starsRow}>
               {[1, 2, 3, 4, 5].map(s => (
-                <Star key={s} size={16} color={session.score >= s ? '#f59e0b' : '#e2e8f0'} fill={session.score >= s ? '#f59e0b' : 'none'} style={{ marginRight: 4 }} />
+                <Star key={s} size={15} color={session.score >= s ? '#f59e0b' : '#e2e8f0'} fill={session.score >= s ? '#f59e0b' : 'none'} style={{ marginRight: 3 }} />
               ))}
             </View>
           )}
@@ -105,8 +115,33 @@ const SessionCard = ({ session }: any) => {
   );
 };
 
+// ─── Empty Sessions ───────────────────────────────────────────────────────────
+const EmptySessionsUI = () => (
+  <View style={styles.emptyBox}>
+    <View style={styles.emptyIconCircle}>
+      <Coffee size={30} color="#0072e6" />
+    </View>
+    <Text style={styles.emptyTitle}>No classes today</Text>
+    <Text style={styles.emptySub}>Enjoy your free day and catch up on reading!</Text>
+  </View>
+);
+
+// ─── Section Header ───────────────────────────────────────────────────────────
+const SectionHeader = ({ title, action, onAction }: any) => (
+  <View style={styles.sectionHeaderRow}>
+    <Text style={styles.sectionTitle}>{title}</Text>
+    {action && (
+      <TouchableOpacity onPress={onAction} style={styles.sectionActionBtn}>
+        <Text style={styles.sectionActionText}>{action}</Text>
+        <ChevronRight size={14} color="#0072e6" strokeWidth={3} />
+      </TouchableOpacity>
+    )}
+  </View>
+);
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 export const HomeScreen = ({ navigation, route }: any) => {
-  const { selectedChildId, children, setStudentStatus } = useAppStore();
+  const { selectedChildId, setStudentStatus } = useAppStore();
   const [loading, setLoading] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
   const [dayData, setDayData] = React.useState<StudentDayData>({ sessions: [], notes: [], files: [], homeworkDue: [], homeworkGiven: [], exams: [] });
@@ -119,9 +154,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
   React.useEffect(() => {
     if (route?.params?.targetDate) {
       const tDate = new Date(route.params.targetDate);
-      if (!isNaN(tDate.getTime())) {
-        setSelectedDate(tDate);
-      }
+      if (!isNaN(tDate.getTime())) setSelectedDate(tDate);
     }
   }, [route?.params?.targetDate]);
 
@@ -132,7 +165,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
         navigation.setParams({ scrollTo: undefined, targetDate: undefined });
       }, 300);
     }
-  }, [route?.params?.scrollTo, loading, tasksYPosition, navigation]);
+  }, [route?.params?.scrollTo, loading, tasksYPosition]);
 
   const fetchHome = async () => {
     if (!selectedChildId) return;
@@ -141,7 +174,6 @@ export const HomeScreen = ({ navigation, route }: any) => {
       const dateStr = selectedDate.toISOString().split('T')[0];
       const data = await studentService.fetchDayData(selectedChildId, dateStr);
       setDayData(data);
-
       const hasAbsent = data.sessions?.some((s: any) => s.attendance?.toUpperCase() === 'ABSENT' || s.attendance?.toUpperCase() === 'ABS');
       setStudentStatus(selectedChildId, hasAbsent ? 'Absent' : 'Present');
     } catch (e) {
@@ -170,26 +202,56 @@ export const HomeScreen = ({ navigation, route }: any) => {
   const lateCount = dayData.sessions?.filter(s => s.attendance?.toUpperCase() === 'LATE').length || 0;
   const upcomingCount = dayData.sessions?.filter(s => !s.attendance).length || 0;
 
+  const allTasks = [...(dayData.homeworkDue || []), ...(dayData.homeworkGiven || [])];
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       <GlobalHeader navigation={navigation} />
 
-      <ScrollView 
+      <ScrollView
         ref={scrollViewRef}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0055d4" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0072e6" />}
       >
         <View style={styles.content}>
-          
-          <Text style={styles.sectionTitle}>Today's Schedule</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateSlider}>
+
+          {/* Quick Actions */}
+          <View style={styles.quickActionsRow}>
+            <TouchableOpacity
+              onPress={() => { Haptics.selectionAsync(); navigation.navigate('Exams'); }}
+              activeOpacity={0.85}
+              style={[styles.quickCard, { borderColor: '#ddd6fe' }]}
+            >
+              <View style={[styles.quickIcon, { backgroundColor: '#7c3aed' }]}>
+                <FileText size={22} color="white" />
+              </View>
+              <Text style={[styles.quickTitle, { color: '#6d28d9' }]}>Exam Center</Text>
+              <Text style={styles.quickSub}>Dates & schedules</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => { Haptics.selectionAsync(); navigation.navigate('Results'); }}
+              activeOpacity={0.85}
+              style={[styles.quickCard, { borderColor: '#bfdbfe' }]}
+            >
+              <View style={[styles.quickIcon, { backgroundColor: '#0072e6' }]}>
+                <Award size={22} color="white" />
+              </View>
+              <Text style={[styles.quickTitle, { color: '#0072e6' }]}>Report Card</Text>
+              <Text style={styles.quickSub}>Grades & averages</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Date Slider */}
+          <SectionHeader title="Today's Schedule" />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateSlider} contentContainerStyle={{ paddingRight: 8 }}>
             {sliderDates.map(d => (
-              <DateItem 
-                key={d.toISOString()} 
-                day={['SUN','MON','TUE','WED','THU','FRI','SAT'][d.getDay()]} 
-                date={d.getDate()} 
-                active={d.toDateString() === selectedDate.toDateString()} 
+              <DateItem
+                key={d.toISOString()}
+                day={['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][d.getDay()]}
+                date={d.getDate()}
+                active={d.toDateString() === selectedDate.toDateString()}
                 isToday={d.toDateString() === new Date().toDateString()}
                 onPress={() => setSelectedDate(d)}
               />
@@ -197,27 +259,36 @@ export const HomeScreen = ({ navigation, route }: any) => {
           </ScrollView>
 
           {loading ? (
-            <ActivityIndicator color="#0055d4" style={{ marginTop: 40 }} />
+            <View style={{ gap: 12 }}>
+              {[1, 2, 3].map(i => (
+                <View key={i} style={[styles.card, { padding: 16 }]}>
+                  <SkeletonBlock width="50%" height={14} marginBottom={10} />
+                  <SkeletonBlock width="100%" height={12} marginBottom={6} />
+                  <SkeletonBlock width="70%" height={12} />
+                </View>
+              ))}
+            </View>
           ) : (
             <>
-              {/* Today's Sessions Main Card */}
-              <View style={styles.mainCard}>
-                <View style={styles.mainCardHeader}>
-                  <Text style={styles.cardTitle}>Today's Sessions</Text>
-                  <TouchableOpacity onPress={() => navigation.navigate('Attendance')} style={styles.historyBtn}>
-                    <Text style={styles.historyBtnText}>History</Text>
-                    <ChevronRight size={16} color="#1e293b" />
-                  </TouchableOpacity>
-                </View>
-
+              {/* Sessions Card */}
+              <View style={styles.card}>
+                {/* Stat Row */}
                 <View style={styles.statsRow}>
-                  <StatPill count={presentCount} label="Present" color="#10b981" bgColor="#d1fae5" />
-                  <StatPill count={absentCount} label="Absent" color="#ef4444" bgColor="#fee2e2" />
-                  <StatPill count={lateCount} label="Late" color="#f59e0b" bgColor="#fef3c7" />
-                  <StatPill count={upcomingCount} label="Upcoming" color="#64748b" bgColor="#f1f5f9" />
+                  <StatPill count={presentCount} label="Present" color="#16a34a" bgColor="#dcfce7" borderColor="#86efac" />
+                  <StatPill count={absentCount} label="Absent" color="#dc2626" bgColor="#fee2e2" borderColor="#fca5a5" />
+                  <StatPill count={lateCount} label="Late" color="#d97706" bgColor="#fef3c7" borderColor="#fcd34d" />
+                  <StatPill count={upcomingCount} label="Next" color="#64748b" bgColor="#f1f5f9" borderColor="#e2e8f0" />
                 </View>
 
-                <View style={styles.sessionList}>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Attendance')}
+                  style={styles.historyBtn}
+                >
+                  <Text style={styles.historyBtnText}>View Full History</Text>
+                  <ChevronRight size={14} color="#0072e6" strokeWidth={3} />
+                </TouchableOpacity>
+
+                <View style={{ gap: 10, marginTop: 16 }}>
                   {dayData.sessions.length > 0 ? (
                     dayData.sessions.map((s: any) => <SessionCard key={s.id} session={s} />)
                   ) : (
@@ -226,81 +297,55 @@ export const HomeScreen = ({ navigation, route }: any) => {
                 </View>
               </View>
 
-              {/* Today at a Glance - Teacher Remarks */}
-              <Text style={styles.glanceTitle}>Today at a Glance</Text>
-              <View style={styles.glanceCard}>
-                <View style={styles.glanceHeader}>
-                  <View style={styles.glanceIconWrapper}>
-                    <MessageSquare size={18} color="#ec4899" />
-                  </View>
-                  <View>
-                    <Text style={styles.glanceItemTitle}>Teacher Remarks</Text>
-                    <Text style={styles.glanceItemSub}>{dayData.notes?.length || 0} remarks today</Text>
-                  </View>
-                </View>
-
+              {/* Teacher Remarks */}
+              <SectionHeader title="Teacher Remarks" />
+              <View style={styles.card}>
                 {dayData.notes.length > 0 ? (
                   dayData.notes.map((note: any, idx: number) => (
-                    <TouchableOpacity 
-                      key={note.id} 
-                      activeOpacity={0.7}
-                      onPress={() => setSelectedRemark(note)}
-                      style={[styles.remarkItem, idx === 0 && { borderTopWidth: 0 }]}
+                    <TouchableOpacity
+                      key={note.id}
+                      activeOpacity={0.8}
+                      onPress={() => { Haptics.selectionAsync(); setSelectedRemark(note); }}
+                      style={[styles.listRow, idx === 0 && { borderTopWidth: 0 }]}
                     >
-                      <View style={styles.remarkSubjectTag}>
-                        <Text style={styles.remarkSubjectText}>{note.subject || 'ICT'}</Text>
+                      <View style={styles.subjectTag}>
+                        <Text style={styles.subjectTagText}>{note.subject || 'General'}</Text>
                       </View>
-                      <View style={styles.remarkContent}>
-                        <Text style={styles.remarkText} numberOfLines={2}>{note.text || 'No content'}</Text>
-                        <Text style={styles.remarkMeta}>{note.teacher || 'Mr. Teacher'} • {note.time || '08:00 AM'}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.listRowTitle} numberOfLines={2}>{note.text || 'No content'}</Text>
+                        <Text style={styles.listRowMeta}>{note.author || 'Teacher'} · {note.time || ''}</Text>
                       </View>
-                      <ChevronRight size={16} color="#cbd5e1" style={{ alignSelf: 'center', marginLeft: 8 }} />
+                      <ChevronRight size={16} color="#cbd5e1" />
                     </TouchableOpacity>
                   ))
                 ) : (
-                  <Text style={styles.emptyNoteText}>No remarks for today.</Text>
+                  <Text style={styles.emptyText}>No remarks for today.</Text>
                 )}
               </View>
 
-              {/* Minimal Remark Modal */}
-              <Modal
-                visible={!!selectedRemark}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setSelectedRemark(null)}
-              >
-                <TouchableOpacity 
-                  activeOpacity={1} 
-                  onPress={() => setSelectedRemark(null)}
-                  style={styles.modalOverlay}
-                >
-                  <View style={styles.minimalModalContent}>
-                    <View style={styles.modalHeader}>
-                      <View style={styles.modalHeaderTitleGroup}>
-                        <View style={styles.modalIconWrapper}>
-                          <MessageSquare size={20} color="#ec4899" />
-                        </View>
-                        <View>
-                          <Text style={styles.modalTitle}>Teacher Remark</Text>
-                          <Text style={styles.modalSubtitle}>{selectedRemark?.subject || 'General'}</Text>
-                        </View>
+              {/* Remark Modal */}
+              <Modal visible={!!selectedRemark} transparent animationType="fade" onRequestClose={() => setSelectedRemark(null)}>
+                <TouchableOpacity activeOpacity={1} onPress={() => setSelectedRemark(null)} style={styles.modalOverlay}>
+                  <View style={styles.modalCard}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.modalTitle}>Teacher Remark</Text>
+                        <Text style={styles.modalSub}>{selectedRemark?.subject || 'General'}</Text>
                       </View>
                       <TouchableOpacity onPress={() => setSelectedRemark(null)} style={styles.closeBtn}>
-                        <X size={20} color="#64748b" />
+                        <X size={18} color="#64748b" />
                       </TouchableOpacity>
                     </View>
-
-                    <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-                      <Text style={styles.modalFullText}>{selectedRemark?.text}</Text>
-                      
-                      <View style={styles.modalFooter}>
-                        <View style={styles.footerInfo}>
-                          <Text style={styles.footerLabel}>WRITTEN BY</Text>
-                          <Text style={styles.footerValue}>{selectedRemark?.teacher}</Text>
+                    <ScrollView showsVerticalScrollIndicator={false}>
+                      <Text style={styles.modalBody}>{selectedRemark?.text}</Text>
+                      <View style={{ flexDirection: 'row', marginTop: 20, gap: 16 }}>
+                        <View style={styles.modalMeta}>
+                          <Text style={styles.modalMetaLabel}>WRITTEN BY</Text>
+                          <Text style={styles.modalMetaValue}>{selectedRemark?.teacher}</Text>
                         </View>
-                        <View style={styles.footerInfo}>
-                          <Text style={styles.footerLabel}>TIME</Text>
-                          <Text style={styles.footerValue}>{selectedRemark?.time}</Text>
+                        <View style={styles.modalMeta}>
+                          <Text style={styles.modalMetaLabel}>TIME</Text>
+                          <Text style={styles.modalMetaValue}>{selectedRemark?.time}</Text>
                         </View>
                       </View>
                     </ScrollView>
@@ -308,73 +353,96 @@ export const HomeScreen = ({ navigation, route }: any) => {
                 </TouchableOpacity>
               </Modal>
 
-              {/* Tasks Section */}
-              <Text 
+              {/* Tasks */}
+              <Text
                 onLayout={(e) => setTasksYPosition(e.nativeEvent.layout.y)}
-                style={styles.glanceTitle}
-              >Tasks</Text>
-              <View style={styles.tasksCard}>
-                {(dayData.homeworkDue || []).concat(dayData.homeworkGiven || []).length > 0 ? (
-                  (dayData.homeworkDue || []).concat(dayData.homeworkGiven || []).map((task: any, idx: number) => (
-                    <TouchableOpacity 
-                      key={task.id} 
+                style={{ height: 0 }}
+              />
+              <SectionHeader title="Tasks" />
+              <View style={styles.card}>
+                {allTasks.length > 0 ? (
+                  allTasks.map((task: any, idx: number) => (
+                    <TouchableOpacity
+                      key={task.id}
                       onPress={() => navigation.navigate('HomeworkDetail', { homework: task, studentId: selectedChildId })}
-                      style={[styles.taskItem, idx > 0 && { borderTopWidth: 1, borderTopColor: '#f1f5f9' }]}
+                      activeOpacity={0.85}
+                      style={[styles.listRow, idx === 0 && { borderTopWidth: 0 }]}
                     >
-                      <View style={[styles.taskIconWrapper, { backgroundColor: task.isCompleted ? '#dcfce7' : '#eff6ff' }]}>
-                        <CheckCircle2 size={20} color={task.isCompleted ? '#16a34a' : '#0055d4'} />
+                      <View style={[styles.taskIcon, { backgroundColor: task.isCompleted ? '#dcfce7' : '#eff6ff' }]}>
+                        <CheckCircle2 size={20} color={task.isCompleted ? '#16a34a' : '#0072e6'} />
                       </View>
-                      <View style={styles.taskInfo}>
-                        <Text style={styles.taskTitle}>{task.subject} — {task.title}</Text>
-                        <Text style={styles.taskMeta}>Assigned by {task.teacher || 'Teacher'}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.listRowTitle}>{task.subject} — {task.title}</Text>
+                        <Text style={styles.listRowMeta}>By {task.teacher || 'Teacher'}</Text>
                       </View>
-                      <View style={[styles.taskBadge, { 
+                      <View style={[styles.taskBadge, {
                         backgroundColor: task.isCompleted ? '#dcfce7' : '#fff7ed',
-                        borderWidth: 1,
-                        borderColor: task.isCompleted ? '#bbf7d0' : '#fed7aa'
+                        borderColor: task.isCompleted ? '#86efac' : '#fed7aa',
                       }]}>
                         <Text style={[styles.taskBadgeText, { color: task.isCompleted ? '#16a34a' : '#ea580c' }]}>
-                          {task.isCompleted ? '✓ Done' : '⏳ Pending'}
+                          {task.isCompleted ? '✓ Done' : 'Pending'}
                         </Text>
                       </View>
-                      <ChevronRight size={18} color="#d1d5db" />
                     </TouchableOpacity>
                   ))
                 ) : (
-                  <View style={{ padding: 20 }}>
-                    <Text style={styles.emptyNoteText}>No tasks assigned for today.</Text>
-                  </View>
+                  <Text style={styles.emptyText}>No tasks for today.</Text>
                 )}
               </View>
 
-              {/* Learning Materials Section */}
-              <Text style={[styles.glanceTitle, { marginTop: 30 }]}>Learning Materials</Text>
-              <View style={styles.glanceCard}>
-                {dayData.resources && dayData.resources.length > 0 ? (
-                  dayData.resources.map((res: any, idx: number) => (
-                    <TouchableOpacity 
-                      key={res.id} 
-                      onPress={() => res.url && Linking.openURL(res.url)}
-                      style={[styles.remarkItem, idx === 0 && { borderTopWidth: 0 }]}
+              {/* Upcoming Exams */}
+              <SectionHeader title="Upcoming Exams" action="See All" onAction={() => navigation.navigate('Exams')} />
+              <View style={styles.card}>
+                {dayData.exams?.length > 0 ? (
+                  dayData.exams.map((exam: any, idx: number) => (
+                    <TouchableOpacity
+                      key={exam.id}
+                      onPress={() => navigation.navigate('ExamDetail', { exam })}
+                      activeOpacity={0.85}
+                      style={[styles.listRow, idx === 0 && { borderTopWidth: 0 }]}
                     >
-                      <View style={[styles.remarkSubjectTag, { backgroundColor: '#f5f3ff' }]}>
-                        <Text style={[styles.remarkSubjectText, { color: '#8b5cf6' }]}>{res.subject || 'Material'}</Text>
+                      <View style={[styles.subjectTag, { backgroundColor: '#eff6ff', borderColor: '#bfdbfe' }]}>
+                        <Text style={[styles.subjectTagText, { color: '#0072e6' }]}>{exam.subject || 'Exam'}</Text>
                       </View>
-                      <View style={styles.remarkContent}>
-                        <Text style={styles.remarkText}>{res.title}</Text>
-                        <Text style={styles.remarkMeta}>Added by {res.teacher || 'Teacher'}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.listRowTitle}>{exam.description || 'Term Exam'}</Text>
+                        <Text style={styles.listRowMeta}>{exam.time || ''}</Text>
+                      </View>
+                      <ChevronRight size={16} color="#cbd5e1" />
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <Text style={styles.emptyText}>No exams scheduled soon.</Text>
+                )}
+              </View>
+
+              {/* Learning Materials */}
+              <SectionHeader title="Learning Materials" />
+              <View style={[styles.card, { marginBottom: 100 }]}>
+                {dayData.files?.length > 0 ? (
+                  dayData.files.map((res: any, idx: number) => (
+                    <TouchableOpacity
+                      key={res.id}
+                      onPress={() => res.url && Linking.openURL(res.url)}
+                      activeOpacity={0.85}
+                      style={[styles.listRow, idx === 0 && { borderTopWidth: 0 }]}
+                    >
+                      <View style={[styles.subjectTag, { backgroundColor: '#f5f3ff', borderColor: '#ddd6fe' }]}>
+                        <Text style={[styles.subjectTagText, { color: '#7c3aed' }]}>{res.subject || 'Material'}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.listRowTitle}>{res.name}</Text>
+                        <Text style={styles.listRowMeta}>By {res.sharedBy || 'Teacher'}</Text>
                       </View>
                       <Download size={18} color="#94a3b8" />
                     </TouchableOpacity>
                   ))
                 ) : (
-                  <Text style={styles.emptyNoteText}>No materials uploaded today.</Text>
+                  <Text style={styles.emptyText}>No materials uploaded today.</Text>
                 )}
               </View>
             </>
           )}
-
-          <View style={{ height: 100 }} />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -382,87 +450,123 @@ export const HomeScreen = ({ navigation, route }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'white' },
-  content: { paddingHorizontal: 20, paddingTop: 10 },
-  sectionTitle: { fontSize: 24, fontWeight: '900', color: '#0f172a', marginBottom: 20 },
-  dateSlider: { marginBottom: 30 },
-  dateCard: { width: 68, height: 86, borderRadius: 16, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 1, borderColor: '#f1f5f9' },
-  activeDateCard: { backgroundColor: '#0055d4', borderColor: '#0055d4' },
-  dateDay: { fontSize: 11, fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 4 },
-  dateNum: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
-  dateToday: { fontSize: 9, fontWeight: '800', color: '#64748b', marginTop: 2 },
-  activeDateText: { color: 'white' },
-  
-  mainCard: { backgroundColor: 'white', borderRadius: 28, padding: 20, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 15, elevation: 2, marginBottom: 30 },
-  mainCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  cardTitle: { fontSize: 20, fontWeight: '900', color: '#0f172a' },
-  historyBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: '#f1f5f9' },
-  historyBtnText: { fontSize: 13, fontWeight: '900', color: '#1e293b', marginRight: 4 },
-  
-  statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
-  statPill: { width: '23%', paddingVertical: 12, borderRadius: 12, alignItems: 'center' },
-  statValue: { fontSize: 16, fontWeight: '900' },
-  statLabel: { fontSize: 10, fontWeight: '800', marginTop: 2 },
+  container: { flex: 1, backgroundColor: '#ffffff' },
+  content: { paddingHorizontal: 20, paddingTop: 12 },
 
-  sessionItem: { flexDirection: 'row', borderRadius: 20, backgroundColor: 'white', borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 12, overflow: 'hidden' },
+  // Section Headers
+  sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, marginTop: 24 },
+  sectionTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b', letterSpacing: -0.3 },
+  sectionActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  sectionActionText: { fontSize: 13, fontWeight: '800', color: '#0072e6' },
+
+  // Date Slider
+  dateSlider: { marginBottom: 0 },
+  dateCard: {
+    width: 64, height: 84, borderRadius: 16,
+    backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center',
+    marginRight: 10, borderWidth: 2, borderColor: '#e2e8f0',
+  },
+  activeDateCard: {
+    backgroundColor: '#0072e6', borderColor: '#0055b3',
+    shadowColor: '#0055b3', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
+  },
+  dateDay: { fontSize: 10, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+  dateNum: { fontSize: 22, fontWeight: '900', color: '#1e293b' },
+  activeDateText: { color: 'white' },
+  todayDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#0072e6', marginTop: 4 },
+
+  // Card
+  card: {
+    backgroundColor: 'white', borderRadius: 24, padding: 16,
+    borderWidth: 2, borderColor: '#e2e8f0',
+    shadowColor: '#e2e8f0', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 1, shadowRadius: 0, elevation: 3,
+    marginBottom: 4,
+  },
+
+  // Stats Row
+  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
+  statPill: { flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center', borderWidth: 2 },
+  statValue: { fontSize: 18, fontWeight: '900' },
+  statLabel: { fontSize: 9, fontWeight: '900', marginTop: 1, textTransform: 'uppercase', letterSpacing: 0.3 },
+
+  // History Button
+  historyBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 4, backgroundColor: '#eff6ff', paddingVertical: 10,
+    borderRadius: 12, borderWidth: 2, borderColor: '#bfdbfe',
+  },
+  historyBtnText: { fontSize: 13, fontWeight: '900', color: '#0072e6' },
+
+  // Session Item
+  sessionItem: {
+    flexDirection: 'row', borderRadius: 16,
+    backgroundColor: 'white', borderWidth: 2, borderColor: '#e2e8f0',
+    overflow: 'hidden',
+    shadowColor: '#e2e8f0', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 1, shadowRadius: 0, elevation: 2,
+  },
+  sessionItemAbsent: { borderColor: '#fca5a5' },
   sessionAccent: { width: 4 },
-  sessionMain: { flex: 1, padding: 16 },
+  sessionMain: { flex: 1, padding: 14 },
   sessionHeader: { flexDirection: 'row', alignItems: 'center' },
-  sessionIconWrapper: { width: 40, height: 40, borderRadius: 10, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' },
-  sessionTitleGroup: { flex: 1, marginLeft: 12 },
-  sessionTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
-  sessionTime: { fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 2 },
-  sessionTeacher: { fontSize: 11, color: '#0055d4', fontWeight: '800', marginTop: 1 },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  statusBadgeText: { fontSize: 11, fontWeight: '800' },
-  
-  ratingSection: { marginTop: 12, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  ratingLabel: { fontSize: 10, fontWeight: '900', color: '#cbd5e1', letterSpacing: 0.5 },
+  sessionIconWrapper: { width: 40, height: 40, borderRadius: 10, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  sessionTitleGroup: { flex: 1 },
+  sessionTitle: { fontSize: 15, fontWeight: '900', color: '#1e293b' },
+  sessionTime: { fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 1 },
+  sessionTeacher: { fontSize: 11, color: '#0072e6', fontWeight: '800', marginTop: 1 },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, borderWidth: 2 },
+  statusBadgeText: { fontSize: 11, fontWeight: '900' },
+  ratingSection: { marginTop: 10, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  ratingLabel: { fontSize: 9, fontWeight: '900', color: '#cbd5e1', letterSpacing: 1, textTransform: 'uppercase' },
   ratingNote: { fontSize: 12, color: '#94a3b8', fontWeight: '700', fontStyle: 'italic' },
   starsRow: { flexDirection: 'row' },
 
-  glanceTitle: { fontSize: 20, fontWeight: '900', color: '#0f172a', marginBottom: 20 },
-  glanceCard: { backgroundColor: 'white', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 30 },
-  glanceHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  glanceIconWrapper: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#fdf2f8', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  glanceItemTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
-  glanceItemSub: { fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 1 },
-  
-  remarkItem: { flexDirection: 'row', paddingVertical: 16, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
-  remarkSubjectTag: { backgroundColor: '#eff6ff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, alignSelf: 'flex-start', marginRight: 12 },
-  remarkSubjectText: { fontSize: 10, fontWeight: '900', color: '#0055d4' },
-  remarkContent: { flex: 1 },
-  remarkText: { fontSize: 14, color: '#334155', fontWeight: '600', lineHeight: 20 },
-  remarkMeta: { fontSize: 11, color: '#94a3b8', fontWeight: '700', marginTop: 4 },
+  // List Rows (remarks / tasks / exams)
+  listRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderTopWidth: 1, borderTopColor: '#f1f5f9', gap: 12 },
+  listRowTitle: { fontSize: 14, fontWeight: '800', color: '#1e293b', lineHeight: 20 },
+  listRowMeta: { fontSize: 11, color: '#94a3b8', fontWeight: '700', marginTop: 2 },
+  subjectTag: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1.5, borderColor: '#e2e8f0', backgroundColor: '#f1f5f9', alignSelf: 'flex-start' },
+  subjectTagText: { fontSize: 10, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.3 },
 
-  tasksCard: { backgroundColor: 'white', borderRadius: 24, padding: 0, borderWidth: 1, borderColor: '#f1f5f9', overflow: 'hidden' },
-  taskItem: { flexDirection: 'row', alignItems: 'center', padding: 20 },
-  taskIconWrapper: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginRight: 16 },
-  taskInfo: { flex: 1 },
-  taskTitle: { fontSize: 15, fontWeight: '800', color: '#0f172a' },
-  taskMeta: { fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 2 },
-  taskBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, marginRight: 8 },
-  taskBadgeText: { fontSize: 11, fontWeight: '800' },
+  // Tasks
+  taskIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  taskBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, borderWidth: 2 },
+  taskBadgeText: { fontSize: 11, fontWeight: '900' },
 
-  emptySessionsContainer: { padding: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9', marginTop: 10 },
-  emptySessionsIconCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', marginBottom: 16, shadowColor: '#0055d4', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 4 },
-  emptySessionsTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b', marginBottom: 8 },
-  emptySessionsSub: { fontSize: 13, color: '#64748b', fontWeight: '700', textAlign: 'center', lineHeight: 20, paddingHorizontal: 10 },
-  emptyNoteText: { fontSize: 14, color: '#94a3b8', fontWeight: '600', fontStyle: 'italic', textAlign: 'center', width: '100%' },
+  // Quick Actions
+  quickActionsRow: { flexDirection: 'row', gap: 12, marginBottom: 8 },
+  quickCard: {
+    flex: 1, padding: 16, borderRadius: 20,
+    borderWidth: 2, backgroundColor: '#fafafa',
+    shadowColor: '#e2e8f0', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 1, shadowRadius: 0, elevation: 2,
+    alignItems: 'flex-start', gap: 6,
+  },
+  quickIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  quickTitle: { fontSize: 14, fontWeight: '900', letterSpacing: -0.2 },
+  quickSub: { fontSize: 11, color: '#94a3b8', fontWeight: '700' },
 
-  // Modal Styles
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.4)', justifyContent: 'center', padding: 24 },
-  minimalModalContent: { backgroundColor: 'white', borderRadius: 32, padding: 24, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20, elevation: 5, maxHeight: '80%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
-  modalHeaderTitleGroup: { flexDirection: 'row', alignItems: 'center' },
-  modalIconWrapper: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#fdf2f8', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  modalTitle: { fontSize: 18, fontWeight: '900', color: '#0f172a' },
-  modalSubtitle: { fontSize: 13, color: '#94a3b8', fontWeight: '700', marginTop: 1 },
-  closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' },
-  modalScroll: { marginBottom: 8 },
-  modalFullText: { fontSize: 16, color: '#334155', fontWeight: '600', lineHeight: 26, marginBottom: 32 },
-  modalFooter: { borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 20, flexDirection: 'row', justifyContent: 'space-between' },
-  footerInfo: { flex: 1 },
-  footerLabel: { fontSize: 10, fontWeight: '900', color: '#cbd5e1', letterSpacing: 1, marginBottom: 4 },
-  footerValue: { fontSize: 14, fontWeight: '800', color: '#0f172a' },
+  // Empty
+  emptyBox: { padding: 32, alignItems: 'center', gap: 8 },
+  emptyIconCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  emptyTitle: { fontSize: 16, fontWeight: '900', color: '#1e293b' },
+  emptySub: { fontSize: 13, color: '#64748b', fontWeight: '700', textAlign: 'center', lineHeight: 20 },
+  emptyText: { fontSize: 14, color: '#94a3b8', fontWeight: '700', textAlign: 'center', paddingVertical: 16, fontStyle: 'italic' },
+
+  // Modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.5)', justifyContent: 'center', padding: 24 },
+  modalCard: {
+    backgroundColor: 'white', borderRadius: 28, padding: 24,
+    borderWidth: 2, borderColor: '#e2e8f0',
+    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, elevation: 8,
+  },
+  modalTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
+  modalSub: { fontSize: 13, color: '#64748b', fontWeight: '700', marginTop: 2 },
+  closeBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#f1f5f9', borderWidth: 2, borderColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' },
+  modalBody: { fontSize: 16, color: '#334155', fontWeight: '700', lineHeight: 26 },
+  modalMeta: { flex: 1 },
+  modalMetaLabel: { fontSize: 9, fontWeight: '900', color: '#cbd5e1', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
+  modalMetaValue: { fontSize: 14, fontWeight: '900', color: '#1e293b' },
 });

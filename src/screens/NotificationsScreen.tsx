@@ -132,7 +132,8 @@ export const NotificationsScreen = ({ navigation }: any) => {
       setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, isNew: false } : n));
       try {
         await studentService.markNotificationsAsRead([item.id]);
-        setUnreadNotificationsCount(prev => Math.max(0, prev - 1));
+        const currentUnread = notifications.filter(n => n.isNew && n.id !== item.id).length;
+        setUnreadNotificationsCount(currentUnread);
       } catch (error) {
         console.error('Failed to mark notification as read:', error);
       }
@@ -272,9 +273,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-    backgroundColor: '#f8fafc',
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+    shadowColor: '#e2e8f0',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
   },
   markAllText: {
     fontSize: 14,
@@ -301,11 +307,20 @@ const styles = StyleSheet.create({
   filterTab: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 14,
-    backgroundColor: '#f1f5f9',
+    borderRadius: 999,
+    backgroundColor: '#ffffff',
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    shadowColor: '#e2e8f0',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
   activeFilterTab: {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0072e6',
+    borderColor: '#0055b3',
+    shadowColor: '#0055b3',
+    shadowOffset: { width: 0, height: 3 },
   },
   filterTabText: {
     fontSize: 14,
@@ -333,13 +348,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     marginHorizontal: 20,
     marginVertical: 8,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    shadowColor: '#e2e8f0',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
     elevation: 3,
     position: 'relative',
     overflow: 'hidden',
@@ -350,12 +365,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
+    borderWidth: 2,
+    borderColor: 'rgba(0,0,0,0.05)',
   },
   textContainer: {
     flex: 1,
@@ -368,7 +385,7 @@ const styles = StyleSheet.create({
   },
   typeText: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '900',
     color: '#94a3b8',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -379,9 +396,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   titleText: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#0f172a',
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#1e293b',
     marginBottom: 4,
   },
   messageText: {

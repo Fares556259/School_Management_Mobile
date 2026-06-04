@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { RefreshControl, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, FlatList, StatusBar } from 'react-native';
+import { RefreshControl, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Calendar, AlertCircle, CheckCircle2, Clock, MessageSquare, Filter, FileUp, Camera, Star } from 'lucide-react-native';
+import { ChevronLeft, Calendar, AlertCircle, CheckCircle2, Clock, Filter, FileUp, Star } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAppStore } from '../store/useAppStore';
 import { studentService, uiService } from '../services/api';
@@ -9,9 +9,9 @@ import { AttendanceHistoryDay } from '../types';
 import { GlobalHeader } from '../components/GlobalHeader';
 
 const STATUS_MAP = {
-  PRESENT: { label: 'Present', color: '#22c55e', bg: '#f0fdf4', icon: CheckCircle2 },
-  ABSENT: { label: 'Absent', color: '#ef4444', bg: '#fef2f2', icon: AlertCircle },
-  LATE: { label: 'Late', color: '#f59e0b', bg: '#fffbeb', icon: Clock },
+  PRESENT: { label: 'Present', color: '#16a34a', bg: '#dcfce7', border: '#86efac', icon: CheckCircle2 },
+  ABSENT:  { label: 'Absent',  color: '#dc2626', bg: '#fee2e2', border: '#fca5a5', icon: AlertCircle },
+  LATE:    { label: 'Late',    color: '#d97706', bg: '#fef3c7', border: '#fcd34d', icon: Clock },
 };
 
 const AttendanceHistoryItem = ({ day, onJustify }: { day: AttendanceHistoryDay, onJustify: (sessionId: number) => void }) => {
@@ -26,141 +26,127 @@ const AttendanceHistoryItem = ({ day, onJustify }: { day: AttendanceHistoryDay, 
     <View style={{ marginBottom: 12 }}>
       <TouchableOpacity
         onPress={() => setExpanded(!expanded)}
-        activeOpacity={0.7}
+        activeOpacity={0.85}
         style={{
           backgroundColor: 'white',
           padding: 16,
           borderRadius: 24,
           flexDirection: 'row',
           alignItems: 'center',
-          shadowColor: '#000',
+          borderWidth: 2,
+          borderColor: expanded ? statusConfig.color : '#e2e8f0',
+          shadowColor: expanded ? statusConfig.color : '#e2e8f0',
           shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.03,
-          shadowRadius: 10,
+          shadowOpacity: 1,
+          shadowRadius: 0,
           elevation: 2,
-          borderWidth: 1,
-          borderColor: expanded ? statusConfig.color + '40' : '#f1f4f6',
         }}
       >
-        <View style={{ 
-          width: 50, 
-          height: 50, 
-          borderRadius: 16, 
-          backgroundColor: '#f8f9fa', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          marginRight: 16,
-          borderWidth: 1,
-          borderColor: '#e5e7eb'
+        {/* Date Box */}
+        <View style={{
+          width: 54, height: 54, borderRadius: 16,
+          backgroundColor: '#f8fafc',
+          alignItems: 'center', justifyContent: 'center',
+          marginRight: 16, borderWidth: 2, borderColor: '#e2e8f0',
         }}>
-          <Text style={{ fontSize: 10, fontWeight: '900', color: '#737c7f', textTransform: 'uppercase' }}>{dayName}</Text>
-          <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2b3437' }}>{dayNum}</Text>
+          <Text style={{ fontSize: 10, fontWeight: '900', color: '#64748b', textTransform: 'uppercase' }}>{dayName}</Text>
+          <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b' }}>{dayNum}</Text>
         </View>
 
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#2b3437' }}>
+          <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>
             {statusConfig.label}
           </Text>
-          <Text style={{ fontSize: 11, color: '#737c7f', marginTop: 2 }}>
-            {day.sessions.length} {day.sessions.length === 1 ? 'Session' : 'Sessions'} recorded
+          <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '700', marginTop: 2 }}>
+            {day.sessions.length} {day.sessions.length === 1 ? 'Session' : 'Sessions'}
           </Text>
         </View>
 
-        <View style={{ 
-          paddingHorizontal: 12, 
-          paddingVertical: 6, 
-          borderRadius: 12, 
-          backgroundColor: statusConfig.bg,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 6
+        <View style={{
+          paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12,
+          backgroundColor: statusConfig.bg, borderWidth: 2, borderColor: statusConfig.border,
+          flexDirection: 'row', alignItems: 'center', gap: 6,
         }}>
-          <Icon size={14} color={statusConfig.color} />
-          <Text style={{ color: statusConfig.color, fontSize: 11, fontWeight: 'bold' }}>
+          <Icon size={14} color={statusConfig.color} strokeWidth={3} />
+          <Text style={{ color: statusConfig.color, fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             {day.status}
           </Text>
         </View>
       </TouchableOpacity>
 
+      {/* Expanded Sessions */}
       {expanded && (
-        <View style={{ 
-          marginTop: -12, 
-          paddingTop: 24, 
-          paddingBottom: 16, 
-          paddingHorizontal: 20, 
-          backgroundColor: '#f8f9fa', 
-          borderBottomLeftRadius: 24, 
-          borderBottomRightRadius: 24,
+        <View style={{
+          marginTop: -16,
+          paddingTop: 32, paddingBottom: 20, paddingHorizontal: 20,
+          backgroundColor: '#f8fafc',
+          borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
           zIndex: -1,
-          borderWidth: 1,
-          borderTopWidth: 0,
-          borderColor: '#f1f4f6'
+          borderWidth: 2, borderTopWidth: 0, borderColor: '#e2e8f0',
         }}>
           {day.sessions.map((s: any, i) => {
             const getStatusConfig = (status: string | null) => {
               const st = status?.toUpperCase();
-              if (st === 'PRES' || st === 'PRESENT') return { label: 'Present', color: '#10b981', bg: '#ecfdf5' };
-              if (st === 'ABS' || st === 'ABSENT')  return { label: 'Absent',  color: '#ef4444', bg: '#fef2f2' };
-              if (st === 'LATE') return { label: 'Late',    color: '#f59e0b', bg: '#fffbeb' };
-              return { label: 'Pending', color: '#64748b', bg: '#f1f5f9' };
+              if (st === 'PRES' || st === 'PRESENT') return { label: 'Present', color: '#16a34a', bg: '#dcfce7', border: '#86efac' };
+              if (st === 'ABS' || st === 'ABSENT')  return { label: 'Absent',  color: '#dc2626', bg: '#fee2e2', border: '#fca5a5' };
+              if (st === 'LATE') return { label: 'Late',    color: '#d97706', bg: '#fef3c7', border: '#fcd34d' };
+              return { label: 'Pending', color: '#64748b', bg: '#f1f5f9', border: '#e2e8f0' };
             };
             const config = getStatusConfig(s.status);
 
             return (
-              <View key={i} style={{ 
-                backgroundColor: 'white', 
-                padding: 16, 
-                borderRadius: 20, 
-                marginBottom: 12,
-                borderWidth: 1,
-                borderColor: '#f1f5f9'
+              <View key={i} style={{
+                backgroundColor: 'white',
+                padding: 16, borderRadius: 20, marginBottom: 12,
+                borderWidth: 2, borderColor: '#e2e8f0',
               }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, color: '#1e293b', fontWeight: '900' }}>{s.subject}</Text>
-                    <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: config.bg, alignSelf: 'flex-start', marginTop: 6 }}>
-                      <Text style={{ color: config.color, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' }}>{config.label}</Text>
+                    <Text style={{ fontSize: 16, color: '#1e293b', fontWeight: '900' }}>{s.subject}</Text>
+                    <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: config.bg, borderWidth: 1.5, borderColor: config.border, alignSelf: 'flex-start', marginTop: 8 }}>
+                      <Text style={{ color: config.color, fontSize: 10, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 }}>{config.label}</Text>
                     </View>
                   </View>
-                  
+
                   {s.status === 'ABSENT' && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       onPress={() => onJustify(s.id)}
-                      style={{ backgroundColor: '#eff6ff', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, flexDirection: 'row', alignItems: 'center' }}
+                      activeOpacity={0.8}
+                      style={{ backgroundColor: '#eff6ff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 2, borderColor: '#bfdbfe', flexDirection: 'row', alignItems: 'center' }}
                     >
-                      <FileUp size={12} color="#0055d4" />
-                      <Text style={{ fontSize: 10, color: '#0055d4', fontWeight: '900', marginLeft: 4 }}>Justify</Text>
+                      <FileUp size={14} color="#0072e6" strokeWidth={2.5} />
+                      <Text style={{ fontSize: 12, color: '#0072e6', fontWeight: '900', marginLeft: 6 }}>Justify</Text>
                     </TouchableOpacity>
                   )}
                 </View>
 
                 {s.score > 0 && (
-                  <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 10, flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={{ marginTop: 14, borderTopWidth: 2, borderTopColor: '#f1f5f9', paddingTop: 12, flexDirection: 'row', alignItems: 'center' }}>
                     {[1, 2, 3, 4, 5].map((star) => (
-                      <Star 
-                        key={star} 
-                        size={12} 
-                        color={s.score >= star ? '#f59e0b' : '#e2e8f0'} 
+                      <Star
+                        key={star}
+                        size={14}
+                        color={s.score >= star ? '#f59e0b' : '#e2e8f0'}
                         fill={s.score >= star ? '#f59e0b' : 'none'}
-                        style={{ marginRight: 3 }}
+                        style={{ marginRight: 4 }}
                       />
                     ))}
-                    <Text style={{ fontSize: 11, fontWeight: '900', color: '#f59e0b', marginLeft: 4 }}>{s.score}/5</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: '#f59e0b', marginLeft: 6 }}>{s.score}/5</Text>
                   </View>
                 )}
               </View>
             );
           })}
-          
+
           {day.notes.length > 0 && (
-            <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#e5e7eb' }}>
-              <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#737c7f', marginBottom: 6, textTransform: 'uppercase' }}>Remarks</Text>
+            <View style={{ marginTop: 8, paddingTop: 16, borderTopWidth: 2, borderTopColor: '#e2e8f0' }}>
+              <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Remarks</Text>
               {day.notes.map((n, i) => (
-                <View key={i} style={{ marginBottom: 8 }}>
-                  <Text style={{ fontSize: 12, color: '#2b3437', fontStyle: 'italic', lineHeight: 18 }}>
+                <View key={i} style={{ marginBottom: 10, backgroundColor: 'white', padding: 12, borderRadius: 16, borderWidth: 2, borderColor: '#e2e8f0' }}>
+                  <Text style={{ fontSize: 14, color: '#1e293b', fontStyle: 'italic', fontWeight: '700', lineHeight: 20 }}>
                     "{n.text}"
                   </Text>
-                  <Text style={{ fontSize: 10, color: '#0055d4', marginTop: 2, fontWeight: 'bold' }}>— {n.author}</Text>
+                  <Text style={{ fontSize: 11, color: '#0072e6', marginTop: 6, fontWeight: '900' }}>— {n.author}</Text>
                 </View>
               ))}
             </View>
@@ -194,10 +180,9 @@ export const AttendanceScreen = ({ navigation }: any) => {
     await loadHistory();
     setRefreshing(false);
   };
-  
+
   const handleJustify = async (sessionId: number) => {
     try {
-      // 1. Pick Image
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
@@ -209,13 +194,8 @@ export const AttendanceScreen = ({ navigation }: any) => {
       const uri = result.assets[0].uri;
       setLoading(true);
 
-      // 2. Upload Image
       const uploadRes = await uiService.uploadImage(uri, 'student', selectedChildId!);
-      
-      // 3. Justify in DB
       await studentService.justifyAttendance(sessionId, uploadRes.url, "Parent uploaded medical certificate via mobile app.");
-      
-      // 4. Reload
       await loadHistory();
       alert("Success! Your justification has been submitted for review.");
     } catch (error) {
@@ -235,69 +215,76 @@ export const AttendanceScreen = ({ navigation }: any) => {
   const monthlyAvg = Math.round((monthlyPresentCount / monthlyTotalCount) * 100);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }} edges={['top']}>
-      <StatusBar barStyle="dark-content" />
-      
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+
       {/* Shared Global Header */}
       <GlobalHeader navigation={navigation} showBack />
 
-      <View style={{ paddingHorizontal: 20, paddingTop: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={{ fontSize: 24, fontWeight: '900', color: '#2b3437' }}>Attendance</Text>
-        <TouchableOpacity style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 }}>
-          <Filter color="#2b3437" size={20} />
+      <View style={{ paddingHorizontal: 20, paddingTop: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+        <Text style={{ fontSize: 30, fontWeight: '900', color: '#1e293b', letterSpacing: -0.5 }}>Attendance</Text>
+        <TouchableOpacity style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#e2e8f0' }}>
+          <Filter color="#64748b" size={20} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
+      <ScrollView
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0055d4']} tintColor="#0055d4" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0072e6" />}
       >
         {/* Trend Card */}
-        <View style={{ backgroundColor: '#0055d4', borderRadius: 32, padding: 24, marginBottom: 24, overflow: 'hidden' }}>
+        <View style={{
+          backgroundColor: '#0072e6', borderRadius: 28, padding: 24, marginBottom: 24, overflow: 'hidden',
+          borderWidth: 2, borderColor: '#0055b3',
+          shadowColor: '#0055b3', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5
+        }}>
           <View style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.1)' }} />
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <View>
-              <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }}>Performance</Text>
-              <Text style={{ fontSize: 32, fontWeight: '900', color: 'white', marginTop: 4 }}>{monthlyAvg}%</Text>
-              <Text style={{ fontSize: 13, color: 'white', opacity: 0.9, marginTop: 4 }}>Attendance in last 30 days</Text>
+              <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1.5 }}>Performance</Text>
+              <Text style={{ fontSize: 38, fontWeight: '900', color: 'white', marginTop: 4 }}>{monthlyAvg}%</Text>
+              <Text style={{ fontSize: 13, color: 'white', fontWeight: '700', marginTop: 2 }}>Attendance in last 30 days</Text>
             </View>
-            <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: 16, borderRadius: 20 }}>
+            <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: 18, borderRadius: 24, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }}>
               <CheckCircle2 color="white" size={32} />
             </View>
           </View>
         </View>
 
         {/* Summary Dashboard */}
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 32 }}>
-          <View style={{ flex: 1, backgroundColor: '#f0fdf4', padding: 12, borderRadius: 20, borderLeftWidth: 4, borderLeftColor: '#22c55e' }}>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#166534' }}>{totalPresences}</Text>
-            <Text style={{ fontSize: 10, color: '#22c55e', fontWeight: 'bold', textTransform: 'uppercase' }}>Presences</Text>
+        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 32 }}>
+          <View style={{ flex: 1, backgroundColor: '#dcfce7', padding: 16, borderRadius: 20, borderWidth: 2, borderColor: '#86efac' }}>
+            <Text style={{ fontSize: 24, fontWeight: '900', color: '#16a34a' }}>{totalPresences}</Text>
+            <Text style={{ fontSize: 11, color: '#16a34a', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4 }}>Presences</Text>
           </View>
-          <View style={{ flex: 1, backgroundColor: '#fef2f2', padding: 12, borderRadius: 20, borderLeftWidth: 4, borderLeftColor: '#ef4444' }}>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#b91c1c' }}>{totalAbsences}</Text>
-            <Text style={{ fontSize: 10, color: '#ef4444', fontWeight: 'bold', textTransform: 'uppercase' }}>Absences</Text>
+          <View style={{ flex: 1, backgroundColor: '#fee2e2', padding: 16, borderRadius: 20, borderWidth: 2, borderColor: '#fca5a5' }}>
+            <Text style={{ fontSize: 24, fontWeight: '900', color: '#dc2626' }}>{totalAbsences}</Text>
+            <Text style={{ fontSize: 11, color: '#dc2626', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4 }}>Absences</Text>
           </View>
-          <View style={{ flex: 1, backgroundColor: '#fffbeb', padding: 12, borderRadius: 20, borderLeftWidth: 4, borderLeftColor: '#f59e0b' }}>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#92400e' }}>{totalLates}</Text>
-            <Text style={{ fontSize: 10, color: '#f59e0b', fontWeight: 'bold', textTransform: 'uppercase' }}>Lates</Text>
+          <View style={{ flex: 1, backgroundColor: '#fef3c7', padding: 16, borderRadius: 20, borderWidth: 2, borderColor: '#fcd34d' }}>
+            <Text style={{ fontSize: 24, fontWeight: '900', color: '#d97706' }}>{totalLates}</Text>
+            <Text style={{ fontSize: 11, color: '#d97706', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4 }}>Lates</Text>
           </View>
         </View>
 
-        <Text style={{ fontSize: 16, fontWeight: '900', color: '#2b3437', marginBottom: 16, textTransform: 'uppercase', letterSpacing: 1 }}>
+        <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b', marginBottom: 16, textTransform: 'uppercase', letterSpacing: 1 }}>
           Recent Activity
         </Text>
 
         {loading ? (
           <View style={{ gap: 12 }}>
              {[1,2,3,4].map(i => (
-                <View key={i} style={{ height: 80, borderRadius: 24, backgroundColor: '#e2e9ec', opacity: 0.6 }} />
+                <View key={i} style={{ height: 80, borderRadius: 24, backgroundColor: '#f1f5f9', borderWidth: 2, borderColor: '#e2e8f0' }} />
              ))}
           </View>
         ) : history.filter(d => d.status !== 'PRESENT').length === 0 ? (
-          <View style={{ alignItems: 'center', marginTop: 60 }}>
-            <Calendar size={64} color="#d1d5db" style={{ marginBottom: 16 }} />
-            <Text style={{ fontSize: 16, color: '#737c7f', fontWeight: 'bold' }}>No recent absences or lates</Text>
-            <Text style={{ fontSize: 14, color: '#9ca3af', marginTop: 4 }}>Attendance records are all clear!</Text>
+          <View style={{ alignItems: 'center', paddingVertical: 48, backgroundColor: '#f8fafc', borderRadius: 24, borderWidth: 2, borderColor: '#e2e8f0' }}>
+            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#f1f5f9', borderWidth: 2, borderColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <Calendar size={32} color="#94a3b8" />
+            </View>
+            <Text style={{ fontSize: 18, color: '#1e293b', fontWeight: '900' }}>No recent absences</Text>
+            <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '700', marginTop: 6 }}>Attendance records are all clear!</Text>
           </View>
         ) : (
           history.filter(d => d.status !== 'PRESENT').map((day, idx) => (

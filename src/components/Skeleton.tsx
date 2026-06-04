@@ -32,8 +32,8 @@ export const Skeleton: React.FC<SkeletonProps> = ({ width, height, borderRadius 
     <Animated.View
       style={[
         {
-          width,
-          height,
+          width: width as any,
+          height: height as any,
           borderRadius,
           backgroundColor: '#e2e8f0',
           opacity: pulseAnim,

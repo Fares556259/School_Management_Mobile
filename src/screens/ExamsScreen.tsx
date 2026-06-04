@@ -1,6 +1,8 @@
+import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, StatusBar, RefreshControl, Linking, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bell, FileText, Download, ExternalLink, Calendar, ChevronRight } from 'lucide-react-native';
+import { GlobalHeader } from '../components/GlobalHeader';
 import { useAppStore } from '../store/useAppStore';
 import { studentService } from '../services/api';
 import { downloadAndPreviewPDF } from '../utils/fileUtils';
@@ -128,21 +130,7 @@ export const ExamsScreen = ({ navigation }: any) => {
       <StatusBar barStyle="dark-content" />
       
       {/* Header */}
-      <View style={{ paddingHorizontal: 20, paddingVertical: 16, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#f1f4f6', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <View style={{ width: 44, height: 44, borderRadius: 22, overflow: 'hidden', borderWidth: 2, borderColor: '#0055d410' }}>
-            <Image source={{ uri: 'https://i.pravatar.cc/100?u=boy' }} style={{ width: '100%', height: '100%' }} />
-          </View>
-          <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#0055d4', marginLeft: 12 }}>SnapSchool</Text>
-        </View>
-        <TouchableOpacity 
-          onPress={() => navigation.navigate('Notifications')}
-          style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8f9fa', alignItems: 'center', justifyContent: 'center' }}
-        >
-          <Bell color="#0055d4" size={20} />
-          <View style={{ position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444', borderWidth: 2, borderColor: 'white' }} />
-        </TouchableOpacity>
-      </View>
+      <GlobalHeader navigation={navigation} showBack />
 
       <ScrollView 
         showsVerticalScrollIndicator={false}

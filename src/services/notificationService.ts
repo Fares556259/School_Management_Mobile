@@ -20,6 +20,8 @@ const setupHandler = () => {
         shouldShowAlert: true,
         shouldPlaySound: true,
         shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
       }),
     });
 
@@ -118,7 +120,7 @@ export const notificationService = {
           data: { screen: 'Home', taskId: task.id },
           sound: true,
         },
-        trigger: triggerDate,
+        trigger: triggerDate as any,
       });
 
       console.log(`[DEBUG-NOTIF] Scheduled reminder for ${task.title} at ${triggerDate}`);
@@ -150,7 +152,7 @@ export const notificationService = {
           data: { screen: 'Home', examId: exam.id },
           sound: true,
         },
-        trigger: triggerDate,
+        trigger: triggerDate as any,
       });
 
       return id;

@@ -36,6 +36,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   unreadNotificationsCount: 0,
   studentStatuses: {},
   selectedTeacherClass: null,
+  isLoading: false,
+  error: null,
   setChildren: (children) => set({ children }),
   setUserRole: (userRole) => set({ userRole }),
   setUserId: (userId) => set({ userId }),

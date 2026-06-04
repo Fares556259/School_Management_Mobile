@@ -55,7 +55,7 @@ const ClassCard = ({ item, navigation, setSelectedTeacherClass }: any) => (
       <ChevronRight size={20} color="#cbd5e1" />
     </View>
 
-    <View style={{ flexDirection: 'row', gap: 8, marginTop: 16, pt: 12, borderTopWidth: 1, borderTopColor: '#f1f4f6' }}>
+    <View style={{ flexDirection: 'row', gap: 8, marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f1f4f6' }}>
       <View style={{ flex: 1, backgroundColor: '#eff6ff', padding: 8, borderRadius: 12, alignItems: 'center' }}>
         <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#0055d4' }}>{item.lessons || 14} lessons</Text>
       </View>

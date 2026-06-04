@@ -5,6 +5,7 @@ import {
   StudentDayData,
   Notification,
   Announcement,
+  AttendanceHistoryDay,
 } from '../types';
 
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:3000';
@@ -258,6 +259,11 @@ export const studentService = {
     upcomingExams: any[];
     teacherRemarks: any[];
     examPeriods?: any[];
+    holidayName?: string | null;
+    resources?: any[];
+    homeworkDue?: any[];
+    homeworkGiven?: any[];
+    files?: any[];
   }> => {
     const url = dateStr ? `/api/mobile/home?studentId=${studentId}&date=${dateStr}` : `/api/mobile/home?studentId=${studentId}`;
     const data = await apiFetch(url);
@@ -271,7 +277,7 @@ export const studentService = {
   fetchDayData: async (studentId: string, _date: string): Promise<StudentDayData> => {
     const home = await studentService.fetchHomeData(studentId, _date);
     return {
-      holidayName: home.holidayName,
+      holidayName: home.holidayName || undefined,
       sessions: (home.sessions || []).map((s: any, i: number) => ({
         id: s.id || i,
         subject: s.subject,
@@ -295,7 +301,7 @@ export const studentService = {
           id: r.id,
           text: r.note,
           subject: r.subject,
-          teacher: r.teacher,
+          author: r.teacher || 'Teacher',
           time: timeString
         };
       }),
@@ -306,6 +312,7 @@ export const studentService = {
           name: urls.length > 1 ? `${r.title} (${index + 1})` : r.title,
           url: url,
           sharedBy: r.teacher,
+          subject: r.subject || 'Material',
           type: url.toLowerCase().endsWith('.pdf') ? 'pdf' : 'file',
         }));
       }),
@@ -627,7 +634,7 @@ export const teacherService = {
     return apiFetch(`/api/mobile/teacher/resources?classId=${classId}&teacherId=${teacherId}`);
   },
 
-  uploadResource: async (data: { classId: string; title: string; description?: string; url: string }) => {
+  uploadResource: async (data: { classId: string; subjectId?: string; title: string; description?: string; url: string }) => {
     const teacherId = await authStorage.getUserId();
     return apiFetch('/api/mobile/teacher/resources', {
       method: 'POST',
