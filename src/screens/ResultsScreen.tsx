@@ -22,12 +22,12 @@ const SUBJECT_THEMES: Record<string, { icon: any }> = {
 };
 
 const DOMAIN_GROUPS = [
-  { id: 'SCIENCES', title: 'SCIENCES', color: '#3b82f6', bg: '#eff6ff', keywords: ['Science', 'Math', 'الإيقاظ', 'الرياضيات', 'Scientifique', 'Mathématiques'] },
-  { id: 'LANGUAGES', title: 'LANGUAGES', color: '#8b5cf6', bg: '#f5f3ff', keywords: ['Language', 'Arabe', 'Français', 'English', 'اللغة'] },
-  { id: 'ARTS_TECH', title: 'ARTS & TECHNOLOGY', color: '#ec4899', bg: '#fdf2f8', keywords: ['Art', 'Technologique', 'Musicale', 'تكنولوجية', 'موسيقية', 'تشكيلية', 'Plastiques'] },
-  { id: 'HUMANITIES', title: 'HUMANITIES', color: '#f59e0b', bg: '#fffbeb', keywords: ['History', 'Geography', 'التاريخ', 'الجغرافيا', 'Histoire', 'Géographie'] },
-  { id: 'RELIGION', title: 'RELIGION & VALUES', color: '#10b981', bg: '#ecfdf5', keywords: ['Islamique', 'Civique', 'إسلامية', 'مدنية'] },
-  { id: 'SPORT', title: 'SPORT', color: '#f43f5e', bg: '#fff1f2', keywords: ['Sport', 'Physique', 'بدنية'] },
+  { id: 'SCIENCES', title: 'SCIENCES', color: '#0055d4', bg: '#eff6ff', keywords: ['Science', 'Math', 'الإيقاظ', 'الرياضيات', 'Scientifique', 'Mathématiques'] },
+  { id: 'LANGUAGES', title: 'LANGUAGES', color: '#0055d4', bg: '#eff6ff', keywords: ['Language', 'Arabe', 'Français', 'English', 'اللغة'] },
+  { id: 'ARTS_TECH', title: 'ARTS & TECHNOLOGY', color: '#0055d4', bg: '#eff6ff', keywords: ['Art', 'Technologique', 'Musicale', 'تكنولوجية', 'موسيقية', 'تشكيلية', 'Plastiques'] },
+  { id: 'HUMANITIES', title: 'HUMANITIES', color: '#0055d4', bg: '#eff6ff', keywords: ['History', 'Geography', 'التاريخ', 'الجغرافيا', 'Histoire', 'Géographie'] },
+  { id: 'RELIGION', title: 'RELIGION & VALUES', color: '#0055d4', bg: '#eff6ff', keywords: ['Islamique', 'Civique', 'إسلامية', 'مدنية'] },
+  { id: 'SPORT', title: 'SPORT', color: '#0055d4', bg: '#eff6ff', keywords: ['Sport', 'Physique', 'بدنية'] },
 ];
 
 const getSubjectDomain = (subjectName: string) => {
@@ -36,7 +36,7 @@ const getSubjectDomain = (subjectName: string) => {
       return domain;
     }
   }
-  return { id: 'OTHER', title: 'OTHER SUBJECTS', color: '#64748b', bg: '#f1f5f9' };
+  return { id: 'OTHER', title: 'OTHER SUBJECTS', color: '#0055d4', bg: '#eff6ff' };
 };
 
 const getArabicName = (subjectName: string) => {
