@@ -354,11 +354,11 @@ const styles = StyleSheet.create({
   barContainer: { marginTop: 4 },
   barTrack: { height: 6, backgroundColor: '#f1f5f9', borderRadius: 3, position: 'relative' },
   studentFillBar: { height: '100%', borderRadius: 3 },
-  classAvgTick: { position: 'absolute', top: -3, width: 12, height: 12, borderRadius: 6, backgroundColor: '#f59e0b', borderWidth: 2, borderColor: 'white', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 2, elevation: 1, transform: [{ translateX: -6 }] },
+  classAvgTick: { position: 'absolute', top: -4, width: 4, height: 14, borderRadius: 2, backgroundColor: '#64748b', borderWidth: 1, borderColor: 'white', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 2, elevation: 1, transform: [{ translateX: -2 }] },
   barLegendRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6, position: 'relative' },
   legendText: { fontSize: 9, color: '#cbd5e1', fontWeight: '700' },
   legendTickLabel: { position: 'absolute', top: 0, transform: [{ translateX: -25 }] },
-  legendAvgText: { fontSize: 9, color: '#f59e0b', fontWeight: '900' },
+  legendAvgText: { fontSize: 10, color: '#64748b', fontWeight: '800' },
 
   emptyCard: { padding: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: 'white', borderRadius: 28, borderWidth: 1, borderColor: '#f1f5f9' },
   emptyIconCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
