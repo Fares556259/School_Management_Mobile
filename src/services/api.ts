@@ -373,6 +373,8 @@ export const studentService = {
       { month: 6, year: 2026 },
     ];
 
+    const tuitionFee = s.class?.level?.tuitionFee || 120;
+
     const timeline: PaymentRecord[] = academicMonths.map((cycle, index) => {
       // Look for a payment record for this specific month/year
       const p = (s.payments || []).find((x: any) => x.month === cycle.month && x.year === cycle.year);
@@ -399,7 +401,7 @@ export const studentService = {
         return {
           id: p.id,
           month: `${MONTH_NAMES[cycle.month]} ${cycle.year}`,
-          totalAmount: totalVal,
+          totalAmount: totalVal > 0 ? totalVal : tuitionFee, // Use tuitionFee if DB totalVal is 0
           paidAmount: isActuallyPaid ? p.amount : 0,
           status: p.status === 'PAID' ? 'Paid' : p.status === 'PARTIAL' ? 'Partial' : 'Due',
           isOverdue,
@@ -422,7 +424,7 @@ export const studentService = {
         return {
           id: -100 - index, // Virtual ID
           month: `${MONTH_NAMES[cycle.month]} ${cycle.year}`,
-          totalAmount: 120, // Default fee
+          totalAmount: tuitionFee, // Real tuition fee from backend
           paidAmount: 0,
           status: isFuture ? 'Locked' : 'Due',
           isOverdue,
