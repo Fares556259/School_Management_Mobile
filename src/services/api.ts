@@ -396,13 +396,12 @@ export const studentService = {
           overdueDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
         }
 
-        const totalVal = p.amount + (p.deferredAmount || 0);
         const isActuallyPaid = p.status === 'PAID' || p.status === 'PARTIAL';
         return {
           id: p.id,
           month: `${MONTH_NAMES[cycle.month]} ${cycle.year}`,
-          totalAmount: totalVal > 0 ? totalVal : tuitionFee, // Use tuitionFee if DB totalVal is 0
-          paidAmount: isActuallyPaid ? p.amount : 0,
+          totalAmount: tuitionFee, // Always use the current real tuition fee
+          paidAmount: p.status === 'PAID' ? Math.max(p.amount, tuitionFee) : (isActuallyPaid ? p.amount : 0),
           status: p.status === 'PAID' ? 'Paid' : p.status === 'PARTIAL' ? 'Partial' : 'Due',
           isOverdue,
           dueDate,
