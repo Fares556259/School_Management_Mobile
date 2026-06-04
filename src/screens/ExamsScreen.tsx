@@ -179,9 +179,6 @@ export const ExamsScreen = ({ navigation }: any) => {
               {upcomingExams.map((exam) => (
                 <UpcomingExamRow key={exam.id} exam={exam} />
               ))}
-              <TouchableOpacity style={{ marginTop: 16, alignItems: 'center', paddingVertical: 14, backgroundColor: '#f8fafc', borderRadius: 16, borderWidth: 2, borderColor: '#e2e8f0', borderBottomWidth: 4, borderBottomColor: '#cbd5e1' }}>
-                <Text style={{ fontSize: 13, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>View Academic Calendar</Text>
-              </TouchableOpacity>
             </View>
           )}
         </View>
