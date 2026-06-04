@@ -299,27 +299,30 @@ export const HomeScreen = ({ navigation, route }: any) => {
 
               {/* Teacher Remarks */}
               <SectionHeader title="Teacher Remarks" />
-              <View style={styles.card}>
+              <View style={[styles.card, { padding: 12 }]}>
                 {dayData.notes.length > 0 ? (
                   dayData.notes.map((note: any, idx: number) => (
                     <TouchableOpacity
                       key={note.id}
                       activeOpacity={0.8}
                       onPress={() => { Haptics.selectionAsync(); setSelectedRemark(note); }}
-                      style={[styles.listRow, idx === 0 && { borderTopWidth: 0 }]}
+                      style={[styles.listCard, idx !== 0 && { marginTop: 10 }]}
                     >
-                      <View style={styles.subjectTag}>
-                        <Text style={styles.subjectTagText}>{note.subject || 'General'}</Text>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                        <View style={[styles.subjectTag, { flexShrink: 1, marginRight: 8 }]}>
+                          <Text style={styles.subjectTagText} numberOfLines={2}>{note.subject || 'General'}</Text>
+                        </View>
+                        <ChevronRight size={16} color="#cbd5e1" style={{ marginTop: 4 }} />
                       </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.listRowTitle} numberOfLines={2}>{note.text || 'No content'}</Text>
-                        <Text style={styles.listRowMeta}>{note.author || 'Teacher'} · {note.time || ''}</Text>
-                      </View>
-                      <ChevronRight size={16} color="#cbd5e1" />
+                      <Text style={styles.listRowTitle} numberOfLines={2}>{note.text || 'No content'}</Text>
+                      <Text style={styles.listRowMeta}>{note.author || 'Teacher'} · {note.time || ''}</Text>
                     </TouchableOpacity>
                   ))
                 ) : (
-                  <Text style={styles.emptyText}>No remarks for today.</Text>
+                  <View style={styles.emptyStateBox}>
+                    <MessageSquare size={24} color="#94a3b8" />
+                    <Text style={styles.emptyStateText}>No remarks for today.</Text>
+                  </View>
                 )}
               </View>
 
@@ -359,86 +362,95 @@ export const HomeScreen = ({ navigation, route }: any) => {
                 style={{ height: 0 }}
               />
               <SectionHeader title="Tasks" />
-              <View style={styles.card}>
+              <View style={[styles.card, { padding: 12 }]}>
                 {allTasks.length > 0 ? (
                   allTasks.map((task: any, idx: number) => (
                     <TouchableOpacity
                       key={task.id}
                       onPress={() => navigation.navigate('HomeworkDetail', { homework: task, studentId: selectedChildId })}
                       activeOpacity={0.85}
-                      style={[styles.listRow, idx === 0 && { borderTopWidth: 0 }]}
+                      style={[styles.listCard, idx !== 0 && { marginTop: 10 }]}
                     >
-                      <View style={[styles.taskIcon, { backgroundColor: task.isCompleted ? '#dcfce7' : '#eff6ff' }]}>
-                        <CheckCircle2 size={20} color={task.isCompleted ? '#16a34a' : '#0072e6'} />
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                        <View style={[styles.taskBadge, {
+                          backgroundColor: task.isCompleted ? '#dcfce7' : '#fff7ed',
+                          borderColor: task.isCompleted ? '#86efac' : '#fed7aa',
+                        }]}>
+                          <Text style={[styles.taskBadgeText, { color: task.isCompleted ? '#16a34a' : '#ea580c' }]}>
+                            {task.isCompleted ? '✓ Done' : 'Pending'}
+                          </Text>
+                        </View>
+                        <View style={[styles.taskIcon, { backgroundColor: task.isCompleted ? '#dcfce7' : '#eff6ff', width: 32, height: 32 }]}>
+                          <CheckCircle2 size={16} color={task.isCompleted ? '#16a34a' : '#0072e6'} />
+                        </View>
                       </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.listRowTitle}>{task.subject} — {task.title}</Text>
-                        <Text style={styles.listRowMeta}>By {task.teacher || 'Teacher'}</Text>
-                      </View>
-                      <View style={[styles.taskBadge, {
-                        backgroundColor: task.isCompleted ? '#dcfce7' : '#fff7ed',
-                        borderColor: task.isCompleted ? '#86efac' : '#fed7aa',
-                      }]}>
-                        <Text style={[styles.taskBadgeText, { color: task.isCompleted ? '#16a34a' : '#ea580c' }]}>
-                          {task.isCompleted ? '✓ Done' : 'Pending'}
-                        </Text>
-                      </View>
+                      <Text style={styles.listRowTitle}>{task.subject} — {task.title}</Text>
+                      <Text style={styles.listRowMeta}>By {task.teacher || 'Teacher'}</Text>
                     </TouchableOpacity>
                   ))
                 ) : (
-                  <Text style={styles.emptyText}>No tasks for today.</Text>
+                  <View style={styles.emptyStateBox}>
+                    <CheckCircle2 size={24} color="#94a3b8" />
+                    <Text style={styles.emptyStateText}>No tasks for today.</Text>
+                  </View>
                 )}
               </View>
 
               {/* Upcoming Exams */}
               <SectionHeader title="Upcoming Exams" action="See All" onAction={() => navigation.navigate('Exams')} />
-              <View style={styles.card}>
+              <View style={[styles.card, { padding: 12 }]}>
                 {dayData.exams?.length > 0 ? (
                   dayData.exams.map((exam: any, idx: number) => (
                     <TouchableOpacity
                       key={exam.id}
                       onPress={() => navigation.navigate('ExamDetail', { exam })}
                       activeOpacity={0.85}
-                      style={[styles.listRow, idx === 0 && { borderTopWidth: 0 }]}
+                      style={[styles.listCard, idx !== 0 && { marginTop: 10 }]}
                     >
-                      <View style={[styles.subjectTag, { backgroundColor: '#eff6ff', borderColor: '#bfdbfe' }]}>
-                        <Text style={[styles.subjectTagText, { color: '#0072e6' }]}>{exam.subject || 'Exam'}</Text>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                        <View style={[styles.subjectTag, { backgroundColor: '#eff6ff', borderColor: '#bfdbfe', flexShrink: 1, marginRight: 8 }]}>
+                          <Text style={[styles.subjectTagText, { color: '#0072e6' }]} numberOfLines={2}>{exam.subject || 'Exam'}</Text>
+                        </View>
+                        <ChevronRight size={16} color="#cbd5e1" style={{ marginTop: 4 }} />
                       </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.listRowTitle}>{exam.description || 'Term Exam'}</Text>
-                        <Text style={styles.listRowMeta}>{exam.time || ''}</Text>
-                      </View>
-                      <ChevronRight size={16} color="#cbd5e1" />
+                      <Text style={styles.listRowTitle}>{exam.description || 'Term Exam'}</Text>
+                      <Text style={styles.listRowMeta}>{exam.time || ''}</Text>
                     </TouchableOpacity>
                   ))
                 ) : (
-                  <Text style={styles.emptyText}>No exams scheduled soon.</Text>
+                  <View style={styles.emptyStateBox}>
+                    <CalendarIcon size={24} color="#94a3b8" />
+                    <Text style={styles.emptyStateText}>No exams scheduled soon.</Text>
+                  </View>
                 )}
               </View>
 
               {/* Learning Materials */}
               <SectionHeader title="Learning Materials" />
-              <View style={[styles.card, { marginBottom: 100 }]}>
+              <View style={[styles.card, { padding: 12, marginBottom: 100 }]}>
                 {dayData.files?.length > 0 ? (
                   dayData.files.map((res: any, idx: number) => (
                     <TouchableOpacity
                       key={res.id}
                       onPress={() => res.url && Linking.openURL(res.url)}
                       activeOpacity={0.85}
-                      style={[styles.listRow, idx === 0 && { borderTopWidth: 0 }]}
+                      style={[styles.listCard, idx !== 0 && { marginTop: 10 }]}
                     >
-                      <View style={[styles.subjectTag, { backgroundColor: '#f5f3ff', borderColor: '#ddd6fe' }]}>
-                        <Text style={[styles.subjectTagText, { color: '#7c3aed' }]}>{res.subject || 'Material'}</Text>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                        <View style={[styles.subjectTag, { backgroundColor: '#f5f3ff', borderColor: '#ddd6fe', flexShrink: 1, marginRight: 8 }]}>
+                          <Text style={[styles.subjectTagText, { color: '#7c3aed' }]} numberOfLines={2}>{res.subject || 'Material'}</Text>
+                        </View>
+                        <Download size={18} color="#94a3b8" style={{ marginTop: 4 }} />
                       </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.listRowTitle}>{res.name}</Text>
-                        <Text style={styles.listRowMeta}>By {res.sharedBy || 'Teacher'}</Text>
-                      </View>
-                      <Download size={18} color="#94a3b8" />
+                      <Text style={styles.listRowTitle}>{res.name}</Text>
+                      <Text style={styles.listRowMeta}>By {res.sharedBy || 'Teacher'}</Text>
                     </TouchableOpacity>
                   ))
                 ) : (
-                  <Text style={styles.emptyText}>No materials uploaded today.</Text>
+                  <View style={styles.emptyStateBox}>
+                    <BookOpen size={24} color="#94a3b8" />
+                    <Text style={styles.emptyStateText}>No materials uploaded today.</Text>
+                  </View>
                 )}
               </View>
             </>
@@ -525,15 +537,16 @@ const styles = StyleSheet.create({
 
   // List Rows (remarks / tasks / exams)
   listRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderTopWidth: 1, borderTopColor: '#f1f5f9', gap: 12 },
-  listRowTitle: { fontSize: 14, fontWeight: '800', color: '#1e293b', lineHeight: 20 },
-  listRowMeta: { fontSize: 11, color: '#94a3b8', fontWeight: '700', marginTop: 2 },
-  subjectTag: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1.5, borderColor: '#e2e8f0', backgroundColor: '#f1f5f9', alignSelf: 'flex-start' },
-  subjectTagText: { fontSize: 10, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.3 },
+  listCard: { backgroundColor: '#f8fafc', borderRadius: 16, padding: 14, borderWidth: 2, borderColor: '#e2e8f0' },
+  listRowTitle: { fontSize: 15, fontWeight: '900', color: '#1e293b', lineHeight: 22 },
+  listRowMeta: { fontSize: 12, color: '#64748b', fontWeight: '800', marginTop: 4 },
+  subjectTag: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 2, borderColor: '#e2e8f0', backgroundColor: '#ffffff', alignSelf: 'flex-start' },
+  subjectTagText: { fontSize: 10, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 },
 
   // Tasks
   taskIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  taskBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, borderWidth: 2 },
-  taskBadgeText: { fontSize: 11, fontWeight: '900' },
+  taskBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, borderWidth: 2, alignSelf: 'flex-start' },
+  taskBadgeText: { fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 },
 
   // Quick Actions
   quickActionsRow: { flexDirection: 'row', gap: 12, marginBottom: 8 },
@@ -554,6 +567,8 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 16, fontWeight: '900', color: '#1e293b' },
   emptySub: { fontSize: 13, color: '#64748b', fontWeight: '700', textAlign: 'center', lineHeight: 20 },
   emptyText: { fontSize: 14, color: '#94a3b8', fontWeight: '700', textAlign: 'center', paddingVertical: 16, fontStyle: 'italic' },
+  emptyStateBox: { padding: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', borderRadius: 16, borderWidth: 2, borderColor: '#e2e8f0', borderStyle: 'dashed' },
+  emptyStateText: { fontSize: 13, color: '#94a3b8', fontWeight: '800', marginTop: 8 },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.5)', justifyContent: 'center', padding: 24 },
