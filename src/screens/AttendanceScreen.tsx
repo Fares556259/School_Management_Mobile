@@ -234,19 +234,19 @@ export const AttendanceScreen = ({ navigation }: any) => {
       >
         {/* Trend Card */}
         <View style={{
-          backgroundColor: '#0072e6', borderRadius: 28, padding: 24, marginBottom: 24, overflow: 'hidden',
+          backgroundColor: '#0072e6', borderRadius: 24, padding: 20, marginBottom: 20, overflow: 'hidden',
           borderWidth: 2, borderColor: '#0055b3',
           borderBottomWidth: 6, borderBottomColor: '#004085'
         }}>
           <View style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.1)' }} />
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <View>
-              <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1.5 }}>Performance</Text>
-              <Text style={{ fontSize: 38, fontWeight: '900', color: 'white', marginTop: 4 }}>{monthlyAvg}%</Text>
-              <Text style={{ fontSize: 13, color: 'white', fontWeight: '700', marginTop: 2 }}>Attendance in last 30 days</Text>
+              <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1.5 }}>Performance</Text>
+              <Text style={{ fontSize: 32, fontWeight: '900', color: 'white', marginTop: 2 }}>{monthlyAvg}%</Text>
+              <Text style={{ fontSize: 12, color: 'white', fontWeight: '700', marginTop: 2 }}>Attendance in last 30 days</Text>
             </View>
-            <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: 18, borderRadius: 24, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }}>
-              <CheckCircle2 color="white" size={32} />
+            <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: 14, borderRadius: 20, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }}>
+              <CheckCircle2 color="white" size={28} />
             </View>
           </View>
         </View>
