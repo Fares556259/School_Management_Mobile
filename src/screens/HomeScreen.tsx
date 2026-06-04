@@ -215,32 +215,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
       >
         <View style={styles.content}>
 
-          {/* Quick Actions */}
-          <View style={styles.quickActionsRow}>
-            <TouchableOpacity
-              onPress={() => { Haptics.selectionAsync(); navigation.navigate('Exams'); }}
-              activeOpacity={0.85}
-              style={[styles.quickCard, { borderColor: '#e2e8f0' }]}
-            >
-              <View style={[styles.quickIcon, { backgroundColor: '#f8fafc', borderWidth: 2, borderColor: '#e2e8f0' }]}>
-                <FileText size={20} color="#1e293b" />
-              </View>
-              <Text style={[styles.quickTitle, { color: '#1e293b' }]}>Exam Center</Text>
-              <Text style={styles.quickSub}>Dates & schedules</Text>
-            </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => { Haptics.selectionAsync(); navigation.navigate('Results'); }}
-              activeOpacity={0.85}
-              style={[styles.quickCard, { borderColor: '#e2e8f0' }]}
-            >
-              <View style={[styles.quickIcon, { backgroundColor: '#f8fafc', borderWidth: 2, borderColor: '#e2e8f0' }]}>
-                <Award size={20} color="#1e293b" />
-              </View>
-              <Text style={[styles.quickTitle, { color: '#1e293b' }]}>Report Card</Text>
-              <Text style={styles.quickSub}>Grades & averages</Text>
-            </TouchableOpacity>
-          </View>
 
           {/* Date Slider */}
           <SectionHeader title="Today's Schedule" action="History" onAction={() => navigation.navigate('Attendance')} />
@@ -408,7 +383,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
 
               {/* Learning Materials */}
               <SectionHeader title="Learning Materials" />
-              <View style={[styles.card, { padding: 12, marginBottom: 100 }]}>
+              <View style={[styles.card, { padding: 12, marginBottom: 20 }]}>
                 {dayData.files?.length > 0 ? (
                   dayData.files.map((res: any, idx: number) => (
                     <TouchableOpacity
@@ -433,6 +408,34 @@ export const HomeScreen = ({ navigation, route }: any) => {
                     <Text style={styles.emptyStateText}>No materials uploaded today.</Text>
                   </View>
                 )}
+              </View>
+
+              {/* Quick Actions */}
+              <SectionHeader title="Quick Actions" />
+              <View style={[styles.quickActionsRow, { marginBottom: 100 }]}>
+                <TouchableOpacity
+                  onPress={() => { Haptics.selectionAsync(); navigation.navigate('Exams'); }}
+                  activeOpacity={0.85}
+                  style={[styles.quickCard, { borderColor: '#e2e8f0' }]}
+                >
+                  <View style={[styles.quickIcon, { backgroundColor: '#f8fafc', borderWidth: 2, borderColor: '#e2e8f0' }]}>
+                    <FileText size={20} color="#1e293b" />
+                  </View>
+                  <Text style={[styles.quickTitle, { color: '#1e293b' }]}>Exam Center</Text>
+                  <Text style={styles.quickSub}>Dates & schedules</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => { Haptics.selectionAsync(); navigation.navigate('Results'); }}
+                  activeOpacity={0.85}
+                  style={[styles.quickCard, { borderColor: '#e2e8f0' }]}
+                >
+                  <View style={[styles.quickIcon, { backgroundColor: '#f8fafc', borderWidth: 2, borderColor: '#e2e8f0' }]}>
+                    <Award size={20} color="#1e293b" />
+                  </View>
+                  <Text style={[styles.quickTitle, { color: '#1e293b' }]}>Report Card</Text>
+                  <Text style={styles.quickSub}>Grades & averages</Text>
+                </TouchableOpacity>
               </View>
             </>
           )}
