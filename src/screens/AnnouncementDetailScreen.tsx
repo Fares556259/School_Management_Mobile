@@ -82,7 +82,10 @@ export const AnnouncementDetailScreen = ({ route, navigation }: any) => {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Main Image */}
         <Image 
-          source={{ uri: announcement.image }} 
+          source={{ uri: announcement.image && announcement.image.trim() !== '' && announcement.image !== 'null' 
+            ? announcement.image 
+            : 'https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=2000&auto=format&fit=crop' 
+          }} 
           style={{ width: '100%', height: 280 }} 
           resizeMode="cover"
         />
@@ -144,7 +147,7 @@ export const AnnouncementDetailScreen = ({ route, navigation }: any) => {
           </View>
 
           {/* Download Button Component */}
-          {announcement.pdfUrl && (
+          {!!announcement.pdfUrl && announcement.pdfUrl.trim() !== '' && announcement.pdfUrl !== 'null' && (
             <TouchableOpacity 
               onPress={handleDownload}
               style={{
