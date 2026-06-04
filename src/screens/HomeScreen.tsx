@@ -56,7 +56,7 @@ const DateItem = ({ day, date, active, isToday, onPress }: any) => {
 
 // ─── Stat Pill ───────────────────────────────────────────────────────────────
 const StatPill = ({ count, label, color, bgColor, borderColor }: any) => (
-  <View style={[styles.statPill, { backgroundColor: bgColor, borderColor }]}>
+  <View style={[styles.statPill, { backgroundColor: bgColor, borderColor, borderBottomWidth: 4 }]}>
     <Text style={[styles.statValue, { color }]}>{count}</Text>
     <Text style={[styles.statLabel, { color }]}>{label}</Text>
   </View>
@@ -70,7 +70,6 @@ const SessionCard = ({ session }: any) => {
   const isLate = session.attendance?.toUpperCase() === 'LATE';
   const isUpcoming = !session.attendance;
 
-  const accentColor = isAbsent ? '#dc2626' : isPresent ? '#16a34a' : isLate ? '#d97706' : '#cbd5e1';
   const badgeBg = isAbsent ? '#fee2e2' : isPresent ? '#dcfce7' : isLate ? '#fef3c7' : '#f1f5f9';
   const badgeBorder = isAbsent ? '#fca5a5' : isPresent ? '#86efac' : isLate ? '#fcd34d' : '#e2e8f0';
   const badgeText = isAbsent ? '#dc2626' : isPresent ? '#16a34a' : isLate ? '#d97706' : '#64748b';
@@ -78,14 +77,13 @@ const SessionCard = ({ session }: any) => {
 
   return (
     <View style={[styles.sessionItem, isAbsent && styles.sessionItemAbsent]}>
-      <View style={[styles.sessionAccent, { backgroundColor: accentColor }]} />
       <View style={styles.sessionMain}>
         <View style={styles.sessionHeader}>
-          <View style={styles.sessionIconWrapper}>
-            <Icon size={20} color="#0072e6" />
+          <View style={[styles.sessionIconWrapper, { backgroundColor: '#f8fafc', borderWidth: 2, borderColor: '#e2e8f0' }]}>
+            <Icon size={20} color="#1e293b" />
           </View>
           <View style={styles.sessionTitleGroup}>
-            <Text style={styles.sessionTitle}>{session.subject}</Text>
+            <Text style={styles.sessionTitle} numberOfLines={2}>{session.subject}</Text>
             <Text style={styles.sessionTime}>{session.startTime} — {session.endTime}</Text>
             {session.teacher && (
               <Text style={styles.sessionTeacher}>{session.teacher}</Text>
@@ -475,13 +473,13 @@ const styles = StyleSheet.create({
   dateSlider: { marginBottom: 0 },
   dateCard: {
     width: 64, height: 84, borderRadius: 16,
-    backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center',
     marginRight: 10, borderWidth: 2, borderColor: '#e2e8f0',
+    borderBottomWidth: 4,
   },
   activeDateCard: {
     backgroundColor: '#0072e6', borderColor: '#0055b3',
-    shadowColor: '#0055b3', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
+    borderBottomWidth: 4,
   },
   dateDay: { fontSize: 10, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   dateNum: { fontSize: 22, fontWeight: '900', color: '#1e293b' },
@@ -506,30 +504,28 @@ const styles = StyleSheet.create({
   // History Button
   historyBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 4, backgroundColor: '#eff6ff', paddingVertical: 10,
-    borderRadius: 12, borderWidth: 2, borderColor: '#bfdbfe',
+    gap: 4, backgroundColor: '#ffffff', paddingVertical: 12,
+    borderRadius: 14, borderWidth: 2, borderColor: '#e2e8f0',
+    borderBottomWidth: 4,
   },
-  historyBtnText: { fontSize: 13, fontWeight: '900', color: '#0072e6' },
+  historyBtnText: { fontSize: 13, fontWeight: '900', color: '#1e293b' },
 
   // Session Item
   sessionItem: {
-    flexDirection: 'row', borderRadius: 16,
+    flexDirection: 'row', borderRadius: 18,
     backgroundColor: 'white', borderWidth: 2, borderColor: '#e2e8f0',
     overflow: 'hidden',
-    shadowColor: '#e2e8f0', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 1, shadowRadius: 0, elevation: 2,
   },
   sessionItemAbsent: { borderColor: '#fca5a5' },
-  sessionAccent: { width: 4 },
-  sessionMain: { flex: 1, padding: 14 },
-  sessionHeader: { flexDirection: 'row', alignItems: 'center' },
-  sessionIconWrapper: { width: 40, height: 40, borderRadius: 10, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  sessionTitleGroup: { flex: 1 },
-  sessionTitle: { fontSize: 15, fontWeight: '900', color: '#1e293b' },
-  sessionTime: { fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 1 },
-  sessionTeacher: { fontSize: 11, color: '#0072e6', fontWeight: '800', marginTop: 1 },
+  sessionMain: { flex: 1, padding: 16 },
+  sessionHeader: { flexDirection: 'row', alignItems: 'flex-start' },
+  sessionIconWrapper: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
+  sessionTitleGroup: { flex: 1, marginRight: 8 },
+  sessionTitle: { fontSize: 15, fontWeight: '900', color: '#1e293b', lineHeight: 20 },
+  sessionTime: { fontSize: 12, color: '#64748b', fontWeight: '800', marginTop: 4 },
+  sessionTeacher: { fontSize: 11, color: '#0072e6', fontWeight: '900', marginTop: 4 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, borderWidth: 2 },
-  statusBadgeText: { fontSize: 11, fontWeight: '900' },
+  statusBadgeText: { fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 },
   ratingSection: { marginTop: 10, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   ratingLabel: { fontSize: 9, fontWeight: '900', color: '#cbd5e1', letterSpacing: 1, textTransform: 'uppercase' },
   ratingNote: { fontSize: 12, color: '#94a3b8', fontWeight: '700', fontStyle: 'italic' },
