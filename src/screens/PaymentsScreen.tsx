@@ -122,68 +122,25 @@ export const PaymentsScreen = ({ navigation }: any) => {
             shadowColor: '#0055b3', shadowOffset: { width: 0, height: 5 },
             shadowOpacity: 1, shadowRadius: 0, elevation: 5,
             overflow: 'hidden',
+            padding: 24,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
           }}>
             {/* Decorative circles */}
             <View style={{ position: 'absolute', right: -40, top: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.06)' }} />
             <View style={{ position: 'absolute', left: -30, bottom: -30, width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(255,255,255,0.04)' }} />
 
-            <View style={{ padding: 20 }}>
-              {/* Two stat boxes */}
-              <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
-                <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.13)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' }}>
-                  <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 9, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 6 }}>Outstanding</Text>
-                  <Text style={{ color: 'white', fontSize: 22, fontWeight: '900', letterSpacing: -0.5 }}>
-                    {summary.outstanding.toLocaleString()}
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.65)' }}> TND</Text>
-                  </Text>
-                </View>
-                <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.13)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' }}>
-                  <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 9, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 6 }}>Total Paid</Text>
-                  <Text style={{ color: 'white', fontSize: 22, fontWeight: '900', letterSpacing: -0.5 }}>
-                    {summary.totalPaid.toLocaleString()}
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.65)' }}> TND</Text>
-                  </Text>
-                </View>
-              </View>
-
-              {/* Month progress dots */}
-              {summary.totalMonths > 0 && (
-                <View style={{ marginBottom: 16 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 9, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1 }}>Academic Year</Text>
-                    <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '900' }}>{summary.paidMonths}/{summary.totalMonths} months paid</Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', gap: 4 }}>
-                    {history.filter(p => p.status !== 'Locked').map((p, i) => (
-                      <View
-                        key={i}
-                        style={{
-                          flex: 1, height: 6, borderRadius: 999,
-                          backgroundColor: p.status === 'Paid'
-                            ? 'rgba(255,255,255,0.9)'
-                            : p.isOverdue
-                            ? 'rgba(255,120,120,0.8)'
-                            : 'rgba(255,255,255,0.22)',
-                        }}
-                      />
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              {/* Next due row */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.13)', paddingHorizontal: 14, paddingVertical: 11, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', gap: 10 }}>
-                <Clock size={15} color="rgba(255,255,255,0.75)" />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 9, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1 }}>Next Payment</Text>
-                  <Text style={{ color: 'white', fontWeight: '900', fontSize: 13, marginTop: 1 }}>{summary.nextDue}</Text>
-                </View>
-                {summary.allPaid && (
-                  <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 }}>
-                    <Text style={{ color: 'white', fontSize: 10, fontWeight: '900' }}>✓ All Clear</Text>
-                  </View>
-                )}
-              </View>
+            <View>
+              <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+                Outstanding Amount
+              </Text>
+              <Text style={{ color: 'white', fontSize: 36, fontWeight: '900', letterSpacing: -1 }}>
+                {summary.outstanding.toLocaleString()} <Text style={{ fontSize: 18, fontWeight: '700', color: 'rgba(255,255,255,0.7)' }}>TND</Text>
+              </Text>
+            </View>
+            <View style={{ width: 64, height: 64, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}>
+              <Wallet size={32} color="white" />
             </View>
           </View>
         </View>
@@ -202,19 +159,15 @@ export const PaymentsScreen = ({ navigation }: any) => {
                   activeOpacity={0.85}
                   style={{
                     flexDirection: 'row', alignItems: 'center',
-                    paddingHorizontal: 18, paddingVertical: 10,
-                    borderRadius: 999, borderWidth: 2,
-                    backgroundColor: isActive ? '#0072e6' : '#ffffff',
-                    borderColor: isActive ? '#0055b3' : '#e2e8f0',
-                    shadowColor: isActive ? '#0055b3' : '#e2e8f0',
-                    shadowOffset: { width: 0, height: isActive ? 3 : 2 },
-                    shadowOpacity: 1, shadowRadius: 0,
+                    paddingHorizontal: 16, paddingVertical: 8,
+                    borderRadius: 12,
+                    backgroundColor: isActive ? '#f1f5f9' : 'transparent',
                   }}
                 >
-                  <Text style={{ fontSize: 13, fontWeight: '900', color: isActive ? 'white' : '#475569' }}>{filter}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: isActive ? '800' : '600', color: isActive ? '#1e293b' : '#64748b' }}>{filter}</Text>
                   {count > 0 && (
-                    <View style={{ marginLeft: 8, backgroundColor: isActive ? 'rgba(255,255,255,0.25)' : '#f1f5f9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 }}>
-                      <Text style={{ fontSize: 10, fontWeight: '900', color: isActive ? 'white' : '#64748b' }}>{count}</Text>
+                    <View style={{ marginLeft: 6, backgroundColor: isActive ? '#e2e8f0' : '#f1f5f9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ fontSize: 10, fontWeight: '800', color: isActive ? '#475569' : '#94a3b8' }}>{count}</Text>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -233,10 +186,10 @@ export const PaymentsScreen = ({ navigation }: any) => {
               const isOverdue = item.isOverdue;
 
               const statusConfig: any = {
-                Paid:    { label: 'Paid',     color: '#16a34a', bg: '#dcfce7', border: '#86efac' },
-                Partial: { label: 'Partial',  color: '#d97706', bg: '#fef3c7', border: '#fcd34d' },
-                Due:     { label: isOverdue ? 'Overdue' : 'Due Soon', color: isOverdue ? '#dc2626' : '#ea580c', bg: isOverdue ? '#fee2e2' : '#fff7ed', border: isOverdue ? '#fca5a5' : '#fed7aa' },
-                Locked:  { label: 'Upcoming', color: '#64748b', bg: '#f1f5f9', border: '#e2e8f0' },
+                Paid:    { label: 'Paid',     color: '#16a34a', bg: '#f0fdf4' },
+                Partial: { label: 'Partial',  color: '#d97706', bg: '#fffbeb' },
+                Due:     { label: isOverdue ? 'Overdue' : 'Due Soon', color: isOverdue ? '#dc2626' : '#ea580c', bg: isOverdue ? '#fef2f2' : '#fff7ed' },
+                Locked:  { label: 'Upcoming', color: '#64748b', bg: '#f8fafc' },
               };
               const config = statusConfig[item.status] || statusConfig.Due;
 
@@ -244,10 +197,10 @@ export const PaymentsScreen = ({ navigation }: any) => {
                 <View
                   key={`${item.id}-${item.month}`}
                   style={{
-                    backgroundColor: 'white', borderRadius: 20, marginBottom: 12,
-                    borderWidth: 2,
-                    borderColor: isPaid ? '#86efac' : isOverdue ? '#fca5a5' : '#e2e8f0',
-                    opacity: isLocked ? 0.7 : 1,
+                    backgroundColor: 'white', borderRadius: 16, marginBottom: 12,
+                    borderWidth: 1,
+                    borderColor: '#f1f5f9',
+                    opacity: isLocked ? 0.6 : 1,
                   }}
                 >
                   {/* Header row */}
@@ -255,7 +208,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b' }}>{item.month}</Text>
                       {/* Overdue info inline — no separate banner */}
-                      <Text style={{ fontSize: 12, fontWeight: '700', color: isOverdue ? '#dc2626' : '#94a3b8', marginTop: 3 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: isOverdue ? '#ef4444' : '#94a3b8', marginTop: 3 }}>
                         {isOverdue
                           ? `Overdue by ${item.overdueDays} days`
                           : isPaid
@@ -266,8 +219,8 @@ export const PaymentsScreen = ({ navigation }: any) => {
                       </Text>
                     </View>
                     {/* Status badge */}
-                    <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: config.bg, borderWidth: 1.5, borderColor: config.border }}>
-                      <Text style={{ color: config.color, fontSize: 10, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 }}>{config.label}</Text>
+                    <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: config.bg }}>
+                      <Text style={{ color: config.color, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>{config.label}</Text>
                     </View>
                   </View>
 
@@ -284,8 +237,8 @@ export const PaymentsScreen = ({ navigation }: any) => {
                       <Text style={{ fontSize: 14, fontWeight: '900', color: config.color }}>{Math.round(progress)}%</Text>
                     </View>
                     {/* Progress bar */}
-                    <View style={{ height: 8, width: '100%', backgroundColor: '#f1f5f9', borderRadius: 999, overflow: 'hidden' }}>
-                      <View style={{ height: '100%', width: `${Math.min(100, progress)}%`, backgroundColor: config.color, borderRadius: 999 }} />
+                    <View style={{ height: 6, width: '100%', backgroundColor: '#f8fafc', borderRadius: 999, overflow: 'hidden' }}>
+                      <View style={{ height: '100%', width: `${Math.min(100, progress)}%`, backgroundColor: config.color, borderRadius: 999, opacity: 0.8 }} />
                     </View>
                   </View>
 
@@ -295,15 +248,15 @@ export const PaymentsScreen = ({ navigation }: any) => {
                       <TouchableOpacity
                         activeOpacity={0.88}
                         style={{
-                          height: 48, borderRadius: 14,
-                          backgroundColor: '#0072e6',
+                          height: 44, borderRadius: 12,
+                          backgroundColor: '#f8fafc',
                           alignItems: 'center', justifyContent: 'center',
                           flexDirection: 'row', gap: 8,
-                          borderBottomWidth: 3, borderBottomColor: '#0055b3',
+                          borderWidth: 1, borderColor: '#e2e8f0',
                         }}
                       >
-                        <Text style={{ color: 'white', fontWeight: '900', fontSize: 14 }}>Pay Now</Text>
-                        <ArrowUpRight size={16} color="white" strokeWidth={3} />
+                        <Text style={{ color: '#1e293b', fontWeight: '700', fontSize: 14 }}>Pay Now</Text>
+                        <ArrowUpRight size={16} color="#1e293b" strokeWidth={2.5} />
                       </TouchableOpacity>
                     </View>
                   )}
@@ -313,15 +266,14 @@ export const PaymentsScreen = ({ navigation }: any) => {
                       <TouchableOpacity
                         activeOpacity={0.88}
                         style={{
-                          height: 44, borderRadius: 14,
-                          backgroundColor: '#f0fdf4',
+                          height: 40, borderRadius: 12,
+                          backgroundColor: '#f8fafc',
                           alignItems: 'center', justifyContent: 'center',
                           flexDirection: 'row', gap: 8,
-                          borderWidth: 1.5, borderColor: '#86efac',
                         }}
                       >
-                        <DownloadCloud size={16} color="#16a34a" />
-                        <Text style={{ color: '#16a34a', fontWeight: '900', fontSize: 13 }}>Download Receipt</Text>
+                        <DownloadCloud size={14} color="#64748b" />
+                        <Text style={{ color: '#64748b', fontWeight: '600', fontSize: 13 }}>Download Receipt</Text>
                       </TouchableOpacity>
                     </View>
                   )}
