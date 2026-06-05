@@ -14,7 +14,8 @@ import {
   ChevronRight, 
   ArrowUpRight,
   TrendingDown,
-  Clock
+  Clock,
+  CreditCard
 } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { studentService } from '../services/api';
