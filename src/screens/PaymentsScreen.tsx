@@ -117,33 +117,33 @@ export const PaymentsScreen = ({ navigation }: any) => {
         {/* Summary Card */}
         <View style={{ marginBottom: 24, paddingHorizontal: 20 }}>
           <View style={{
-            backgroundColor: summary.outstanding === 0 ? '#16a34a' : '#0055d4', borderRadius: 24,
-            borderWidth: 2, borderColor: summary.outstanding === 0 ? '#15803d' : '#0040a8',
-            shadowColor: summary.outstanding === 0 ? '#15803d' : '#0040a8', shadowOffset: { width: 0, height: 5 },
-            shadowOpacity: 1, shadowRadius: 0, elevation: 5,
-            overflow: 'hidden',
+            backgroundColor: '#ffffff',
+            borderRadius: 24,
+            borderWidth: 1,
+            borderColor: '#e2e8f0',
+            shadowColor: '#cbd5e1',
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.2,
+            shadowRadius: 12,
+            elevation: 4,
             padding: 24,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
           }}>
-            {/* Decorative circles */}
-            <View style={{ position: 'absolute', right: -40, top: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.06)' }} />
-            <View style={{ position: 'absolute', left: -30, bottom: -30, width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(255,255,255,0.04)' }} />
-
             <View>
-              <Text style={{ fontFamily: 'Plus Jakarta Sans', color: 'rgba(255,255,255,0.8)', fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+              <Text style={{ fontFamily: 'Plus Jakarta Sans', color: '#64748b', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
                 {summary.outstanding === 0 ? 'All Caught Up!' : 'Outstanding Amount'}
               </Text>
-              <Text style={{ fontFamily: 'Plus Jakarta Sans', color: 'white', fontSize: 36, fontWeight: '900', letterSpacing: -1 }}>
-                {summary.outstanding.toLocaleString()} <Text style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 18, fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>TND</Text>
+              <Text style={{ fontFamily: 'Plus Jakarta Sans', color: summary.outstanding === 0 ? '#16a34a' : '#1e293b', fontSize: 36, fontWeight: '900', letterSpacing: -1 }}>
+                {summary.outstanding.toLocaleString()} <Text style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 16, fontWeight: '800', color: '#94a3b8' }}>TND</Text>
               </Text>
             </View>
-            <View style={{ width: 64, height: 64, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ width: 64, height: 64, backgroundColor: summary.outstanding === 0 ? '#f0fdf4' : '#eff6ff', borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}>
               {summary.outstanding === 0 ? (
-                <CheckCircle2 size={32} color="white" />
+                <CheckCircle2 size={32} color="#16a34a" />
               ) : (
-                <Wallet size={32} color="white" />
+                <Wallet size={32} color="#0055d4" />
               )}
             </View>
           </View>
@@ -201,30 +201,24 @@ export const PaymentsScreen = ({ navigation }: any) => {
                 <View
                   key={`${item.id}-${item.month}`}
                   style={{
-                    backgroundColor: config.bg, 
+                    backgroundColor: '#ffffff', 
                     borderRadius: 16, marginBottom: 12,
                     borderWidth: 1,
-                    borderColor: config.border,
-                    shadowColor: config.shadow,
+                    borderColor: '#e2e8f0',
+                    shadowColor: '#e2e8f0',
                     shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: isLocked ? 0 : 0.15,
+                    shadowOpacity: isLocked ? 0 : 0.4,
                     shadowRadius: 4,
                     elevation: isLocked ? 0 : 2,
                     opacity: isLocked ? 0.6 : 1,
                   }}
                 >
-                  {/* Header row */}
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: 16, paddingBottom: 12 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 }}>
                     <View style={{ flex: 1 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Text style={{ fontSize: 17, fontWeight: '900', color: config.text }}>{item.month}</Text>
-                        {item.status === 'Paid' && <CheckCircle2 size={16} color={config.color} />}
-                        {item.status === 'Partial' && <Clock size={16} color={config.color} />}
-                        {item.status === 'Due' && isOverdue && <AlertCircle size={16} color={config.color} />}
-                        {item.status === 'Due' && !isOverdue && <Calendar size={16} color={config.color} />}
-                      </View>
-                      {/* Overdue info inline — no separate banner */}
-                      <Text style={{ fontSize: 13, fontWeight: '600', color: isOverdue ? '#ef4444' : '#94a3b8', marginTop: 3 }}>
+                      <Text style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 17, fontWeight: '900', color: '#1e293b' }}>
+                        {item.month}
+                      </Text>
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: '#94a3b8', marginTop: 3 }}>
                         {isOverdue
                           ? `Overdue by ${item.overdueDays} days`
                           : isPaid
@@ -234,27 +228,18 @@ export const PaymentsScreen = ({ navigation }: any) => {
                           : `Due ${item.dueDate || 'end of month'}`}
                       </Text>
                     </View>
-                    {/* Status badge */}
-                    <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: config.bg }}>
-                      <Text style={{ color: config.color, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>{config.label}</Text>
-                    </View>
-                  </View>
-
-                  {/* Divider */}
-                  <View style={{ height: 1, backgroundColor: config.border, marginHorizontal: 16, opacity: 0.5 }} />
-
-                  {/* Amount + progress */}
-                  <View style={{ padding: 16, paddingTop: 12, paddingBottom: isPaid ? 16 : 12 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <Text style={{ fontSize: 16, fontWeight: '900', color: config.text }}>
-                        {item.paidAmount.toLocaleString()}
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: config.color }}> / {item.totalAmount.toLocaleString()} TND</Text>
+                    
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>
+                        {item.status === 'Partial' ? `${item.paidAmount.toLocaleString()} / ` : ''}
+                        {item.totalAmount.toLocaleString()} <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748b' }}>TND</Text>
                       </Text>
-                      <Text style={{ fontSize: 14, fontWeight: '900', color: config.color }}>{Math.round(progress)}%</Text>
-                    </View>
-                    {/* Progress bar */}
-                    <View style={{ height: 6, width: '100%', backgroundColor: '#f8fafc', borderRadius: 999, overflow: 'hidden' }}>
-                      <View style={{ height: '100%', width: `${Math.min(100, progress)}%`, backgroundColor: config.color, borderRadius: 999, opacity: 0.8 }} />
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 }}>
+                        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: config.color }} />
+                        <Text style={{ fontSize: 11, fontWeight: '800', color: config.color, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                          {config.label}
+                        </Text>
+                      </View>
                     </View>
                   </View>
 
