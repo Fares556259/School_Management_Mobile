@@ -462,23 +462,23 @@ const styles = StyleSheet.create({
 
   // Date Slider
   calendarBtn: {
-    width: 50, height: 86, borderRadius: 24,
-    backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center',
-    marginRight: 10, borderWidth: 2, borderColor: '#e2e8f0', borderStyle: 'dashed'
+    width: 48, height: 76, borderRadius: 20,
+    backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center',
+    marginRight: 12, borderWidth: 1, borderColor: '#e2e8f0',
   },
   dateSlider: { marginBottom: 0 },
   dateCard: {
-    width: 70, height: 86, borderRadius: 24,
+    width: 62, height: 76, borderRadius: 20,
     backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center',
-    marginRight: 10, borderWidth: 2, borderColor: '#e2e8f0',
-    borderBottomWidth: 5, borderBottomColor: '#cbd5e1'
+    marginRight: 10, borderWidth: 1, borderColor: '#e2e8f0',
   },
   activeDateCard: {
-    backgroundColor: '#0072e6', borderColor: '#0055b3',
-    borderBottomWidth: 5, borderBottomColor: '#004085'
+    backgroundColor: '#0072e6', borderColor: '#0072e6',
+    shadowColor: '#0072e6', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 5
   },
-  dateDay: { fontSize: 11, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
-  dateNum: { fontSize: 24, fontWeight: '900', color: '#1e293b' },
+  dateDay: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  dateNum: { fontSize: 22, fontWeight: '800', color: '#1e293b' },
   activeDateText: { color: 'white' },
   todayDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#0072e6', marginTop: 4 },
 
@@ -509,7 +509,7 @@ const styles = StyleSheet.create({
   // Session Item
   sessionItem: {
     flexDirection: 'row', borderRadius: 16,
-    backgroundColor: '#ffffff', borderWidth: 2, borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e2e8f0',
     overflow: 'hidden',
   },
   sessionItemAbsent: { borderColor: '#fca5a5' },
