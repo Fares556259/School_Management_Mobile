@@ -117,9 +117,9 @@ export const PaymentsScreen = ({ navigation }: any) => {
         {/* Summary Card */}
         <View style={{ marginBottom: 24, paddingHorizontal: 20 }}>
           <View style={{
-            backgroundColor: summary.outstanding === 0 ? '#16a34a' : '#0072e6', borderRadius: 24,
-            borderWidth: 2, borderColor: summary.outstanding === 0 ? '#15803d' : '#0055b3',
-            shadowColor: summary.outstanding === 0 ? '#15803d' : '#0055b3', shadowOffset: { width: 0, height: 5 },
+            backgroundColor: summary.outstanding === 0 ? '#16a34a' : '#0055d4', borderRadius: 24,
+            borderWidth: 2, borderColor: summary.outstanding === 0 ? '#15803d' : '#0040a8',
+            shadowColor: summary.outstanding === 0 ? '#15803d' : '#0040a8', shadowOffset: { width: 0, height: 5 },
             shadowOpacity: 1, shadowRadius: 0, elevation: 5,
             overflow: 'hidden',
             padding: 24,
@@ -132,11 +132,11 @@ export const PaymentsScreen = ({ navigation }: any) => {
             <View style={{ position: 'absolute', left: -30, bottom: -30, width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(255,255,255,0.04)' }} />
 
             <View>
-              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+              <Text style={{ fontFamily: 'Plus Jakarta Sans', color: 'rgba(255,255,255,0.8)', fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
                 {summary.outstanding === 0 ? 'All Caught Up!' : 'Outstanding Amount'}
               </Text>
-              <Text style={{ color: 'white', fontSize: 36, fontWeight: '900', letterSpacing: -1 }}>
-                {summary.outstanding.toLocaleString()} <Text style={{ fontSize: 18, fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>TND</Text>
+              <Text style={{ fontFamily: 'Plus Jakarta Sans', color: 'white', fontSize: 36, fontWeight: '900', letterSpacing: -1 }}>
+                {summary.outstanding.toLocaleString()} <Text style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 18, fontWeight: '700', color: 'rgba(255,255,255,0.8)' }}>TND</Text>
               </Text>
             </View>
             <View style={{ width: 64, height: 64, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}>
