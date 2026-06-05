@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput, ActivityIndicator, StatusBar, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bell, Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, User, Pencil, FileText, Info, PhoneCall, MapPin, Image as ImageIcon, Award } from 'lucide-react-native';
@@ -189,9 +190,11 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editData, setEditData] = useState({ name: '', surname: '', phone: '' });
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      loadProfile();
+    }, [userRole])
+  );
 
   const loadProfile = async () => {
     setLoading(true);
@@ -210,9 +213,9 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
         setUserName(`${userProfile.name} ${userProfile.surname}`);
         setUserAvatarUrl(userProfile.img);
         setEditData({
-          name: userProfile.name,
-          surname: userProfile.surname,
-          phone: userProfile.phone
+          name: userProfile.name || '',
+          surname: userProfile.surname || '',
+          phone: userProfile.phone || ''
         });
       }
       if (school) {
@@ -407,9 +410,18 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
           </Text>
           
           <TouchableOpacity 
-             onPress={() => setEditModalVisible(true)}
+              onPress={() => {
+                if (profile) {
+                  setEditData({
+                    name: profile.name || '',
+                    surname: profile.surname || '',
+                    phone: profile.phone || ''
+                  });
+                }
+                setEditModalVisible(true);
+              }}
              className="mt-6 flex-row items-center bg-white px-6 py-3 rounded-full border border-surface-low shadow-sm"
-          >
+            >
             <Pencil size={18} color="#737c7f" />
             <Text className="ml-2 text-text-primary font-jakarta font-bold">Edit profile</Text>
           </TouchableOpacity>
