@@ -258,41 +258,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
                     </View>
                   </View>
 
-                  {/* Action — only if not paid and not locked */}
-                  {!isPaid && !isLocked && (
-                    <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-                      <TouchableOpacity
-                        activeOpacity={0.88}
-                        style={{
-                          height: 44, borderRadius: 12,
-                          backgroundColor: '#f8fafc',
-                          alignItems: 'center', justifyContent: 'center',
-                          flexDirection: 'row', gap: 8,
-                          borderWidth: 1, borderColor: '#e2e8f0',
-                        }}
-                      >
-                        <Text style={{ color: '#1e293b', fontWeight: '700', fontSize: 14 }}>Pay Now</Text>
-                        <ArrowUpRight size={16} color="#1e293b" strokeWidth={2.5} />
-                      </TouchableOpacity>
-                    </View>
-                  )}
-
-                  {isPaid && (
-                    <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-                      <TouchableOpacity
-                        activeOpacity={0.88}
-                        style={{
-                          height: 40, borderRadius: 12,
-                          backgroundColor: '#f8fafc',
-                          alignItems: 'center', justifyContent: 'center',
-                          flexDirection: 'row', gap: 8,
-                        }}
-                      >
-                        <DownloadCloud size={14} color="#64748b" />
-                        <Text style={{ color: '#64748b', fontWeight: '600', fontSize: 13 }}>Download Receipt</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
+                  {/* Actions removed */}
                 </View>
               );
             })
