@@ -132,19 +132,32 @@ export const PaymentsScreen = ({ navigation }: any) => {
             justifyContent: 'space-between',
           }}>
             <View>
-              <Text style={{ fontFamily: 'Plus Jakarta Sans', color: '#64748b', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+              <Text style={{ fontFamily: 'PlusJakartaSans-Bold', color: '#64748b', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
                 {summary.outstanding === 0 ? 'All Caught Up!' : 'Outstanding Amount'}
               </Text>
-              <Text style={{ fontFamily: 'Plus Jakarta Sans', color: summary.outstanding === 0 ? '#16a34a' : '#1e293b', fontSize: 36, fontWeight: '900', letterSpacing: -1 }}>
-                {summary.outstanding.toLocaleString()} <Text style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 16, fontWeight: '800', color: '#94a3b8' }}>TND</Text>
+              <Text style={{ fontFamily: 'PlusJakartaSans-Bold', color: summary.outstanding === 0 ? '#16a34a' : '#1e293b', fontSize: 36, fontWeight: '900', letterSpacing: -1 }}>
+                {summary.outstanding.toLocaleString()} <Text style={{ fontFamily: 'PlusJakartaSans-Bold', fontSize: 16, fontWeight: '800', color: '#94a3b8' }}>TND</Text>
               </Text>
             </View>
-            <View style={{ width: 64, height: 64, backgroundColor: summary.outstanding === 0 ? '#f0fdf4' : '#eff6ff', borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}>
-              {summary.outstanding === 0 ? (
-                <CheckCircle2 size={32} color="#16a34a" />
-              ) : (
-                <Wallet size={32} color="#0055d4" />
-              )}
+            <View style={{ 
+              width: 64, height: 64, 
+              borderRadius: 32, 
+              backgroundColor: summary.outstanding === 0 ? '#f0fdf4' : '#f8fafc',
+              borderWidth: 1, borderColor: summary.outstanding === 0 ? '#bbf7d0' : '#e2e8f0',
+              alignItems: 'center', justifyContent: 'center' 
+            }}>
+              <View style={{
+                width: 46, height: 46,
+                borderRadius: 23,
+                backgroundColor: summary.outstanding === 0 ? '#dcfce7' : '#eff6ff',
+                alignItems: 'center', justifyContent: 'center'
+              }}>
+                {summary.outstanding === 0 ? (
+                  <CheckCircle2 size={24} color="#16a34a" strokeWidth={2.5} />
+                ) : (
+                  <CreditCard size={24} color="#0055d4" strokeWidth={2.5} />
+                )}
+              </View>
             </View>
           </View>
         </View>
@@ -215,7 +228,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
                 >
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 }}>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontFamily: 'Plus Jakarta Sans', fontSize: 17, fontWeight: '900', color: '#1e293b' }}>
+                      <Text style={{ fontFamily: 'PlusJakartaSans-Bold', fontSize: 17, fontWeight: '900', color: '#1e293b' }}>
                         {item.month}
                       </Text>
                       <Text style={{ fontSize: 13, fontWeight: '600', color: '#94a3b8', marginTop: 3 }}>
