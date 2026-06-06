@@ -28,7 +28,6 @@ const StudentRow = ({ student }: any) => {
       
       <View style={{ flex: 1, marginLeft: 16 }}>
         <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e293b' }}>{student.name} {student.surname}</Text>
-        <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '600', marginTop: 2 }}>Student ID: #{student.id.toString().padStart(4, '0')}</Text>
       </View>
       
       <TouchableOpacity style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}>

@@ -177,36 +177,13 @@ export const ResultsScreen = ({ navigation }: any) => {
             {/* GPA Summary Card */}
             <View style={styles.summaryCard}>
               <View style={styles.summaryHeader}>
-                <View>
+                <View style={{ alignItems: 'center' }}>
                   <Text style={styles.summaryEyebrow}>TERM AVERAGE</Text>
                   <Text style={styles.summaryScore}>{termAverage} <Text style={styles.gpaScale}>/ 20</Text></Text>
                 </View>
-                <View style={[styles.ratingBadge, { backgroundColor: ratingColor + '15' }]}>
-                  <Sparkles size={14} color={ratingColor} />
-                  <Text style={[styles.ratingBadgeText, { color: ratingColor }]}>{ratingLabel}</Text>
-                </View>
               </View>
 
-              <View style={styles.summaryComparisonRow}>
-                <View style={styles.compStat}>
-                  <TrendingUp size={16} color="#0055d4" />
-                  <Text style={styles.compLabel}>Class Avg: <Text style={styles.compValue}>{termClassAverage} / 20</Text></Text>
-                </View>
-                <View style={styles.compDivider} />
-                <View style={styles.compStat}>
-                  {termAverage >= termClassAverage ? (
-                    <>
-                      <TrendingUp size={16} color="#10b981" />
-                      <Text style={[styles.compLabel, { color: '#10b981' }]}>Above Average</Text>
-                    </>
-                  ) : (
-                    <>
-                      <TrendingDown size={16} color="#ef4444" />
-                      <Text style={[styles.compLabel, { color: '#ef4444' }]}>Below Average</Text>
-                    </>
-                  )}
-                </View>
-              </View>
+
             </View>
 
             {/* Term Switcher */}
@@ -264,15 +241,6 @@ export const ResultsScreen = ({ navigation }: any) => {
                                 <Text style={styles.maxScore}>/ 20</Text>
                               </View>
                             </View>
-
-                            <View style={[styles.comparisonBarSection, { borderBottomWidth: 0, paddingBottom: 4 }]}>
-                              <View style={[styles.barLabelRow, { marginBottom: 0 }]}>
-                                <Text style={styles.barLabel}>Student mark vs Class avg ({classAvg})</Text>
-                                <Text style={[styles.comparisonIndicatorText, { color: statusColor }]}>
-                                  {statusText}
-                                </Text>
-                              </View>
-                            </View>
                           </View>
                         );
                       })}
@@ -303,7 +271,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, color: '#64748b', marginTop: 6, fontWeight: '600', lineHeight: 20 },
   
   summaryCard: { backgroundColor: 'white', borderRadius: 28, padding: 24, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 15, elevation: 3, marginBottom: 28 },
-  summaryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  summaryHeader: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 0 },
   summaryEyebrow: { fontSize: 10, fontWeight: '900', color: '#94a3b8', letterSpacing: 1 },
   summaryScore: { fontSize: 38, fontWeight: '900', color: '#0f172a', marginTop: 4 },
   gpaScale: { fontSize: 18, color: '#94a3b8', fontWeight: '800' },
@@ -325,7 +293,7 @@ const styles = StyleSheet.create({
 
   gradesList: { gap: 16 },
   gradeCard: { backgroundColor: 'white', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOpacity: 0.02, shadowRadius: 10, elevation: 1 },
-  gradeCardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
+  gradeCardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 0 },
   subjectIconCircle: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   subjectTextGroup: { flex: 1, marginLeft: 16 },
   subjectName: { fontSize: 17, fontWeight: '900', color: '#1e293b' },

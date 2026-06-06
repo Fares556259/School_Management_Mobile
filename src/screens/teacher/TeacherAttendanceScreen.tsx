@@ -82,7 +82,7 @@ const StudentRow = ({ student, status, onStatusChange, note, onNoteChange, score
     <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 28, marginBottom: 16, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 15, elevation: 2 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
         <View style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}><Text style={{ fontSize: 20, fontWeight: '900', color: '#0055d4' }}>{student.name.charAt(0)}</Text></View>
-        <View style={{ marginLeft: 16, flex: 1 }}><Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b' }}>{student.name} {student.surname}</Text><Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 2, textTransform: 'uppercase' }}>Student ID: {student.id}</Text></View>
+        <View style={{ marginLeft: 16, flex: 1 }}><Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b' }}>{student.name} {student.surname}</Text></View>
         <TouchableOpacity onPress={() => setShowNote(!showNote)} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: showNote ? '#eff6ff' : '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: showNote ? '#dbeafe' : '#f1f5f9' }}>
           <MessageSquare size={20} color={showNote || hasNote ? '#0055d4' : '#64748b'} />
           {hasNote && !showNote && (

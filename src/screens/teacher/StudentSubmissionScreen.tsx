@@ -4,13 +4,24 @@ import {
   StatusBar, Dimensions, Modal
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, CheckCircle2, Calendar, Camera, Maximize2 } from 'lucide-react-native';
+import { ChevronLeft, CheckCircle2, Calendar, Camera, Maximize2, FileText, Download } from 'lucide-react-native';
+import { downloadAndPreviewPDF } from '../../utils/fileUtils';
 
 const { width } = Dimensions.get('window');
 
 export const StudentSubmissionScreen = ({ route, navigation }: any) => {
   const { student, task } = route.params;
-  const [imgExpanded, setImgExpanded] = React.useState(false);
+  const [imgExpanded, setImgExpanded] = React.useState<string | null>(null);
+  const [downloading, setDownloading] = React.useState<string | null>(null);
+
+  const handleDownload = async (url: string, name: string) => {
+    setDownloading(url);
+    try {
+      await downloadAndPreviewPDF(url, name);
+    } finally {
+      setDownloading(null);
+    }
+  };
 
   const submittedDate = student.submittedAt
     ? new Date(student.submittedAt).toLocaleDateString('en-US', {
@@ -89,22 +100,52 @@ export const StudentSubmissionScreen = ({ route, navigation }: any) => {
         </Text>
 
         {student.submissionImg ? (
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => setImgExpanded(true)}
-            style={{ backgroundColor: 'white', borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9', position: 'relative' }}
-          >
-            <Image
-              source={{ uri: student.submissionImg }}
-              style={{ width: '100%', height: width - 40, borderRadius: 24 }}
-              resizeMode="cover"
-            />
-            {/* Expand hint */}
-            <View style={{ position: 'absolute', bottom: 14, right: 14, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 10, padding: 8, flexDirection: 'row', alignItems: 'center' }}>
-              <Maximize2 size={14} color="white" />
-              <Text style={{ color: 'white', fontSize: 12, fontWeight: '700', marginLeft: 6 }}>Tap to expand</Text>
-            </View>
-          </TouchableOpacity>
+          <View style={{ gap: 16 }}>
+            {student.submissionImg.split(',').map((url: string, index: number) => {
+              const isPdf = url.toLowerCase().endsWith('.pdf');
+              if (isPdf) {
+                const fileName = url.split('/').pop() || `Document_${index + 1}.pdf`;
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    activeOpacity={0.85}
+                    onPress={() => handleDownload(url, fileName)}
+                    style={{ backgroundColor: 'white', borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}
+                  >
+                    <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: '#fff5f5', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
+                      <FileText color="#ef4444" size={24} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 15, fontWeight: '700', color: '#1e293b' }} numberOfLines={1}>{fileName}</Text>
+                      <Text style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>PDF Document</Text>
+                    </View>
+                    <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}>
+                      <Download size={18} color="#64748b" />
+                    </View>
+                  </TouchableOpacity>
+                );
+              }
+
+              return (
+                <TouchableOpacity
+                  key={index}
+                  activeOpacity={0.85}
+                  onPress={() => setImgExpanded(url)}
+                  style={{ backgroundColor: 'white', borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9', position: 'relative' }}
+                >
+                  <Image
+                    source={{ uri: url }}
+                    style={{ width: '100%', height: width - 40, borderRadius: 24 }}
+                    resizeMode="cover"
+                  />
+                  <View style={{ position: 'absolute', bottom: 14, right: 14, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 10, padding: 8, flexDirection: 'row', alignItems: 'center' }}>
+                    <Maximize2 size={14} color="white" />
+                    <Text style={{ color: 'white', fontSize: 12, fontWeight: '700', marginLeft: 6 }}>Tap to expand</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         ) : (
           <View style={{ backgroundColor: 'white', borderRadius: 24, padding: 40, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#f1f5f9', borderStyle: 'dashed' }}>
             <Camera size={40} color="#d1d5db" />
@@ -115,15 +156,15 @@ export const StudentSubmissionScreen = ({ route, navigation }: any) => {
       </ScrollView>
 
       {/* Full-screen Image Viewer */}
-      <Modal visible={imgExpanded} transparent animationType="fade" onRequestClose={() => setImgExpanded(false)}>
+      <Modal visible={!!imgExpanded} transparent animationType="fade" onRequestClose={() => setImgExpanded(null)}>
         <TouchableOpacity
           activeOpacity={1}
-          onPress={() => setImgExpanded(false)}
+          onPress={() => setImgExpanded(null)}
           style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' }}
         >
-          {student.submissionImg && (
+          {imgExpanded && (
             <Image
-              source={{ uri: student.submissionImg }}
+              source={{ uri: imgExpanded }}
               style={{ width: width, height: width * 1.2 }}
               resizeMode="contain"
             />

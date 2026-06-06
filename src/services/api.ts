@@ -128,10 +128,10 @@ const mapStudent = (s: any): Student & { raw: any } => ({
 
 // ─── Auth Service ────────────────────────────────────────────────────────────
 export const authService = {
-  checkPhoneStatus: async (phone: string): Promise<{ success: boolean; status?: 'NEEDS_SETUP' | 'NEEDS_PASSWORD'; error?: string; name?: string; img?: string }> => {
+  checkPhoneStatus: async (phone: string, role: string): Promise<{ success: boolean; status?: 'NEEDS_SETUP' | 'NEEDS_PASSWORD'; error?: string; name?: string; img?: string }> => {
     const data = await apiFetch('/api/mobile/login', {
       method: 'POST',
-      body: JSON.stringify({ phone: phone.trim() }),
+      body: JSON.stringify({ phone: phone.trim(), role }),
     });
 
     if (!data) return { success: false, error: 'Network error or account not found.' };
@@ -143,10 +143,10 @@ export const authService = {
     };
   },
 
-  authenticate: async (phone: string, password: string, action: 'setup' | 'signin'): Promise<{ success: boolean; error?: string }> => {
+  authenticate: async (phone: string, password: string, action: 'setup' | 'signin', role: string): Promise<{ success: boolean; error?: string }> => {
     const response = await apiFetch('/api/mobile/auth', {
       method: 'POST',
-      body: JSON.stringify({ phone: phone.trim(), password, action }),
+      body: JSON.stringify({ phone: phone.trim(), password, action, role }),
     });
 
     if (!response) {

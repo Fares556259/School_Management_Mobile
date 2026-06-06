@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getFullImageUrl } from '../services/api';
-import { ChevronLeft, Calendar, CheckCircle2, FileText, Image as ImageIcon, Download, Camera, MoreHorizontal } from 'lucide-react-native';
+import { ChevronLeft, Calendar, CheckCircle2, FileText, Image as ImageIcon, Download, Camera, MoreHorizontal, X } from 'lucide-react-native';
 import { downloadAndPreviewPDF } from '../utils/fileUtils';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -39,7 +39,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
     checkStatus();
   }, [homework.id, studentId]);
 
-  const [submissionImg, setSubmissionImg] = React.useState<string | null>(null);
+  const [submissionFiles, setSubmissionFiles] = React.useState<{name: string, url: string, type: string}[]>([]);
   const [uploadingImg, setUploadingImg] = React.useState(false);
 
   const pickSubmissionImage = async () => {
@@ -51,16 +51,24 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
       }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
+        allowsEditing: false,
+        allowsMultipleSelection: true,
         quality: 0.7,
       });
-      if (!result.canceled && result.assets[0]) {
+      if (!result.canceled && result.assets && result.assets.length > 0) {
         setUploadingImg(true);
-        const uri = result.assets[0].uri;
-        // Upload the image to get a URL
         const { uiService } = await import('../services/api');
-        const uploadedUrl = await uiService.uploadImage(uri, 'student', studentId);
-        setSubmissionImg(uploadedUrl?.url || uri);
+        
+        const uploadedFiles = await Promise.all(
+          result.assets.map(async (asset) => {
+            const uri = asset.uri;
+            const fileName = asset.fileName || uri.split('/').pop() || 'image.jpg';
+            const uploadedUrl = await uiService.uploadImage(uri, 'student', studentId);
+            return { name: fileName, url: uploadedUrl?.url || uri, type: 'IMAGE' };
+          })
+        );
+        
+        setSubmissionFiles(prev => [...prev, ...uploadedFiles]);
       }
     } catch (e: any) {
       Alert.alert('Error', 'Could not pick image: ' + (e.message || ''));
@@ -69,11 +77,45 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
     }
   };
 
+  const pickSubmissionDocument = async () => {
+    try {
+      const DocumentPicker = await import('expo-document-picker');
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+        multiple: true,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setUploadingImg(true);
+        const { uiService } = await import('../services/api');
+        
+        const uploadedFiles = await Promise.all(
+          result.assets.map(async (asset) => {
+            const uri = asset.uri;
+            const fileName = asset.name;
+            const uploadedUrl = await uiService.uploadImage(uri, 'student', studentId);
+            return { name: fileName, url: uploadedUrl?.url || uri, type: 'PDF' };
+          })
+        );
+        
+        setSubmissionFiles(prev => [...prev, ...uploadedFiles]);
+      }
+    } catch (e: any) {
+      Alert.alert('Error', 'Could not pick document: ' + (e.message || ''));
+    } finally {
+      setUploadingImg(false);
+    }
+  };
+
+  const removeSubmissionFile = (index: number) => {
+    setSubmissionFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleMarkAsDone = async () => {
     try {
       setSubmitting(true);
       const { studentService } = await import('../services/api');
-      await studentService.submitTask(studentId, homework.id, submissionImg || undefined);
+      const imageUrl = submissionFiles.map(f => f.url).join(',') || undefined;
+      await studentService.submitTask(studentId, homework.id, imageUrl);
       setIsCompleted(true);
       Alert.alert("Success! 🎉", "Task marked as completed. Well done!");
     } catch (e: any) {
@@ -360,19 +402,32 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
           {!isCompleted && (
             <>
               <Text style={{ fontSize: 12, fontWeight: '800', color: '#adb5bd', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>Attach Your Work (Optional)</Text>
-              <TouchableOpacity onPress={pickSubmissionImage} disabled={uploadingImg} style={{ borderWidth: 2, borderColor: submissionImg ? '#0055d4' : '#e2e8f0', borderStyle: 'dashed', borderRadius: 20, padding: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 20, backgroundColor: submissionImg ? '#eff6ff' : '#f8fafc', minHeight: 100 }}>
-                {uploadingImg ? <ActivityIndicator color="#0055d4" /> : submissionImg ? (
-                  <View style={{ alignItems: 'center' }}>
-                    <Image source={{ uri: submissionImg }} style={{ width: 120, height: 120, borderRadius: 12 }} resizeMode="cover" />
-                    <Text style={{ color: '#0055d4', fontWeight: '700', marginTop: 8, fontSize: 13 }}>Tap to change photo</Text>
-                  </View>
-                ) : (
-                  <View style={{ alignItems: 'center' }}>
-                    <Camera size={32} color="#94a3b8" />
-                    <Text style={{ color: '#94a3b8', fontWeight: '700', marginTop: 8, fontSize: 14 }}>Tap to attach a photo of your work</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
+              
+              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+                <TouchableOpacity onPress={pickSubmissionImage} disabled={uploadingImg} style={{ flex: 1, height: 48, borderRadius: 14, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}><ImageIcon size={18} color="#8b5cf6" /><Text style={{ fontSize: 13, fontWeight: '800', color: '#8b5cf6' }}>Add Photos</Text></TouchableOpacity>
+                <TouchableOpacity onPress={pickSubmissionDocument} disabled={uploadingImg} style={{ flex: 1, height: 48, borderRadius: 14, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}><FileText size={18} color="#0055d4" /><Text style={{ fontSize: 13, fontWeight: '800', color: '#0055d4' }}>Add PDF/Doc</Text></TouchableOpacity>
+              </View>
+
+              {uploadingImg && (
+                <View style={{ padding: 20, alignItems: 'center' }}>
+                  <ActivityIndicator color="#0055d4" />
+                  <Text style={{ color: '#64748b', fontSize: 13, marginTop: 8, fontWeight: '600' }}>Uploading...</Text>
+                </View>
+              )}
+
+              {submissionFiles.length > 0 && (
+                <View style={{ marginBottom: 20, gap: 8 }}>
+                  {submissionFiles.map((file, idx) => (
+                    <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 12, borderRadius: 14, borderWidth: 1, borderColor: '#f1f5f9' }}>
+                      {file.type === 'IMAGE' ? <ImageIcon size={18} color="#8b5cf6" /> : <FileText size={18} color="#0055d4" />}
+                      <Text style={{ flex: 1, marginLeft: 12, fontSize: 13, fontWeight: '700', color: '#1e293b' }} numberOfLines={1}>{file.name}</Text>
+                      <TouchableOpacity onPress={() => removeSubmissionFile(idx)} disabled={uploadingImg}>
+                        <X size={18} color="#ef4444" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
             </>
           )}
           <TouchableOpacity disabled={isCompleted || submitting} onPress={handleMarkAsDone} style={{ backgroundColor: isCompleted ? '#10b981' : '#0055d4', borderRadius: 24, paddingVertical: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: isCompleted ? '#10b981' : '#0055d4', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 15, elevation: 8, opacity: submitting ? 0.7 : 1 }}>

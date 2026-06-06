@@ -24,35 +24,36 @@ const TermCard = ({ period, pdfUrl }: { period: number, pdfUrl?: string }) => {
   return (
     <View style={{
       backgroundColor: 'white',
-      borderRadius: 24,
-      padding: 20,
+      borderRadius: 20,
+      padding: 16,
       marginBottom: 16,
       flexDirection: 'row',
       alignItems: 'center',
-      borderWidth: 2,
-      borderColor: pdfUrl ? '#bfdbfe' : '#e2e8f0',
-      borderBottomWidth: 6,
-      borderBottomColor: pdfUrl ? '#60a5fa' : '#cbd5e1',
+      borderWidth: 1,
+      borderColor: pdfUrl ? '#bfdbfe' : '#f1f5f9',
+      shadowColor: pdfUrl ? '#0072e6' : '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: pdfUrl ? 0.08 : 0.03,
+      shadowRadius: 10,
+      elevation: 2,
     }}>
       <View style={{ 
-        width: 56, 
-        height: 56, 
-        borderRadius: 20, 
+        width: 52, 
+        height: 52, 
+        borderRadius: 16, 
         backgroundColor: pdfUrl ? '#eff6ff' : '#f8fafc', 
         alignItems: 'center', 
         justifyContent: 'center',
         marginRight: 16,
-        borderWidth: 2,
+        borderWidth: 1,
         borderColor: pdfUrl ? '#bfdbfe' : '#e2e8f0',
-        borderBottomWidth: 4,
-        borderBottomColor: pdfUrl ? '#93c5fd' : '#cbd5e1',
       }}>
-        <FileText color={pdfUrl ? '#3b82f6' : '#94a3b8'} size={28} />
+        <FileText color={pdfUrl ? '#0072e6' : '#94a3b8'} size={24} />
       </View>
       
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>Term {period}</Text>
-        <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '700', marginTop: 4 }}>
+        <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b' }}>Term {period}</Text>
+        <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '700', marginTop: 2 }}>
           {pdfUrl ? 'Official Exam Schedule' : 'Schedule not yet uploaded'}
         </Text>
       </View>
@@ -62,20 +63,20 @@ const TermCard = ({ period, pdfUrl }: { period: number, pdfUrl?: string }) => {
           onPress={handleOpenPDF}
           disabled={downloading}
           style={{ 
-            width: 48, 
-            height: 48, 
-            borderRadius: 16, 
-            backgroundColor: '#0072e6', 
+            width: 44, 
+            height: 44, 
+            borderRadius: 22, 
+            backgroundColor: '#eff6ff', 
             alignItems: 'center', 
             justifyContent: 'center',
-            borderBottomWidth: 4,
-            borderBottomColor: '#0055b3',
+            borderWidth: 1,
+            borderColor: '#bfdbfe',
           }}
         >
           {downloading ? (
-            <ActivityIndicator size="small" color="white" />
+            <ActivityIndicator size="small" color="#0072e6" />
           ) : (
-            <Download color="white" size={20} strokeWidth={3} />
+            <Download color="#0072e6" size={20} strokeWidth={2.5} />
           )}
         </TouchableOpacity>
       )}

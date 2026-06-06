@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput, ActivityIndicator, StatusBar, Dimensions, Switch, Linking } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bell, Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, User, Pencil, FileText, Info, PhoneCall, MapPin, Image as ImageIcon, Award } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Svg, Circle } from 'react-native-svg';
@@ -159,6 +159,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
   const [schoolInfo, setSchoolInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const insets = useSafeAreaInsets();
   
   // Edit Modal State
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -523,9 +524,10 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
                 }));
                 setEditModalVisible(true);
               }}
+              isLast={userRole === 'teacher'}
             />
             {userRole === 'parent' && (
-              <>
+              <View>
                 <SettingItemV3 
                   icon={Award} 
                   color="#8b5cf6" iconBg="bg-purple-50"
@@ -541,16 +543,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
                   isLast 
                   onPress={() => navigation.navigate('DocumentCenter')} 
                 />
-              </>
-            )}
-            {userRole === 'teacher' && (
-              <SettingItemV3 
-                icon={UserIcon} 
-                color="#8b5cf6" iconBg="bg-purple-50"
-                label="Profile Details" 
-                subtitle="View your teaching profile"
-                isLast 
-              />
+              </View>
             )}
           </View>
         </View>
@@ -588,8 +581,8 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
 
       {/* Edit Profile Modal */}
       <Modal visible={editModalVisible} transparent={false} animationType="slide">
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
-          <View className="flex-row items-center px-6 py-4">
+        <View style={{ flex: 1, backgroundColor: '#f8fafc', paddingTop: Math.max(insets.top, 20) }}>
+          <View className="flex-row items-center px-6 py-4 mt-2">
             <TouchableOpacity onPress={() => setEditModalVisible(false)} className="p-2 -ml-2" hitSlop={{top: 15, bottom: 15, left: 15, right: 15}}>
               <ChevronDown size={24} color="#2b3437" />
             </TouchableOpacity>
@@ -740,12 +733,12 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
               </TouchableOpacity>
           </View>
 
-          {/* Photo Selection Action Sheet (Nested inside Edit Modal for iOS compatibility) */}
+      {/* Photo Selection Action Sheet (Nested inside Edit Modal for iOS compatibility) */}
           <Modal visible={photoModalVisible} transparent animationType="fade">
             <TouchableOpacity 
               activeOpacity={1} 
               onPress={() => setPhotoModalVisible(false)}
-              className="flex-1 bg-black/40 justify-end p-6"
+              className="flex-1 bg-black/40 justify-center p-6"
             >
               <TouchableOpacity activeOpacity={1} className="bg-white rounded-[32px] p-6 mb-4">
                 <View className="items-center mb-8">
@@ -798,13 +791,13 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
               </TouchableOpacity>
             </TouchableOpacity>
           </Modal>
-        </SafeAreaView>
+        </View>
       </Modal>
 
       {/* Edit Child Profile Modal */}
       <Modal visible={editChildModalVisible} transparent={false} animationType="slide">
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
-          <View className="flex-row items-center px-6 py-4">
+        <View style={{ flex: 1, backgroundColor: '#f8fafc', paddingTop: Math.max(insets.top, 20) }}>
+          <View className="flex-row items-center px-6 py-4 mt-2">
             <TouchableOpacity onPress={() => setEditChildModalVisible(false)} className="p-2 -ml-2" hitSlop={{top: 15, bottom: 15, left: 15, right: 15}}>
               <ChevronDown size={24} color="#2b3437" />
             </TouchableOpacity>
@@ -860,7 +853,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
               </TouchableOpacity>
             </View>
           </ScrollView>
-        </SafeAreaView>
+        </View>
       </Modal>
 
     </SafeAreaView>

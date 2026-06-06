@@ -127,7 +127,20 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
                   </Text>
                 </View>
                 {student.submissionImg ? (
-                  <Image source={{ uri: student.submissionImg }} style={{ width: 56, height: 56, borderRadius: 12, borderWidth: 2, borderColor: '#bbf7d0' }} resizeMode="cover" />
+                  <View style={{ position: 'relative' }}>
+                    {student.submissionImg.split(',')[0].toLowerCase().endsWith('.pdf') ? (
+                      <View style={{ width: 56, height: 56, borderRadius: 12, borderWidth: 2, borderColor: '#bbf7d0', backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: '#64748b' }}>PDF</Text>
+                      </View>
+                    ) : (
+                      <Image source={{ uri: student.submissionImg.split(',')[0] }} style={{ width: 56, height: 56, borderRadius: 12, borderWidth: 2, borderColor: '#bbf7d0' }} resizeMode="cover" />
+                    )}
+                    {student.submissionImg.split(',').length > 1 && (
+                      <View style={{ position: 'absolute', top: -6, right: -6, backgroundColor: '#0055d4', borderRadius: 10, width: 20, height: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'white' }}>
+                        <Text style={{ color: 'white', fontSize: 9, fontWeight: '900' }}>+{student.submissionImg.split(',').length - 1}</Text>
+                      </View>
+                    )}
+                  </View>
                 ) : (
                   <View style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: '#dcfce7', alignItems: 'center', justifyContent: 'center' }}>
                     <CheckCircle2 size={22} color="#16a34a" />

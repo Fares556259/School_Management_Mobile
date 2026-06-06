@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,6 @@ import {
   ScrollView,
   ActivityIndicator,
   StatusBar,
-  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GraduationCap, Phone, Lock, ChevronLeft, ArrowRight } from 'lucide-react-native';
@@ -17,67 +16,7 @@ import { authService } from '../services/api';
 import { useAppStore } from '../store/useAppStore';
 import * as Haptics from 'expo-haptics';
 
-// ─── Duolingo-style 3D Button ────────────────────────────────────────────────
-const DuoButton = ({ onPress, disabled, loading, label }: any) => {
-  const pressed = useRef(new Animated.Value(0)).current;
-
-  const handlePressIn = () => {
-    Animated.spring(pressed, { toValue: 1, useNativeDriver: true, speed: 50 }).start();
-  };
-  const handlePressOut = () => {
-    Animated.spring(pressed, { toValue: 0, useNativeDriver: true, speed: 50 }).start();
-  };
-
-  const translateY = pressed.interpolate({ inputRange: [0, 1], outputRange: [0, 3] });
-
-  return (
-    <View style={{ marginTop: 8 }}>
-      {/* Shadow layer */}
-      <View style={{
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: '100%',
-        borderRadius: 16,
-        backgroundColor: '#0055b3',
-      }} />
-      <Animated.View style={{ transform: [{ translateY }] }}>
-        <TouchableOpacity
-          onPress={onPress}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-          disabled={disabled}
-          activeOpacity={1}
-          style={{
-            backgroundColor: disabled ? '#93c5fd' : '#0072e6',
-            borderRadius: 16,
-            paddingVertical: 18,
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexDirection: 'row',
-            gap: 10,
-            marginBottom: 4,
-          }}
-        >
-          {loading ? (
-            <ActivityIndicator color="white" size="small" />
-          ) : (
-            <>
-              <Text style={{ color: 'white', fontWeight: '900', fontSize: 17, letterSpacing: 0.3 }}>
-                {label}
-              </Text>
-              <ArrowRight size={20} color="white" strokeWidth={3} />
-            </>
-          )}
-        </TouchableOpacity>
-      </Animated.View>
-    </View>
-  );
-};
-
-// ─── Main Sign-In Screen ────────────────────────────────────────────────────
-export const SignInScreen = ({ onSignIn }: { onSignIn: () => void }) => {
+export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'teacher', onSignIn: () => void, onBack: () => void }) => {
   const { setUserName, setUserAvatarUrl } = useAppStore();
 
   const [step, setStep] = useState<'PHONE' | 'NEEDS_PASSWORD' | 'NEEDS_SETUP'>('PHONE');
@@ -94,7 +33,7 @@ export const SignInScreen = ({ onSignIn }: { onSignIn: () => void }) => {
     setIsLoading(true);
     setError('');
     try {
-      const result = await authService.checkPhoneStatus(phone.trim());
+      const result = await authService.checkPhoneStatus(phone.trim(), role);
       if (result.success && result.status) {
         setTempParent({ name: result.name || 'User', img: result.img || null });
         setStep(result.status);
@@ -116,7 +55,7 @@ export const SignInScreen = ({ onSignIn }: { onSignIn: () => void }) => {
     setError('');
     try {
       const action = step === 'NEEDS_SETUP' ? 'setup' : 'signin';
-      const result = await authService.authenticate(phone.trim(), password, action);
+      const result = await authService.authenticate(phone.trim(), password, action, role);
       if (result.success) {
         if (step === 'NEEDS_SETUP') {
           setHint('Password set! Please sign in.');
@@ -149,10 +88,14 @@ export const SignInScreen = ({ onSignIn }: { onSignIn: () => void }) => {
   };
 
   const handleBack = () => {
-    setStep('PHONE');
-    setPassword('');
-    setError('');
-    setHint('');
+    if (step === 'PHONE') {
+      onBack();
+    } else {
+      setStep('PHONE');
+      setPassword('');
+      setError('');
+      setHint('');
+    }
   };
 
   const stepTitle = step === 'PHONE'
@@ -183,51 +126,49 @@ export const SignInScreen = ({ onSignIn }: { onSignIn: () => void }) => {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {/* Back button for password step */}
-            {step !== 'PHONE' && (
-              <TouchableOpacity
-                onPress={handleBack}
-                style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24, alignSelf: 'flex-start' }}
-              >
-                <View style={{
-                  width: 40, height: 40, borderRadius: 12,
-                  backgroundColor: '#f1f5f9', borderWidth: 2, borderColor: '#e2e8f0',
-                  alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <ChevronLeft size={20} color="#1e293b" strokeWidth={2.5} />
-                </View>
-              </TouchableOpacity>
-            )}
+            {/* Back button */}
+            <TouchableOpacity
+              onPress={handleBack}
+              style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24, alignSelf: 'flex-start' }}
+            >
+              <View style={{
+                width: 40, height: 40, borderRadius: 14,
+                backgroundColor: '#f1f4f6',
+                alignItems: 'center', justifyContent: 'center',
+              }}>
+                <ChevronLeft size={20} color="#2b3437" strokeWidth={3} />
+              </View>
+            </TouchableOpacity>
 
             {/* Logo + Brand */}
             <View style={{ alignItems: 'center', marginBottom: 40 }}>
               <View style={{
                 width: 80, height: 80, borderRadius: 24,
-                backgroundColor: '#0072e6',
+                backgroundColor: '#0055d4',
                 alignItems: 'center', justifyContent: 'center',
                 marginBottom: 20,
-                shadowColor: '#0055b3',
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.3,
-                shadowRadius: 12,
+                shadowColor: '#0055d4',
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.2,
+                shadowRadius: 15,
                 elevation: 8,
               }}>
                 <GraduationCap size={40} color="white" />
               </View>
-              <Text style={{ fontSize: 32, fontWeight: '900', color: '#1e293b', letterSpacing: -0.5 }}>
-                Snap<Text style={{ color: '#0072e6' }}>School</Text>
+              <Text style={{ fontSize: 36, fontWeight: '900', color: '#2b3437', letterSpacing: -1 }}>
+                Snap<Text style={{ color: '#0055d4' }}>School</Text>
               </Text>
-              <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '700', marginTop: 6, letterSpacing: 0.5 }}>
+              <Text style={{ fontSize: 13, color: '#737c7f', fontWeight: 'bold', marginTop: 6, letterSpacing: 1 }}>
                 PARENT PORTAL
               </Text>
             </View>
 
             {/* Step Heading */}
             <View style={{ marginBottom: 32 }}>
-              <Text style={{ fontSize: 28, fontWeight: '900', color: '#1e293b', letterSpacing: -0.5, marginBottom: 8 }}>
+              <Text style={{ fontSize: 28, fontWeight: '900', color: '#2b3437', letterSpacing: -0.5, marginBottom: 8 }}>
                 {stepTitle}
               </Text>
-              <Text style={{ fontSize: 15, color: '#64748b', fontWeight: '700', lineHeight: 22 }}>
+              <Text style={{ fontSize: 15, color: '#737c7f', fontWeight: '600', lineHeight: 22 }}>
                 {stepSub}
               </Text>
             </View>
@@ -236,24 +177,24 @@ export const SignInScreen = ({ onSignIn }: { onSignIn: () => void }) => {
             {step === 'PHONE' && (
               <View style={{
                 flexDirection: 'row', alignItems: 'center',
-                backgroundColor: '#f8fafc',
-                borderRadius: 16,
-                borderWidth: 2,
+                backgroundColor: '#f8fbff',
+                borderRadius: 20,
+                borderWidth: 1,
                 borderColor: '#e2e8f0',
                 paddingHorizontal: 18,
-                paddingVertical: 16,
+                paddingVertical: 18,
                 marginBottom: 16,
                 gap: 12,
               }}>
-                <Phone size={20} color="#94a3b8" />
+                <Phone size={22} color="#737c7f" />
                 <TextInput
                   value={phone}
                   onChangeText={t => { setPhone(t); setError(''); }}
                   placeholder="e.g. 55 666 777"
-                  placeholderTextColor="#cbd5e1"
+                  placeholderTextColor="#94a3b8"
                   keyboardType="phone-pad"
                   autoFocus
-                  style={{ flex: 1, color: '#1e293b', fontSize: 17, fontWeight: '700' }}
+                  style={{ flex: 1, color: '#2b3437', fontSize: 18, fontWeight: 'bold' }}
                 />
               </View>
             )}
@@ -262,24 +203,24 @@ export const SignInScreen = ({ onSignIn }: { onSignIn: () => void }) => {
             {step !== 'PHONE' && (
               <View style={{
                 flexDirection: 'row', alignItems: 'center',
-                backgroundColor: '#f8fafc',
-                borderRadius: 16,
-                borderWidth: 2,
+                backgroundColor: '#f8fbff',
+                borderRadius: 20,
+                borderWidth: 1,
                 borderColor: '#e2e8f0',
                 paddingHorizontal: 18,
-                paddingVertical: 16,
+                paddingVertical: 18,
                 marginBottom: 16,
                 gap: 12,
               }}>
-                <Lock size={20} color="#94a3b8" />
+                <Lock size={22} color="#737c7f" />
                 <TextInput
                   value={password}
                   onChangeText={t => { setPassword(t); setError(''); }}
                   placeholder={step === 'NEEDS_SETUP' ? 'Create a strong password' : 'Your password'}
-                  placeholderTextColor="#cbd5e1"
+                  placeholderTextColor="#94a3b8"
                   secureTextEntry
                   autoFocus
-                  style={{ flex: 1, color: '#1e293b', fontSize: 17, fontWeight: '700' }}
+                  style={{ flex: 1, color: '#2b3437', fontSize: 18, fontWeight: 'bold' }}
                 />
               </View>
             )}
@@ -316,20 +257,39 @@ export const SignInScreen = ({ onSignIn }: { onSignIn: () => void }) => {
               </View>
             )}
 
-            {/* 3D CTA Button */}
-            <DuoButton
+            {/* Standard Flat Button */}
+            <TouchableOpacity
               onPress={step === 'PHONE' ? handleCheckStatus : handleFinalAuth}
               disabled={isLoading}
-              loading={isLoading}
-              label={btnLabel}
-            />
+              style={{
+                backgroundColor: isLoading ? '#93c5fd' : '#0055d4',
+                borderRadius: 20,
+                paddingVertical: 18,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row',
+                gap: 10,
+                marginTop: 8,
+              }}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <>
+                  <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 18 }}>
+                    {btnLabel}
+                  </Text>
+                  <ArrowRight size={20} color="white" strokeWidth={2.5} />
+                </>
+              )}
+            </TouchableOpacity>
 
             {/* Footer */}
             <View style={{ alignItems: 'center', marginTop: 40 }}>
-              <Text style={{ fontSize: 12, color: '#cbd5e1', fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' }}>
+              <Text style={{ fontSize: 12, color: '#bdc3c7', fontWeight: 'bold', letterSpacing: 1, textTransform: 'uppercase' }}>
                 Secure Institutional Access
               </Text>
-              <Text style={{ fontSize: 11, color: '#e2e8f0', fontWeight: '700', marginTop: 8, textAlign: 'center', lineHeight: 18 }}>
+              <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '500', marginTop: 8, textAlign: 'center', lineHeight: 18 }}>
                 Account management handled by SnapSchool Admin.{'\n'}
                 Contact your school if you need to update your number.
               </Text>

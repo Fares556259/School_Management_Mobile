@@ -289,7 +289,7 @@ export const CoursesScreen = () => {
                   </View>
                 )}
 
-                {course.tasks.length === 0 && course.resources.length === 0 && (
+                {course.resources.length === 0 && (
                   <View style={{ alignItems: 'center', paddingVertical: 24, paddingHorizontal: 24, gap: 8 }}>
                     <View style={{
                       width: 44, height: 44, borderRadius: 12,

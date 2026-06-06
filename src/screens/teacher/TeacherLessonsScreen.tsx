@@ -15,6 +15,13 @@ import { useAppStore } from '../../store/useAppStore';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 
+// ─── Helper for Arabic Subject Name ───────────────────────────────────────────
+const getSubjectName = (name: string) => {
+  if (!name) return 'General';
+  const parts = name.split('|');
+  return parts[parts.length - 1].trim();
+};
+
 // ─── Resource Card ──────────────────────────────────────────────────────────
 const ResourceCard = ({ item }: any) => {
   const isLink = item.url?.startsWith('http') && !item.url?.includes('upload');
@@ -50,7 +57,7 @@ const ResourceCard = ({ item }: any) => {
           </Text>
         ) : null}
         <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '700', marginTop: item.description ? 4 : 2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          {item.subject} · {new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          {getSubjectName(item.subject)} · {new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
         </Text>
       </View>
       <ExternalLink size={18} color="#94a3b8" />
@@ -265,7 +272,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
                     borderColor: selectedSubjectId === s.id.toString() ? '#0055d4' : '#f1f5f9'
                   }}
                 >
-                  <Text style={{ color: selectedSubjectId === s.id.toString() ? 'white' : '#64748b', fontWeight: '800', fontSize: 13 }}>{s.name}</Text>
+                  <Text style={{ color: selectedSubjectId === s.id.toString() ? 'white' : '#64748b', fontWeight: '800', fontSize: 13 }}>{getSubjectName(s.name)}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -370,7 +377,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
 
             {Object.entries(
               resources.reduce((acc, r) => {
-                const s = r.subject || 'General';
+                const s = getSubjectName(r.subject);
                 if (!acc[s]) acc[s] = [];
                 acc[s].push(r);
                 return acc;

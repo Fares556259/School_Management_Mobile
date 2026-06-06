@@ -102,8 +102,8 @@ export const PaymentsScreen = ({ navigation }: any) => {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
       <GlobalHeader navigation={navigation} />
 
       <ScrollView
@@ -111,53 +111,36 @@ export const PaymentsScreen = ({ navigation }: any) => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0072e6" />}
         contentContainerStyle={{ paddingBottom: 100 }}
       >
-        <Text style={{ paddingHorizontal: 20, marginTop: 20, marginBottom: 4, fontSize: 30, fontWeight: '900', color: '#1e293b', letterSpacing: -0.5 }}>Payment History</Text>
-        <Text style={{ paddingHorizontal: 20, marginBottom: 24, fontSize: 13, fontWeight: '700', color: '#64748b', fontStyle: 'italic' }}>Full academic year timeline (Sep – Jun).</Text>
 
 
         {/* Summary Card */}
-        <View style={{ marginBottom: 24, paddingHorizontal: 20 }}>
+        <View style={{ marginBottom: 24, paddingHorizontal: 20, marginTop: 16 }}>
           <View style={{
-            backgroundColor: '#ffffff',
+            backgroundColor: '#0072e6',
             borderRadius: 24,
-            borderWidth: 1,
-            borderColor: '#e2e8f0',
-            shadowColor: '#cbd5e1',
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.2,
-            shadowRadius: 12,
-            elevation: 4,
             padding: 24,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            shadowColor: '#0072e6',
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.3,
+            shadowRadius: 16,
+            elevation: 8,
           }}>
-            <View>
-              <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
-                {summary.outstanding === 0 ? 'All Caught Up!' : 'Outstanding Amount'}
-              </Text>
-              <Text style={{ color: summary.outstanding === 0 ? '#16a34a' : '#1e293b', fontSize: 36, fontWeight: '900', letterSpacing: -1 }}>
-                {summary.outstanding.toLocaleString()} <Text style={{ fontSize: 16, fontWeight: '800', color: '#94a3b8' }}>TND</Text>
-              </Text>
-            </View>
-            <View style={{ 
-              width: 64, height: 64, 
-              borderRadius: 32, 
-              backgroundColor: summary.outstanding === 0 ? '#f0fdf4' : '#f8fafc',
-              borderWidth: 1, borderColor: summary.outstanding === 0 ? '#bbf7d0' : '#e2e8f0',
-              alignItems: 'center', justifyContent: 'center' 
-            }}>
-              <View style={{
-                width: 46, height: 46,
-                borderRadius: 23,
-                backgroundColor: summary.outstanding === 0 ? '#dcfce7' : '#eff6ff',
-                alignItems: 'center', justifyContent: 'center'
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <View>
+                <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+                  {summary.outstanding === 0 ? 'All Caught Up!' : 'Total Outstanding'}
+                </Text>
+                <Text style={{ color: '#ffffff', fontSize: 36, fontWeight: '900', letterSpacing: -1 }}>
+                  {summary.outstanding.toLocaleString()} <Text style={{ fontSize: 18, fontWeight: '800', color: 'rgba(255,255,255,0.8)' }}>TND</Text>
+                </Text>
+              </View>
+              <View style={{ 
+                width: 48, height: 48, 
+                borderRadius: 16, 
+                backgroundColor: 'rgba(255,255,255,0.15)',
+                alignItems: 'center', justifyContent: 'center' 
               }}>
-                {summary.outstanding === 0 ? (
-                  <CheckCircle2 size={24} color="#16a34a" strokeWidth={2.5} />
-                ) : (
-                  <CreditCard size={24} color="#0055d4" strokeWidth={2.5} />
-                )}
+                <CreditCard size={24} color="#ffffff" strokeWidth={2.5} />
               </View>
             </View>
           </View>
@@ -165,51 +148,66 @@ export const PaymentsScreen = ({ navigation }: any) => {
 
 
         {/* Filter Tabs */}
-        <View style={{ marginBottom: 20, paddingHorizontal: 20 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+        <View style={{ marginBottom: 24, paddingHorizontal: 20 }}>
+          <View style={{ flexDirection: 'row', backgroundColor: '#f1f5f9', padding: 6, borderRadius: 16 }}>
             {['All', 'Paid', 'Unpaid'].map(filter => {
               const isActive = activeFilter === filter;
-              const count = (counts as any)[filter] || 0;
               return (
                 <TouchableOpacity
                   key={filter}
                   onPress={() => setActiveFilter(filter)}
                   activeOpacity={0.85}
                   style={{
-                    flexDirection: 'row', alignItems: 'center',
-                    paddingHorizontal: 16, paddingVertical: 8,
+                    flex: 1,
+                    alignItems: 'center',
+                    paddingVertical: 10,
                     borderRadius: 12,
-                    backgroundColor: isActive ? '#f1f5f9' : 'transparent',
+                    backgroundColor: isActive ? '#ffffff' : 'transparent',
+                    shadowColor: isActive ? '#000' : 'transparent',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: isActive ? 0.05 : 0,
+                    shadowRadius: 4,
+                    elevation: isActive ? 2 : 0,
                   }}
                 >
-                  <Text style={{ fontSize: 14, fontWeight: isActive ? '800' : '600', color: isActive ? '#1e293b' : '#64748b' }}>{filter}</Text>
-                  {count > 0 && (
-                    <View style={{ marginLeft: 6, backgroundColor: isActive ? '#e2e8f0' : '#f1f5f9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-                      <Text style={{ fontSize: 10, fontWeight: '800', color: isActive ? '#475569' : '#94a3b8' }}>{count}</Text>
-                    </View>
-                  )}
+                  <Text style={{ fontSize: 14, fontWeight: '800', color: isActive ? '#0072e6' : '#64748b' }}>{filter}</Text>
                 </TouchableOpacity>
               );
             })}
-          </ScrollView>
+          </View>
+        </View>
+
+        {/* Payment History Title */}
+        <View style={{ paddingHorizontal: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b' }}>Payment History</Text>
+          <Text style={{ fontSize: 14, fontWeight: '800', color: '#0072e6' }}>2025/2026</Text>
         </View>
 
         {/* Payment List */}
         <View style={{ paddingHorizontal: 20 }}>
           {processedList.length > 0 ? (
-            processedList.map((item) => {
+            <View style={{ flexDirection: 'row' }}>
+              {/* Timeline Line */}
+              <View style={{ width: 4, backgroundColor: '#0072e6', borderRadius: 2, marginRight: 16, marginVertical: 8, opacity: 0.8 }} />
+              <View style={{ flex: 1 }}>
+                {processedList.map((item) => {
               const progress = (item.paidAmount / item.totalAmount) * 100;
               const isPaid = item.status === 'Paid';
               const isLocked = item.status === 'Locked';
               const isOverdue = item.isOverdue;
+              const isPartial = item.status === 'Partial';
 
               const statusConfig: any = {
-                Paid:    { label: 'Paid',     color: '#16a34a', bg: '#f0fdf4', border: '#86efac', text: '#15803d', shadow: '#22c55e' },
-                Partial: { label: 'Partial',  color: '#d97706', bg: '#fffbeb', border: '#fcd34d', text: '#b45309', shadow: '#f59e0b' },
-                Due:     { label: isOverdue ? 'Overdue' : 'Due Soon', color: isOverdue ? '#dc2626' : '#ea580c', bg: isOverdue ? '#fef2f2' : '#fff7ed', border: isOverdue ? '#fca5a5' : '#fdba74', text: isOverdue ? '#b91c1c' : '#c2410c', shadow: isOverdue ? '#ef4444' : '#f97316' },
-                Locked:  { label: 'Upcoming', color: '#64748b', bg: '#f8fafc', border: '#f1f5f9', text: '#1e293b', shadow: 'transparent' },
+                Paid:    { label: 'Paid',     color: '#16a34a', bg: '#dcfce7', text: '#16a34a' },
+                Partial: { label: 'Partial',  color: '#d97706', bg: '#fef3c7', text: '#d97706' },
+                Due:     { label: isOverdue ? 'Overdue' : 'Due Soon', color: isOverdue ? '#dc2626' : '#d97706', bg: isOverdue ? '#fee2e2' : '#fef3c7', text: isOverdue ? '#dc2626' : '#d97706' },
+                Locked:  { label: 'Upcoming', color: '#64748b', bg: '#f1f5f9', text: '#64748b' },
               };
               const config = statusConfig[item.status] || statusConfig.Due;
+
+              const [monthStr, yearStr] = item.month.split(' ');
+              const shortMonth = monthStr ? monthStr.substring(0, 3).toUpperCase() : '';
+              const shortYear = yearStr ? yearStr.substring(2) : '';
 
               return (
                 <View
@@ -217,51 +215,55 @@ export const PaymentsScreen = ({ navigation }: any) => {
                   style={{
                     backgroundColor: '#ffffff', 
                     borderRadius: 16, marginBottom: 12,
-                    borderWidth: 1,
-                    borderColor: '#e2e8f0',
-                    shadowColor: '#e2e8f0',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: isLocked ? 0 : 0.4,
-                    shadowRadius: 4,
-                    elevation: isLocked ? 0 : 2,
+                    borderWidth: 1, borderColor: '#f1f5f9',
+                    shadowColor: '#e2e8f0', shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: isLocked ? 0 : 0.6, shadowRadius: 8, elevation: isLocked ? 0 : 2,
                     opacity: isLocked ? 0.6 : 1,
+                    flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12
                   }}
                 >
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 }}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b' }}>
-                        {item.month}
-                      </Text>
-                      <Text style={{ fontSize: 13, fontWeight: '600', color: '#94a3b8', marginTop: 3 }}>
-                        {isOverdue
-                          ? `Overdue by ${item.overdueDays} days`
-                          : isPaid
-                          ? 'Tuition & Academic Fees'
-                          : isLocked
-                          ? 'Not available yet'
-                          : `Due ${item.dueDate || 'end of month'}`}
-                      </Text>
-                    </View>
-                    
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>
-                        {item.status === 'Partial' ? `${item.paidAmount.toLocaleString()} / ` : ''}
-                        {item.totalAmount.toLocaleString()} <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748b' }}>TND</Text>
-                      </Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 }}>
-                        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: config.color }} />
-                        <Text style={{ fontSize: 11, fontWeight: '800', color: config.color, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                          {config.label}
-                        </Text>
-                      </View>
-                    </View>
+                  <View style={{ backgroundColor: '#ffffff', borderWidth: 1, borderColor: config.bg, borderRadius: 12, width: 50, height: 50, alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: config.color }}>{shortMonth}</Text>
+                    <Text style={{ fontSize: 16, fontWeight: '900', color: config.color }}>{shortYear}</Text>
                   </View>
 
-                  {/* Actions removed */}
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>
+                        Tuition Fees
+                      </Text>
+                      {isPaid && <CheckCircle2 size={14} color={config.color} strokeWidth={3} />}
+                      {isOverdue && <AlertCircle size={14} color={config.color} strokeWidth={3} />}
+                    </View>
+                    
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#94a3b8', marginTop: 4 }}>
+                      {isOverdue
+                        ? `Overdue by ${item.overdueDays} days`
+                        : isPaid
+                        ? `Paid on ${shortMonth} 28`
+                        : isLocked
+                        ? 'Not available yet'
+                        : `Due ${item.dueDate || 'end of month'}`}
+                    </Text>
+                  </View>
+                  
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={{ fontSize: 16, fontWeight: '800', color: '#64748b', marginBottom: 6 }}>
+                      {isPartial ? `${item.paidAmount.toLocaleString()} / ` : ''}{item.totalAmount.toLocaleString()} <Text style={{ fontSize: 11, fontWeight: '700' }}>TND</Text>
+                    </Text>
+                    <View style={{ backgroundColor: config.bg, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 }}>
+                      <Text style={{ fontSize: 10, fontWeight: '900', color: config.color, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        {config.label}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
               );
             })
-          ) : (
+          }
+          </View>
+        </View>
+        ) : (
             <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 64, backgroundColor: '#f8fafc', borderRadius: 20, borderWidth: 2, borderColor: '#e2e8f0' }}>
               <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#dcfce7', borderWidth: 2, borderColor: '#86efac', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
                 <CheckCircle2 size={30} color="#16a34a" />

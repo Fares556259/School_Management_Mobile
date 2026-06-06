@@ -320,7 +320,7 @@ export default function App() {
           {authState === 'landing' ? (
             <LandingScreen onSelectRole={onSelectRole} />
           ) : authState === 'signedOut' ? (
-            <SignInScreen onSignIn={handleSignIn} />
+            <SignInScreen role={selectedRole} onSignIn={handleSignIn} onBack={() => setAuthState('landing')} />
           ) : (
             <Stack.Navigator screenOptions={{ headerShown: false }}>
               <Stack.Screen
