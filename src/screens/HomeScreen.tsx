@@ -11,7 +11,7 @@ import {
   Book, Microscope, Clock, Globe, Palette, Coffee, Calculator, Music, Languages,
   MessageSquare, FileText, ChevronRight, BookOpen,
   Calendar as CalendarIcon, Star, Layout, Briefcase, CheckCircle2,
-  Download, X, Award
+  Download, X, Award, User as UserIcon
 } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { studentService } from '../services/api';
@@ -70,46 +70,34 @@ const SessionCard = ({ session }: any) => {
   const isLate = session.attendance?.toUpperCase() === 'LATE';
   const isUpcoming = !session.attendance;
 
+  const pillColor = isAbsent ? '#ef4444' : isPresent ? '#22c55e' : isLate ? '#f59e0b' : '#cbd5e1';
   const badgeBg = isAbsent ? '#fee2e2' : isPresent ? '#dcfce7' : isLate ? '#fef3c7' : '#f1f5f9';
-  const badgeBorder = isAbsent ? '#fca5a5' : isPresent ? '#86efac' : isLate ? '#fcd34d' : '#e2e8f0';
   const badgeText = isAbsent ? '#dc2626' : isPresent ? '#16a34a' : isLate ? '#d97706' : '#64748b';
   const statusLabel = isAbsent ? 'Absent' : isPresent ? 'Present' : isLate ? 'Late' : 'Upcoming';
-  
-  const hasRating = !isUpcoming && !isAbsent && session.score !== undefined;
 
   return (
-    <View style={[styles.sessionItem, isAbsent && styles.sessionItemAbsent]}>
-      <View style={styles.sessionMain}>
-        <View style={styles.sessionHeader}>
-          <View style={styles.sessionTimeCol}>
-            <Text style={styles.sessionTimeBold}>{session.startTime}</Text>
-            <Text style={styles.sessionTimeMuted}>{session.endTime}</Text>
-          </View>
-          
-          <View style={styles.sessionDivider} />
-          
-          <View style={styles.sessionTitleGroup}>
-            <Text style={styles.sessionTitle} numberOfLines={2}>{session.subject?.split('|')[0]?.trim()}</Text>
-            {session.teacher && (
-              <Text style={styles.sessionTeacher}>{session.teacher}</Text>
-            )}
-          </View>
-          
-          <View style={[styles.statusBadge, { backgroundColor: badgeBg, borderColor: badgeBorder }]}>
-            <Text style={[styles.statusBadgeText, { color: badgeText }]}>{statusLabel}</Text>
+    <View style={styles.sessionCardV2}>
+      {/* Vertical left bar (Pill) */}
+      <View style={[styles.sessionPill, { backgroundColor: pillColor }]} />
+      
+      <View style={styles.sessionContentV2}>
+        <View style={styles.sessionHeaderV2}>
+          <Text style={styles.sessionTimeV2}>{session.startTime} - {session.endTime}</Text>
+          <View style={[styles.statusBadgeV2, { backgroundColor: badgeBg }]}>
+            <Text style={[styles.statusBadgeTextV2, { color: badgeText }]}>{statusLabel}</Text>
           </View>
         </View>
 
-        {hasRating && (
-          <View style={styles.ratingSection}>
-            <Text style={styles.ratingLabel}>TEACHER RATING</Text>
-            <View style={styles.starsRow}>
-              {[1, 2, 3, 4, 5].map(s => (
-                <Star key={s} size={15} color={session.score >= s ? '#f59e0b' : '#e2e8f0'} fill={session.score >= s ? '#f59e0b' : 'none'} style={{ marginRight: 3 }} />
-              ))}
-            </View>
-          </View>
-        )}
+        <Text style={styles.sessionTitleV2} numberOfLines={2}>
+          {session.subject?.split('|')[0]?.trim()}
+        </Text>
+
+        <View style={styles.sessionDividerV2} />
+
+        <View style={styles.sessionFooterV2}>
+          <UserIcon size={14} color="#64748b" strokeWidth={2.5} />
+          <Text style={styles.sessionTeacherV2}>{session.teacher || 'Teacher'}</Text>
+        </View>
       </View>
     </View>
   );
@@ -207,7 +195,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
       <GlobalHeader navigation={navigation} />
 
       <ScrollView
@@ -345,8 +333,10 @@ export const HomeScreen = ({ navigation, route }: any) => {
                   ))
                 ) : (
                   <View style={styles.emptyStateBox}>
-                    <CheckCircle2 size={24} color="#94a3b8" />
-                    <Text style={styles.emptyStateText}>No tasks for today.</Text>
+                    <View style={{width: 56, height: 56, borderRadius: 28, backgroundColor: '#dcfce7', alignItems: 'center', justifyContent: 'center', marginBottom: 12}}>
+                      <CheckCircle2 size={28} color="#16a34a" />
+                    </View>
+                    <Text style={styles.emptyStateText}>All caught up! No tasks due.</Text>
                   </View>
                 )}
               </View>
@@ -377,8 +367,10 @@ export const HomeScreen = ({ navigation, route }: any) => {
                   ))
                 ) : (
                   <View style={styles.emptyStateBox}>
-                    <MessageSquare size={24} color="#94a3b8" />
-                    <Text style={styles.emptyStateText}>No remarks for today.</Text>
+                    <View style={{width: 56, height: 56, borderRadius: 28, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginBottom: 12}}>
+                      <MessageSquare size={28} color="#0072e6" />
+                    </View>
+                    <Text style={styles.emptyStateText}>No new remarks today.</Text>
                   </View>
                 )}
               </View>
@@ -421,10 +413,10 @@ export const HomeScreen = ({ navigation, route }: any) => {
                 <TouchableOpacity
                   onPress={() => { Haptics.selectionAsync(); navigation.navigate('Exams'); }}
                   activeOpacity={0.85}
-                  style={[styles.quickCard, { borderColor: '#e2e8f0' }]}
+                  style={[styles.quickCard, { borderColor: '#ffffff' }]}
                 >
-                  <View style={[styles.quickIcon, { backgroundColor: '#f8fafc', borderWidth: 2, borderColor: '#e2e8f0' }]}>
-                    <FileText size={20} color="#1e293b" />
+                  <View style={[styles.quickIcon, { backgroundColor: '#f3e8ff', borderWidth: 0 }]}>
+                    <FileText size={22} color="#9333ea" />
                   </View>
                   <Text style={[styles.quickTitle, { color: '#1e293b' }]}>Exam Center</Text>
                   <Text style={styles.quickSub}>Dates & schedules</Text>
@@ -433,10 +425,10 @@ export const HomeScreen = ({ navigation, route }: any) => {
                 <TouchableOpacity
                   onPress={() => { Haptics.selectionAsync(); navigation.navigate('Results'); }}
                   activeOpacity={0.85}
-                  style={[styles.quickCard, { borderColor: '#e2e8f0' }]}
+                  style={[styles.quickCard, { borderColor: '#ffffff' }]}
                 >
-                  <View style={[styles.quickIcon, { backgroundColor: '#f8fafc', borderWidth: 2, borderColor: '#e2e8f0' }]}>
-                    <Award size={20} color="#1e293b" />
+                  <View style={[styles.quickIcon, { backgroundColor: '#dcfce7', borderWidth: 0 }]}>
+                    <Award size={22} color="#16a34a" />
                   </View>
                   <Text style={[styles.quickTitle, { color: '#1e293b' }]}>Report Card</Text>
                   <Text style={styles.quickSub}>Grades & averages</Text>
@@ -451,7 +443,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
   content: { paddingHorizontal: 20, paddingTop: 12 },
 
   // Section Headers
@@ -506,28 +498,73 @@ const styles = StyleSheet.create({
   },
   historyBtnText: { fontSize: 13, fontWeight: '900', color: '#1e293b' },
 
-  // Session Item
-  sessionItem: {
-    flexDirection: 'row', borderRadius: 16,
-    backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e2e8f0',
-    overflow: 'hidden',
+  // Session Card V2 (New Design)
+  sessionCardV2: {
+    flexDirection: 'row',
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 1,
+    marginBottom: 4,
   },
-  sessionItemAbsent: { borderColor: '#fca5a5' },
-  sessionMain: { flex: 1, padding: 16 },
-  sessionHeader: { flexDirection: 'row', alignItems: 'center' },
-  sessionTimeCol: { alignItems: 'flex-start', minWidth: 44 },
-  sessionTimeBold: { fontSize: 13, fontWeight: '900', color: '#1e293b' },
-  sessionTimeMuted: { fontSize: 11, fontWeight: '800', color: '#94a3b8', marginTop: 2 },
-  sessionDivider: { width: 2, backgroundColor: '#f1f5f9', height: '100%', marginHorizontal: 12, borderRadius: 2 },
-  sessionTitleGroup: { flex: 1, marginRight: 8, justifyContent: 'center' },
-  sessionTitle: { fontSize: 15, fontWeight: '900', color: '#1e293b', lineHeight: 20 },
-  sessionTeacher: { fontSize: 12, color: '#64748b', fontWeight: '800', marginTop: 4 },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, borderWidth: 2, alignSelf: 'flex-start' },
-  statusBadgeText: { fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 },
-  ratingSection: { marginTop: 12, borderTopWidth: 2, borderTopColor: '#f8fafc', paddingTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  ratingLabel: { fontSize: 9, fontWeight: '900', color: '#cbd5e1', letterSpacing: 1, textTransform: 'uppercase' },
-  ratingNote: { fontSize: 12, color: '#94a3b8', fontWeight: '700', fontStyle: 'italic' },
-  starsRow: { flexDirection: 'row' },
+  sessionPill: {
+    width: 4,
+    borderRadius: 2,
+    marginRight: 12,
+  },
+  sessionContentV2: {
+    flex: 1,
+  },
+  sessionHeaderV2: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  sessionTimeV2: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748b',
+  },
+  statusBadgeV2: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statusBadgeTextV2: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  sessionTitleV2: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#1e293b',
+    marginBottom: 10,
+    textAlign: 'left',
+  },
+  sessionDividerV2: {
+    height: 1,
+    backgroundColor: '#f1f5f9',
+    marginBottom: 10,
+  },
+  sessionFooterV2: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sessionTeacherV2: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748b',
+    marginLeft: 6,
+  },
 
   // List Rows (remarks / tasks / exams)
   listRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderTopWidth: 1, borderTopColor: '#f1f5f9', gap: 12 },
@@ -581,8 +618,8 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 16, fontWeight: '900', color: '#1e293b' },
   emptySub: { fontSize: 13, color: '#64748b', fontWeight: '700', textAlign: 'center', lineHeight: 20 },
   emptyText: { fontSize: 14, color: '#94a3b8', fontWeight: '700', textAlign: 'center', paddingVertical: 16, fontStyle: 'italic' },
-  emptyStateBox: { padding: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', borderRadius: 16, borderWidth: 2, borderColor: '#e2e8f0', borderStyle: 'dashed' },
-  emptyStateText: { fontSize: 13, color: '#94a3b8', fontWeight: '800', marginTop: 8 },
+  emptyStateBox: { padding: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff', borderRadius: 24, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.02, shadowRadius: 4, elevation: 1 },
+  emptyStateText: { fontSize: 15, color: '#64748b', fontWeight: '800', marginTop: 4 },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.5)', justifyContent: 'center', padding: 24 },
