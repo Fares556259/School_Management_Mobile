@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, StatusBar, Image as RNImage } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, StatusBar, Image as RNImage, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   ChevronLeft,
@@ -23,11 +23,59 @@ import {
   Trash2
 } from 'lucide-react-native';
 import { teacherService } from '../../services/api';
-import { Skeleton } from '../../components/Skeleton';
 import { useAppStore } from '../../store/useAppStore';
 import moment from 'moment';
 import { TextInput } from 'react-native-gesture-handler';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import DateTimePickerModal from "react-native-modal-datetime-picker";
+import * as Haptics from 'expo-haptics';
+
+const Skeleton = ({ width, height, borderRadius = 8, style }: any) => {
+  const anim = useState(new Animated.Value(0.3))[0];
+  useEffect(() => {
+    Animated.loop(Animated.sequence([
+      Animated.timing(anim, { toValue: 0.7, duration: 800, useNativeDriver: true }),
+      Animated.timing(anim, { toValue: 0.3, duration: 800, useNativeDriver: true })
+    ])).start();
+  }, []);
+  return <Animated.View style={[{ width, height, borderRadius, backgroundColor: '#e2e8f0', opacity: anim }, style]} />;
+};
+
+const DateItem = ({ day, date, active, isToday, onPress }: any) => {
+  const scale = React.useRef(new Animated.Value(1)).current;
+  const handlePress = () => {
+    Haptics.selectionAsync();
+    Animated.sequence([
+      Animated.spring(scale, { toValue: 0.93, useNativeDriver: true, speed: 60 }),
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 40 }),
+    ]).start();
+    onPress();
+  };
+  return (
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <TouchableOpacity
+        onPress={handlePress}
+        activeOpacity={1}
+        style={[{
+          width: 62, height: 76, borderRadius: 20,
+          backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center',
+          marginRight: 10, borderWidth: 1, borderColor: '#e2e8f0',
+        }, active && {
+          backgroundColor: '#0055d4', borderColor: '#0055d4',
+          shadowColor: '#0055d4', shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3, shadowRadius: 8, elevation: 5
+        }]}
+      >
+        <Text style={[{ fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }, active && { color: 'white' }]}>{day}</Text>
+        <Text style={[{ fontSize: 22, fontWeight: '800', color: '#1e293b' }, active && { color: 'white' }]}>{date}</Text>
+        {isToday && (
+          <View style={[{ width: 5, height: 5, borderRadius: 3, backgroundColor: '#0055d4', marginTop: 4 }, active && { backgroundColor: 'rgba(255,255,255,0.7)' }]} />
+        )}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
 
 const AttendanceButton = ({ type, active, onPress }: any) => {
   const configs: any = {
@@ -115,6 +163,8 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
   const [selectedDate, setSelectedDate] = useState(moment());
   const [hasLesson, setHasLesson] = useState(true);
   const [lessonId, setLessonId] = useState<number | null>(null);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [activeSubjectId, setActiveSubjectId] = useState<number | null>(null);
   const [showClassSwitcher, setShowClassSwitcher] = useState(false);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [newTask, setNewTask] = useState({ title: '', description: '', show: false, attachments: [] as any[] });
@@ -128,7 +178,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
   const [calendarMonth, setCalendarMonth] = useState(moment());
 
   // weekDates now based on the currently selected date's week so it shifts when picking a new date
-  const weekDates = Array.from({ length: 7 }, (_, i) => selectedDate.clone().startOf('week').add(i, 'days'));
+  const sliderDates = Array.from({ length: 7 }, (_, i) => selectedDate.clone().subtract(3, 'days').add(i, 'days'));
   const hasChanges = JSON.stringify(attendance) !== JSON.stringify(initialAttendance) || JSON.stringify(notes) !== JSON.stringify(initialNotes) || JSON.stringify(scores) !== JSON.stringify(initialScores) || newTask.title.length > 0 || newTask.attachments.length > 0;
 
   const loadClasses = async () => {
@@ -143,14 +193,16 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
-  const loadStudents = async (classId: string, date: string) => {
+  const loadStudents = async (classId: string, date: string, subjectId?: number) => {
     try {
       setLoading(true);
-      const res = await teacherService.fetchClassStudents(classId, date);
-      if (!res || !Array.isArray(res.students)) { setHasLesson(false); return; }
+      const res = await teacherService.fetchClassStudents(classId, date, subjectId);
+      if (!res || !Array.isArray(res.students)) { setHasLesson(false); setSessions([]); return; }
       setStudents(res.students);
       setHasLesson(res.hasLesson);
       setLessonId(res.lessonId || null);
+      setSessions(res.sessions || []);
+      setActiveSubjectId(res.activeSubjectId || null);
       setAssignments(res.assignments || []);
       setShowClassSwitcher(false);
       const initialAtt: Record<string, string> = {};
@@ -209,12 +261,13 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
         classId: selectedClass.id, date: selectedDate.format('YYYY-MM-DD'),
         records: Object.keys(attendance).map(studentId => ({ studentId, status: attendance[studentId], note: notes[studentId], score: scores[studentId] })),
         lessonId: lessonId,
+        subjectId: activeSubjectId,
         task: newTask.title ? { title: newTask.title, description: newTask.description, attachments: newTask.attachments } as any : undefined
       });
       setInitialAttendance(attendance); setInitialNotes(notes); setInitialScores(scores);
       setNewTask({ title: '', description: '', show: false, attachments: [] });
       setSaveCount(prev => prev + 1); // Trigger collapse of all notes
-      await loadStudents(selectedClass.id, selectedDate.format('YYYY-MM-DD'));
+      await loadStudents(selectedClass.id, selectedDate.format('YYYY-MM-DD'), activeSubjectId || undefined);
       alert('Attendance and task saved successfully!');
     } catch (err) { alert('Failed to save data'); } finally { setLoading(false); }
   };
@@ -281,8 +334,71 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
       </View>
       <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 200 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadStudents(selectedClass.id, selectedDate.format('YYYY-MM-DD'))} />}>
         <View style={{ marginBottom: 32 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}><Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b' }}>{selectedDate.isSame(moment(), 'day') ? "Today's Schedule" : `${selectedDate.format('dddd')}'s Schedule`}</Text><TouchableOpacity onPress={() => { setCalendarMonth(selectedDate.clone()); setShowDatePicker(true); }} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 }}><CalendarIcon size={22} color="#0055d4" /></TouchableOpacity></View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>{weekDates.map((dateObj, idx) => { const isSelected = selectedDate.isSame(dateObj, 'day'); const isToday = moment().isSame(dateObj, 'day'); return (<TouchableOpacity key={idx} onPress={() => { setSelectedDate(dateObj); if (selectedClass) loadStudents(selectedClass.id, dateObj.format('YYYY-MM-DD')); }} activeOpacity={0.8} style={{ width: 72, height: 96, borderRadius: 20, backgroundColor: isSelected ? '#0055d4' : 'white', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: isSelected ? '#0055d4' : '#f1f5f9', shadowColor: isSelected ? '#0055d4' : '#000', shadowOpacity: isSelected ? 0.2 : 0, shadowRadius: 10, elevation: isSelected ? 5 : 0 }}><Text style={{ fontSize: 11, fontWeight: '900', color: isSelected ? 'rgba(255,255,255,0.7)' : '#94a3b8', textTransform: 'uppercase' }}>{dateObj.format('ddd')}</Text><Text style={{ fontSize: 24, fontWeight: '900', color: isSelected ? 'white' : '#1e293b', marginTop: 4 }}>{dateObj.format('D')}</Text>{isToday && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: isSelected ? 'white' : '#0055d4', marginTop: 6 }} />}</TouchableOpacity>); })}</ScrollView>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b' }}>
+              {selectedDate.isSame(moment(), 'day') ? "Today's Schedule" : `${selectedDate.format('dddd')}'s Schedule`}
+            </Text>
+            {!selectedDate.isSame(moment(), 'day') && (
+              <TouchableOpacity onPress={() => { setSelectedDate(moment()); if (selectedClass) loadStudents(selectedClass.id, moment().format('YYYY-MM-DD')); }}>
+                <Text style={{ fontSize: 13, fontWeight: '800', color: '#0055d4' }}>Back to Today</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => { setCalendarMonth(selectedDate.clone()); setShowDatePicker(true); }} style={{ width: 48, height: 76, borderRadius: 20, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
+              <CalendarIcon size={24} color="#64748b" />
+            </TouchableOpacity>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 8 }}>
+              {sliderDates.map((dateObj, idx) => {
+                const isSelected = selectedDate.isSame(dateObj, 'day');
+                const isToday = moment().isSame(dateObj, 'day');
+                return (
+                  <DateItem
+                    key={idx}
+                    day={dateObj.format('ddd')}
+                    date={dateObj.format('D')}
+                    active={isSelected}
+                    isToday={isToday}
+                    onPress={() => {
+                      setSelectedDate(dateObj);
+                      if (selectedClass) loadStudents(selectedClass.id, dateObj.format('YYYY-MM-DD'));
+                    }}
+                  />
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {sessions.length > 0 && !loading && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ marginTop: 24, paddingBottom: 4, gap: 12 }}>
+              {sessions.map(session => {
+                const isActive = activeSubjectId === session.subjectId;
+                return (
+                  <TouchableOpacity 
+                    key={session.slotId}
+                    onPress={() => {
+                      if (selectedClass) loadStudents(selectedClass.id, selectedDate.format('YYYY-MM-DD'), session.subjectId);
+                    }}
+                    style={{
+                      paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20,
+                      backgroundColor: isActive ? '#0055d4' : '#f8fafc',
+                      borderWidth: 1, borderColor: isActive ? '#0055d4' : '#e2e8f0',
+                      flexDirection: 'row', alignItems: 'center',
+                      shadowColor: isActive ? '#0055d4' : '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: isActive ? 0.2 : 0,
+                      shadowRadius: 4,
+                      elevation: isActive ? 3 : 0
+                    }}>
+                    <Clock size={16} color={isActive ? 'white' : '#64748b'} style={{ marginRight: 8 }} />
+                    <Text style={{ fontSize: 14, fontWeight: '800', color: isActive ? 'white' : '#475569' }}>
+                      {session.subjectName} • {session.startTime.substring(0, 5)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
         </View>
         <View>
           {hasLesson && !loading && <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}><Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b', textTransform: 'uppercase', letterSpacing: 1 }}>Student List</Text><View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 }}><Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4' }}>{students.length} students</Text></View></View>}

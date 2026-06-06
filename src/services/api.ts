@@ -292,8 +292,8 @@ export const studentService = {
         color: '#0055d4',
       })),
       notes: (home.teacherRemarks || []).map((r: any) => {
-        let timeString = '';
-        if (r.date) {
+        let timeString = r.time || '';
+        if (!timeString && r.date) {
            const d = new Date(r.date);
            timeString = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
@@ -450,6 +450,7 @@ export const studentService = {
     return data.map((n: any) => ({
       ...n,
       studentName: typeof n.student === 'object' ? `${n.student.name} ${n.student.surname}` : (n.student || 'Student'),
+      className: n.className || 'School',
       studentAvatar: n.student ? getFullImageUrl(n.student.img) : null
     }));
   },
@@ -595,10 +596,11 @@ export const teacherService = {
     return apiFetch(`/api/mobile/teacher/classes?teacherId=${teacherId}`);
   },
 
-  fetchClassStudents: async (classId: string, date?: string) => {
+  fetchClassStudents: async (classId: string, date?: string, subjectId?: number) => {
     const teacherId = await authStorage.getUserId();
     let url = `/api/mobile/teacher/students?classId=${classId}&teacherId=${teacherId}`;
     if (date) url += `&date=${date}`;
+    if (subjectId) url += `&subjectId=${subjectId}`;
     return apiFetch(url);
   },
 
@@ -607,6 +609,7 @@ export const teacherService = {
     date: string; 
     records: { studentId: string; status: string; note?: string; score?: number }[];
     lessonId: number | null;
+    subjectId?: number | null;
     task?: { title: string; description?: string };
     resource?: { title: string; url: string };
   }) => {

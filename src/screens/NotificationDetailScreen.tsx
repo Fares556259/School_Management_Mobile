@@ -69,7 +69,7 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
                 <Text style={styles.statLabel}>Absences this month</Text>
               </View>
               <View style={[styles.statCard, { width: '47%' }]}>
-                <Text style={[styles.statValue, { color: '#94a3b8' }]}>Class 1A</Text>
+                <Text style={[styles.statValue, { color: '#94a3b8' }]}>{notification.className || 'N/A'}</Text>
                 <Text style={styles.statLabel}>Grade</Text>
               </View>
             </View>

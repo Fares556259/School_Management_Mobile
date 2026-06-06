@@ -83,8 +83,10 @@ const SessionCard = ({ session }: any) => {
       <View style={styles.sessionContentV2}>
         <View style={styles.sessionHeaderV2}>
           <Text style={styles.sessionTimeV2}>{session.startTime} - {session.endTime}</Text>
-          <View style={[styles.statusBadgeV2, { backgroundColor: badgeBg }]}>
-            <Text style={[styles.statusBadgeTextV2, { color: badgeText }]}>{statusLabel}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={[styles.statusBadgeV2, { backgroundColor: badgeBg }]}>
+              <Text style={[styles.statusBadgeTextV2, { color: badgeText }]}>{statusLabel}</Text>
+            </View>
           </View>
         </View>
 
@@ -94,9 +96,24 @@ const SessionCard = ({ session }: any) => {
 
         <View style={styles.sessionDividerV2} />
 
-        <View style={styles.sessionFooterV2}>
-          <UserIcon size={14} color="#64748b" strokeWidth={2.5} />
-          <Text style={styles.sessionTeacherV2}>{session.teacher || 'Teacher'}</Text>
+        <View style={[styles.sessionFooterV2, { justifyContent: 'space-between' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <UserIcon size={14} color="#64748b" strokeWidth={2.5} style={{ marginRight: 6 }} />
+            <Text style={styles.sessionTeacherV2}>{session.teacher || 'Teacher'}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+            {[1, 2, 3, 4, 5].map((starIndex) => {
+              const isFilled = session.score > 0 && session.score >= starIndex;
+              return (
+                <Star 
+                  key={starIndex} 
+                  size={12} 
+                  color={isFilled ? "#eab308" : "#cbd5e1"} 
+                  fill={isFilled ? "#eab308" : "transparent"} 
+                />
+              );
+            })}
+          </View>
         </View>
       </View>
     </View>
@@ -356,11 +373,10 @@ export const HomeScreen = ({ navigation, route }: any) => {
                         <MessageSquare size={18} color="#94a3b8" />
                       </View>
                       <View style={styles.remarkContent}>
-                        <View style={styles.remarkHeader}>
-                          <Text style={styles.remarkSubject}>{note.subject?.split('|')[0]?.trim() || 'General'}</Text>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                          <Text style={[styles.remarkTitle, { flex: 1, marginBottom: 0, paddingRight: 8 }]} numberOfLines={2}>{note.text || 'No content'}</Text>
                           <Text style={styles.remarkTime}>{note.time || ''}</Text>
                         </View>
-                        <Text style={styles.remarkTitle} numberOfLines={2}>{note.text || 'No content'}</Text>
                         <Text style={styles.remarkMeta}>By {note.author || 'Teacher'}</Text>
                       </View>
                     </TouchableOpacity>
@@ -379,25 +395,33 @@ export const HomeScreen = ({ navigation, route }: any) => {
               <Modal visible={!!selectedRemark} transparent animationType="fade" onRequestClose={() => setSelectedRemark(null)}>
                 <TouchableOpacity activeOpacity={1} onPress={() => setSelectedRemark(null)} style={styles.modalOverlay}>
                   <View style={styles.modalCard}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.modalTitle}>Teacher Remark</Text>
-                        <Text style={styles.modalSub}>{selectedRemark?.subject?.split('|')[0]?.trim() || 'General'}</Text>
-                      </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                      <Text style={styles.modalTitle}>Teacher Remark</Text>
                       <TouchableOpacity onPress={() => setSelectedRemark(null)} style={styles.closeBtn}>
-                        <X size={18} color="#64748b" />
+                        <X size={20} color="#64748b" />
                       </TouchableOpacity>
                     </View>
                     <ScrollView showsVerticalScrollIndicator={false}>
-                      <Text style={styles.modalBody}>{selectedRemark?.text}</Text>
-                      <View style={{ flexDirection: 'row', marginTop: 20, gap: 16 }}>
-                        <View style={styles.modalMeta}>
-                          <Text style={styles.modalMetaLabel}>WRITTEN BY</Text>
-                          <Text style={styles.modalMetaValue}>{selectedRemark?.teacher}</Text>
+                      <View style={{ backgroundColor: '#f8fafc', padding: 20, borderRadius: 16, marginBottom: 20 }}>
+                        <Text style={[styles.modalBody, { color: '#334155', fontSize: 16, lineHeight: 24, marginTop: 0 }]}>{selectedRemark?.text}</Text>
+                      </View>
+
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 16 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                            <Text style={{ fontWeight: '800', color: '#0072e6', fontSize: 16 }}>
+                              {selectedRemark?.author?.charAt(0)?.toUpperCase() || 'T'}
+                            </Text>
+                          </View>
+                          <View>
+                            <Text style={{ fontSize: 10, fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Written By</Text>
+                            <Text style={{ fontSize: 14, fontWeight: '800', color: '#1e293b' }}>{selectedRemark?.author || 'Teacher'}</Text>
+                          </View>
                         </View>
-                        <View style={styles.modalMeta}>
-                          <Text style={styles.modalMetaLabel}>TIME</Text>
-                          <Text style={styles.modalMetaValue}>{selectedRemark?.time}</Text>
+                        
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <Text style={{ fontSize: 10, fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Time</Text>
+                          <Text style={{ fontSize: 14, fontWeight: '800', color: '#1e293b' }}>{selectedRemark?.time || '--:--'}</Text>
                         </View>
                       </View>
                     </ScrollView>
