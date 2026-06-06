@@ -36,7 +36,7 @@ const getSubjectDomain = (subjectName: string) => {
       return domain;
     }
   }
-  return { id: 'OTHER', title: 'OTHER SUBJECTS', color: '#0055d4', bg: '#eff6ff' };
+  return { id: 'OTHER', title: 'OTHER SUBJECTS', color: '#0055d4', bg: '#eff6ff', keywords: [] };
 };
 
 const getArabicName = (subjectName: string) => {

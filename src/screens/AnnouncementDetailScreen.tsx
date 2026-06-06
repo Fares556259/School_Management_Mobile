@@ -10,6 +10,17 @@ export const AnnouncementDetailScreen = ({ route, navigation }: any) => {
   const { announcement } = route.params;
 
   const [downloading, setDownloading] = React.useState(false);
+  const [schoolName, setSchoolName] = React.useState('School');
+
+  React.useEffect(() => {
+    import('../services/api').then(({ parentService }) => {
+      parentService.fetchSchoolInfo().then(res => {
+        if (res && res.schoolName) {
+          setSchoolName(res.schoolName);
+        }
+      }).catch(() => {});
+    });
+  }, []);
 
   const handleShare = async () => {
     try {
@@ -170,7 +181,7 @@ export const AnnouncementDetailScreen = ({ route, navigation }: any) => {
               <Megaphone color="#ffffff" size={20} />
             </View>
             <View style={{ marginLeft: 16 }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: '#1e293b' }}>SnapSchool Admin</Text>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: '#1e293b' }}>{schoolName} Admin</Text>
               <Text style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>Official Communication</Text>
             </View>
           </View>

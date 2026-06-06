@@ -497,6 +497,13 @@ export const studentService = {
     });
   },
 
+  updateProfile: async (studentId: string, data: { name?: string; surname?: string }) => {
+    return apiFetch('/api/mobile/students', {
+      method: 'PATCH',
+      body: JSON.stringify({ id: studentId, ...data }),
+    });
+  },
+
   fetchResults: async (studentId: string): Promise<{ results: any[], summary: any }> => {
     const data = await apiFetch(`/api/mobile/results?studentId=${studentId}`);
     return data || { results: [], summary: { average: 0, totalSubjects: 0 } };

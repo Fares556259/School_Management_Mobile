@@ -559,7 +559,6 @@ const styles = StyleSheet.create({
   remarkMeta: { fontSize: 12, color: '#64748b', fontWeight: '500' },
 
   // Tasks
-  taskIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   taskBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, borderWidth: 2, alignSelf: 'flex-start' },
   taskBadgeText: { fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 },
 

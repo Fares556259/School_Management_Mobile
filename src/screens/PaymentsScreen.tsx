@@ -133,11 +133,11 @@ export const PaymentsScreen = ({ navigation }: any) => {
             justifyContent: 'space-between',
           }}>
             <View>
-              <Text style={{ fontFamily: 'PlusJakartaSans-Bold', color: '#64748b', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+              <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
                 {summary.outstanding === 0 ? 'All Caught Up!' : 'Outstanding Amount'}
               </Text>
-              <Text style={{ fontFamily: 'PlusJakartaSans-Bold', color: summary.outstanding === 0 ? '#16a34a' : '#1e293b', fontSize: 36, fontWeight: '900', letterSpacing: -1 }}>
-                {summary.outstanding.toLocaleString()} <Text style={{ fontFamily: 'PlusJakartaSans-Bold', fontSize: 16, fontWeight: '800', color: '#94a3b8' }}>TND</Text>
+              <Text style={{ color: summary.outstanding === 0 ? '#16a34a' : '#1e293b', fontSize: 36, fontWeight: '900', letterSpacing: -1 }}>
+                {summary.outstanding.toLocaleString()} <Text style={{ fontSize: 16, fontWeight: '800', color: '#94a3b8' }}>TND</Text>
               </Text>
             </View>
             <View style={{ 
@@ -229,7 +229,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
                 >
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 }}>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontFamily: 'PlusJakartaSans-Bold', fontSize: 17, fontWeight: '900', color: '#1e293b' }}>
+                      <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b' }}>
                         {item.month}
                       </Text>
                       <Text style={{ fontSize: 13, fontWeight: '600', color: '#94a3b8', marginTop: 3 }}>

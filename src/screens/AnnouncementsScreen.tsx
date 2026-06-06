@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StatusBar, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, Megaphone, ChevronRight, Bell } from 'lucide-react-native';
+import { Megaphone, ChevronRight } from 'lucide-react-native';
 import { studentService } from '../services/api';
 import { Announcement } from '../types';
 import { useAppStore } from '../store/useAppStore';
@@ -9,36 +9,6 @@ import { GlobalHeader } from '../components/GlobalHeader';
 import { Image } from 'expo-image';
 import { SkeletonBlock } from '../components/SkeletonView';
 import * as Haptics from 'expo-haptics';
-
-// ─── Category Pill ────────────────────────────────────────────────────────────
-const CategoryPill = ({ label, active, onPress }: any) => {
-  const isUrgent = label === 'URGENT';
-  const activeColor = isUrgent ? '#dc2626' : '#0072e6';
-  const activeBg = isUrgent ? '#fee2e2' : '#eff6ff';
-  const activeBorder = isUrgent ? '#fca5a5' : '#bfdbfe';
-
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.8}
-      style={{
-        paddingHorizontal: 16, paddingVertical: 9,
-        borderRadius: 999, borderWidth: 2,
-        backgroundColor: active ? activeBg : '#ffffff',
-        borderColor: active ? activeBorder : '#e2e8f0',
-        marginRight: 8,
-      }}
-    >
-      <Text style={{
-        fontSize: 12, fontWeight: '900',
-        color: active ? activeColor : '#94a3b8',
-        textTransform: 'uppercase', letterSpacing: 0.5,
-      }}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-};
 
 // ─── Announcement Card ────────────────────────────────────────────────────────
 const AnnouncementCard = ({ item, onPress }: any) => {
@@ -112,8 +82,6 @@ const AnnouncementCard = ({ item, onPress }: any) => {
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export const AnnouncementsScreen = ({ navigation }: any) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('ALL');
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const { getSelectedChild, selectedChildId } = useAppStore();
@@ -131,14 +99,7 @@ export const AnnouncementsScreen = ({ navigation }: any) => {
     fetchWithClass();
   }, [selectedChildId]);
 
-  const categories = ['ALL', ...Array.from(new Set(announcements.map(a => a.category)))];
-
-  const filtered = announcements.filter(a => {
-    const matchSearch = a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchCat = activeCategory === 'ALL' || a.category === activeCategory;
-    return matchSearch && matchCat;
-  });
+  const filtered = announcements;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }} edges={['top']}>
@@ -155,44 +116,7 @@ export const AnnouncementsScreen = ({ navigation }: any) => {
         </Text>
       </View>
 
-      {/* Search Bar */}
-      <View style={{ paddingHorizontal: 20, marginBottom: 12 }}>
-        <View style={{
-          flexDirection: 'row', alignItems: 'center', gap: 12,
-          backgroundColor: '#f8fafc', borderRadius: 16,
-          borderWidth: 2, borderColor: '#e2e8f0',
-          paddingHorizontal: 16, paddingVertical: 14,
-        }}>
-          <Search size={20} color="#94a3b8" />
-          <TextInput
-            placeholder="Search news..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            style={{ flex: 1, fontSize: 15, color: '#1e293b', fontWeight: '700' }}
-            placeholderTextColor="#cbd5e1"
-          />
-        </View>
-      </View>
 
-      {/* Category Chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ maxHeight: 44, flexGrow: 0 }}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 4, alignItems: 'center' }}
-      >
-        {categories.map(cat => (
-          <CategoryPill
-            key={cat}
-            label={cat}
-            active={activeCategory === cat}
-            onPress={() => { Haptics.selectionAsync(); setActiveCategory(cat); }}
-          />
-        ))}
-      </ScrollView>
-
-      {/* Spacer */}
-      <View style={{ height: 12 }} />
 
       {/* Content */}
       {loading ? (
