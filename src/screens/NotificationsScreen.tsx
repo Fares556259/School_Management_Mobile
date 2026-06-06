@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Alert, RefreshControl, View, Text, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, SectionList, StyleSheet, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, AlertTriangle, Info, Check, Trash2, Calendar, Clock, Bell } from 'lucide-react-native';
+import { ChevronLeft, AlertTriangle, Info, Check, Trash2, Calendar, Clock, Bell, MessageCircle, FileText } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { studentService, authStorage } from '../services/api';
 import { Notification } from '../types';
@@ -23,7 +23,31 @@ const ICON_CONFIG: Record<string, { icon: any, color: string, bgColor: string, a
 
 const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onPress: (n: Notification) => void, onDelete: (id: number) => void }) => {
   const absenceCount = item.message.match(/(\d+) absences/)?.[1] || item.message.match(/missed (\d+) sessions/)?.[1];
-  const config = ICON_CONFIG[item.type] || ICON_CONFIG.DEFAULT;
+  
+  let dynamicType = item.type;
+  let dynamicTitle = item.title || 'Notification';
+  let displayMessage = item.message;
+  
+  if (item.message.includes('A remark was left')) {
+    dynamicType = 'REMARK';
+    dynamicTitle = 'Teacher Remark';
+    displayMessage = item.message.replace(/A remark was left for [^:]+:\s*"/, '"');
+  } else if (item.type === 'ATTENDANCE') {
+    dynamicTitle = 'Attendance Update';
+  } else if (item.type === 'PAYMENT') {
+    dynamicTitle = 'Payment Alert';
+  } else if (item.message.toLowerCase().includes('assignment') || item.message.toLowerCase().includes('task')) {
+    dynamicType = 'ASSIGNMENT';
+    dynamicTitle = 'New Assignment';
+  }
+
+  const extendedConfig = {
+    ...ICON_CONFIG,
+    REMARK: { icon: MessageCircle, color: '#8b5cf6', bgColor: '#f5f3ff', accentColor: '#8b5cf6' },
+    ASSIGNMENT: { icon: FileText, color: '#10b981', bgColor: '#d1fae5', accentColor: '#10b981' }
+  };
+
+  const config = extendedConfig[dynamicType as keyof typeof extendedConfig] || ICON_CONFIG.DEFAULT;
   const Icon = config.icon;
 
   const renderRightActions = () => (
@@ -38,12 +62,12 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
       <Animated.View 
         entering={FadeInUp.duration(400)}
         layout={Layout.springify()}
-        style={styles.card}
+        style={[styles.card, item.isNew && styles.unreadCardWrapper]}
       >
         <TouchableOpacity 
           activeOpacity={0.7}
           onPress={() => onPress(item)}
-          style={styles.cardContent}
+          style={[styles.cardContent, item.isNew && styles.unreadCard]}
         >
           <View style={[styles.iconContainer, { backgroundColor: config.bgColor }]}>
             <Icon size={18} color={config.color} strokeWidth={2.5} />
@@ -51,23 +75,21 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
           
           <View style={styles.textContainer}>
             <View style={styles.cardHeader}>
-              <Text style={styles.titleText}>
-                {item.type === 'ATTENDANCE' ? 'Attendance alert' : (item.title || 'Notification')}
-              </Text>
-              <Text style={styles.timeText}>{item.time}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, paddingRight: 8 }}>
+                {item.isNew && <View style={styles.unreadDot} />}
+                <Text style={[styles.titleText, item.isNew && styles.unreadTitleText]} numberOfLines={1}>
+                  {dynamicTitle}
+                </Text>
+              </View>
+              <Text style={[styles.timeText, item.isNew && styles.unreadTimeText]}>{item.time}</Text>
             </View>
             
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-              {item.isNew && (
-                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#0055d4', marginRight: 6 }} />
-              )}
-              <Text style={styles.typeText}>{item.type} • {item.studentName}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+              <Text style={styles.typeText}>{item.studentName}</Text>
             </View>
             
-
-            
-            <Text style={styles.messageText} numberOfLines={2}>
-              {item.message}
+            <Text style={[styles.messageText, item.isNew && styles.unreadMessageText]} numberOfLines={3}>
+              {displayMessage}
             </Text>
 
             {absenceCount && (
@@ -291,17 +313,25 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   filterTab: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: 'transparent',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
   },
   activeFilterTab: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   filterTabText: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
     color: '#64748b',
   },
   activeFilterTabText: {
@@ -312,13 +342,15 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     paddingHorizontal: 24,
-    paddingVertical: 12,
+    paddingTop: 24,
+    paddingBottom: 12,
+    backgroundColor: '#ffffff',
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#94a3b8',
-    letterSpacing: 1.5,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0f172a',
+    letterSpacing: 1,
     textTransform: 'uppercase',
   },
   card: {
@@ -326,19 +358,25 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
   },
+  unreadCardWrapper: {
+    borderBottomColor: '#e0e7ff',
+  },
+  unreadCard: {
+    backgroundColor: '#f8fafc',
+  },
   cardContent: {
     flexDirection: 'row',
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 20,
     alignItems: 'flex-start',
   },
   iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
+    marginRight: 16,
   },
   textContainer: {
     flex: 1,
@@ -347,27 +385,47 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   typeText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#94a3b8',
+    fontWeight: '700',
+    color: '#64748b',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   timeText: {
     fontSize: 12,
     color: '#94a3b8',
     fontWeight: '600',
   },
+  unreadTimeText: {
+    color: '#3b82f6',
+    fontWeight: '700',
+  },
   titleText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#0f172a',
+  },
+  unreadTitleText: {
+    fontWeight: '900',
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#3b82f6',
+    marginRight: 8,
   },
   messageText: {
     fontSize: 14,
-    color: '#64748b',
-    lineHeight: 20,
+    color: '#475569',
+    lineHeight: 22,
+  },
+  unreadMessageText: {
+    color: '#1e293b',
+    fontWeight: '500',
   },
   absencePill: {
     flexDirection: 'row',
