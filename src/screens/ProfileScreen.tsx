@@ -132,12 +132,6 @@ const ChildCard = ({ child, index, onSelect, onEditImage }: any) => {
           Class: {child.class}
         </Text>
       </View>
-      <TouchableOpacity 
-        onPress={onEditImage}
-        className="p-2 bg-surface-low rounded-full"
-      >
-        <Camera size={18} color="#737c7f" />
-      </TouchableOpacity>
     </TouchableOpacity>
   );
 };
@@ -355,6 +349,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
         if (updated) {
           const refreshedChildren = await parentService.fetchChildren();
           setChildren(refreshedChildren);
+          setEditChildrenDataBulk(prev => prev.map(c => c.id === id ? { ...c, avatarUrl: url } : c));
         }
       }
       Alert.alert('Success', 'Profile picture updated successfully');
@@ -524,7 +519,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
                 }
                 setEditChildrenDataBulk(children.map(c => {
                   const parts = (c.name || '').split(' ');
-                  return { id: c.id, name: parts[0] || '', surname: parts.slice(1).join(' ') || '' };
+                  return { id: c.id, name: parts[0] || '', surname: parts.slice(1).join(' ') || '', avatarUrl: c.avatarUrl };
                 }));
                 setEditModalVisible(true);
               }}
@@ -569,7 +564,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
               color="#3b82f6" iconBg="bg-blue-50"
               label="Notification" 
               subtitle="Customize your notification preferences"
-              rightElement={<Switch value={notificationsEnabled} onValueChange={toggleNotifications} trackColor={{ false: '#e2e8f0', true: '#0055d4' }} />}
+              rightElement={<Switch value={notificationsEnabled} onValueChange={toggleNotifications} trackColor={{ false: '#e2e8f0', true: '#0055d4' }} style={{ transform: [{ scale: 0.8 }] }} />}
             />
             <SettingItemV3 
               icon={Info} 
@@ -667,8 +662,26 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
                   {editChildrenDataBulk.map((childData, index) => (
                     <View key={childData.id} className="mb-6 bg-white rounded-3xl p-5 border border-surface-low/50 shadow-sm shadow-black/5">
                       <View className="flex-row items-center mb-4">
-                        <View className="w-8 h-8 rounded-full bg-blue-50 items-center justify-center mr-3">
-                          <UserIcon size={16} color="#0055d4" />
+                        <View className="relative mr-3 pb-1 pr-1">
+                          <View className="w-12 h-12 rounded-full bg-blue-50 items-center justify-center shadow-sm shadow-black/5 overflow-hidden">
+                            {childData.avatarUrl ? (
+                              <Image 
+                                source={{ uri: childData.avatarUrl }} 
+                                style={{ width: '100%', height: '100%' }} 
+                                contentFit="cover" 
+                              />
+                            ) : (
+                              <UserIcon size={20} color="#0055d4" />
+                            )}
+                          </View>
+                          <TouchableOpacity 
+                            onPress={() => showImageOptions('student', childData.id)} 
+                            hitSlop={{top: 20, bottom: 20, left: 20, right: 20}}
+                            style={{ zIndex: 100, elevation: 10 }}
+                            className="absolute bottom-0 right-0 bg-brand-primary w-7 h-7 rounded-full items-center justify-center border-2 border-white shadow-sm shadow-black/10"
+                          >
+                            <Camera size={12} color="white" />
+                          </TouchableOpacity>
                         </View>
                         <Text className="text-sm font-jakarta font-bold text-text-primary">
                           Child {index + 1}
@@ -726,6 +739,65 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
                 {updating ? <ActivityIndicator color="white" /> : <Text className={`${updating || !isDirty ? 'text-text-muted' : 'text-white'} font-jakarta font-bold text-lg`}>Save Changes</Text>}
               </TouchableOpacity>
           </View>
+
+          {/* Photo Selection Action Sheet (Nested inside Edit Modal for iOS compatibility) */}
+          <Modal visible={photoModalVisible} transparent animationType="fade">
+            <TouchableOpacity 
+              activeOpacity={1} 
+              onPress={() => setPhotoModalVisible(false)}
+              className="flex-1 bg-black/40 justify-end p-6"
+            >
+              <TouchableOpacity activeOpacity={1} className="bg-white rounded-[32px] p-6 mb-4">
+                <View className="items-center mb-8">
+                  <Text className="text-xl font-jakarta font-black text-text-primary">Update profile photo</Text>
+                  <Text className="text-text-muted font-manrope font-bold text-xs mt-1">Choose how you'd like to add your photo</Text>
+                </View>
+
+                <View className="gap-3">
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setPhotoModalVisible(false);
+                      if (photoTarget) pickImage(photoTarget.type, photoTarget.id);
+                    }}
+                    className="flex-row items-center bg-white p-4 rounded-2xl border border-surface-low"
+                  >
+                    <View className="w-12 h-12 bg-blue-50 rounded-2xl items-center justify-center">
+                      <ImageIcon size={22} color="#2563eb" />
+                    </View>
+                    <View className="ml-4 flex-1">
+                      <Text className="text-base font-jakarta font-bold text-text-primary">Choose from library</Text>
+                      <Text className="text-text-muted text-[10px] font-manrope font-bold">Pick from your photo gallery</Text>
+                    </View>
+                    <ChevronRight size={18} color="#d1d5db" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setPhotoModalVisible(false);
+                      if (photoTarget) takePhoto(photoTarget.type, photoTarget.id);
+                    }}
+                    className="flex-row items-center bg-white p-4 rounded-2xl border border-surface-low"
+                  >
+                    <View className="w-12 h-12 bg-purple-50 rounded-2xl items-center justify-center">
+                      <Camera size={22} color="#8b5cf6" />
+                    </View>
+                    <View className="ml-4 flex-1">
+                      <Text className="text-base font-jakarta font-bold text-text-primary">Take a photo</Text>
+                      <Text className="text-text-muted text-[10px] font-manrope font-bold">Use your camera right now</Text>
+                    </View>
+                    <ChevronRight size={18} color="#d1d5db" />
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                onPress={() => setPhotoModalVisible(false)}
+                className="bg-[#334155]/20 py-4 rounded-2xl items-center"
+              >
+                <Text className="text-text-primary font-jakarta font-black text-lg">Cancel</Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </Modal>
         </SafeAreaView>
       </Modal>
 
@@ -791,64 +863,6 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
         </SafeAreaView>
       </Modal>
 
-      {/* Photo Selection Action Sheet */}
-      <Modal visible={photoModalVisible} transparent animationType="fade">
-        <TouchableOpacity 
-          activeOpacity={1} 
-          onPress={() => setPhotoModalVisible(false)}
-          className="flex-1 bg-black/40 justify-end p-6"
-        >
-          <TouchableOpacity activeOpacity={1} className="bg-white rounded-[32px] p-6 mb-4">
-            <View className="items-center mb-8">
-              <Text className="text-xl font-jakarta font-black text-text-primary">Update profile photo</Text>
-              <Text className="text-text-muted font-manrope font-bold text-xs mt-1">Choose how you'd like to add your photo</Text>
-            </View>
-
-            <View className="gap-3">
-              <TouchableOpacity 
-                onPress={() => {
-                  setPhotoModalVisible(false);
-                  if (photoTarget) pickImage(photoTarget.type, photoTarget.id);
-                }}
-                className="flex-row items-center bg-white p-4 rounded-2xl border border-surface-low"
-              >
-                <View className="w-12 h-12 bg-blue-50 rounded-2xl items-center justify-center">
-                  <ImageIcon size={22} color="#2563eb" />
-                </View>
-                <View className="ml-4 flex-1">
-                  <Text className="text-base font-jakarta font-bold text-text-primary">Choose from library</Text>
-                  <Text className="text-text-muted text-[10px] font-manrope font-bold">Pick from your photo gallery</Text>
-                </View>
-                <ChevronRight size={18} color="#d1d5db" />
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                onPress={() => {
-                  setPhotoModalVisible(false);
-                  if (photoTarget) takePhoto(photoTarget.type, photoTarget.id);
-                }}
-                className="flex-row items-center bg-white p-4 rounded-2xl border border-surface-low"
-              >
-                <View className="w-12 h-12 bg-purple-50 rounded-2xl items-center justify-center">
-                  <Camera size={22} color="#8b5cf6" />
-                </View>
-                <View className="ml-4 flex-1">
-                  <Text className="text-base font-jakarta font-bold text-text-primary">Take a photo</Text>
-                  <Text className="text-text-muted text-[10px] font-manrope font-bold">Use your camera right now</Text>
-                </View>
-                <ChevronRight size={18} color="#d1d5db" />
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            onPress={() => setPhotoModalVisible(false)}
-            className="bg-[#334155]/20 py-4 rounded-2xl items-center"
-          >
-            <Text className="text-text-primary font-jakarta font-black text-lg">Cancel</Text>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
     </SafeAreaView>
   );
 };
