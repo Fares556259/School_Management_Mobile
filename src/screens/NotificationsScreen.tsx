@@ -34,11 +34,20 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
     displayMessage = item.message.replace(/A remark was left for [^:]+:\s*"/, '"');
   } else if (item.type === 'ATTENDANCE') {
     dynamicTitle = 'Attendance Update';
+    // Clean up long attendance message
+    const match = item.message.match(/has been marked as (present|absent|late) on (.*) for (.*) session at (.*) by/i);
+    if (match) {
+       const status = match[1];
+       const subjectShort = match[3].split('|')[0].trim();
+       displayMessage = `${item.studentName} was marked ${status.toLowerCase()} for ${subjectShort}.`;
+    }
   } else if (item.type === 'PAYMENT') {
     dynamicTitle = 'Payment Alert';
   } else if (item.message.toLowerCase().includes('assignment') || item.message.toLowerCase().includes('task')) {
     dynamicType = 'ASSIGNMENT';
     dynamicTitle = 'New Assignment';
+  } else if (item.studentName === 'SCHOOL' || item.message.toLowerCase().includes('exam schedule')) {
+    dynamicTitle = 'School Announcement';
   }
 
   const extendedConfig = {
@@ -88,7 +97,7 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
               <Text style={styles.typeText}>{item.studentName}</Text>
             </View>
             
-            <Text style={[styles.messageText, item.isNew && styles.unreadMessageText]} numberOfLines={3}>
+            <Text style={[styles.messageText, item.isNew && styles.unreadMessageText]} numberOfLines={1}>
               {displayMessage}
             </Text>
 

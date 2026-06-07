@@ -210,26 +210,24 @@ export const CoursesScreen = () => {
 
 
                 {/* Expand Toggle */}
-                {course.resources.length > 0 && (
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={() => toggleCourse(course.id)}
-                    style={{
-                      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-                      paddingHorizontal: 20, paddingVertical: 14,
-                      backgroundColor: isExpanded ? '#f8fafc' : 'white',
-                    }}
-                  >
-                    <Text style={{ fontSize: 13, fontWeight: '900', color: isExpanded ? '#0072e6' : '#64748b' }}>
-                      {isExpanded ? 'Hide materials' : 'View learning materials'}
-                    </Text>
-                    {isExpanded ? (
-                      <ChevronDown size={18} color="#0072e6" strokeWidth={2.5} />
-                    ) : (
-                      <ChevronRight size={18} color="#94a3b8" strokeWidth={2} />
-                    )}
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => toggleCourse(course.id)}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                    paddingHorizontal: 20, paddingVertical: 14,
+                    backgroundColor: isExpanded ? '#f8fafc' : 'white',
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '900', color: isExpanded ? '#0072e6' : '#64748b' }}>
+                    {isExpanded ? 'Hide materials' : 'View learning materials'}
+                  </Text>
+                  {isExpanded ? (
+                    <ChevronDown size={18} color="#0072e6" strokeWidth={2.5} />
+                  ) : (
+                    <ChevronRight size={18} color="#94a3b8" strokeWidth={2} />
+                  )}
+                </TouchableOpacity>
 
                 {/* Resources */}
                 {isExpanded && course.resources.length > 0 && (
@@ -289,7 +287,7 @@ export const CoursesScreen = () => {
                   </View>
                 )}
 
-                {course.resources.length === 0 && (
+                {isExpanded && course.resources.length === 0 && (
                   <View style={{ alignItems: 'center', paddingVertical: 24, paddingHorizontal: 24, gap: 8 }}>
                     <View style={{
                       width: 44, height: 44, borderRadius: 12,

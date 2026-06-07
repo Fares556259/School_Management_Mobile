@@ -76,6 +76,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
   const selectedClass = selectedTeacherClass;
   const [showAddForm, setShowAddForm] = useState(false);
   const [showClassSwitcher, setShowClassSwitcher] = useState(false);
+  const [selectedFilterSubject, setSelectedFilterSubject] = useState<string>('');
 
   // Form state
   const [formTitle, setFormTitle] = useState('');
@@ -126,6 +127,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
           setSubjects(res.classSubjects);
           if (res.classSubjects.length > 0) {
             setSelectedSubjectId(res.classSubjects[0].id.toString());
+            setSelectedFilterSubject(prev => prev || getSubjectName(res.classSubjects[0].name));
           }
         }
       } else {
@@ -352,47 +354,77 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
           </View>
         ) : (
           <View>
-            {/* Class Materials Header */}
-            {resources.length === 0 ? (
-          <View style={{ alignItems: 'center', paddingVertical: 80 }}>
-            <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-              <BookOpen size={44} color="#0055d4" strokeWidth={2} />
-            </View>
-            <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b', textAlign: 'center' }}>No Materials Yet</Text>
-            <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '600', textAlign: 'center', marginTop: 10, paddingHorizontal: 40, lineHeight: 22 }}>
-              Upload PDFs, notes, or links for your students to access.
-            </Text>
-            <TouchableOpacity onPress={() => setShowAddForm(true)} style={{ marginTop: 32, backgroundColor: '#0055d4', paddingHorizontal: 32, paddingVertical: 16, borderRadius: 20 }}>
-              <Text style={{ color: 'white', fontWeight: '900', fontSize: 15 }}>Add First Material</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>Class Materials</Text>
-              <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}>
-                <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4' }}>{resources.length} total files</Text>
-              </View>
-            </View>
+            {/* Subject Pills (Always visible if subjects exist) */}
+            {subjects.length > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 24 }}>
+                {Array.from(new Set(subjects.map(s => getSubjectName(s.name)))).map((subjectName) => (
+                  <TouchableOpacity
+                    key={subjectName}
+                    onPress={() => setSelectedFilterSubject(subjectName)}
+                    style={{
+                      paddingHorizontal: 16,
+                      paddingVertical: 10,
+                      borderRadius: 20,
+                      backgroundColor: selectedFilterSubject === subjectName ? '#0055d4' : 'white',
+                      borderWidth: 1,
+                      borderColor: selectedFilterSubject === subjectName ? '#0055d4' : '#e2e8f0',
+                    }}
+                  >
+                    <Text style={{ color: selectedFilterSubject === subjectName ? 'white' : '#64748b', fontWeight: '800', fontSize: 13 }}>{subjectName}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
 
-            {Object.entries(
-              resources.reduce((acc, r) => {
-                const s = getSubjectName(r.subject);
-                if (!acc[s]) acc[s] = [];
-                acc[s].push(r);
-                return acc;
-              }, {} as Record<string, any[]>)
-            ).map(([subjectName, items]: [string, any]) => (
-              <View key={subjectName} style={{ marginBottom: 28 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
-                  <Text style={{ fontSize: 13, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 }}>{subjectName}</Text>
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#94a3b8' }}>{items.length} {items.length === 1 ? 'file' : 'files'}</Text>
+            {/* Filtered Content Area */}
+            {(() => {
+              const filteredResources = resources.filter(r => getSubjectName(r.subject) === selectedFilterSubject);
+              
+              if (filteredResources.length === 0) {
+                return (
+                  <View style={{ alignItems: 'center', paddingVertical: 80 }}>
+                    <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+                      <BookOpen size={44} color="#0055d4" strokeWidth={2} />
+                    </View>
+                    <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b', textAlign: 'center' }}>No Materials Yet</Text>
+                    <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '600', textAlign: 'center', marginTop: 10, paddingHorizontal: 40, lineHeight: 22 }}>
+                      Upload PDFs, notes, or links for your students to access.
+                    </Text>
+                    <TouchableOpacity onPress={() => setShowAddForm(true)} style={{ marginTop: 32, backgroundColor: '#0055d4', paddingHorizontal: 32, paddingVertical: 16, borderRadius: 20 }}>
+                      <Text style={{ color: 'white', fontWeight: '900', fontSize: 15 }}>Add Material</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              }
+
+              return (
+                <View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>Class Materials</Text>
+                    <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4' }}>{filteredResources.length} total files</Text>
+                    </View>
+                  </View>
+
+                  {Object.entries(
+                    filteredResources.reduce((acc, r) => {
+                      const s = getSubjectName(r.subject);
+                      if (!acc[s]) acc[s] = [];
+                      acc[s].push(r);
+                      return acc;
+                    }, {} as Record<string, any[]>)
+                  ).map(([subjectName, items]: [string, any]) => (
+                    <View key={subjectName} style={{ marginBottom: 28 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
+                        <Text style={{ fontSize: 13, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 }}>{subjectName}</Text>
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#94a3b8' }}>{items.length} {items.length === 1 ? 'file' : 'files'}</Text>
+                      </View>
+                      {items.map((r: any) => <ResourceCard key={r.id} item={r} />)}
+                    </View>
+                  ))}
                 </View>
-                {items.map((r: any) => <ResourceCard key={r.id} item={r} />)}
-              </View>
-            ))}
-            </View>
-          )}
+              );
+            })()}
         </View>
       )}
     </ScrollView>
