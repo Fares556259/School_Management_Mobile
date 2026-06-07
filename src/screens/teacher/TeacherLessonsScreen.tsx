@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  ActivityIndicator, Alert, RefreshControl, StatusBar, Linking
+  ActivityIndicator, Alert, RefreshControl, StatusBar, Linking,
+  Modal, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -82,8 +83,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
   const [formTitle, setFormTitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>('');
-  const [formUrl, setFormUrl] = useState('');
-  const [attachedFile, setAttachedFile] = useState<{ name: string; uri: string } | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<{ name: string; uri: string }[]>([]);
   const [uploading, setUploading] = useState(false);
 
   // ── Load classes and subjects once
@@ -143,44 +143,48 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
 
   useEffect(() => { loadResources(); }, [loadResources]);
 
-  // ── Pick a file (doc or image)
-  const pickFile = async () => {
+  // ── Pick files (docs or images)
+  const pickFiles = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({ type: '*/*', copyToCacheDirectory: true });
-      if (!result.canceled && result.assets[0]) {
-        const f = result.assets[0];
-        setAttachedFile({ name: f.name, uri: f.uri });
-        if (!formTitle) {
-          setFormTitle(f.name.replace(/\.[^.]+$/, ''));
+      const result = await DocumentPicker.getDocumentAsync({ type: '*/*', multiple: true, copyToCacheDirectory: true });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const newFiles = result.assets.map(f => ({ name: f.name, uri: f.uri }));
+        setAttachedFiles(prev => [...prev, ...newFiles]);
+        if (!formTitle && newFiles.length === 1 && attachedFiles.length === 0) {
+          setFormTitle(newFiles[0].name.replace(/\.[^.]+$/, ''));
         }
       }
     } catch (e: any) {
-      Alert.alert('Error', 'Could not pick file');
+      Alert.alert('Error', 'Could not pick files');
     }
   };
 
   // ── Upload to server then save resource
   const handleUpload = async () => {
     if (!formTitle.trim()) { Alert.alert('Required', 'Please enter a title.'); return; }
-    if (!attachedFile && !formUrl.trim()) { Alert.alert('Required', 'Attach a file or paste a link.'); return; }
+    if (attachedFiles.length === 0) { Alert.alert('Required', 'Attach at least one file or image.'); return; }
 
     try {
       setUploading(true);
-      let finalUrl = formUrl.trim();
+      let finalUrl = '';
 
-      // If a file was picked, upload it first
-      if (attachedFile) {
-        const form = new FormData();
-        form.append('file', { uri: attachedFile.uri, name: attachedFile.name, type: 'application/octet-stream' } as any);
-        form.append('folder', 'resources');
+      if (attachedFiles.length > 0) {
+        const uploadPromises = attachedFiles.map(async (file) => {
+          const form = new FormData();
+          form.append('file', { uri: file.uri, name: file.name, type: 'application/octet-stream' } as any);
+          form.append('folder', 'resources');
 
-        const uploadRes = await fetch(`${API_BASE_URL}/api/mobile/upload`, {
-          method: 'POST',
-          body: form,
+          const uploadRes = await fetch(`${API_BASE_URL}/api/mobile/upload`, {
+            method: 'POST',
+            body: form,
+          });
+          const uploadData = await uploadRes.json();
+          if (!uploadData?.url) throw new Error(`Upload failed for ${file.name}`);
+          return uploadData.url;
         });
-        const uploadData = await uploadRes.json();
-        if (!uploadData?.url) throw new Error('Upload failed');
-        finalUrl = uploadData.url;
+
+        const urls = await Promise.all(uploadPromises);
+        finalUrl = urls.join(',');
       }
 
       const saved = await teacherService.uploadResource({
@@ -191,10 +195,17 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
         url: finalUrl,
       });
 
-      if (saved && saved.id) {
+      if (saved && Array.isArray(saved)) {
+        setResources(prev => [...saved, ...prev]);
+        // Reset form
+        setFormTitle(''); setFormDescription(''); setAttachedFiles([]);
+        setShowAddForm(false);
+        const titleText = saved.length > 1 ? `${saved.length} files` : `"${saved[0].title}"`;
+        Alert.alert('✅ Uploaded', `${titleText} now visible to students.`);
+      } else if (saved && saved.id) {
         setResources(prev => [saved, ...prev]);
         // Reset form
-        setFormTitle(''); setFormDescription(''); setFormUrl(''); setAttachedFile(null);
+        setFormTitle(''); setFormDescription(''); setAttachedFiles([]);
         setShowAddForm(false);
         Alert.alert('✅ Uploaded', `"${saved.title}" is now visible to students.`);
       } else {
@@ -239,99 +250,117 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
         contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadResources(); }} tintColor="#0055d4" />}
       >
-        {/* Add Material Form */}
-        {showAddForm && (
-          <View style={{ backgroundColor: 'white', padding: 24, borderRadius: 28, marginBottom: 24, borderWidth: 1, borderColor: '#f1f5f9' }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>Add Material</Text>
-              <TouchableOpacity onPress={() => { setShowAddForm(false); setAttachedFile(null); setFormUrl(''); setFormTitle(''); }}>
-                <X size={22} color="#94a3b8" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Title */}
-            <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Title *</Text>
-            <TextInput
-              style={{ backgroundColor: '#f8fafc', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#f1f5f9', fontSize: 15, color: '#1e293b', marginBottom: 16 }}
-              placeholder="e.g. Chapter 3 Notes"
-              value={formTitle}
-              onChangeText={setFormTitle}
-            />
-
-            {/* Subject Picker */}
-            <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Subject *</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 20 }}>
-              {subjects.map(s => (
-                <TouchableOpacity 
-                  key={s.id}
-                  onPress={() => setSelectedSubjectId(s.id.toString())}
-                  style={{ 
-                    paddingHorizontal: 16, 
-                    paddingVertical: 10, 
-                    borderRadius: 12, 
-                    backgroundColor: selectedSubjectId === s.id.toString() ? '#0055d4' : '#f8fafc',
-                    borderWidth: 1,
-                    borderColor: selectedSubjectId === s.id.toString() ? '#0055d4' : '#f1f5f9'
-                  }}
-                >
-                  <Text style={{ color: selectedSubjectId === s.id.toString() ? 'white' : '#64748b', fontWeight: '800', fontSize: 13 }}>{getSubjectName(s.name)}</Text>
+        {/* Add Material Modal */}
+        <Modal
+          visible={showAddForm}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowAddForm(false)}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}
+          >
+            <View style={{ backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24, maxHeight: '90%' }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>Add Material</Text>
+                <TouchableOpacity onPress={() => { setShowAddForm(false); setAttachedFiles([]); setFormTitle(''); }}>
+                  <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}>
+                    <X size={20} color="#64748b" />
+                  </View>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
+              </View>
 
-            {/* Target Class Info */}
-            <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Target Class</Text>
-            <View style={{ backgroundColor: '#eff6ff', padding: 14, borderRadius: 14, marginBottom: 20, borderWidth: 1, borderColor: '#dbeafe', flexDirection: 'row', alignItems: 'center' }}>
-              <Layout size={18} color="#0055d4" />
-              <Text style={{ marginLeft: 10, color: '#0055d4', fontWeight: '800' }}>{selectedClass?.name || 'Loading...'}</Text>
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+                {/* Title */}
+                <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Title *</Text>
+                <TextInput
+                  style={{ backgroundColor: '#f8fafc', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#f1f5f9', fontSize: 15, color: '#1e293b', marginBottom: 16 }}
+                  placeholder="e.g. Chapter 3 Notes"
+                  value={formTitle}
+                  onChangeText={setFormTitle}
+                />
+
+                {/* Subject Picker */}
+                <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Subject *</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 20 }}>
+                  {subjects.map(s => (
+                    <TouchableOpacity 
+                      key={s.id}
+                      onPress={() => setSelectedSubjectId(s.id.toString())}
+                      style={{ 
+                        paddingHorizontal: 16, 
+                        paddingVertical: 10, 
+                        borderRadius: 12, 
+                        backgroundColor: selectedSubjectId === s.id.toString() ? '#0055d4' : '#f8fafc',
+                        borderWidth: 1,
+                        borderColor: selectedSubjectId === s.id.toString() ? '#0055d4' : '#f1f5f9'
+                      }}
+                    >
+                      <Text style={{ color: selectedSubjectId === s.id.toString() ? 'white' : '#64748b', fontWeight: '800', fontSize: 13 }}>{getSubjectName(s.name)}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                {/* Target Class Info */}
+                <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Target Class</Text>
+                <View style={{ backgroundColor: '#eff6ff', padding: 14, borderRadius: 14, marginBottom: 20, borderWidth: 1, borderColor: '#dbeafe', flexDirection: 'row', alignItems: 'center' }}>
+                  <Layout size={18} color="#0055d4" />
+                  <Text style={{ marginLeft: 10, color: '#0055d4', fontWeight: '800' }}>{selectedClass?.name || 'Loading...'}</Text>
+                </View>
+
+                {/* Description */}
+                <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Description (optional)</Text>
+                <TextInput
+                  style={{ backgroundColor: '#f8fafc', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#f1f5f9', fontSize: 15, color: '#1e293b', marginBottom: 16, minHeight: 70, textAlignVertical: 'top' }}
+                  placeholder="Brief description of this material..."
+                  value={formDescription}
+                  onChangeText={setFormDescription}
+                  multiline
+                />
+
+                {/* Attached files list */}
+                {attachedFiles.length > 0 && (
+                  <View style={{ gap: 8, marginBottom: 12 }}>
+                    {attachedFiles.map((f, i) => (
+                      <View key={i} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#eff6ff', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#dbeafe' }}>
+                        <Paperclip size={16} color="#0055d4" />
+                        <Text style={{ flex: 1, marginLeft: 8, color: '#0055d4', fontWeight: '700', fontSize: 13 }} numberOfLines={1}>{f.name}</Text>
+                        <TouchableOpacity onPress={() => setAttachedFiles(prev => prev.filter((_, idx) => idx !== i))}>
+                          <X size={16} color="#94a3b8" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* Attach files */}
+                <TouchableOpacity
+                  onPress={pickFiles}
+                  style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 16, borderRadius: 16, borderWidth: 2, borderColor: '#e2e8f0', borderStyle: 'dashed', marginBottom: 20, justifyContent: 'center' }}
+                >
+                  <Plus size={20} color="#94a3b8" />
+                  <Text style={{ marginLeft: 10, color: '#94a3b8', fontWeight: '800', fontSize: 14 }}>
+                    Attach Files or Images
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleUpload}
+                  disabled={uploading || !formTitle.trim() || attachedFiles.length === 0}
+                  style={{ backgroundColor: (!formTitle.trim() || attachedFiles.length === 0) ? '#94a3b8' : '#0055d4', paddingVertical: 16, borderRadius: 18, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', opacity: uploading ? 0.7 : 1 }}
+                >
+                  {uploading ? <ActivityIndicator color="white" /> : (
+                    <>
+                      <Upload size={18} color="white" />
+                      <Text style={{ color: 'white', fontWeight: '900', fontSize: 15, marginLeft: 10 }}>Upload & Share</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </ScrollView>
             </View>
-
-            {/* Description */}
-            <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Description (optional)</Text>
-            <TextInput
-              style={{ backgroundColor: '#f8fafc', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#f1f5f9', fontSize: 15, color: '#1e293b', marginBottom: 16, minHeight: 70, textAlignVertical: 'top' }}
-              placeholder="Brief description of this material..."
-              value={formDescription}
-              onChangeText={setFormDescription}
-              multiline
-            />
-
-            {/* Attach file */}
-            <TouchableOpacity
-              onPress={pickFile}
-              style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: attachedFile ? '#eff6ff' : '#f8fafc', padding: 16, borderRadius: 16, borderWidth: 2, borderColor: attachedFile ? '#0055d4' : '#e2e8f0', borderStyle: attachedFile ? 'solid' : 'dashed', marginBottom: 14, justifyContent: 'center' }}
-            >
-              <Paperclip size={20} color={attachedFile ? '#0055d4' : '#94a3b8'} />
-              <Text style={{ marginLeft: 10, color: attachedFile ? '#0055d4' : '#94a3b8', fontWeight: '800', fontSize: 14 }}>
-                {attachedFile ? `📎 ${attachedFile.name}` : 'Attach PDF or File'}
-              </Text>
-            </TouchableOpacity>
-
-            {/* OR link */}
-            <Text style={{ textAlign: 'center', color: '#94a3b8', fontWeight: '700', marginBottom: 14 }}>— or paste a link —</Text>
-            <TextInput
-              style={{ backgroundColor: '#f8fafc', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#f1f5f9', fontSize: 14, color: '#1e293b', marginBottom: 20 }}
-              placeholder="https://..."
-              value={formUrl}
-              onChangeText={setFormUrl}
-              autoCapitalize="none"
-              keyboardType="url"
-            />
-
-            <TouchableOpacity
-              onPress={handleUpload}
-              disabled={uploading}
-              style={{ backgroundColor: '#0055d4', paddingVertical: 16, borderRadius: 18, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', opacity: uploading ? 0.7 : 1 }}
-            >
-              {uploading ? <ActivityIndicator color="white" /> : (
-                <>
-                  <Upload size={18} color="white" />
-                  <Text style={{ color: 'white', fontWeight: '900', fontSize: 15, marginLeft: 10 }}>Upload & Share</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
-        )}
+          </KeyboardAvoidingView>
+        </Modal>
 
         {/* Resource List */}
         {loading && !refreshing ? (
