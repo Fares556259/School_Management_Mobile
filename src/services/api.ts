@@ -89,13 +89,7 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
       if (!response.ok) {
         const text = await response.text();
         console.warn(`API Error [${response.status}] [${duration}ms] ${endpoint}: ${text}`);
-        try {
-          // Attempt to parse error as JSON
-          return JSON.parse(text);
-        } catch (e) {
-          // Fallback for non-JSON errors
-          return null;
-        }
+        return null;
       }
 
       return await response.json();
@@ -206,7 +200,7 @@ export const parentService = {
       const parsed = JSON.parse(cached);
       return parsed.map(mapStudent);
     }
-    if (!data) return [];
+    if (!data || !Array.isArray(data)) return [];
 
     await AsyncStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify(data));
     return data.map(mapStudent);
@@ -332,7 +326,8 @@ export const studentService = {
   },
 
   fetchCourses: async (studentId: string): Promise<any[]> => {
-    return await apiFetch(`/api/mobile/courses?studentId=${studentId}`);
+    const data = await apiFetch(`/api/mobile/courses?studentId=${studentId}`);
+    return Array.isArray(data) ? data : [];
   },
 
   fetchPayments: async (studentId: string, forceRefresh = false): Promise<PaymentRecord[]> => {
@@ -560,11 +555,12 @@ export const uiService = {
     formData.append('type', type);
     formData.append('id', id);
 
+    const schoolId = await authStorage.getSchoolId();
     const response = await fetch(`${API_BASE_URL}/api/mobile/upload`, {
       method: 'POST',
       body: formData,
       headers: {
-        'Content-Type': 'multipart/form-data',
+        'x-school-id': schoolId || 'default_school',
       },
     });
 
@@ -614,9 +610,13 @@ export const teacherService = {
     resource?: { title: string; url: string };
   }) => {
     const teacherId = await authStorage.getUserId();
+    const schoolId = await authStorage.getSchoolId();
     const response = await fetch(`${API_BASE_URL}/api/mobile/teacher/attendance`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "x-school-id": schoolId || 'default_school',
+      },
       body: JSON.stringify({ ...data, teacherId }),
     });
     if (!response.ok) throw new Error("Failed to save attendance");

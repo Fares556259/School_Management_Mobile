@@ -120,7 +120,7 @@ export const notificationService = {
           data: { screen: 'Home', taskId: task.id },
           sound: true,
         },
-        trigger: triggerDate as any,
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: triggerDate },
       });
 
       console.log(`[DEBUG-NOTIF] Scheduled reminder for ${task.title} at ${triggerDate}`);
@@ -152,7 +152,7 @@ export const notificationService = {
           data: { screen: 'Home', examId: exam.id },
           sound: true,
         },
-        trigger: triggerDate as any,
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: triggerDate },
       });
 
       return id;

@@ -126,7 +126,7 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
       )}
       <Tab.Screen
         name="Profile"
-        children={(props: any) => <ProfileScreen {...props} onSignOut={onSignOut} />}
+        children={React.useCallback((props: any) => <ProfileScreen {...props} onSignOut={onSignOut} />, [onSignOut])}
       />
     </Tab.Navigator>
   );
@@ -134,6 +134,7 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
 
 
 export default function App() {
+  const pendingNotificationRef = React.useRef<any>(null);
   const { 
     setChildren, 
     setSelectedChildId, 
@@ -210,22 +211,45 @@ export default function App() {
           if (profile) {
             setUserName(`${profile.name} ${profile.surname}`);
             setUserAvatarUrl(profile.img || null);
-            setAuthState('signedIn');
-          } else {
-            // Stale session or server unreachable — require login
-            await authService.logout();
-            setAuthState('landing');
           }
+          setAuthState('signedIn'); // Don't logout just because profile fetch failed
         } else {
           setAuthState('landing');
         }
       } catch (error) {
         console.error("[BOOTSTRAP-ERROR]", error);
-        setAuthState('landing');
+        // Don't log out on network errors — user may have valid cached session
+        const uid = await authStorage.getUserId();
+        if (uid) {
+          setAuthState('signedIn'); // Let user retry from within the app
+        } else {
+          setAuthState('landing');
+        }
       }
     };
     bootstrap();
   }, []);
+
+  const navigateToNotification = (data: any) => {
+    if (data.type === 'HOMEWORK' && data.homeworkId) {
+      (navigationRef as any).navigate('HomeworkDetail', { 
+        homework: { id: data.homeworkId },
+        studentId: data.studentId
+      });
+    } else if (data.type === 'RESOURCE' && data.resourceId) {
+      (navigationRef as any).navigate('DocumentCenter');
+    } else if (data.type === 'ANNOUNCEMENT' || data.type === 'ATTENDANCE') {
+      (navigationRef as any).navigate('NotificationDetail', { 
+        notification: { 
+          ...data, 
+          type: data.type, 
+          message: data.message || data.body || "Detailed message unavailable.",
+          studentName: data.studentName || "Student Update",
+          time: "Just now" 
+        } 
+      });
+    }
+  };
 
   // Notification Response Listener
   useEffect(() => {
@@ -234,28 +258,25 @@ export default function App() {
       console.log("[DEBUG-NOTIF-TAP]", data);
       
       if (navigationRef.isReady()) {
-        if (data.type === 'HOMEWORK' && data.homeworkId) {
-          (navigationRef as any).navigate('HomeworkDetail', { 
-            homework: { id: data.homeworkId },
-            studentId: data.studentId
-          });
-        } else if (data.type === 'RESOURCE' && data.resourceId) {
-          (navigationRef as any).navigate('DocumentCenter');
-        } else if (data.type === 'ANNOUNCEMENT' || data.type === 'ATTENDANCE') {
-          (navigationRef as any).navigate('NotificationDetail', { 
-            notification: { 
-              ...data, 
-              type: data.type, 
-              message: data.message || data.body || "Detailed message unavailable.",
-              studentName: data.studentName || "Student Update",
-              time: "Just now" 
-            } 
-          });
-        }
+        navigateToNotification(data);
+      } else {
+        pendingNotificationRef.current = data;
       }
     });
     return () => subscription.remove();
   }, []);
+
+  useEffect(() => {
+    if (authState === 'signedIn' && pendingNotificationRef.current) {
+      const data = pendingNotificationRef.current;
+      pendingNotificationRef.current = null;
+      setTimeout(() => {
+        if (navigationRef.isReady()) {
+          navigateToNotification(data);
+        }
+      }, 500);
+    }
+  }, [authState]);
 
   const handleSignIn = async () => {
     const uid = await authStorage.getUserId();
@@ -268,8 +289,10 @@ export default function App() {
     if (role === 'parent') {
       profile = await parentService.fetchParentProfile();
       const data = await parentService.fetchChildren();
-      setChildren(data);
-      if (data.length > 0) setSelectedChildId(data[0].id);
+      if (Array.isArray(data)) {
+        setChildren(data);
+        if (data.length > 0) setSelectedChildId(data[0].id);
+      }
     } else {
       profile = await teacherService.fetchProfile();
     }
@@ -291,14 +314,19 @@ export default function App() {
     setAuthState('signedIn');
   };
 
-  const handleSignOut = async () => {
+  const handleSignOut = React.useCallback(async () => {
     await authService.logout();
     setChildren([]);
     setUserName("User");
     setUserRole(null);
     setUserId(null);
     setAuthState('landing');
-  };
+  }, [setChildren, setUserName, setUserRole, setUserId]);
+
+  const MainTabsScreen = React.useCallback(
+    () => <BottomTabs onSignOut={handleSignOut} />,
+    [handleSignOut]
+  );
 
   const onSelectRole = (role: 'parent' | 'teacher') => {
     setSelectedRole(role);
@@ -325,7 +353,7 @@ export default function App() {
             <Stack.Navigator screenOptions={{ headerShown: false }}>
               <Stack.Screen
                 name="MainTabs"
-                children={() => <BottomTabs onSignOut={handleSignOut} />}
+                children={MainTabsScreen}
               />
               <Stack.Screen name="Attendance" component={AttendanceScreen} />
               <Stack.Screen name="Notifications" component={NotificationsScreen} />
