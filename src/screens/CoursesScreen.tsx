@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image, Lin
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BookOpen, FileText, Download, ChevronRight, GraduationCap, User, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
+import { useLanguage } from '../context/LanguageContext';
 import { studentService } from '../services/api';
 import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -43,6 +44,7 @@ const getTheme = (fullName: string) => {
 
 export const CoursesScreen = () => {
   const { selectedChildId, children } = useAppStore();
+  const { t, isRTL, getTranslatedSubject } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<any[]>([]);
   const [viewedResources, setViewedResources] = useState<string[]>([]);

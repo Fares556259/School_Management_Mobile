@@ -4,10 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bell, FileText, Download, ExternalLink, Calendar, ChevronRight } from 'lucide-react-native';
 import { GlobalHeader } from '../components/GlobalHeader';
 import { useAppStore } from '../store/useAppStore';
+import { useLanguage } from '../context/LanguageContext';
 import { studentService } from '../services/api';
 import { downloadAndPreviewPDF } from '../utils/fileUtils';
 
 const TermCard = ({ period, pdfUrl }: { period: number, pdfUrl?: string }) => {
+  const { t, isRTL } = useLanguage();
   const [downloading, setDownloading] = React.useState(false);
 
   const handleOpenPDF = async () => {
@@ -21,13 +23,15 @@ const TermCard = ({ period, pdfUrl }: { period: number, pdfUrl?: string }) => {
     }
   };
 
+  const termLabel = period === 1 ? t.trimester1 : period === 2 ? t.trimester2 : t.trimester3;
+
   return (
     <View style={{
       backgroundColor: 'white',
       borderRadius: 20,
       padding: 16,
       marginBottom: 16,
-      flexDirection: 'row',
+      flexDirection: isRTL ? 'row-reverse' : 'row',
       alignItems: 'center',
       borderWidth: 1,
       borderColor: pdfUrl ? '#bfdbfe' : '#f1f5f9',
@@ -44,17 +48,18 @@ const TermCard = ({ period, pdfUrl }: { period: number, pdfUrl?: string }) => {
         backgroundColor: pdfUrl ? '#eff6ff' : '#f8fafc', 
         alignItems: 'center', 
         justifyContent: 'center',
-        marginRight: 16,
+        marginRight: isRTL ? 0 : 16,
+        marginLeft: isRTL ? 16 : 0,
         borderWidth: 1,
         borderColor: pdfUrl ? '#bfdbfe' : '#e2e8f0',
       }}>
         <FileText color={pdfUrl ? '#0072e6' : '#94a3b8'} size={24} />
       </View>
       
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b' }}>Term {period}</Text>
-        <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '700', marginTop: 2 }}>
-          {pdfUrl ? 'Official Exam Schedule' : 'Schedule not yet uploaded'}
+      <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+        <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>{termLabel}</Text>
+        <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '700', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>
+          {pdfUrl ? t.exams : t.noExams}
         </Text>
       </View>
 

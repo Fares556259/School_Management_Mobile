@@ -18,6 +18,7 @@ import {
   CreditCard
 } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
+import { useLanguage } from '../context/LanguageContext';
 import { studentService } from '../services/api';
 import { PaymentRecord } from '../types';
 import { GlobalHeader } from '../components/GlobalHeader';
@@ -26,6 +27,7 @@ const { width } = Dimensions.get('window');
 
 export const PaymentsScreen = ({ navigation }: any) => {
   const { selectedChildId } = useAppStore();
+  const { t, isRTL } = useLanguage();
   const [history, setHistory] = useState<PaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

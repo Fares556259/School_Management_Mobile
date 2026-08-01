@@ -41,8 +41,12 @@ const translations = {
     results: "الأعداد والنتائج",
     attendance: "المواظبة والحضور",
     exams: "جدول الامتحانات",
+    noExams: "لا توجد امتحانات مبرمجة حالياً",
     documents: "وثائق ومستندات",
     documentsCenter: "مركز الوثائق",
+    trimester1: "الثلاثي الأول",
+    trimester2: "الثلاثي الثاني",
+    trimester3: "الثلاثي الثالث",
 
     // Payments
     paymentsTitle: "الرسوم والمدفوعات",
@@ -114,8 +118,12 @@ const translations = {
     results: "Bulletins & Notes",
     attendance: "Présence & Absences",
     exams: "Planning d'Examens",
+    noExams: "Aucun examen programmé pour le moment",
     documents: "Documents",
     documentsCenter: "Centre de Documents",
+    trimester1: "1er Trimestre",
+    trimester2: "2ème Trimestre",
+    trimester3: "3ème Trimestre",
 
     // Payments
     paymentsTitle: "Frais de Scolarité",
@@ -187,8 +195,12 @@ const translations = {
     results: "Results & Marks",
     attendance: "Attendance",
     exams: "Exam Schedule",
+    noExams: "No exams scheduled currently",
     documents: "Documents",
     documentsCenter: "Document Center",
+    trimester1: "1st Term",
+    trimester2: "2nd Term",
+    trimester3: "3rd Term",
 
     // Payments
     paymentsTitle: "Tuition & Fees",

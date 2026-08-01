@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Modal, StatusBar } from 'react-native';
 import { Bell, ChevronDown, Check, X, User, ChevronRight, ChevronLeft } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
+import { useLanguage } from '../context/LanguageContext';
 import { authStorage, studentService } from '../services/api';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
@@ -12,6 +13,7 @@ interface GlobalHeaderProps {
 }
 
 export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
+  const { t, isRTL } = useLanguage();
   const { 
     selectedChildId, 
     setSelectedChildId, 
@@ -35,7 +37,6 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
       const uid = userId || await authStorage.getUserId();
       if (uid) {
         try {
-          // For teachers we might need a different notifications endpoint eventually
           const notes = await studentService.fetchNotifications(uid, selectedChildId);
           setUnreadNotificationsCount(notes.filter(n => n.isNew).length);
         } catch (e) {
@@ -53,24 +54,24 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
   };
 
   const toggleSwitcher = () => {
-    if (userRole === 'teacher') return; // Teachers don't switch children
+    if (userRole === 'teacher') return;
     Haptics.selectionAsync();
     setShowSwitcher(!showSwitcher);
   };
 
   return (
     <View className="bg-white border-b border-surface-low z-50">
-      <View className="flex-row items-center justify-between px-6 py-4">
-        <View className="flex-row items-center flex-1">
+      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingVertical: 16 }}>
+        <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', flex: 1 }}>
           {showBack ? (
             <TouchableOpacity 
               onPress={() => {
                 Haptics.selectionAsync();
                 navigation.goBack();
               }}
-              className="mr-3 w-10 h-10 rounded-xl bg-surface-lowest items-center justify-center border border-surface-low"
+              style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#e2e8f0', marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }}
             >
-              <ChevronLeft size={24} color="#2b3437" strokeWidth={3} />
+              {isRTL ? <ChevronRight size={24} color="#2b3437" strokeWidth={3} /> : <ChevronLeft size={24} color="#2b3437" strokeWidth={3} />}
             </TouchableOpacity>
           ) : (
             <TouchableOpacity 
@@ -103,7 +104,7 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
             </TouchableOpacity>
           )}
 
-          <View className="ml-3 flex-1">
+          <View style={{ marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0, flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
             <Text className="text-[10px] font-jakarta font-black text-text-muted opacity-40 uppercase tracking-[2px]" numberOfLines={1}>
               {userRole === 'teacher' ? 'SnapSchool Teacher' : userName}
             </Text>
@@ -111,13 +112,13 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
             <TouchableOpacity 
               onPress={toggleSwitcher}
               disabled={userRole === 'teacher'}
-              className="flex-row items-center mt-0.5"
+              style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginTop: 2 }}
             >
               <Text className="text-xl font-jakarta font-black text-brand-primary tracking-tight" numberOfLines={1}>
-                {userRole === 'teacher' ? userName.split(' ')[0] : (selectedChild?.name?.split(' ')[0] || 'Select Child')}
+                {userRole === 'teacher' ? userName.split(' ')[0] : (selectedChild?.name?.split(' ')[0] || t.switchChild)}
               </Text>
               {userRole === 'parent' && (
-                <View className="flex-row items-center ml-2">
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: isRTL ? 0 : 8, marginRight: isRTL ? 8 : 0 }}>
                   <View className={`w-1.5 h-1.5 rounded-full mr-2 ${status === 'Absent' ? 'bg-brand-error' : status === 'Due' ? 'bg-orange-500' : 'bg-green-500'}`} />
                   <ChevronDown size={14} color="#0055d4" strokeWidth={3} />
                 </View>

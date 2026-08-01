@@ -5,6 +5,7 @@ import { Megaphone, ChevronRight } from 'lucide-react-native';
 import { studentService } from '../services/api';
 import { Announcement } from '../types';
 import { useAppStore } from '../store/useAppStore';
+import { useLanguage } from '../context/LanguageContext';
 import { GlobalHeader } from '../components/GlobalHeader';
 import { Image } from 'expo-image';
 import { SkeletonBlock } from '../components/SkeletonView';
@@ -12,6 +13,7 @@ import * as Haptics from 'expo-haptics';
 
 // ─── Announcement Card ────────────────────────────────────────────────────────
 const AnnouncementCard = ({ item, onPress }: any) => {
+  const { t, isRTL } = useLanguage();
   const isUrgent = item.category === 'URGENT';
   return (
     <TouchableOpacity
@@ -42,7 +44,7 @@ const AnnouncementCard = ({ item, onPress }: any) => {
       {/* Content */}
       <View style={{ padding: 20 }}>
         {/* Meta Row */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <View style={{
             paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 2,
             backgroundColor: isUrgent ? '#fee2e2' : '#eff6ff',
@@ -59,21 +61,21 @@ const AnnouncementCard = ({ item, onPress }: any) => {
           <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700' }}>{item.date}</Text>
         </View>
 
-        <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', marginBottom: 8, letterSpacing: -0.3, lineHeight: 24 }}>
+        <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', marginBottom: 8, letterSpacing: -0.3, lineHeight: 24, textAlign: isRTL ? 'right' : 'left' }}>
           {item.title}
         </Text>
-        <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '700', lineHeight: 22 }} numberOfLines={2}>
+        <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '700', lineHeight: 22, textAlign: isRTL ? 'right' : 'left' }} numberOfLines={2}>
           {item.excerpt}
         </Text>
 
         {/* Read CTA */}
         <View style={{
-          flexDirection: 'row', alignItems: 'center', gap: 4,
+          flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 4,
           marginTop: 16, paddingTop: 14,
           borderTopWidth: 2, borderTopColor: '#f1f5f9',
         }}>
-          <Text style={{ fontSize: 14, fontWeight: '900', color: '#0072e6' }}>Read Full Story</Text>
-          <ChevronRight size={16} color="#0072e6" strokeWidth={3} />
+          <Text style={{ fontSize: 14, fontWeight: '900', color: '#0072e6' }}>{t.readMore}</Text>
+          <ChevronRight size={16} color="#0072e6" strokeWidth={3} style={{ transform: [{ rotate: isRTL ? '180deg' : '0deg' }] }} />
         </View>
       </View>
     </TouchableOpacity>
@@ -82,6 +84,7 @@ const AnnouncementCard = ({ item, onPress }: any) => {
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export const AnnouncementsScreen = ({ navigation }: any) => {
+  const { t, isRTL } = useLanguage();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const { getSelectedChild, selectedChildId } = useAppStore();
@@ -107,12 +110,12 @@ export const AnnouncementsScreen = ({ navigation }: any) => {
       <GlobalHeader navigation={navigation} />
 
       {/* Header */}
-      <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 }}>
-        <Text style={{ fontSize: 30, fontWeight: '900', color: '#1e293b', letterSpacing: -0.5, marginBottom: 4 }}>
-          Comm Center
+      <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+        <Text style={{ fontSize: 30, fontWeight: '900', color: '#1e293b', letterSpacing: -0.5, marginBottom: 4, textAlign: isRTL ? 'right' : 'left' }}>
+          {t.announcementsTitle}
         </Text>
-        <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '700' }}>
-          School news & student alerts
+        <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '700', textAlign: isRTL ? 'right' : 'left' }}>
+          {t.schoolNews}
         </Text>
       </View>
 

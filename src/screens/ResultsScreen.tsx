@@ -6,6 +6,7 @@ import {
   ChevronLeft, Award, TrendingUp, TrendingDown, Sparkles
 } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
+import { useLanguage } from '../context/LanguageContext';
 import { studentService } from '../services/api';
 import { GlobalHeader } from '../components/GlobalHeader';
 
@@ -19,6 +20,32 @@ const SUBJECT_THEMES: Record<string, { icon: any }> = {
   'Art': { icon: Palette },
   'Music': { icon: Music },
   'Default': { icon: BookOpen }
+};
+
+const getArabicDomainTitle = (domainId: string, lang: string) => {
+  if (lang === 'ar') {
+    switch (domainId) {
+      case 'SCIENCES': return 'مجال العلوم والتكنولوجيا';
+      case 'LANGUAGES': return 'مجال اللغات والآداب';
+      case 'ARTS_TECH': return 'مجال الفنون والتكنولوجيا';
+      case 'HUMANITIES': return 'مجال الإنسانيات والتاريخ';
+      case 'RELIGION': return 'مجال التربية الإسلامية والمدنية';
+      case 'SPORT': return 'مجال التربية البدنية والرياضة';
+      default: return 'المواد الدراسية الأخرى';
+    }
+  }
+  if (lang === 'fr') {
+    switch (domainId) {
+      case 'SCIENCES': return 'Domaine des Sciences & Tech';
+      case 'LANGUAGES': return 'Domaine des Langues';
+      case 'ARTS_TECH': return 'Domaine Arts & Technologie';
+      case 'HUMANITIES': return 'Domaine des Sciences Humaines';
+      case 'RELIGION': return 'Éducation Religieuse & Civique';
+      case 'SPORT': return 'Éducation Physique & Sport';
+      default: return 'Autres Matières';
+    }
+  }
+  return domainId;
 };
 
 const DOMAIN_GROUPS = [
@@ -49,6 +76,7 @@ const getArabicName = (subjectName: string) => {
 
 export const ResultsScreen = ({ navigation }: any) => {
   const { selectedChildId, children } = useAppStore();
+  const { t, language, isRTL } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [resultsData, setResultsData] = useState<{ results: any[]; summary: any }>({ results: [], summary: { average: 0, totalSubjects: 0 } });

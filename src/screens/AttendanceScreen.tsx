@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, Calendar, AlertCircle, CheckCircle2, Clock, Filter, FileUp, Star } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAppStore } from '../store/useAppStore';
+import { useLanguage } from '../context/LanguageContext';
 import { studentService, uiService } from '../services/api';
 import { AttendanceHistoryDay } from '../types';
 import { GlobalHeader } from '../components/GlobalHeader';
