@@ -55,7 +55,7 @@ const AnnouncementCard = ({ item, onPress }: any) => {
               color: isUrgent ? '#dc2626' : '#0072e6',
               textTransform: 'uppercase', letterSpacing: 0.5,
             }}>
-              {item.category}
+              {isUrgent ? (isRTL ? 'عاجل 🚨' : 'URGENT') : (isRTL ? 'أخبار المدرسة 📢' : (item.category || 'SCHOOL NEWS'))}
             </Text>
           </View>
           <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700' }}>{item.date}</Text>

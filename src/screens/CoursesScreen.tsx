@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BookOpen, FileText, Download, ChevronRight, GraduationCap, User, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { BookOpen, FileText, Download, ChevronRight, ChevronLeft, GraduationCap, User, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
 import { studentService } from '../services/api';
@@ -117,13 +117,13 @@ export const CoursesScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={{ marginBottom: 28 }}>
-          <Text style={{ fontSize: 11, fontWeight: '900', color: '#0072e6', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 6 }}>
-            Academic Portal
+        <View style={{ marginBottom: 28, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+          <Text style={{ fontSize: 11, fontWeight: '900', color: '#0072e6', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 6, textAlign: isRTL ? 'right' : 'left' }}>
+            {t.academicPortal}
           </Text>
-          <Text style={{ fontSize: 30, fontWeight: '900', color: '#1e293b', letterSpacing: -0.5 }}>Courses Hub</Text>
-          <Text style={{ fontSize: 14, color: '#64748b', marginTop: 6, fontWeight: '700', lineHeight: 22 }}>
-            Materials and lessons for {child?.name || 'your child'}.
+          <Text style={{ fontSize: 30, fontWeight: '900', color: '#1e293b', letterSpacing: -0.5, textAlign: isRTL ? 'right' : 'left' }}>{t.coursesHub}</Text>
+          <Text style={{ fontSize: 14, color: '#64748b', marginTop: 6, fontWeight: '700', lineHeight: 22, textAlign: isRTL ? 'right' : 'left' }}>
+            {t.coursesSub} {child?.name || 'التلميذ'}.
           </Text>
         </View>
 
@@ -132,15 +132,15 @@ export const CoursesScreen = () => {
             <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#eff6ff', borderWidth: 2, borderColor: '#bfdbfe', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
               <BookOpen size={32} color="#0072e6" />
             </View>
-            <Text style={{ color: '#1e293b', fontWeight: '900', fontSize: 18 }}>No active courses</Text>
+            <Text style={{ color: '#1e293b', fontWeight: '900', fontSize: 18 }}>{t.noCourses}</Text>
             <Text style={{ color: '#64748b', fontWeight: '700', fontSize: 14, marginTop: 8, textAlign: 'center' }}>
-              Course materials will appear here once your teacher uploads them.
+              {t.noCoursesSub}
             </Text>
           </View>
         ) : (
           courses.map((course) => {
             const theme = getTheme(course.name);
-            const arabicName = course.name.split('|')[0]?.trim() || course.name;
+            const arabicName = getTranslatedSubject(course.name);
             const isExpanded = expandedCourses[course.id];
 
             return (
@@ -159,7 +159,7 @@ export const CoursesScreen = () => {
                   borderBottomColor: theme.color + '33',
                   paddingHorizontal: 20,
                   paddingVertical: 14,
-                  flexDirection: 'row',
+                  flexDirection: isRTL ? 'row-reverse' : 'row',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                 }}>
@@ -173,61 +173,59 @@ export const CoursesScreen = () => {
                     <GraduationCap color={theme.color} size={22} />
                   </View>
 
-                  {/* Arabic subject name — large, centered */}
+                  {/* Subject Name */}
                   <Text style={{
                     flex: 1,
                     fontSize: 19, fontWeight: '900', color: '#1e293b',
-                    textAlign: 'center',
-                    writingDirection: 'rtl',
-                    marginHorizontal: 8,
+                    textAlign: isRTL ? 'right' : 'center',
+                    marginHorizontal: 12,
                   }}>
                     {arabicName}
                   </Text>
 
                   {/* File count */}
                   <View style={{
-                    minWidth: 44, height: 44, borderRadius: 14,
+                    minWidth: 54, height: 44, borderRadius: 14,
                     backgroundColor: '#ffffff',
                     borderWidth: 2, borderColor: theme.color + '44',
                     alignItems: 'center', justifyContent: 'center',
                     paddingHorizontal: 8,
                   }}>
                     <Text style={{ fontSize: 16, fontWeight: '900', color: theme.color }}>{course.resources.length}</Text>
-                    <Text style={{ fontSize: 8, fontWeight: '900', color: theme.color, textTransform: 'uppercase', letterSpacing: 0.3 }}>Files</Text>
+                    <Text style={{ fontSize: 8, fontWeight: '900', color: theme.color, textTransform: 'uppercase', letterSpacing: 0.3 }}>{t.filesCount}</Text>
                   </View>
                 </View>
 
                 {/* Teacher row */}
                 <View style={{
-                  flexDirection: 'row', alignItems: 'center',
+                  flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center',
                   paddingHorizontal: 20, paddingVertical: 10,
                   borderBottomWidth: isExpanded || course.resources.length > 0 ? 1 : 0,
                   borderBottomColor: '#f1f5f9',
                 }}>
-                  <User size={13} color="#94a3b8" strokeWidth={2.5} />
-                  <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '800', marginLeft: 6, textTransform: 'uppercase', letterSpacing: 0.3 }}>
-                    {course.teacher}
+                  <User size={13} color="#94a3b8" strokeWidth={2.5} style={{ marginRight: isRTL ? 0 : 6, marginLeft: isRTL ? 6 : 0 }} />
+                  <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.3 }}>
+                    {t.teacher}: {course.teacher}
                   </Text>
                 </View>
-
 
                 {/* Expand Toggle */}
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={() => toggleCourse(course.id)}
                   style={{
-                    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                    flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between',
                     paddingHorizontal: 20, paddingVertical: 14,
                     backgroundColor: isExpanded ? '#f8fafc' : 'white',
                   }}
                 >
                   <Text style={{ fontSize: 13, fontWeight: '900', color: isExpanded ? '#0072e6' : '#64748b' }}>
-                    {isExpanded ? 'Hide materials' : 'View learning materials'}
+                    {t.viewLearningMaterials}
                   </Text>
                   {isExpanded ? (
                     <ChevronDown size={18} color="#0072e6" strokeWidth={2.5} />
                   ) : (
-                    <ChevronRight size={18} color="#94a3b8" strokeWidth={2} />
+                    isRTL ? <ChevronLeft size={18} color="#94a3b8" strokeWidth={2} /> : <ChevronRight size={18} color="#94a3b8" strokeWidth={2} />
                   )}
                 </TouchableOpacity>
 
@@ -242,7 +240,7 @@ export const CoursesScreen = () => {
                           onPress={() => handleDownload(res)}
                           activeOpacity={0.85}
                           style={{
-                            flexDirection: 'row',
+                            flexDirection: isRTL ? 'row-reverse' : 'row',
                             alignItems: 'center',
                             borderRadius: 16,
                             padding: 14,
@@ -250,10 +248,6 @@ export const CoursesScreen = () => {
                             borderWidth: 2,
                             borderColor: isNew ? '#bfdbfe' : '#e2e8f0',
                             backgroundColor: isNew ? '#f8fafc' : '#fafafa',
-                            shadowColor: '#e2e8f0',
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 1,
-                            shadowRadius: 0,
                           }}
                         >
                           <View style={{
@@ -261,26 +255,24 @@ export const CoursesScreen = () => {
                             backgroundColor: isNew ? '#eff6ff' : '#f1f5f9',
                             borderWidth: 2, borderColor: isNew ? '#bfdbfe' : '#e2e8f0',
                             alignItems: 'center', justifyContent: 'center',
+                            marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0,
                           }}>
                             <Download size={16} color={theme.color} />
                           </View>
-                          <View style={{ flex: 1, marginLeft: 12 }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                              <Text style={{ fontSize: 14, fontWeight: '800', color: '#1e293b' }} numberOfLines={1}>{res.title}</Text>
+                          <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 8 }}>
+                              <Text style={{ fontSize: 14, fontWeight: '800', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>{res.title}</Text>
                               {isNew && (
                                 <View style={{ backgroundColor: '#0072e6', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-                                  <Text style={{ fontSize: 9, fontWeight: '900', color: 'white' }}>NEW</Text>
+                                  <Text style={{ fontSize: 9, fontWeight: '900', color: 'white' }}>جديد</Text>
                                 </View>
                               )}
                             </View>
                             {res.description ? (
-                              <Text style={{ fontSize: 12, color: '#64748b', fontWeight: '700', marginTop: 2, lineHeight: 16 }} numberOfLines={2}>
+                              <Text style={{ fontSize: 12, color: '#64748b', fontWeight: '700', marginTop: 2, lineHeight: 16, textAlign: isRTL ? 'right' : 'left' }} numberOfLines={2}>
                                 {res.description}
                               </Text>
                             ) : null}
-                            <Text style={{ fontSize: 10, color: '#94a3b8', fontWeight: '800', marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                              {res.teacher || course.teacher} · {new Date(res.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            </Text>
                           </View>
                           <Download size={16} color="#94a3b8" />
                         </TouchableOpacity>

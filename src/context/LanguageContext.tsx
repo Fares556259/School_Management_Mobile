@@ -28,6 +28,12 @@ const translations = {
     allCaughtUp: "ممتاز! تم إنجاز جميع الواجبات.",
     teacherRemarks: "ملاحظات وتوصيات المعلمين",
     noRemarks: "لا توجد ملاحظات جديدة اليوم.",
+    quickActions: "وصول سريع",
+    examCenter: "مركز الامتحانات",
+    examCenterSub: "مواعيد وجدول الامتحانات",
+    reportCard: "دفتر الأعداد والنتائج",
+    reportCardSub: "المعدلات والملاحظات",
+    backToToday: "العودة لليوم",
     
     // Status Badges
     absent: "غائب",
@@ -37,6 +43,13 @@ const translations = {
     teacher: "المدرس",
 
     // Courses / Academic
+    academicPortal: "الفضاء المدرسي",
+    coursesHub: "المواد والدروس",
+    coursesSub: "الدروس والوثائق الخاصة بـ",
+    filesCount: "وثائق",
+    viewLearningMaterials: "عرض الوثائق والدروس",
+    noCourses: "لا توجد مواد مسجلة حالياً",
+    noCoursesSub: "ستظهر الوثائق والدروس هنا فور تنزيلها من قبل المعلم.",
     academicSpace: "الفضاء المدرسي",
     coursesTitle: "المواد الدراسية",
     results: "الأعداد والنتائج",
@@ -51,6 +64,16 @@ const translations = {
 
     // Payments
     paymentsTitle: "الرسوم والمدفوعات",
+    totalOutstanding: "المبلغ الجملي المستحق",
+    currencyTnd: "د.ت",
+    filterAll: "الكل",
+    filterPaid: "المستخلصة",
+    filterUnpaid: "غير المستخلصة",
+    paymentHistory: "جدول الأقساط والمدفوعات",
+    tuitionFees: "قسط التسجيل والدراسة",
+    overdueBadge: "متأخر",
+    overdueDays: "مستحق منذ",
+    daysLabel: "يوم",
     receipts: "وصولات الخلاص",
     paid: "خلاص تام",
     pending: "في انتظار الدفع",
@@ -61,6 +84,8 @@ const translations = {
     // Announcements
     announcementsTitle: "إعلانات المدرسة",
     schoolNews: "أخبار وإعلانات الإدارة",
+    schoolNewsBadge: "أخبار المدرسة",
+    urgentBadge: "عاجل",
     readMore: "قراءة التفاصيل",
 
     // Profile & Settings
@@ -83,6 +108,8 @@ const translations = {
     friday: "الجمعة",
     saturday: "السبت",
     sunday: "الأحد",
+    jan: "يناير", feb: "فبراير", mar: "مارس", apr: "أبريل", may: "ماي", jun: "جوان",
+    jul: "جويلية", aug: "أوت", sep: "سبتمبر", oct: "أكتوبر", nov: "نوفمبر", dec: "ديسمبر",
   },
   fr: {
     // Navigation
@@ -105,6 +132,12 @@ const translations = {
     allCaughtUp: "Bravo ! Tout est à jour.",
     teacherRemarks: "Remarques des Enseignants",
     noRemarks: "Aucune remarque aujourd'hui.",
+    quickActions: "Accès Rapide",
+    examCenter: "Centre d'Examens",
+    examCenterSub: "Dates & plannings",
+    reportCard: "Bulletin Scolaire",
+    reportCardSub: "Moyennes & notes",
+    backToToday: "Aujourd'hui",
 
     // Status Badges
     absent: "Absent",
@@ -114,6 +147,13 @@ const translations = {
     teacher: "Enseignant",
 
     // Courses / Academic
+    academicPortal: "Portail Académique",
+    coursesHub: "Matières & Cours",
+    coursesSub: "Cours et documents pour",
+    filesCount: "fichiers",
+    viewLearningMaterials: "Voir les cours & supports",
+    noCourses: "Aucune matière inscrite",
+    noCoursesSub: "Les cours apparaîtront dès qu'ils seront mis en ligne par l'enseignant.",
     academicSpace: "Espace Académique",
     coursesTitle: "Matières & Cours",
     results: "Bulletins & Notes",
@@ -128,6 +168,16 @@ const translations = {
 
     // Payments
     paymentsTitle: "Frais de Scolarité",
+    totalOutstanding: "Total Reste à Payer",
+    currencyTnd: "TND",
+    filterAll: "Tous",
+    filterPaid: "Payés",
+    filterUnpaid: "Non Payés",
+    paymentHistory: "Historique des Paiements",
+    tuitionFees: "Frais de Scolarité",
+    overdueBadge: "En Retard",
+    overdueDays: "En retard de",
+    daysLabel: "jours",
     receipts: "Reçus de Paiement",
     paid: "Payé",
     pending: "En attente",
@@ -138,6 +188,8 @@ const translations = {
     // Announcements
     announcementsTitle: "Annonces de l'École",
     schoolNews: "Actualités & Communiqués",
+    schoolNewsBadge: "Info École",
+    urgentBadge: "Urgent",
     readMore: "Lire la suite",
 
     // Profile & Settings
@@ -152,14 +204,9 @@ const translations = {
     selectLanguageTitle: "Choisir la langue",
     confirm: "Confirmer",
 
-    // Days
-    monday: "Lun",
-    tuesday: "Mar",
-    wednesday: "Mer",
-    thursday: "Jeu",
-    friday: "Ven",
-    saturday: "Sam",
-    sunday: "Dim",
+    // Days & Months
+    monday: "Lun", tuesday: "Mar", wednesday: "Mer", thursday: "Jeu", friday: "Ven", saturday: "Sam", sunday: "Dim",
+    jan: "Janv", feb: "Févr", mar: "Mars", apr: "Avril", may: "Mai", jun: "Juin", jul: "Juil", aug: "Août", sep: "Sept", oct: "Oct", nov: "Nov", dec: "Déc",
   },
   en: {
     // Navigation
@@ -182,6 +229,12 @@ const translations = {
     allCaughtUp: "All caught up! No tasks due.",
     teacherRemarks: "Teacher Remarks",
     noRemarks: "No remarks for today.",
+    quickActions: "Quick Actions",
+    examCenter: "Exam Center",
+    examCenterSub: "Dates & schedules",
+    reportCard: "Report Card",
+    reportCardSub: "Grades & averages",
+    backToToday: "Back to Today",
 
     // Status Badges
     absent: "Absent",
@@ -191,6 +244,13 @@ const translations = {
     teacher: "Teacher",
 
     // Courses / Academic
+    academicPortal: "Academic Portal",
+    coursesHub: "Courses Hub",
+    coursesSub: "Materials and lessons for",
+    filesCount: "Files",
+    viewLearningMaterials: "View learning materials",
+    noCourses: "No active courses",
+    noCoursesSub: "Course materials will appear here once your teacher uploads them.",
     academicSpace: "Academic Space",
     coursesTitle: "Courses",
     results: "Results & Marks",
@@ -205,6 +265,16 @@ const translations = {
 
     // Payments
     paymentsTitle: "Tuition & Fees",
+    totalOutstanding: "Total Outstanding",
+    currencyTnd: "TND",
+    filterAll: "All",
+    filterPaid: "Paid",
+    filterUnpaid: "Unpaid",
+    paymentHistory: "Payment History",
+    tuitionFees: "Tuition Fees",
+    overdueBadge: "Overdue",
+    overdueDays: "Overdue by",
+    daysLabel: "days",
     receipts: "Payment Receipts",
     paid: "Paid",
     pending: "Pending",
@@ -215,6 +285,8 @@ const translations = {
     // Announcements
     announcementsTitle: "School Announcements",
     schoolNews: "News & Bulletins",
+    schoolNewsBadge: "School News",
+    urgentBadge: "Urgent",
     readMore: "Read Details",
 
     // Profile & Settings
@@ -225,18 +297,13 @@ const translations = {
     french: "Français 🇫🇷",
     english: "English 🇬🇧",
     signOut: "Sign Out",
-    linkChild: "Link New Child",
+    linkChild: "Link Another Student",
     selectLanguageTitle: "Select App Language",
     confirm: "Confirm",
 
-    // Days
-    monday: "Mon",
-    tuesday: "Tue",
-    wednesday: "Wed",
-    thursday: "Thu",
-    friday: "Fri",
-    saturday: "Sat",
-    sunday: "Sun",
+    // Days & Months
+    monday: "Mon", tuesday: "Tue", wednesday: "Wed", thursday: "Thu", friday: "Fri", saturday: "Sat", sunday: "Sun",
+    jan: "Jan", feb: "Feb", mar: "Mar", apr: "Apr", may: "May", jun: "Jun", jul: "Jul", aug: "Aug", sep: "Sep", oct: "Oct", nov: "Nov", dec: "Dec",
   }
 };
 

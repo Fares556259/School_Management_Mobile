@@ -149,7 +149,7 @@ const SectionHeader = ({ title, action, onAction }: any) => {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export const HomeScreen = ({ navigation, route }: any) => {
   const { selectedChildId, setStudentStatus } = useAppStore();
-  const { t, getTranslatedSubject } = useLanguage();
+  const { t, isRTL, getTranslatedSubject } = useLanguage();
   const [loading, setLoading] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
   const [dayData, setDayData] = React.useState<StudentDayData>({ sessions: [], notes: [], files: [], homeworkDue: [], homeworkGiven: [], exams: [] });
@@ -236,12 +236,12 @@ export const HomeScreen = ({ navigation, route }: any) => {
               </TouchableOpacity>
             </View>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
             <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.calendarBtn}>
               <CalendarIcon size={24} color="#64748b" />
             </TouchableOpacity>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateSlider} contentContainerStyle={{ paddingRight: 8 }}>
-              {sliderDates.map(d => (
+              {(isRTL ? [...sliderDates].reverse() : sliderDates).map(d => (
                 <DateItem
                   key={d.toISOString()}
                   day={daysArr[d.getDay()]}
@@ -429,30 +429,30 @@ export const HomeScreen = ({ navigation, route }: any) => {
 
 
               {/* Quick Actions */}
-              <SectionHeader title="Quick Actions" />
-              <View style={[styles.quickActionsRow, { marginBottom: 100 }]}>
+              <SectionHeader title={t.quickActions} />
+              <View style={[styles.quickActionsRow, { flexDirection: isRTL ? 'row-reverse' : 'row', marginBottom: 100 }]}>
                 <TouchableOpacity
                   onPress={() => { Haptics.selectionAsync(); navigation.navigate('Exams'); }}
                   activeOpacity={0.85}
-                  style={[styles.quickCard, { borderColor: '#ffffff' }]}
+                  style={[styles.quickCard, { borderColor: '#ffffff', alignItems: isRTL ? 'flex-end' : 'flex-start' }]}
                 >
                   <View style={[styles.quickIcon, { backgroundColor: '#f3e8ff', borderWidth: 0 }]}>
                     <FileText size={22} color="#9333ea" />
                   </View>
-                  <Text style={[styles.quickTitle, { color: '#1e293b' }]}>Exam Center</Text>
-                  <Text style={styles.quickSub}>Dates & schedules</Text>
+                  <Text style={[styles.quickTitle, { color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }]}>{t.examCenter}</Text>
+                  <Text style={[styles.quickSub, { textAlign: isRTL ? 'right' : 'left' }]}>{t.examCenterSub}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   onPress={() => { Haptics.selectionAsync(); navigation.navigate('Results'); }}
                   activeOpacity={0.85}
-                  style={[styles.quickCard, { borderColor: '#ffffff' }]}
+                  style={[styles.quickCard, { borderColor: '#ffffff', alignItems: isRTL ? 'flex-end' : 'flex-start' }]}
                 >
                   <View style={[styles.quickIcon, { backgroundColor: '#dcfce7', borderWidth: 0 }]}>
                     <Award size={22} color="#16a34a" />
                   </View>
-                  <Text style={[styles.quickTitle, { color: '#1e293b' }]}>Report Card</Text>
-                  <Text style={styles.quickSub}>Grades & averages</Text>
+                  <Text style={[styles.quickTitle, { color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }]}>{t.reportCard}</Text>
+                  <Text style={[styles.quickSub, { textAlign: isRTL ? 'right' : 'left' }]}>{t.reportCardSub}</Text>
                 </TouchableOpacity>
               </View>
             </>
