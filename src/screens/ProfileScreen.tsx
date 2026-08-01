@@ -156,7 +156,7 @@ const SectionTitle = ({ title }: { title: string }) => (
 
 export const ProfileScreen = ({ navigation, onSignOut }: any) => {
   const { children, setSelectedChildId, setChildren, userName, setUserName, setUserAvatarUrl, userRole, userId } = useAppStore();
-  const { t, language, setLanguage } = useLanguage();
+  const { t, language, setLanguage, isRTL } = useLanguage();
   const [profile, setProfile] = useState<any>(null);
   const [schoolInfo, setSchoolInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -462,12 +462,31 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
         
         {/* Main Title */}
         <View className="items-center mt-4 mb-2">
-          <Text className="text-[13px] font-jakarta font-bold text-text-primary tracking-widest uppercase">Profile Setting</Text>
+          <Text className="text-[13px] font-jakarta font-bold text-text-primary tracking-widest uppercase">{t.profileSettingTitle}</Text>
         </View>
 
         {/* Top Profile Card */}
-        <View className="bg-white rounded-[24px] p-5 flex-row items-center mt-4 mx-6 shadow-sm shadow-black/5 border border-surface-low/60">
-          <View className="relative w-16 h-16 rounded-full bg-blue-50 items-center justify-center">
+        <View style={{
+          backgroundColor: 'white',
+          borderRadius: 24,
+          padding: 20,
+          flexDirection: isRTL ? 'row-reverse' : 'row',
+          alignItems: 'center',
+          marginTop: 16,
+          marginHorizontal: 24,
+          borderWidth: 1,
+          borderColor: '#e2e8f0',
+        }}>
+          <View style={{
+            width: 64,
+            height: 64,
+            borderRadius: 32,
+            backgroundColor: '#eff6ff',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: isRTL ? 0 : 16,
+            marginLeft: isRTL ? 16 : 0,
+          }}>
             {profile?.img ? (
               <Image 
                 source={{ uri: profile.img }} 
@@ -475,13 +494,13 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
                 contentFit="cover" 
               />
             ) : (
-              <Text className="text-xl font-jakarta font-black text-brand-primary">{profile?.name?.charAt(0)}</Text>
+              <Text style={{ fontSize: 24, fontWeight: '900', color: '#0072e6' }}>{profile?.name?.charAt(0)}</Text>
             )}
           </View>
-          <View className="ml-4 flex-1">
-            <Text className="text-lg font-jakarta font-black text-text-primary">{profile?.name} {profile?.surname}</Text>
-            <Text className="text-text-muted font-manrope font-semibold text-xs mt-0.5">
-              {profile?.phone || (userRole === 'teacher' ? 'Teacher Account' : `${children.length} children linked`)}
+          <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+            <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>{profile?.name} {profile?.surname}</Text>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#64748b', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>
+              {profile?.phone || (userRole === 'teacher' ? 'حساب مدرس' : `${children.length} أبناء مسجلين`)}
             </Text>
           </View>
         </View>
@@ -489,7 +508,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
         {/* My Children Section - Only for Parents */}
         {userRole === 'parent' && (
           <View className="mt-8">
-            <SectionTitle title="My Children" />
+            <SectionTitle title={t.myChildren} />
             <View className="px-6">
               {children.map((child, index) => (
                 <ChildCard 
@@ -506,13 +525,13 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
 
         {/* General Section */}
         <View>
-          <SectionTitle title="General" />
+          <SectionTitle title={t.generalSection} />
           <View className="bg-white mx-6 rounded-[24px] overflow-hidden border border-surface-low/60 shadow-sm shadow-black/5">
             <SettingItemV3 
               icon={UserIcon} 
               color="#0055d4" iconBg="bg-blue-50"
-              label="Edit Profile" 
-              subtitle="Change profile picture, number, name"
+              label={t.editProfileItem} 
+              subtitle={t.editProfileSub}
               onPress={() => {
                 if (profile) {
                   setEditData({
@@ -534,15 +553,15 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
                 <SettingItemV3 
                   icon={Award} 
                   color="#8b5cf6" iconBg="bg-purple-50"
-                  label="Report Card" 
-                  subtitle="View student academic performance"
+                  label={t.reportCardItem} 
+                  subtitle={t.profileReportCardSub}
                   onPress={() => navigation.navigate('Results')} 
                 />
                 <SettingItemV3 
                   icon={FileText} 
                   color="#f59e0b" iconBg="bg-orange-50"
-                  label="Document Center" 
-                  subtitle="Securely access school documents"
+                  label={t.documentCenterItem} 
+                  subtitle={t.profileDocumentCenterSub}
                   isLast 
                   onPress={() => navigation.navigate('DocumentCenter')} 
                 />
@@ -553,7 +572,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
 
         {/* Preferences Section */}
         <View>
-          <SectionTitle title={t.appLanguage} />
+          <SectionTitle title={t.preferencesSection} />
           <View className="bg-white mx-6 rounded-[24px] overflow-hidden border border-surface-low/60 shadow-sm shadow-black/5">
             <SettingItemV3 
               icon={Globe} 
@@ -565,22 +584,22 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
             <SettingItemV3 
               icon={BellRing} 
               color="#3b82f6" iconBg="bg-blue-50"
-              label="Notification" 
-              subtitle="Customize your notification preferences"
+              label={t.notificationsItem} 
+              subtitle={t.notificationsSub}
               rightElement={<Switch value={notificationsEnabled} onValueChange={toggleNotifications} trackColor={{ false: '#e2e8f0', true: '#0055d4' }} style={{ transform: [{ scale: 0.8 }] }} />}
             />
             <SettingItemV3 
               icon={Info} 
               color="#10b981" iconBg="bg-green-50"
-              label="School Support" 
-              subtitle={schoolInfo?.schoolName || 'Official SnapSchool Help'}
+              label={t.schoolSupportItem} 
+              subtitle={schoolInfo?.schoolName || t.schoolSupportSub}
               onPress={() => schoolInfo?.phone && Linking.openURL(`tel:${schoolInfo.phone}`)}
             />
             <SettingItemV3 
               icon={LogOut} 
               color="#ef4444" iconBg="bg-red-50"
               label={t.signOut} 
-              subtitle="Securely log out of Account"
+              subtitle={t.signOutSub}
               isDestructive
               isLast 
               onPress={handleLogout} 
