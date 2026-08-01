@@ -38,12 +38,15 @@ import * as Haptics from 'expo-haptics';
 import Constants from 'expo-constants';
 import "./src/styles/global.css";
 
+import { LanguageProvider, useLanguage } from './src/context/LanguageContext';
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 const navigationRef = createNavigationContainerRef();
 
-function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
+function BottomTabsContent({ onSignOut }: { onSignOut: () => void }) {
   const { userRole } = useAppStore();
+  const { t } = useLanguage();
   const isTeacher = userRole === 'teacher';
 
   return (
@@ -110,22 +113,23 @@ function BottomTabs({ onSignOut }: { onSignOut: () => void }) {
     >
       {isTeacher ? (
         <>
-          <Tab.Screen name="Home" component={TeacherHomeScreen} />
-          <Tab.Screen name="Attendance" component={TeacherAttendanceScreen} />
-          <Tab.Screen name="Lessons" component={TeacherLessonsScreen} />
-          <Tab.Screen name="Tasks" component={TeacherTasksScreen} />
-          <Tab.Screen name="Classes" component={TeacherClassesScreen} />
+          <Tab.Screen name="Home" component={TeacherHomeScreen} options={{ tabBarLabel: t.tabHome }} />
+          <Tab.Screen name="Attendance" component={TeacherAttendanceScreen} options={{ tabBarLabel: t.attendance }} />
+          <Tab.Screen name="Lessons" component={TeacherLessonsScreen} options={{ tabBarLabel: t.coursesTitle }} />
+          <Tab.Screen name="Tasks" component={TeacherTasksScreen} options={{ tabBarLabel: t.tasks }} />
+          <Tab.Screen name="Classes" component={TeacherClassesScreen} options={{ tabBarLabel: t.myChildren }} />
         </>
       ) : (
         <>
-          <Tab.Screen name="Home" component={HomeScreen} />
-          <Tab.Screen name="Courses" component={CoursesScreen} />
-          <Tab.Screen name="Announcements" component={AnnouncementsScreen} />
-          <Tab.Screen name="Payments" component={PaymentsScreen} />
+          <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: t.tabHome }} />
+          <Tab.Screen name="Courses" component={CoursesScreen} options={{ tabBarLabel: t.tabCourses }} />
+          <Tab.Screen name="Announcements" component={AnnouncementsScreen} options={{ tabBarLabel: t.tabAnnouncements }} />
+          <Tab.Screen name="Payments" component={PaymentsScreen} options={{ tabBarLabel: t.tabPayments }} />
         </>
       )}
       <Tab.Screen
         name="Profile"
+        options={{ tabBarLabel: t.tabProfile }}
         children={React.useCallback((props: any) => <ProfileScreen {...props} onSignOut={onSignOut} />, [onSignOut])}
       />
     </Tab.Navigator>
@@ -324,7 +328,7 @@ export default function App() {
   }, [setChildren, setUserName, setUserRole, setUserId]);
 
   const MainTabsScreen = React.useCallback(
-    () => <BottomTabs onSignOut={handleSignOut} />,
+    () => <BottomTabsContent onSignOut={handleSignOut} />,
     [handleSignOut]
   );
 
@@ -342,36 +346,38 @@ export default function App() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <NavigationContainer ref={navigationRef}>
-          {authState === 'landing' ? (
-            <LandingScreen onSelectRole={onSelectRole} />
-          ) : authState === 'signedOut' ? (
-            <SignInScreen role={selectedRole} onSignIn={handleSignIn} onBack={() => setAuthState('landing')} />
-          ) : (
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
-              <Stack.Screen
-                name="MainTabs"
-                children={MainTabsScreen}
-              />
-              <Stack.Screen name="Attendance" component={AttendanceScreen} />
-              <Stack.Screen name="Notifications" component={NotificationsScreen} />
-              <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
-              <Stack.Screen name="HomeworkDetail" component={HomeworkDetailScreen} />
-              <Stack.Screen name="ExamDetail" component={ExamDetailScreen} />
-              <Stack.Screen name="AnnouncementDetail" component={AnnouncementDetailScreen} />
-              <Stack.Screen name="LinkChild" component={LinkChildScreen} />
-              <Stack.Screen name="DocumentCenter" component={DocumentCenterScreen} />
-              <Stack.Screen name="Exams" component={ExamsScreen} />
-              <Stack.Screen name="Results" component={ResultsScreen} />
-              <Stack.Screen name="TeacherTaskDetail" component={TeacherTaskDetailScreen} />
-              <Stack.Screen name="StudentSubmission" component={StudentSubmissionScreen} />
-              <Stack.Screen name="TeacherClassRoster" component={TeacherClassRosterScreen} />
-            </Stack.Navigator>
-          )}
-        </NavigationContainer>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <LanguageProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <NavigationContainer ref={navigationRef}>
+            {authState === 'landing' ? (
+              <LandingScreen onSelectRole={onSelectRole} />
+            ) : authState === 'signedOut' ? (
+              <SignInScreen role={selectedRole} onSignIn={handleSignIn} onBack={() => setAuthState('landing')} />
+            ) : (
+              <Stack.Navigator screenOptions={{ headerShown: false }}>
+                <Stack.Screen
+                  name="MainTabs"
+                  children={MainTabsScreen}
+                />
+                <Stack.Screen name="Attendance" component={AttendanceScreen} />
+                <Stack.Screen name="Notifications" component={NotificationsScreen} />
+                <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
+                <Stack.Screen name="HomeworkDetail" component={HomeworkDetailScreen} />
+                <Stack.Screen name="ExamDetail" component={ExamDetailScreen} />
+                <Stack.Screen name="AnnouncementDetail" component={AnnouncementDetailScreen} />
+                <Stack.Screen name="LinkChild" component={LinkChildScreen} />
+                <Stack.Screen name="DocumentCenter" component={DocumentCenterScreen} />
+                <Stack.Screen name="Exams" component={ExamsScreen} />
+                <Stack.Screen name="Results" component={ResultsScreen} />
+                <Stack.Screen name="TeacherTaskDetail" component={TeacherTaskDetailScreen} />
+                <Stack.Screen name="StudentSubmission" component={StudentSubmissionScreen} />
+                <Stack.Screen name="TeacherClassRoster" component={TeacherClassRosterScreen} />
+              </Stack.Navigator>
+            )}
+          </NavigationContainer>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </LanguageProvider>
   );
 }

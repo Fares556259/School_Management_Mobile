@@ -14,6 +14,7 @@ import {
   Download, X, Award, User as UserIcon
 } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
+import { useLanguage } from '../context/LanguageContext';
 import { studentService } from '../services/api';
 import { StudentDayData } from '../types';
 import { GlobalHeader } from '../components/GlobalHeader';
@@ -65,15 +66,15 @@ const StatPill = ({ count, label, color, bgColor, borderColor }: any) => (
 
 // ─── Session Card ─────────────────────────────────────────────────────────────
 const SessionCard = ({ session }: any) => {
+  const { t, getTranslatedSubject } = useLanguage();
   const isAbsent = session.attendance?.toUpperCase() === 'ABSENT' || session.attendance?.toUpperCase() === 'ABS';
   const isPresent = session.attendance?.toUpperCase() === 'PRESENT' || session.attendance?.toUpperCase() === 'PRES';
   const isLate = session.attendance?.toUpperCase() === 'LATE';
-  const isUpcoming = !session.attendance;
 
   const pillColor = isAbsent ? '#ef4444' : isPresent ? '#22c55e' : isLate ? '#f59e0b' : '#cbd5e1';
   const badgeBg = isAbsent ? '#fee2e2' : isPresent ? '#dcfce7' : isLate ? '#fef3c7' : '#f1f5f9';
   const badgeText = isAbsent ? '#dc2626' : isPresent ? '#16a34a' : isLate ? '#d97706' : '#64748b';
-  const statusLabel = isAbsent ? 'Absent' : isPresent ? 'Present' : isLate ? 'Late' : 'Upcoming';
+  const statusLabel = isAbsent ? t.absent : isPresent ? t.present : isLate ? t.late : t.upcoming;
 
   return (
     <View style={styles.sessionCardV2}>
@@ -91,7 +92,7 @@ const SessionCard = ({ session }: any) => {
         </View>
 
         <Text style={styles.sessionTitleV2} numberOfLines={2}>
-          {session.subject?.split('|')[0]?.trim()}
+          {getTranslatedSubject(session.subject)}
         </Text>
 
         <View style={styles.sessionDividerV2} />
@@ -99,7 +100,7 @@ const SessionCard = ({ session }: any) => {
         <View style={[styles.sessionFooterV2, { justifyContent: 'space-between' }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <UserIcon size={14} color="#64748b" strokeWidth={2.5} style={{ marginRight: 6 }} />
-            <Text style={styles.sessionTeacherV2}>{session.teacher || 'Teacher'}</Text>
+            <Text style={styles.sessionTeacherV2}>{session.teacher || t.teacher}</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
             {[1, 2, 3, 4, 5].map((starIndex) => {
@@ -121,15 +122,18 @@ const SessionCard = ({ session }: any) => {
 };
 
 // ─── Empty Sessions ───────────────────────────────────────────────────────────
-const EmptySessionsUI = () => (
-  <View style={styles.emptyBox}>
-    <View style={styles.emptyIconCircle}>
-      <Coffee size={30} color="#0072e6" />
+const EmptySessionsUI = () => {
+  const { t } = useLanguage();
+  return (
+    <View style={styles.emptyBox}>
+      <View style={styles.emptyIconCircle}>
+        <Coffee size={30} color="#0072e6" />
+      </View>
+      <Text style={styles.emptyTitle}>{t.noClasses}</Text>
+      <Text style={styles.emptySub}>{t.freeDay}</Text>
     </View>
-    <Text style={styles.emptyTitle}>No classes today</Text>
-    <Text style={styles.emptySub}>Enjoy your free day and catch up on reading!</Text>
-  </View>
-);
+  );
+};
 
 // ─── Section Header ───────────────────────────────────────────────────────────
 const SectionHeader = ({ title, action, onAction }: any) => (
@@ -147,6 +151,7 @@ const SectionHeader = ({ title, action, onAction }: any) => (
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export const HomeScreen = ({ navigation, route }: any) => {
   const { selectedChildId, setStudentStatus } = useAppStore();
+  const { t, getTranslatedSubject } = useLanguage();
   const [loading, setLoading] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
   const [dayData, setDayData] = React.useState<StudentDayData>({ sessions: [], notes: [], files: [], homeworkDue: [], homeworkGiven: [], exams: [] });
@@ -203,12 +208,8 @@ export const HomeScreen = ({ navigation, route }: any) => {
     return d;
   });
 
-  const presentCount = dayData.sessions?.filter(s => s.attendance?.toUpperCase() === 'PRESENT' || s.attendance?.toUpperCase() === 'PRES').length || 0;
-  const absentCount = dayData.sessions?.filter(s => s.attendance?.toUpperCase() === 'ABSENT' || s.attendance?.toUpperCase() === 'ABS').length || 0;
-  const lateCount = dayData.sessions?.filter(s => s.attendance?.toUpperCase() === 'LATE').length || 0;
-  const upcomingCount = dayData.sessions?.filter(s => !s.attendance).length || 0;
-
   const allTasks = [...(dayData.homeworkDue || []), ...(dayData.homeworkGiven || [])];
+  const daysArr = [t.sunday, t.monday, t.tuesday, t.wednesday, t.thursday, t.friday, t.saturday];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -222,19 +223,17 @@ export const HomeScreen = ({ navigation, route }: any) => {
       >
         <View style={styles.content}>
 
-
-
           {/* Date Slider */}
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Today's Schedule</Text>
+            <Text style={styles.sectionTitle}>{t.todaysSchedule}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
               {selectedDate.toDateString() !== new Date().toDateString() && (
                 <TouchableOpacity onPress={() => setSelectedDate(new Date())}>
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#1e293b' }}>Back to Today</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#1e293b' }}>{t.todaysSchedule}</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity onPress={() => navigation.navigate('Attendance')} style={styles.sectionActionBtn}>
-                <Text style={styles.sectionActionText}>History</Text>
+                <Text style={styles.sectionActionText}>{t.history}</Text>
                 <ChevronRight size={14} color="#0072e6" strokeWidth={3} />
               </TouchableOpacity>
             </View>
@@ -247,7 +246,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
               {sliderDates.map(d => (
                 <DateItem
                   key={d.toISOString()}
-                  day={['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][d.getDay()]}
+                  day={daysArr[d.getDay()]}
                   date={d.getDate()}
                   active={d.toDateString() === selectedDate.toDateString()}
                   isToday={d.toDateString() === new Date().toDateString()}
@@ -278,7 +277,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
                     style={{ backgroundColor: '#f1f5f9', paddingVertical: 14, borderRadius: 16, alignItems: 'center', marginTop: 8 }}
                     onPress={() => setShowDatePicker(false)}
                   >
-                    <Text style={{ fontWeight: '800', color: '#64748b', fontSize: 16 }}>Cancel</Text>
+                    <Text style={{ fontWeight: '800', color: '#64748b', fontSize: 16 }}>Annuller</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -321,7 +320,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
                 onLayout={(e) => setTasksYPosition(e.nativeEvent.layout.y)}
                 style={{ height: 0 }}
               />
-              <SectionHeader title="Tasks" />
+              <SectionHeader title={t.tasks} />
               <View style={{ gap: 12 }}>
                 {allTasks.length > 0 ? (
                   allTasks.map((task: any) => (
@@ -337,15 +336,15 @@ export const HomeScreen = ({ navigation, route }: any) => {
                           borderColor: task.isCompleted ? '#86efac' : '#fed7aa',
                         }]}>
                           <Text style={[styles.taskBadgeText, { color: task.isCompleted ? '#16a34a' : '#ea580c' }]}>
-                            {task.isCompleted ? '✓ Done' : 'Pending'}
+                            {task.isCompleted ? '✓ ' + t.paid : t.pending}
                           </Text>
                         </View>
                         <View style={[styles.taskIcon, { backgroundColor: task.isCompleted ? '#dcfce7' : '#eff6ff', width: 32, height: 32 }]}>
                           <CheckCircle2 size={16} color={task.isCompleted ? '#16a34a' : '#0072e6'} />
                         </View>
                       </View>
-                      <Text style={styles.listRowTitle}>{task.subject?.split('|')[0]?.trim()} — {task.title}</Text>
-                      <Text style={styles.listRowMeta}>By {task.teacher || 'Teacher'}</Text>
+                      <Text style={styles.listRowTitle}>{getTranslatedSubject(task.subject)} — {task.title}</Text>
+                      <Text style={styles.listRowMeta}>{t.teacher}: {task.teacher || t.teacher}</Text>
                     </TouchableOpacity>
                   ))
                 ) : (
@@ -353,13 +352,13 @@ export const HomeScreen = ({ navigation, route }: any) => {
                     <View style={{width: 56, height: 56, borderRadius: 28, backgroundColor: '#dcfce7', alignItems: 'center', justifyContent: 'center', marginBottom: 12}}>
                       <CheckCircle2 size={28} color="#16a34a" />
                     </View>
-                    <Text style={styles.emptyStateText}>All caught up! No tasks due.</Text>
+                    <Text style={styles.emptyStateText}>{t.allCaughtUp}</Text>
                   </View>
                 )}
               </View>
 
               {/* Teacher Remarks */}
-              <SectionHeader title="Teacher Remarks" />
+              <SectionHeader title={t.teacherRemarks} />
               <View style={{ gap: 12 }}>
                 {dayData.notes?.filter((n: any) => n.text !== 'INITIALIZED_BULK').length > 0 ? (
                   dayData.notes.filter((n: any) => n.text !== 'INITIALIZED_BULK').map((note: any) => (
@@ -374,10 +373,10 @@ export const HomeScreen = ({ navigation, route }: any) => {
                       </View>
                       <View style={styles.remarkContent}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                          <Text style={[styles.remarkTitle, { flex: 1, marginBottom: 0, paddingRight: 8 }]} numberOfLines={2}>{note.text || 'No content'}</Text>
+                          <Text style={[styles.remarkTitle, { flex: 1, marginBottom: 0, paddingRight: 8 }]} numberOfLines={2}>{note.text || ''}</Text>
                           <Text style={styles.remarkTime}>{note.time || ''}</Text>
                         </View>
-                        <Text style={styles.remarkMeta}>By {note.author || 'Teacher'}</Text>
+                        <Text style={styles.remarkMeta}>{t.teacher}: {note.author || t.teacher}</Text>
                       </View>
                     </TouchableOpacity>
                   ))
@@ -386,7 +385,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
                     <View style={{width: 56, height: 56, borderRadius: 28, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginBottom: 12}}>
                       <MessageSquare size={28} color="#0072e6" />
                     </View>
-                    <Text style={styles.emptyStateText}>No new remarks today.</Text>
+                    <Text style={styles.emptyStateText}>{t.noRemarks}</Text>
                   </View>
                 )}
               </View>

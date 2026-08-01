@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput, ActivityIndicator, StatusBar, Dimensions, Switch, Linking } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bell, Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, User, Pencil, FileText, Info, PhoneCall, MapPin, Image as ImageIcon, Award } from 'lucide-react-native';
+import { Bell, Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, User, Pencil, FileText, Info, PhoneCall, MapPin, Image as ImageIcon, Award, Globe } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Svg, Circle } from 'react-native-svg';
 import { useAppStore } from '../store/useAppStore';
+import { useLanguage, Language } from '../context/LanguageContext';
 import { authService, parentService, studentService, uiService, teacherService } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { notificationService } from '../services/notificationService';
@@ -155,6 +156,7 @@ const SectionTitle = ({ title }: { title: string }) => (
 
 export const ProfileScreen = ({ navigation, onSignOut }: any) => {
   const { children, setSelectedChildId, setChildren, userName, setUserName, setUserAvatarUrl, userRole, userId } = useAppStore();
+  const { t, language, setLanguage } = useLanguage();
   const [profile, setProfile] = useState<any>(null);
   const [schoolInfo, setSchoolInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -163,8 +165,9 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
   
   // Edit Modal State
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [langModalVisible, setLangModalVisible] = useState(false);
   const [editData, setEditData] = useState({ name: '', surname: '', phone: '' });
-  const [editChildrenDataBulk, setEditChildrenDataBulk] = useState<{id: string, name: string, surname: string}[]>([]);
+  const [editChildrenDataBulk, setEditChildrenDataBulk] = useState<{id: string, name: string, surname: string, avatarUrl?: string}[]>([]);
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [editChildModalVisible, setEditChildModalVisible] = useState(false);
@@ -520,7 +523,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
                 }
                 setEditChildrenDataBulk(children.map(c => {
                   const parts = (c.name || '').split(' ');
-                  return { id: c.id, name: parts[0] || '', surname: parts.slice(1).join(' ') || '', avatarUrl: c.avatarUrl };
+                  return { id: c.id, name: parts[0] || '', surname: parts.slice(1).join(' ') || '', avatarUrl: c.avatarUrl || undefined };
                 }));
                 setEditModalVisible(true);
               }}
@@ -550,8 +553,15 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
 
         {/* Preferences Section */}
         <View>
-          <SectionTitle title="Preferences" />
+          <SectionTitle title={t.appLanguage} />
           <View className="bg-white mx-6 rounded-[24px] overflow-hidden border border-surface-low/60 shadow-sm shadow-black/5">
+            <SettingItemV3 
+              icon={Globe} 
+              color="#0055d4" iconBg="bg-blue-50"
+              label={t.appLanguage} 
+              subtitle={language === 'ar' ? 'العربية 🇹🇳' : language === 'fr' ? 'Français 🇫🇷' : 'English 🇬🇧'}
+              onPress={() => setLangModalVisible(true)}
+            />
             <SettingItemV3 
               icon={BellRing} 
               color="#3b82f6" iconBg="bg-blue-50"
@@ -569,7 +579,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
             <SettingItemV3 
               icon={LogOut} 
               color="#ef4444" iconBg="bg-red-50"
-              label="Log Out" 
+              label={t.signOut} 
               subtitle="Securely log out of Account"
               isDestructive
               isLast 
@@ -578,6 +588,56 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Language Selection Modal */}
+      <Modal visible={langModalVisible} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ width: '85%', backgroundColor: 'white', borderRadius: 28, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 8 }}>
+            <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', textAlign: 'center', marginBottom: 20 }}>{t.selectLanguageTitle}</Text>
+            
+            {[
+              { code: 'ar', label: 'العربية (تونس)', flag: '🇹🇳' },
+              { code: 'fr', label: 'Français', flag: '🇫🇷' },
+              { code: 'en', label: 'English', flag: '🇬🇧' },
+            ].map((opt) => (
+              <TouchableOpacity
+                key={opt.code}
+                onPress={async () => {
+                  await setLanguage(opt.code as Language);
+                  setLangModalVisible(false);
+                }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingVertical: 14,
+                  paddingHorizontal: 16,
+                  borderRadius: 16,
+                  backgroundColor: language === opt.code ? '#eff6ff' : '#f8fafc',
+                  marginBottom: 10,
+                  borderWidth: 1,
+                  borderColor: language === opt.code ? '#93c5fd' : '#f1f5f9',
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <Text style={{ fontSize: 20 }}>{opt.flag}</Text>
+                  <Text style={{ fontSize: 15, fontWeight: language === opt.code ? '800' : '600', color: language === opt.code ? '#0072e6' : '#334155' }}>
+                    {opt.label}
+                  </Text>
+                </View>
+                {language === opt.code && <Check size={20} color="#0072e6" strokeWidth={3} />}
+              </TouchableOpacity>
+            ))}
+
+            <TouchableOpacity
+              onPress={() => setLangModalVisible(false)}
+              style={{ marginTop: 10, paddingVertical: 12, alignItems: 'center' }}
+            >
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#94a3b8' }}>Annuller</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Edit Profile Modal */}
       <Modal visible={editModalVisible} transparent={false} animationType="slide">
