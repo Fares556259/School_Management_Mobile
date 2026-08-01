@@ -23,6 +23,7 @@ import { TeacherHomeScreen } from './src/screens/teacher/TeacherHomeScreen';
 import { TeacherAttendanceScreen } from './src/screens/teacher/TeacherAttendanceScreen';
 import { TeacherLessonsScreen } from './src/screens/teacher/TeacherLessonsScreen';
 import { TeacherTasksScreen } from './src/screens/teacher/TeacherTasksScreen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TeacherTaskDetailScreen } from './src/screens/teacher/TeacherTaskDetailScreen';
 import { StudentSubmissionScreen } from './src/screens/teacher/StudentSubmissionScreen';
 import { TeacherClassRosterScreen } from './src/screens/teacher/TeacherClassRosterScreen';
@@ -186,6 +187,11 @@ export default function App() {
 
     const registerPush = async (uid: string) => {
       try {
+        const pref = await AsyncStorage.getItem('notificationsEnabled');
+        if (pref === 'false') {
+          console.log("[DEBUG-PUSH] Notifications disabled by user preference");
+          return;
+        }
         const hasPermission = await notificationService.requestPermissions();
         if (hasPermission) {
           const token = await notificationService.getPushToken();
