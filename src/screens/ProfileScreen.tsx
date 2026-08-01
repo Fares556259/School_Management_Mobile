@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput, ActivityIndicator, StatusBar, Dimensions, Switch, Linking } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bell, Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, User, Pencil, FileText, Info, PhoneCall, MapPin, Image as ImageIcon, Award, Globe } from 'lucide-react-native';
+import { Bell, Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, ChevronLeft, User, Pencil, FileText, Info, PhoneCall, MapPin, Image as ImageIcon, Award, Globe } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Svg, Circle } from 'react-native-svg';
 import { useAppStore } from '../store/useAppStore';
@@ -101,6 +101,7 @@ const CHILD_COLORS = ['#eff6ff', '#f5f3ff', '#fff7ed', '#fdf2f8'];
 const CHILD_TEXT_COLORS = ['#0055d4', '#8b5cf6', '#f59e0b', '#ec4899'];
 
 const ChildCard = ({ child, index, onSelect, onEditImage }: any) => {
+  const { t, isRTL } = useLanguage();
   const bgColor = CHILD_COLORS[index % CHILD_COLORS.length];
   const textColor = CHILD_TEXT_COLORS[index % CHILD_TEXT_COLORS.length];
   
@@ -108,11 +109,28 @@ const ChildCard = ({ child, index, onSelect, onEditImage }: any) => {
     <TouchableOpacity 
       onPress={onSelect}
       activeOpacity={0.7}
-      className="bg-white rounded-[24px] p-4 flex-row items-center mb-3 shadow-sm shadow-black/5 border border-surface-low/60"
+      style={{
+        flexDirection: isRTL ? 'row-reverse' : 'row',
+        backgroundColor: 'white',
+        borderRadius: 24,
+        padding: 16,
+        alignItems: 'center',
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+      }}
     >
       <View 
-        className="relative w-14 h-14 rounded-full items-center justify-center" 
-        style={{ backgroundColor: bgColor }}
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: bgColor,
+          marginRight: isRTL ? 0 : 16,
+          marginLeft: isRTL ? 16 : 0,
+        }} 
       >
         {child.avatarUrl ? (
           <Image 
@@ -122,37 +140,73 @@ const ChildCard = ({ child, index, onSelect, onEditImage }: any) => {
             transition={200}
           />
         ) : (
-          <UserIcon size={32} color={textColor} strokeWidth={1.5} />
+          <UserIcon size={30} color={textColor} strokeWidth={1.5} />
         )}
       </View>
-      <View className="ml-4 flex-1">
-        <Text className="text-lg font-jakarta font-black text-text-primary" numberOfLines={1}>
+      <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+        <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>
           {child.name.split(' ')[0]}
         </Text>
-        <Text style={{ color: textColor, fontSize: 13, fontWeight: '700', fontFamily: 'PlusJakartaSans-Bold' }}>
-          Class: {child.class}
+        <Text style={{ color: textColor, fontSize: 13, fontWeight: '800', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>
+          {t.classLabel}: {child.class}
         </Text>
       </View>
     </TouchableOpacity>
   );
 };
 
-const SettingItemV3 = ({ icon: Icon, label, subtitle, color, iconBg, onPress, isLast, isDestructive, rightElement }: any) => (
-  <TouchableOpacity onPress={onPress} activeOpacity={0.6} className={`flex-row items-center py-4 px-5 ${!isLast ? 'border-b border-surface-low/50' : ''}`}>
-    <View className={`w-10 h-10 rounded-xl items-center justify-center mr-4 ${iconBg || 'bg-brand-primary/10'}`}>
-      <Icon size={20} color={color || "#0055d4"} />
-    </View>
-    <View className="flex-1">
-      <Text className={`text-[15px] font-jakarta font-bold ${isDestructive ? 'text-red-500' : 'text-text-primary'}`}>{label}</Text>
-      {subtitle && <Text className="text-[11px] font-manrope font-semibold text-text-muted mt-0.5">{subtitle}</Text>}
-    </View>
-    {rightElement || <ChevronRight size={18} color="#9ca3af" />}
-  </TouchableOpacity>
-);
+const SettingItemV3 = ({ icon: Icon, label, subtitle, color, iconBg, onPress, isLast, isDestructive, rightElement }: any) => {
+  const { isRTL } = useLanguage();
+  return (
+    <TouchableOpacity 
+      onPress={onPress} 
+      activeOpacity={0.6} 
+      style={{
+        flexDirection: isRTL ? 'row-reverse' : 'row',
+        alignItems: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 20,
+        borderBottomWidth: !isLast ? 1 : 0,
+        borderBottomColor: '#f1f5f9',
+      }}
+    >
+      <View style={{
+        width: 42,
+        height: 42,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: iconBg ? undefined : '#eff6ff',
+        marginRight: isRTL ? 0 : 16,
+        marginLeft: isRTL ? 16 : 0,
+      }} className={iconBg}>
+        <Icon size={20} color={color || "#0055d4"} />
+      </View>
+      <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+        <Text style={{ fontSize: 15, fontWeight: '800', color: isDestructive ? '#ef4444' : '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>{label}</Text>
+        {subtitle && <Text style={{ fontSize: 11, fontWeight: '600', color: '#64748b', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>{subtitle}</Text>}
+      </View>
+      {rightElement || (isRTL ? <ChevronLeft size={18} color="#9ca3af" /> : <ChevronRight size={18} color="#9ca3af" />)}
+    </TouchableOpacity>
+  );
+};
 
-const SectionTitle = ({ title }: { title: string }) => (
-  <Text className="text-[13px] font-jakarta font-bold text-text-muted ml-6 mb-3 mt-8">{title}</Text>
-);
+const SectionTitle = ({ title }: { title: string }) => {
+  const { isRTL } = useLanguage();
+  return (
+    <Text style={{
+      fontSize: 13,
+      fontWeight: '800',
+      color: '#64748b',
+      marginTop: 28,
+      marginBottom: 10,
+      marginHorizontal: 24,
+      textAlign: isRTL ? 'right' : 'left',
+    }}>
+      {title}
+    </Text>
+  );
+};
 
 export const ProfileScreen = ({ navigation, onSignOut }: any) => {
   const { children, setSelectedChildId, setChildren, userName, setUserName, setUserAvatarUrl, userRole, userId } = useAppStore();
