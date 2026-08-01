@@ -66,7 +66,7 @@ const StatPill = ({ count, label, color, bgColor, borderColor }: any) => (
 
 // ─── Session Card ─────────────────────────────────────────────────────────────
 const SessionCard = ({ session }: any) => {
-  const { t, getTranslatedSubject } = useLanguage();
+  const { t, isRTL, getTranslatedSubject } = useLanguage();
   const isAbsent = session.attendance?.toUpperCase() === 'ABSENT' || session.attendance?.toUpperCase() === 'ABS';
   const isPresent = session.attendance?.toUpperCase() === 'PRESENT' || session.attendance?.toUpperCase() === 'PRES';
   const isLate = session.attendance?.toUpperCase() === 'LATE';
@@ -77,43 +77,38 @@ const SessionCard = ({ session }: any) => {
   const statusLabel = isAbsent ? t.absent : isPresent ? t.present : isLate ? t.late : t.upcoming;
 
   return (
-    <View style={styles.sessionCardV2}>
-      {/* Vertical left bar (Pill) */}
-      <View style={[styles.sessionPill, { backgroundColor: pillColor }]} />
+    <View style={[styles.sessionCardV2, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+      {/* Accent Pill Bar */}
+      <View style={[styles.sessionPill, { backgroundColor: pillColor, borderTopRightRadius: isRTL ? 16 : 0, borderBottomRightRadius: isRTL ? 16 : 0, borderTopLeftRadius: isRTL ? 0 : 16, borderBottomLeftRadius: isRTL ? 0 : 16 }]} />
       
-      <View style={styles.sessionContentV2}>
-        <View style={styles.sessionHeaderV2}>
+      <View style={[styles.sessionContentV2, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+        <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
           <Text style={styles.sessionTimeV2}>{session.startTime} - {session.endTime}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <View style={[styles.statusBadgeV2, { backgroundColor: badgeBg }]}>
-              <Text style={[styles.statusBadgeTextV2, { color: badgeText }]}>{statusLabel}</Text>
-            </View>
+          <View style={[styles.statusBadgeV2, { backgroundColor: badgeBg }]}>
+            <Text style={[styles.statusBadgeTextV2, { color: badgeText }]}>{statusLabel}</Text>
           </View>
         </View>
 
-        <Text style={styles.sessionTitleV2} numberOfLines={2}>
+        <Text style={[styles.sessionTitleV2, { textAlign: isRTL ? 'right' : 'left', width: '100%' }]} numberOfLines={2}>
           {getTranslatedSubject(session.subject)}
         </Text>
 
         <View style={styles.sessionDividerV2} />
 
-        <View style={[styles.sessionFooterV2, { justifyContent: 'space-between' }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <UserIcon size={14} color="#64748b" strokeWidth={2.5} style={{ marginRight: 6 }} />
+        <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
+            <UserIcon size={14} color="#64748b" strokeWidth={2.5} style={{ marginRight: isRTL ? 0 : 6, marginLeft: isRTL ? 6 : 0 }} />
             <Text style={styles.sessionTeacherV2}>{session.teacher || t.teacher}</Text>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-            {[1, 2, 3, 4, 5].map((starIndex) => {
-              const isFilled = session.score > 0 && session.score >= starIndex;
-              return (
-                <Star 
-                  key={starIndex} 
-                  size={12} 
-                  color={isFilled ? "#eab308" : "#cbd5e1"} 
-                  fill={isFilled ? "#eab308" : "transparent"} 
-                />
-              );
-            })}
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 2 }}>
+            {[1, 2, 3, 4, 5].map((starIndex) => (
+              <Star 
+                key={starIndex} 
+                size={12} 
+                color={session.score >= starIndex ? "#eab308" : "#cbd5e1"} 
+                fill={session.score >= starIndex ? "#eab308" : "transparent"} 
+              />
+            ))}
           </View>
         </View>
       </View>
@@ -136,17 +131,20 @@ const EmptySessionsUI = () => {
 };
 
 // ─── Section Header ───────────────────────────────────────────────────────────
-const SectionHeader = ({ title, action, onAction }: any) => (
-  <View style={styles.sectionHeaderRow}>
-    <Text style={styles.sectionTitle}>{title}</Text>
-    {action && (
-      <TouchableOpacity onPress={onAction} style={styles.sectionActionBtn}>
-        <Text style={styles.sectionActionText}>{action}</Text>
-        <ChevronRight size={14} color="#0072e6" strokeWidth={3} />
-      </TouchableOpacity>
-    )}
-  </View>
-);
+const SectionHeader = ({ title, action, onAction }: any) => {
+  const { isRTL } = useLanguage();
+  return (
+    <View style={[styles.sectionHeaderRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+      <Text style={[styles.sectionTitle, { textAlign: isRTL ? 'right' : 'left' }]}>{title}</Text>
+      {action && (
+        <TouchableOpacity onPress={onAction} style={[styles.sectionActionBtn, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+          <Text style={styles.sectionActionText}>{action}</Text>
+          <ChevronRight size={14} color="#0072e6" strokeWidth={3} style={{ transform: [{ rotate: isRTL ? '180deg' : '0deg' }] }} />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export const HomeScreen = ({ navigation, route }: any) => {

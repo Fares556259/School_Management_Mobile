@@ -46,11 +46,35 @@ const navigationRef = createNavigationContainerRef();
 
 function BottomTabsContent({ onSignOut }: { onSignOut: () => void }) {
   const { userRole } = useAppStore();
-  const { t } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const isTeacher = userRole === 'teacher';
+
+  const profileTab = (
+    <Tab.Screen
+      key="Profile"
+      name="Profile"
+      options={{ tabBarLabel: t.tabProfile }}
+      children={React.useCallback((props: any) => <ProfileScreen {...props} onSignOut={onSignOut} />, [onSignOut])}
+    />
+  );
+
+  const parentTabs = isRTL ? [
+    profileTab,
+    <Tab.Screen key="Payments" name="Payments" component={PaymentsScreen} options={{ tabBarLabel: t.tabPayments }} />,
+    <Tab.Screen key="Announcements" name="Announcements" component={AnnouncementsScreen} options={{ tabBarLabel: t.tabAnnouncements }} />,
+    <Tab.Screen key="Courses" name="Courses" component={CoursesScreen} options={{ tabBarLabel: t.tabCourses }} />,
+    <Tab.Screen key="Home" name="Home" component={HomeScreen} options={{ tabBarLabel: t.tabHome }} />,
+  ] : [
+    <Tab.Screen key="Home" name="Home" component={HomeScreen} options={{ tabBarLabel: t.tabHome }} />,
+    <Tab.Screen key="Courses" name="Courses" component={CoursesScreen} options={{ tabBarLabel: t.tabCourses }} />,
+    <Tab.Screen key="Announcements" name="Announcements" component={AnnouncementsScreen} options={{ tabBarLabel: t.tabAnnouncements }} />,
+    <Tab.Screen key="Payments" name="Payments" component={PaymentsScreen} options={{ tabBarLabel: t.tabPayments }} />,
+    profileTab,
+  ];
 
   return (
     <Tab.Navigator
+      initialRouteName="Home"
       screenListeners={{
         tabPress: () => {
           Haptics.selectionAsync();
@@ -120,18 +144,8 @@ function BottomTabsContent({ onSignOut }: { onSignOut: () => void }) {
           <Tab.Screen name="Classes" component={TeacherClassesScreen} options={{ tabBarLabel: t.myChildren }} />
         </>
       ) : (
-        <>
-          <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: t.tabHome }} />
-          <Tab.Screen name="Courses" component={CoursesScreen} options={{ tabBarLabel: t.tabCourses }} />
-          <Tab.Screen name="Announcements" component={AnnouncementsScreen} options={{ tabBarLabel: t.tabAnnouncements }} />
-          <Tab.Screen name="Payments" component={PaymentsScreen} options={{ tabBarLabel: t.tabPayments }} />
-        </>
+        parentTabs
       )}
-      <Tab.Screen
-        name="Profile"
-        options={{ tabBarLabel: t.tabProfile }}
-        children={React.useCallback((props: any) => <ProfileScreen {...props} onSignOut={onSignOut} />, [onSignOut])}
-      />
     </Tab.Navigator>
   );
 }
