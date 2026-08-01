@@ -10,6 +10,7 @@ import { useLanguage, Language } from '../context/LanguageContext';
 import { authService, parentService, studentService, uiService, teacherService } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { notificationService } from '../services/notificationService';
+import * as Haptics from 'expo-haptics';
 
 import { GlobalHeader } from '../components/GlobalHeader';
 import { Image } from 'expo-image';
@@ -246,15 +247,48 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     try {
       const newValue = !notificationsEnabled;
       setNotificationsEnabled(newValue);
-      await AsyncStorage.setItem('notificationsEnabled', String(newValue));
-      
-      if (!newValue) {
-        if (userId) await authService.registerPushToken(userId, ''); 
-      } else {
-        const token = await notificationService.getPushToken();
-        if (token && userId) {
-          await authService.registerPushToken(userId, token);
+
+      if (newValue) {
+        // Request OS permission
+        const granted = await notificationService.requestPermissions();
+        if (!granted) {
+          Alert.alert(
+            language === 'ar' ? 'التنبيهات مغلقة' : 'Permissions Required',
+            language === 'ar' ? 'يرجى تفعيل التنبيهات من إعدادات الهاتف لتصلك التحديثات' : 'Please enable push notification permissions in system settings to receive alerts.',
+            [{ text: language === 'ar' ? 'حسناً' : 'OK' }]
+          );
+          setNotificationsEnabled(false);
+          await AsyncStorage.setItem('notificationsEnabled', 'false');
+          return;
         }
+
+        // Get push token and register on backend
+        const pushToken = await notificationService.getPushToken();
+        if (pushToken && userId) {
+          await authService.registerPushToken(userId, pushToken);
+        }
+        await AsyncStorage.setItem('notificationsEnabled', 'true');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        
+        Alert.alert(
+          language === 'ar' ? 'تم تفعيل التنبيهات 🔔' : 'Notifications Enabled 🔔',
+          language === 'ar' ? 'ستصلك التنبيهات المباشرة بالواجبات والنتائج والأخبار الرسمية' : 'You will now receive instant push alerts for homework, grades, and school news.',
+          [{ text: language === 'ar' ? 'تم' : 'OK' }]
+        );
+      } else {
+        // Unregister push token on backend and cancel local scheduled alerts
+        if (userId) {
+          await authService.registerPushToken(userId, '');
+        }
+        await notificationService.cancelAll();
+        await AsyncStorage.setItem('notificationsEnabled', 'false');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+
+        Alert.alert(
+          language === 'ar' ? 'تم إيقاف التنبيهات' : 'Notifications Disabled',
+          language === 'ar' ? 'تم إيقاف الإشعارات المباشرة من التطبيق' : 'Push notifications have been disabled.',
+          [{ text: language === 'ar' ? 'حسناً' : 'OK' }]
+        );
       }
     } catch (e) {
       console.error('Failed to toggle notifications', e);
