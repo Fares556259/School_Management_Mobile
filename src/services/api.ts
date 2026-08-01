@@ -13,6 +13,7 @@ export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1
 const USER_ID_KEY = 'snapschool_user_id';
 const USER_ROLE_KEY = 'snapschool_user_role';
 const SCHOOL_ID_KEY = 'snapschool_school_id';
+const JWT_TOKEN_KEY = 'snapschool_jwt_token';
 const STUDENTS_CACHE_KEY = 'snapschool_students_cache';
 
 // ─── Helper for URL Normalization ───────────────────────────────────────────
@@ -41,7 +42,9 @@ export const authStorage = {
   getUserRole: () => AsyncStorage.getItem(USER_ROLE_KEY),
   saveSchoolId: (id: string) => AsyncStorage.setItem(SCHOOL_ID_KEY, id),
   getSchoolId: () => AsyncStorage.getItem(SCHOOL_ID_KEY),
-  clear: () => AsyncStorage.multiRemove([USER_ID_KEY, USER_ROLE_KEY, SCHOOL_ID_KEY, STUDENTS_CACHE_KEY]),
+  saveToken: (token: string) => AsyncStorage.setItem(JWT_TOKEN_KEY, token),
+  getToken: () => AsyncStorage.getItem(JWT_TOKEN_KEY),
+  clear: () => AsyncStorage.multiRemove([USER_ID_KEY, USER_ROLE_KEY, SCHOOL_ID_KEY, JWT_TOKEN_KEY, STUDENTS_CACHE_KEY]),
   isLoggedIn: async () => {
     const id = await AsyncStorage.getItem(USER_ID_KEY);
     return !!id;
@@ -70,17 +73,21 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
       controller = new AbortController();
       timeoutId = setTimeout(() => controller?.abort(), 30000);
       const schoolId = await authStorage.getSchoolId();
+      const token = await authStorage.getToken();
       const url = `${API_BASE_URL}${endpoint}`;
       console.log(`[DEBUG-API] Calling: ${url}`);
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-school-id': schoolId || 'default_school',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers as any),
+      };
 
       const response = await fetch(url, {
         ...options,
         signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          'x-school-id': schoolId || 'default_school',
-          ...options.headers,
-        },
+        headers,
       });
       
       if (timeoutId) clearTimeout(timeoutId);
@@ -137,10 +144,10 @@ export const authService = {
     };
   },
 
-  authenticate: async (phone: string, password: string, action: 'setup' | 'signin', role: string): Promise<{ success: boolean; error?: string }> => {
+  authenticate: async (phone: string, password: string, action: 'setup' | 'signin', role: string, otpCode?: string): Promise<{ success: boolean; error?: string }> => {
     const response = await apiFetch('/api/mobile/auth', {
       method: 'POST',
-      body: JSON.stringify({ phone: phone.trim(), password, action, role }),
+      body: JSON.stringify({ phone: phone.trim(), password, action, role, otpCode }),
     });
 
     if (!response) {
@@ -151,6 +158,7 @@ export const authService = {
       return { success: false, error: response.error || 'Authentication aborted.' };
     }
 
+    if (response.token) await authStorage.saveToken(response.token);
     if (response.userId) await authStorage.saveUserId(response.userId);
     if (response.userType) await authStorage.saveUserRole(response.userType);
     if (response.schoolId) await authStorage.saveSchoolId(response.schoolId);
@@ -159,6 +167,43 @@ export const authService = {
       await AsyncStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify(response.students));
     }
     
+    return { success: true };
+  },
+
+  sendOTP: async (phone: string, role: string): Promise<{ success: boolean; error?: string; demoCode?: string }> => {
+    const response = await apiFetch('/api/mobile/auth', {
+      method: 'POST',
+      body: JSON.stringify({ phone: phone.trim(), action: 'send_otp', role }),
+    });
+    if (!response || !response.success) {
+      return { success: false, error: response?.error || 'Failed to send verification code.' };
+    }
+    return { success: true, demoCode: response.demoCode };
+  },
+
+  verifyOTP: async (phone: string, otpCode: string, role: string): Promise<{ success: boolean; error?: string }> => {
+    const response = await apiFetch('/api/mobile/auth', {
+      method: 'POST',
+      body: JSON.stringify({ phone: phone.trim(), otpCode, action: 'verify_otp', role }),
+    });
+    if (!response || !response.success) {
+      return { success: false, error: response?.error || 'Invalid verification code.' };
+    }
+    return { success: true };
+  },
+
+  resetPassword: async (phone: string, otpCode: string, newPassword: string, role: string): Promise<{ success: boolean; error?: string }> => {
+    const response = await apiFetch('/api/mobile/auth', {
+      method: 'POST',
+      body: JSON.stringify({ phone: phone.trim(), otpCode, password: newPassword, action: 'reset_password', role }),
+    });
+    if (!response || !response.success) {
+      return { success: false, error: response?.error || 'Failed to reset password.' };
+    }
+    if (response.token) await authStorage.saveToken(response.token);
+    if (response.userId) await authStorage.saveUserId(response.userId);
+    if (response.userType) await authStorage.saveUserRole(response.userType);
+    if (response.schoolId) await authStorage.saveSchoolId(response.schoolId);
     return { success: true };
   },
 
