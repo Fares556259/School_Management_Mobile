@@ -625,6 +625,15 @@ export const teacherService = {
     return apiFetch(`/api/mobile/teacher?id=${id}`);
   },
 
+  updateProfile: async (data: { name?: string; surname?: string; phone?: string; img?: string }) => {
+    const id = await authStorage.getUserId();
+    if (!id) return null;
+    return apiFetch('/api/mobile/teacher', {
+      method: 'PUT',
+      body: JSON.stringify({ id, ...data }),
+    });
+  },
+
   fetchHomeData: async () => {
     const teacherId = await authStorage.getUserId();
     if (!teacherId) return null;
@@ -703,5 +712,23 @@ export const teacherService = {
       method: 'POST',
       body: JSON.stringify({ ...data, teacherId }),
     });
+  },
+
+  fetchSubjectsForClass: async (teacherId: string, classId: number) => {
+    const data = await apiFetch(`/api/mobile/teacher/subjects?teacherId=${teacherId}&classId=${classId}`);
+    return Array.isArray(data) ? data : [];
+  },
+
+  fetchGradesData: async (teacherId: string, classId: number, term: number) => {
+    const data = await apiFetch(`/api/mobile/teacher/grades?teacherId=${teacherId}&classId=${classId}&term=${term}`);
+    return data || { students: [], subjects: [] };
+  },
+
+  submitGrades: async (teacherId: string, classId: number, subjectId: number, term: number, grades: { studentId: string; score: number | null }[], proofUrl?: string) => {
+    const data = await apiFetch('/api/mobile/teacher/grades', {
+      method: 'POST',
+      body: JSON.stringify({ teacherId, classId, subjectId, term, grades, proofUrl }),
+    });
+    return data;
   },
 };

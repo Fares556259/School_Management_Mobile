@@ -144,12 +144,10 @@ export const ResultsScreen = ({ navigation }: any) => {
     return sortedGroups;
   }, [termResults]);
 
-  // Calculate current term average
   const termAverage = useMemo(() => {
-    if (termResults.length === 0) return 0;
-    const sum = termResults.reduce((acc, curr) => acc + curr.score, 0);
-    return parseFloat((sum / termResults.length).toFixed(2));
-  }, [termResults]);
+    if (termResults.length === 0) return null;
+    return resultsData.summary?.average || null;
+  }, [termResults, resultsData.summary]);
 
   // Calculate class average for current term
   const termClassAverage = useMemo(() => {
@@ -207,7 +205,9 @@ export const ResultsScreen = ({ navigation }: any) => {
               <View style={styles.summaryHeader}>
                 <View style={{ alignItems: 'center' }}>
                   <Text style={styles.summaryEyebrow}>TERM AVERAGE</Text>
-                  <Text style={styles.summaryScore}>{termAverage} <Text style={styles.gpaScale}>/ 20</Text></Text>
+                  <Text style={styles.summaryScore}>
+                    {termAverage ? termAverage : '--'} <Text style={styles.gpaScale}>/ 20</Text>
+                  </Text>
                 </View>
               </View>
 

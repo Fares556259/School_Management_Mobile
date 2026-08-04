@@ -255,7 +255,7 @@ export const TeacherHomeScreen = ({ navigation }: any) => {
               <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '600' }}>Good morning 👋</Text>
               <Text style={{ color: 'white', fontSize: 24, fontWeight: '900', marginTop: 4 }}>{userName || 'Teacher'}</Text>
             </View>
-            <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+            <TouchableOpacity onPress={() => navigation.navigate('TeacherProfile')}>
               <Image 
                 source={userAvatarUrl ? { uri: userAvatarUrl } : require('../../../assets/noavatar.png')} 
                 style={{ width: 50, height: 50, borderRadius: 25, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }} 

@@ -427,7 +427,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
       if (type === 'user') {
         let updated = false;
         if (userRole === 'teacher') {
-          updated = !!(await parentService.updateProfile({ img: url }));
+          updated = !!(await teacherService.updateProfile({ img: url }));
         } else {
           updated = !!(await parentService.updateProfile({ img: url }));
         }

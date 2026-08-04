@@ -27,6 +27,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TeacherTaskDetailScreen } from './src/screens/teacher/TeacherTaskDetailScreen';
 import { StudentSubmissionScreen } from './src/screens/teacher/StudentSubmissionScreen';
 import { TeacherClassRosterScreen } from './src/screens/teacher/TeacherClassRosterScreen';
+import { TeacherGradeEntryScreen } from './src/screens/teacher/TeacherGradeEntryScreen';
 import { CoursesScreen } from './src/screens/CoursesScreen';
 import { Home as HomeIcon, FileText, CreditCard, User, Megaphone, Calendar, BarChart3, ClipboardList, BookOpen, Users, ClipboardCheck, GraduationCap } from 'lucide-react-native';
 import { View, ActivityIndicator, Alert } from 'react-native';
@@ -111,6 +112,7 @@ function BottomTabsContent({ onSignOut }: { onSignOut: () => void }) {
           else if (route.name === 'Attendance') Icon = ClipboardList;
           else if (route.name === 'Lessons') Icon = BookOpen;
           else if (route.name === 'Tasks') Icon = ClipboardCheck;
+          else if (route.name === 'Grades') Icon = FileText;
           else if (route.name === 'Classes') Icon = Users;
           else if (route.name === 'Courses') Icon = GraduationCap;
 
@@ -142,6 +144,7 @@ function BottomTabsContent({ onSignOut }: { onSignOut: () => void }) {
           <Tab.Screen name="Attendance" component={TeacherAttendanceScreen} options={{ tabBarLabel: t.attendance }} />
           <Tab.Screen name="Lessons" component={TeacherLessonsScreen} options={{ tabBarLabel: t.coursesTitle }} />
           <Tab.Screen name="Tasks" component={TeacherTasksScreen} options={{ tabBarLabel: t.tasks }} />
+          <Tab.Screen name="Grades" component={TeacherGradeEntryScreen} options={{ tabBarLabel: 'Notes' }} />
           <Tab.Screen name="Classes" component={TeacherClassesScreen} options={{ tabBarLabel: t.myChildren }} />
         </>
       ) : (
@@ -393,6 +396,9 @@ export default function App() {
                 <Stack.Screen name="TeacherTaskDetail" component={TeacherTaskDetailScreen} />
                 <Stack.Screen name="StudentSubmission" component={StudentSubmissionScreen} />
                 <Stack.Screen name="TeacherClassRoster" component={TeacherClassRosterScreen} />
+                <Stack.Screen name="TeacherProfile">
+                  {(props) => <ProfileScreen {...props} onSignOut={handleSignOut} />}
+                </Stack.Screen>
               </Stack.Navigator>
             )}
           </NavigationContainer>
