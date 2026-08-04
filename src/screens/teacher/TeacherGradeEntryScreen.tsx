@@ -46,9 +46,10 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
     setLoading(true);
     try {
       const data = await teacherService.fetchClasses();
-      setClasses(data);
+      setClasses(data || []);
     } catch (err) {
       console.error(err);
+      setClasses([]);
     } finally {
       setLoading(false);
     }

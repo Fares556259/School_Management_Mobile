@@ -192,10 +192,11 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
     try {
       setLoading(true);
       const res = await teacherService.fetchClasses();
-      setClasses(res);
+      const safeRes = res || [];
+      setClasses(safeRes);
       // Auto-select first class if none selected
-      if (res.length > 0 && !selectedTeacherClass) { 
-        setSelectedTeacherClass(res[0]); 
+      if (safeRes.length > 0 && !selectedTeacherClass) { 
+        setSelectedTeacherClass(safeRes[0]); 
       }
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };

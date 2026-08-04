@@ -47,11 +47,15 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
         teacherService.fetchTasks(),
         teacherService.fetchClasses()
       ]);
-      setTasks(tasksRes);
-      setClasses(classesRes);
-      if (classesRes.length > 0 && !selectedTeacherClass) {
-        setSelectedTeacherClass(classesRes[0]);
-        setSelectedClassId(classesRes[0].id);
+      const safeTasksRes = tasksRes || [];
+      const safeClassesRes = classesRes || [];
+      
+      setTasks(safeTasksRes);
+      setClasses(safeClassesRes);
+      
+      if (safeClassesRes.length > 0 && !selectedTeacherClass) {
+        setSelectedTeacherClass(safeClassesRes[0]);
+        setSelectedClassId(safeClassesRes[0].id);
       } else if (selectedTeacherClass) {
         setSelectedClassId(selectedTeacherClass.id);
       }
