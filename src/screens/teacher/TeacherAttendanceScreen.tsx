@@ -264,22 +264,21 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
     if (!selectedClass) return;
     try {
       setSaving(true);
-      await Promise.all([
-        teacherService.saveAttendance({
-          classId: selectedClass.id, date: selectedDate.format('YYYY-MM-DD'),
-          records: Object.keys(attendance).map(studentId => ({ studentId, status: attendance[studentId], note: notes[studentId], score: scores[studentId] })),
-          lessonId: lessonId,
-          subjectId: activeSubjectId,
-          task: newTask.title ? { title: newTask.title, description: newTask.description, attachments: newTask.attachments } as any : undefined
-        }),
-        new Promise(resolve => setTimeout(resolve, 600)) // Ensure spinner is visible for at least 600ms
-      ]);
+      await teacherService.saveAttendance({
+        classId: selectedClass.id, date: selectedDate.format('YYYY-MM-DD'),
+        records: Object.keys(attendance).map(studentId => ({ studentId, status: attendance[studentId], note: notes[studentId], score: scores[studentId] })),
+        lessonId: lessonId,
+        subjectId: activeSubjectId,
+        task: newTask.title ? { title: newTask.title, description: newTask.description, attachments: newTask.attachments } as any : undefined
+      });
       setInitialAttendance(attendance); setInitialNotes(notes); setInitialScores(scores);
       setNewTask({ title: '', description: '', show: false, attachments: [] });
-      setSaveCount(prev => prev + 1); // Trigger collapse of all notes
-      await loadStudents(selectedClass.id, selectedDate.format('YYYY-MM-DD'), activeSubjectId || undefined, false);
-      alert('Attendance and task saved successfully!');
-    } catch (err) { alert('Failed to save data'); } finally { setSaving(false); }
+      setSaveCount(prev => prev + 1);
+      setSaving(false);
+      alert('Saved successfully!');
+      // Silently refresh data in background
+      loadStudents(selectedClass.id, selectedDate.format('YYYY-MM-DD'), activeSubjectId || undefined, false);
+    } catch (err) { alert('Failed to save data'); setSaving(false); }
   };
 
   // Generate calendar days
