@@ -151,6 +151,12 @@ const StudentRow = ({ student, status, onStatusChange, note, onNoteChange, score
   );
 };
 
+const getSubjectName = (name: string) => {
+  if (!name) return 'General';
+  const parts = name.split('|');
+  return parts[parts.length - 1].trim();
+};
+
 export const TeacherAttendanceScreen = ({ navigation }: any) => {
   const { selectedTeacherClass, setSelectedTeacherClass } = useAppStore();
   const [loading, setLoading] = useState(true);
@@ -392,7 +398,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
                     }}>
                     <Clock size={16} color={isActive ? 'white' : '#64748b'} style={{ marginRight: 8 }} />
                     <Text style={{ fontSize: 14, fontWeight: '800', color: isActive ? 'white' : '#475569' }}>
-                      {session.subjectName} • {session.startTime.substring(0, 5)}
+                      {getSubjectName(session.subjectName)} • {session.startTime.substring(0, 5)}
                     </Text>
                   </TouchableOpacity>
                 );
