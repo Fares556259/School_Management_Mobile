@@ -10,7 +10,8 @@ import {
   MapPin, 
   ChevronRight,
   TrendingUp,
-  MoreHorizontal
+  MoreHorizontal,
+  FileText
 } from 'lucide-react-native';
 import { useAppStore } from '../../store/useAppStore';
 import { teacherService } from '../../services/api';
@@ -293,24 +294,32 @@ export const TeacherHomeScreen = ({ navigation }: any) => {
         {/* Quick Actions */}
         <View style={{ marginTop: 80, paddingHorizontal: 20 }}>
           <Text style={{ fontSize: 16, fontWeight: '900', color: '#2b3437', marginBottom: 16, textTransform: 'uppercase', letterSpacing: 1 }}>Quick actions</Text>
-          <View style={{ flexDirection: 'row', gap: 12 }}>
+          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
             <QuickAction 
               icon={ClipboardList} 
               title="Attendance" 
               color="#0055d4" 
-              onPress={() => navigation.navigate('Attendance')} 
+              onPress={() => navigation.navigate('TeacherAttendance')} 
             />
             <QuickAction 
               icon={BookOpen} 
               title="Add Lesson" 
               color="#22c55e" 
-              onPress={() => navigation.navigate('Lessons')} 
+              onPress={() => navigation.navigate('TeacherLessons')} 
             />
+          </View>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
             <QuickAction 
               icon={PlusCircle} 
               title="Create Task" 
               color="#f59e0b" 
-              onPress={() => navigation.navigate('Tasks')} 
+              onPress={() => navigation.navigate('TeacherTasks')} 
+            />
+            <QuickAction 
+              icon={FileText} 
+              title="Add Grade" 
+              color="#8b5cf6" 
+              onPress={() => navigation.navigate('TeacherGrades')} 
             />
           </View>
         </View>

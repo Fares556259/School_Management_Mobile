@@ -141,11 +141,8 @@ function BottomTabsContent({ onSignOut }: { onSignOut: () => void }) {
       {isTeacher ? (
         <>
           <Tab.Screen name="Home" component={TeacherHomeScreen} options={{ tabBarLabel: t.tabHome }} />
-          <Tab.Screen name="Attendance" component={TeacherAttendanceScreen} options={{ tabBarLabel: t.attendance }} />
-          <Tab.Screen name="Lessons" component={TeacherLessonsScreen} options={{ tabBarLabel: t.coursesTitle }} />
-          <Tab.Screen name="Tasks" component={TeacherTasksScreen} options={{ tabBarLabel: t.tasks }} />
-          <Tab.Screen name="Grades" component={TeacherGradeEntryScreen} options={{ tabBarLabel: 'Notes' }} />
-          <Tab.Screen name="Classes" component={TeacherClassesScreen} options={{ tabBarLabel: t.myChildren }} />
+          <Tab.Screen name="Classes" component={TeacherClassesScreen} options={{ tabBarLabel: (t as any).classes || 'Classes' }} />
+          {profileTab}
         </>
       ) : (
         parentTabs
@@ -396,6 +393,10 @@ export default function App() {
                 <Stack.Screen name="TeacherTaskDetail" component={TeacherTaskDetailScreen} />
                 <Stack.Screen name="StudentSubmission" component={StudentSubmissionScreen} />
                 <Stack.Screen name="TeacherClassRoster" component={TeacherClassRosterScreen} />
+                <Stack.Screen name="TeacherAttendance" component={TeacherAttendanceScreen} />
+                <Stack.Screen name="TeacherLessons" component={TeacherLessonsScreen} />
+                <Stack.Screen name="TeacherTasks" component={TeacherTasksScreen} />
+                <Stack.Screen name="TeacherGrades" component={TeacherGradeEntryScreen} />
                 <Stack.Screen name="TeacherProfile">
                   {(props) => <ProfileScreen {...props} onSignOut={handleSignOut} />}
                 </Stack.Screen>
