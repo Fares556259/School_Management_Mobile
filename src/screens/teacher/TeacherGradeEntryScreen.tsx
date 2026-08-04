@@ -163,7 +163,12 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
 
   const renderStep1 = () => (
     <ScrollView contentContainerStyle={{ padding: 24 }}>
-      <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b', marginBottom: 24 }}>Select Class</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
+          <ChevronLeft size={22} color="#1e293b" />
+        </TouchableOpacity>
+        <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b' }}>Select Class</Text>
+      </View>
       {loading ? (
         <ActivityIndicator size="large" color="#4F46E5" />
       ) : classes.length === 0 ? (
