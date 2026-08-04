@@ -264,13 +264,16 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
     if (!selectedClass) return;
     try {
       setSaving(true);
-      await teacherService.saveAttendance({
-        classId: selectedClass.id, date: selectedDate.format('YYYY-MM-DD'),
-        records: Object.keys(attendance).map(studentId => ({ studentId, status: attendance[studentId], note: notes[studentId], score: scores[studentId] })),
-        lessonId: lessonId,
-        subjectId: activeSubjectId,
-        task: newTask.title ? { title: newTask.title, description: newTask.description, attachments: newTask.attachments } as any : undefined
-      });
+      await Promise.all([
+        teacherService.saveAttendance({
+          classId: selectedClass.id, date: selectedDate.format('YYYY-MM-DD'),
+          records: Object.keys(attendance).map(studentId => ({ studentId, status: attendance[studentId], note: notes[studentId], score: scores[studentId] })),
+          lessonId: lessonId,
+          subjectId: activeSubjectId,
+          task: newTask.title ? { title: newTask.title, description: newTask.description, attachments: newTask.attachments } as any : undefined
+        }),
+        new Promise(resolve => setTimeout(resolve, 600)) // Ensure spinner is visible for at least 600ms
+      ]);
       setInitialAttendance(attendance); setInitialNotes(notes); setInitialScores(scores);
       setNewTask({ title: '', description: '', show: false, attachments: [] });
       setSaveCount(prev => prev + 1); // Trigger collapse of all notes
@@ -337,8 +340,8 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingVertical: 16, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}><ChevronLeft size={22} color="#1e293b" /></TouchableOpacity>
         <TouchableOpacity onPress={() => setShowClassSwitcher(true)} style={{ flex: 1, marginHorizontal: 16, alignItems: 'center' }}><View style={{ flexDirection: 'row', alignItems: 'center' }}><Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>{selectedClass?.name || 'Select Class'}</Text><ChevronDown size={16} color="#0055d4" style={{ marginLeft: 6 }} /></View><Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', marginTop: 2 }}>Tap to switch</Text></TouchableOpacity>
-        <TouchableOpacity onPress={handleSave} disabled={saving || loading || !hasChanges} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: hasChanges ? '#eff6ff' : '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: hasChanges ? '#dbeafe' : '#f1f5f9' }}>
-          {saving ? <ActivityIndicator size="small" color="#0055d4" /> : <Save size={22} color={hasChanges ? '#0055d4' : '#94a3b8'} />}
+        <TouchableOpacity onPress={handleSave} disabled={saving || loading || !hasChanges} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: saving || hasChanges ? '#0055d4' : '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: saving || hasChanges ? '#0055d4' : '#f1f5f9' }}>
+          {saving ? <ActivityIndicator size="small" color="white" /> : <Save size={22} color={saving || hasChanges ? 'white' : '#94a3b8'} />}
         </TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 200 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadStudents(selectedClass.id, selectedDate.format('YYYY-MM-DD'))} />}>
