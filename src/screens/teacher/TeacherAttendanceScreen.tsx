@@ -487,7 +487,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
       </ScrollView>
       {hasChanges && (
         <View style={{ position: 'absolute', bottom: 110, left: 24, right: 24 }}>
-          <TouchableOpacity onPress={handleSave} disabled={loading} activeOpacity={0.9} style={{ backgroundColor: '#0055d4', paddingVertical: 20, borderRadius: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#0055d4', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10 }}>{loading ? <ActivityIndicator color="white" /> : <><Save size={22} color="white" style={{ marginRight: 12 }} /><Text style={{ color: 'white', fontSize: 16, fontWeight: '900' }}>Save Changes</Text></>}</TouchableOpacity>
+          <TouchableOpacity onPress={handleSave} disabled={saving} activeOpacity={0.9} style={{ backgroundColor: '#0055d4', paddingVertical: 20, borderRadius: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#0055d4', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10, opacity: saving ? 0.6 : 1 }}>{saving ? <ActivityIndicator color="white" /> : <><Save size={22} color="white" style={{ marginRight: 12 }} /><Text style={{ color: 'white', fontSize: 16, fontWeight: '900' }}>Save Changes</Text></>}</TouchableOpacity>
         </View>
       )}
       {showClassSwitcher && (
