@@ -171,8 +171,9 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
   const [hasLesson, setHasLesson] = useState(true);
   const [lessonId, setLessonId] = useState<number | null>(null);
   const [sessions, setSessions] = useState<any[]>([]);
-  const [activeSubjectId, setActiveSubjectId] = useState<number | null>(null);
+  const [activeSlotId, setActiveSlotId] = useState<number | null>(null);
   const [showClassSwitcher, setShowClassSwitcher] = useState(false);
+  const [showSessionSwitcher, setShowSessionSwitcher] = useState(false);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [newTask, setNewTask] = useState({ title: '', description: '', show: false, attachments: [] as any[] });
   const [scores, setScores] = useState<Record<string, number>>({});
@@ -201,16 +202,16 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
-  const loadStudents = async (classId: string, date: string, subjectId?: number, showLoader = true) => {
+  const loadStudents = async (classId: string, date: string, slotId?: number, showLoader = true) => {
     try {
       if (showLoader) setLoading(true);
-      const res = await teacherService.fetchClassStudents(classId, date, subjectId);
+      const res = await teacherService.fetchClassStudents(classId, date, slotId);
       if (!res || !Array.isArray(res.students)) { setHasLesson(false); setSessions([]); return; }
       setStudents(res.students);
       setHasLesson(res.hasLesson);
       setLessonId(res.lessonId || null);
       setSessions(res.sessions || []);
-      setActiveSubjectId(res.activeSubjectId || null);
+      setActiveSlotId(res.activeSlotId || null);
       setAssignments(res.assignments || []);
       setShowClassSwitcher(false);
       const initialAtt: Record<string, string> = {};
@@ -269,7 +270,8 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
         classId: selectedClass.id, date: selectedDate.format('YYYY-MM-DD'),
         records: Object.keys(attendance).map(studentId => ({ studentId, status: attendance[studentId], note: notes[studentId], score: scores[studentId] })),
         lessonId: lessonId,
-        subjectId: activeSubjectId,
+        slotId: activeSlotId,
+        subjectId: sessions.find(s => s.slotId === activeSlotId)?.subjectId,
         task: newTask.title ? { title: newTask.title, description: newTask.description, attachments: newTask.attachments } as any : undefined
       });
       setInitialAttendance(attendance); setInitialNotes(notes); setInitialScores(scores);
@@ -278,7 +280,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
       setSaving(false);
       alert('Saved successfully!');
       // Silently refresh data in background
-      loadStudents(selectedClass.id, selectedDate.format('YYYY-MM-DD'), activeSubjectId || undefined, false);
+      loadStudents(selectedClass.id, selectedDate.format('YYYY-MM-DD'), activeSlotId || undefined, false);
     } catch (err) { alert('Failed to save data'); setSaving(false); }
   };
 
@@ -382,34 +384,26 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
           </View>
 
           {sessions.length > 0 && !loading && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ marginTop: 24, paddingBottom: 4, gap: 12 }}>
-              {sessions.map(session => {
-                const isActive = activeSubjectId === session.subjectId;
-                return (
-                  <TouchableOpacity 
-                    key={session.slotId}
-                    onPress={() => {
-                      if (selectedClass) loadStudents(selectedClass.id, selectedDate.format('YYYY-MM-DD'), session.subjectId);
-                    }}
-                    style={{
-                      paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20,
-                      backgroundColor: isActive ? '#0055d4' : '#f8fafc',
-                      borderWidth: 1, borderColor: isActive ? '#0055d4' : '#e2e8f0',
-                      flexDirection: 'row', alignItems: 'center',
-                      shadowColor: isActive ? '#0055d4' : '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: isActive ? 0.2 : 0,
-                      shadowRadius: 4,
-                      elevation: isActive ? 3 : 0
-                    }}>
-                    <Clock size={16} color={isActive ? 'white' : '#64748b'} style={{ marginRight: 8 }} />
-                    <Text style={{ fontSize: 14, fontWeight: '800', color: isActive ? 'white' : '#475569' }}>
-                      {getSubjectName(session.subjectName)} • {session.startTime.substring(0, 5)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+            <View style={{ marginTop: 24 }}>
+              <TouchableOpacity 
+                onPress={() => setShowSessionSwitcher(true)}
+                style={{
+                  paddingHorizontal: 16, paddingVertical: 14, borderRadius: 20,
+                  backgroundColor: '#f8fafc',
+                  borderWidth: 1, borderColor: '#e2e8f0',
+                  flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Clock size={18} color="#0055d4" style={{ marginRight: 12 }} />
+                  <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e293b' }}>
+                    {sessions.find(s => s.slotId === activeSlotId) 
+                      ? `${getSubjectName(sessions.find(s => s.slotId === activeSlotId).subjectName)} • ${sessions.find(s => s.slotId === activeSlotId).startTime.substring(0, 5)}`
+                      : 'Select Session'}
+                  </Text>
+                </View>
+                <ChevronDown size={20} color="#64748b" />
+              </TouchableOpacity>
+            </View>
           )}
         </View>
         <View>
@@ -497,6 +491,32 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
             <View style={{ width: 40, height: 5, backgroundColor: '#e2e8f0', borderRadius: 10, alignSelf: 'center', marginBottom: 24 }} />
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}><Text style={{ fontSize: 24, fontWeight: '900', color: '#1e293b' }}>Switch Class</Text><TouchableOpacity onPress={() => setShowClassSwitcher(false)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}><X size={20} color="#64748b" /></TouchableOpacity></View>
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>{classes.map((cls) => (<TouchableOpacity key={cls.id} onPress={() => handleClassSelect(cls)} activeOpacity={0.8} style={{ flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 24, backgroundColor: selectedClass?.id === cls.id ? '#eff6ff' : 'white', marginBottom: 12, borderWidth: 1.5, borderColor: selectedClass?.id === cls.id ? '#0055d4' : '#f1f5f9', shadowColor: selectedClass?.id === cls.id ? '#0055d4' : '#000', shadowOpacity: selectedClass?.id === cls.id ? 0.05 : 0.02, shadowRadius: 10, elevation: 1 }}><View style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: selectedClass?.id === cls.id ? '#0055d4' : '#f8fafc', alignItems: 'center', justifyContent: 'center' }}><Layout size={28} color={selectedClass?.id === cls.id ? 'white' : '#94a3b8'} /></View><View style={{ marginLeft: 20, flex: 1 }}><Text style={{ fontSize: 18, fontWeight: '900', color: selectedClass?.id === cls.id ? '#0055d4' : '#1e293b' }}>{cls.name}</Text><Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '700', marginTop: 2 }}>{cls.level || 'Standard'}</Text></View>{selectedClass?.id === cls.id && <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#0055d4', alignItems: 'center', justifyContent: 'center' }}><Check size={16} color="white" strokeWidth={3} /></View>}</TouchableOpacity>))}</ScrollView>
+          </View>
+        </View>
+      )}
+
+      {showSessionSwitcher && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.5)', justifyContent: 'flex-end', zIndex: 1000 }}>
+          <TouchableOpacity activeOpacity={1} onPress={() => setShowSessionSwitcher(false)} style={{ flex: 1 }} />
+          <View style={{ backgroundColor: 'white', borderTopLeftRadius: 40, borderTopRightRadius: 40, padding: 32, paddingBottom: 60, shadowColor: '#000', shadowOffset: { width: 0, height: -10 }, shadowOpacity: 0.1, shadowRadius: 30, elevation: 20 }}>
+            <View style={{ width: 40, height: 5, backgroundColor: '#e2e8f0', borderRadius: 10, alignSelf: 'center', marginBottom: 24 }} />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}><Text style={{ fontSize: 24, fontWeight: '900', color: '#1e293b' }}>Select Session</Text><TouchableOpacity onPress={() => setShowSessionSwitcher(false)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}><X size={20} color="#64748b" /></TouchableOpacity></View>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>{sessions.map((session) => {
+              const isActive = activeSlotId === session.slotId;
+              return (
+                <TouchableOpacity key={session.slotId} onPress={() => {
+                  setShowSessionSwitcher(false);
+                  if (selectedClass) loadStudents(selectedClass.id, selectedDate.format('YYYY-MM-DD'), session.slotId, false);
+                }} activeOpacity={0.8} style={{ flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 24, backgroundColor: isActive ? '#eff6ff' : 'white', marginBottom: 12, borderWidth: 1.5, borderColor: isActive ? '#0055d4' : '#f1f5f9', shadowColor: isActive ? '#0055d4' : '#000', shadowOpacity: isActive ? 0.05 : 0.02, shadowRadius: 10, elevation: 1 }}>
+                  <View style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: isActive ? '#0055d4' : '#f8fafc', alignItems: 'center', justifyContent: 'center' }}><Clock size={28} color={isActive ? 'white' : '#94a3b8'} /></View>
+                  <View style={{ marginLeft: 20, flex: 1 }}>
+                    <Text style={{ fontSize: 18, fontWeight: '900', color: isActive ? '#0055d4' : '#1e293b' }}>{getSubjectName(session.subjectName)}</Text>
+                    <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '700', marginTop: 2 }}>{session.startTime.substring(0, 5)} - {session.endTime.substring(0, 5)}</Text>
+                  </View>
+                  {isActive && <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#0055d4', alignItems: 'center', justifyContent: 'center' }}><Check size={16} color="white" strokeWidth={3} /></View>}
+                </TouchableOpacity>
+              )
+            })}</ScrollView>
           </View>
         </View>
       )}

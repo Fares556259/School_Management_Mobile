@@ -646,11 +646,11 @@ export const teacherService = {
     return apiFetch(`/api/mobile/teacher/classes?teacherId=${teacherId}`);
   },
 
-  fetchClassStudents: async (classId: string, date?: string, subjectId?: number) => {
+  fetchClassStudents: async (classId: string, date?: string, slotId?: number) => {
     const teacherId = await authStorage.getUserId();
     let url = `/api/mobile/teacher/students?classId=${classId}&teacherId=${teacherId}`;
     if (date) url += `&date=${date}`;
-    if (subjectId) url += `&subjectId=${subjectId}`;
+    if (slotId) url += `&slotId=${slotId}`;
     return apiFetch(url);
   },
 

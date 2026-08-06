@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, RefreshControl, Image, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
@@ -19,7 +20,7 @@ import {
   Image as ImageIcon,
   File as FileIcon
 } from 'lucide-react-native';
-import { teacherService } from '../../services/api';
+import { teacherService, API_BASE_URL } from '../../services/api';
 import { Skeleton } from '../../components/Skeleton';
 import { useAppStore } from '../../store/useAppStore';
 import moment from 'moment';
@@ -39,6 +40,8 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedClassId, setSelectedClassId] = useState('');
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const loadData = async () => {
     try {
@@ -76,6 +79,26 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
     setRefreshing(false);
   };
 
+  const pickImages = async () => {
+    if (attachments.length >= 5) {
+      Alert.alert('Limit Reached', 'You can only attach up to 5 images.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      selectionLimit: 5 - attachments.length,
+      quality: 0.7,
+    });
+    if (!result.canceled) {
+      setAttachments(prev => [...prev, ...result.assets].slice(0, 5));
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleCreateTask = async () => {
     if (!title || !selectedClassId) {
       Alert.alert('Error', 'Please fill in required fields');
@@ -83,20 +106,47 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
     }
     try {
       setLoading(true);
+      setUploading(attachments.length > 0);
+
+      // Upload images first
+      const uploadedAttachments = [];
+      for (const asset of attachments) {
+        const formData = new FormData();
+        const filename = asset.uri.split('/').pop() || `image_${Date.now()}.jpg`;
+        formData.append('file', {
+          uri: asset.uri,
+          name: filename,
+          type: 'image/jpeg'
+        } as any);
+
+        const uploadRes = await fetch(`${API_BASE_URL}/api/mobile/upload`, {
+          method: 'POST',
+          body: formData,
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadData?.url) {
+          uploadedAttachments.push({ uri: uploadData.url });
+        }
+      }
+
       await teacherService.createTask({
         title,
         description,
-        classId: selectedClassId
+        classId: selectedClassId,
+        attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined
       });
       setShowAddForm(false);
       setTitle('');
       setDescription('');
+      setAttachments([]);
       loadData();
       Alert.alert('Success', 'Task created successfully');
     } catch (err) {
       Alert.alert('Error', 'Failed to create task');
     } finally {
       setLoading(false);
+      setUploading(false);
     }
   };
 
@@ -105,6 +155,8 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
     setSelectedClassId(cls.id);
     setShowClassSwitcher(false);
   };
+
+  const filteredTasks = tasks.filter(t => !selectedClass || t.classId === selectedClass.id || t.className === selectedClass.name);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }} edges={['top']}>
@@ -151,8 +203,30 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
                 ))}
               </ScrollView>
             </View>
-            <TouchableOpacity onPress={handleCreateTask} disabled={loading} activeOpacity={0.9} style={{ backgroundColor: '#0055d4', paddingVertical: 18, borderRadius: 20, alignItems: 'center', shadowColor: '#0055d4', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 15, elevation: 8 }}>
-              {loading ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white', fontWeight: '900', fontSize: 16 }}>Create Task</Text>}
+
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{ fontSize: 12, fontWeight: '900', color: '#94a3b8', marginBottom: 12, textTransform: 'uppercase' }}>Attachments</Text>
+              
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: attachments.length > 0 ? 16 : 0 }}>
+                {attachments.map((asset, idx) => (
+                  <View key={idx} style={{ position: 'relative' }}>
+                    <Image source={{ uri: asset.uri }} style={{ width: 80, height: 80, borderRadius: 12 }} />
+                    <TouchableOpacity onPress={() => removeAttachment(idx)} style={{ position: 'absolute', top: -8, right: -8, backgroundColor: 'red', borderRadius: 12, padding: 4 }}>
+                      <X size={14} color="white" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+
+              {attachments.length < 5 && (
+                <TouchableOpacity onPress={pickImages} disabled={uploading} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#f1f5f9', borderStyle: 'dashed' }}>
+                  <ImageIcon size={20} color="#0055d4" />
+                  <Text style={{ marginLeft: 12, fontSize: 14, fontWeight: '800', color: '#0055d4' }}>Add Images (Max 5)</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <TouchableOpacity onPress={handleCreateTask} disabled={loading || uploading} activeOpacity={0.9} style={{ backgroundColor: '#0055d4', paddingVertical: 18, borderRadius: 20, alignItems: 'center', shadowColor: '#0055d4', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 15, elevation: 8 }}>
+              {loading || uploading ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white', fontWeight: '900', fontSize: 16 }}>Create Task</Text>}
             </TouchableOpacity>
           </View>
         )}
@@ -160,11 +234,11 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b', textTransform: 'uppercase', letterSpacing: 1 }}>Active Tasks</Text>
           <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 }}>
-            <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4' }}>{tasks.length} tasks</Text>
+            <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4' }}>{filteredTasks.length} tasks</Text>
           </View>
         </View>
 
-        {loading && tasks.length === 0 && (
+        {loading && filteredTasks.length === 0 && (
           <View style={{ gap: 16 }}>
             {[1, 2, 3].map((i) => (
               <View key={i} style={{ backgroundColor: 'white', padding: 24, borderRadius: 32, marginBottom: 16, height: 160 }}>
@@ -183,7 +257,7 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
           </View>
         )}
 
-        {tasks.filter(t => !selectedClass || t.classId === selectedClass.id || t.className === selectedClass.name).map(task => (
+        {filteredTasks.map(task => (
           <TouchableOpacity key={task.id} activeOpacity={0.85} onPress={() => navigation.navigate('TeacherTaskDetail', { task })} style={{ backgroundColor: 'white', padding: 24, borderRadius: 32, marginBottom: 16, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOpacity: 0.02, shadowRadius: 15, elevation: 2 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <View style={{ flex: 1 }}>
@@ -252,7 +326,7 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         ))}
 
-        {tasks.length === 0 && !loading && (
+        {filteredTasks.length === 0 && !loading && (
           <View style={{ alignItems: 'center', paddingVertical: 60 }}>
             <CheckCircle2 size={48} color="#d1d5db" />
             <Text style={{ color: '#737c7f', fontWeight: 'bold', marginTop: 16 }}>No active tasks found</Text>

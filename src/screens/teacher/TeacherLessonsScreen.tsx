@@ -77,6 +77,8 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
   const selectedClass = selectedTeacherClass;
   const [showAddForm, setShowAddForm] = useState(false);
   const [showClassSwitcher, setShowClassSwitcher] = useState(false);
+  const [showFilterSubjectSwitcher, setShowFilterSubjectSwitcher] = useState(false);
+  const [showFormSubjectSwitcher, setShowFormSubjectSwitcher] = useState(false);
   const [selectedFilterSubject, setSelectedFilterSubject] = useState<string>('');
 
   // Form state
@@ -283,24 +285,15 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
 
                 {/* Subject Picker */}
                 <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Subject *</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 20 }}>
-                  {subjects.map(s => (
-                    <TouchableOpacity 
-                      key={s.id}
-                      onPress={() => setSelectedSubjectId(s.id.toString())}
-                      style={{ 
-                        paddingHorizontal: 16, 
-                        paddingVertical: 10, 
-                        borderRadius: 12, 
-                        backgroundColor: selectedSubjectId === s.id.toString() ? '#0055d4' : '#f8fafc',
-                        borderWidth: 1,
-                        borderColor: selectedSubjectId === s.id.toString() ? '#0055d4' : '#f1f5f9'
-                      }}
-                    >
-                      <Text style={{ color: selectedSubjectId === s.id.toString() ? 'white' : '#64748b', fontWeight: '800', fontSize: 13 }}>{getSubjectName(s.name)}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                <TouchableOpacity 
+                  onPress={() => setShowFormSubjectSwitcher(true)}
+                  style={{ backgroundColor: '#f8fafc', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+                >
+                  <Text style={{ fontSize: 15, color: selectedSubjectId ? '#1e293b' : '#94a3b8', fontWeight: '700' }}>
+                    {selectedSubjectId ? getSubjectName(subjects.find(s => s.id.toString() === selectedSubjectId)?.name) : 'Select Subject'}
+                  </Text>
+                  <ChevronDown size={20} color="#64748b" />
+                </TouchableOpacity>
 
                 {/* Target Class Info */}
                 <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Target Class</Text>
@@ -383,26 +376,26 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
           </View>
         ) : (
           <View>
-            {/* Subject Pills (Always visible if subjects exist) */}
+            {/* Subject Filter Dropdown (Always visible if subjects exist) */}
             {subjects.length > 0 && (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 24 }}>
-                {Array.from(new Set(subjects.map(s => getSubjectName(s.name)))).map((subjectName) => (
-                  <TouchableOpacity
-                    key={subjectName}
-                    onPress={() => setSelectedFilterSubject(subjectName)}
-                    style={{
-                      paddingHorizontal: 16,
-                      paddingVertical: 10,
-                      borderRadius: 20,
-                      backgroundColor: selectedFilterSubject === subjectName ? '#0055d4' : 'white',
-                      borderWidth: 1,
-                      borderColor: selectedFilterSubject === subjectName ? '#0055d4' : '#e2e8f0',
-                    }}
-                  >
-                    <Text style={{ color: selectedFilterSubject === subjectName ? 'white' : '#64748b', fontWeight: '800', fontSize: 13 }}>{subjectName}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+              <View style={{ marginBottom: 24 }}>
+                <TouchableOpacity 
+                  onPress={() => setShowFilterSubjectSwitcher(true)}
+                  style={{
+                    paddingHorizontal: 16, paddingVertical: 14, borderRadius: 20,
+                    backgroundColor: '#f8fafc',
+                    borderWidth: 1, borderColor: '#e2e8f0',
+                    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                  }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <BookOpen size={18} color="#0055d4" style={{ marginRight: 12 }} />
+                    <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e293b' }}>
+                      {selectedFilterSubject || 'All Subjects'}
+                    </Text>
+                  </View>
+                  <ChevronDown size={20} color="#64748b" />
+                </TouchableOpacity>
+              </View>
             )}
 
             {/* Filtered Content Area */}
@@ -458,7 +451,6 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
       )}
     </ScrollView>
 
-      {/* Class Switcher Modal */}
       {showClassSwitcher && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.5)', justifyContent: 'flex-end', zIndex: 1000 }}>
           <TouchableOpacity activeOpacity={1} onPress={() => setShowClassSwitcher(false)} style={{ flex: 1 }} />
@@ -489,6 +481,92 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
                   )}
                 </TouchableOpacity>
               ))}
+            </ScrollView>
+          </View>
+        </View>
+      )}
+
+      {/* Form Subject Switcher Modal */}
+      {showFormSubjectSwitcher && (
+        <Modal transparent={true} visible={true} onRequestClose={() => setShowFormSubjectSwitcher(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.5)', justifyContent: 'flex-end', zIndex: 1100 }}>
+            <TouchableOpacity activeOpacity={1} onPress={() => setShowFormSubjectSwitcher(false)} style={{ flex: 1 }} />
+            <View style={{ backgroundColor: 'white', borderTopLeftRadius: 40, borderTopRightRadius: 40, padding: 32, paddingBottom: 60 }}>
+              <View style={{ width: 40, height: 5, backgroundColor: '#e2e8f0', borderRadius: 10, alignSelf: 'center', marginBottom: 24 }} />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b' }}>Select Subject</Text>
+                <TouchableOpacity onPress={() => setShowFormSubjectSwitcher(false)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}>
+                  <X size={20} color="#64748b" />
+                </TouchableOpacity>
+              </View>
+              <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
+                {subjects.map(s => {
+                  const isActive = selectedSubjectId === s.id.toString();
+                  return (
+                    <TouchableOpacity
+                      key={s.id}
+                      onPress={() => {
+                        setSelectedSubjectId(s.id.toString());
+                        setShowFormSubjectSwitcher(false);
+                      }}
+                      activeOpacity={0.8}
+                      style={{ flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 20, backgroundColor: isActive ? '#eff6ff' : 'white', marginBottom: 10, borderWidth: 1.5, borderColor: isActive ? '#0055d4' : '#f1f5f9' }}
+                    >
+                      <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: isActive ? '#0055d4' : '#f8fafc', alignItems: 'center', justifyContent: 'center' }}>
+                        <BookOpen size={24} color={isActive ? 'white' : '#94a3b8'} />
+                      </View>
+                      <Text style={{ marginLeft: 18, fontSize: 17, fontWeight: '900', color: isActive ? '#0055d4' : '#1e293b', flex: 1 }}>{getSubjectName(s.name)}</Text>
+                      {isActive && (
+                        <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: '#0055d4', alignItems: 'center', justifyContent: 'center' }}>
+                          <Check size={14} color="white" strokeWidth={3} />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  )
+                })}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Filter Subject Switcher Modal */}
+      {showFilterSubjectSwitcher && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.5)', justifyContent: 'flex-end', zIndex: 1000 }}>
+          <TouchableOpacity activeOpacity={1} onPress={() => setShowFilterSubjectSwitcher(false)} style={{ flex: 1 }} />
+          <View style={{ backgroundColor: 'white', borderTopLeftRadius: 40, borderTopRightRadius: 40, padding: 32, paddingBottom: 60 }}>
+            <View style={{ width: 40, height: 5, backgroundColor: '#e2e8f0', borderRadius: 10, alignSelf: 'center', marginBottom: 24 }} />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b' }}>Filter by Subject</Text>
+              <TouchableOpacity onPress={() => setShowFilterSubjectSwitcher(false)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}>
+                <X size={20} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
+              {Array.from(new Set(subjects.map(s => getSubjectName(s.name)))).map(subjectName => {
+                const isActive = selectedFilterSubject === subjectName;
+                return (
+                  <TouchableOpacity
+                    key={subjectName}
+                    onPress={() => {
+                      setSelectedFilterSubject(subjectName);
+                      setShowFilterSubjectSwitcher(false);
+                    }}
+                    activeOpacity={0.8}
+                    style={{ flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 20, backgroundColor: isActive ? '#eff6ff' : 'white', marginBottom: 10, borderWidth: 1.5, borderColor: isActive ? '#0055d4' : '#f1f5f9' }}
+                  >
+                    <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: isActive ? '#0055d4' : '#f8fafc', alignItems: 'center', justifyContent: 'center' }}>
+                      <BookOpen size={24} color={isActive ? 'white' : '#94a3b8'} />
+                    </View>
+                    <Text style={{ marginLeft: 18, fontSize: 17, fontWeight: '900', color: isActive ? '#0055d4' : '#1e293b', flex: 1 }}>{subjectName}</Text>
+                    {isActive && (
+                      <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: '#0055d4', alignItems: 'center', justifyContent: 'center' }}>
+                        <Check size={14} color="white" strokeWidth={3} />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                )
+              })}
             </ScrollView>
           </View>
         </View>
