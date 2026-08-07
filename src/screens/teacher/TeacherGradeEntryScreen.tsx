@@ -34,7 +34,8 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
 
   // Step 3: Grades
   const [students, setStudents] = useState<any[]>([]);
-  const [grades, setGrades] = useState<Record<string, number | null>>({});
+  const [grades, setGrades] = useState<Record<string, string>>({});
+  const [activeStudentId, setActiveStudentId] = useState<string | null>(null);
   const [proofImage, setProofImage] = useState<any>(null);
 
   useEffect(() => {
@@ -82,11 +83,13 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
       const matchingSubject = (data.subjects || []).find((s: any) => s.id === subject.id);
       const existingGrades = matchingSubject?.grades || {};
       
-      const initialGrades: Record<string, number | null> = {};
+      const initialGrades: Record<string, string> = {};
       fetchedStudents.forEach((s: any) => {
-        initialGrades[s.id] = existingGrades[s.id] !== undefined ? existingGrades[s.id] : null;
+        const existing = existingGrades[s.id];
+        initialGrades[s.id] = existing !== undefined && existing !== null ? existing.toString() : '';
       });
       setGrades(initialGrades);
+      if (fetchedStudents.length > 0) setActiveStudentId(fetchedStudents[0].id);
     } catch (err) {
       console.error(err);
     } finally {
@@ -97,16 +100,32 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
   const handleGradeChange = (studentId: string, value: string) => {
     const cleaned = value.replace(',', '.');
     if (cleaned === '') {
-      setGrades(prev => ({ ...prev, [studentId]: null }));
+      setGrades(prev => ({ ...prev, [studentId]: '' }));
       return;
     }
     if (!/^\d*\.?\d*$/.test(cleaned)) return;
     const num = parseFloat(cleaned);
-    if (!isNaN(num)) {
-      if (num < 0 || num > 20) {
-        return;
-      }
-      setGrades(prev => ({ ...prev, [studentId]: num }));
+    if (!isNaN(num) && (num < 0 || num > 20)) {
+      return;
+    }
+    setGrades(prev => ({ ...prev, [studentId]: cleaned }));
+  };
+
+  const applyQuickFraction = (studentId: string, fraction: string) => {
+    if (fraction === 'CLEAR') {
+      setGrades(prev => ({ ...prev, [studentId]: '' }));
+      return;
+    }
+    if (fraction === '20') {
+      setGrades(prev => ({ ...prev, [studentId]: '20' }));
+      return;
+    }
+    const current = grades[studentId] || '';
+    const baseInt = current.split('.')[0] || '0';
+    const newScore = `${baseInt}${fraction}`;
+    const num = parseFloat(newScore);
+    if (!isNaN(num) && num <= 20) {
+      setGrades(prev => ({ ...prev, [studentId]: newScore }));
     }
   };
 
@@ -135,10 +154,14 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
     if (!userId || !selectedClass || !selectedSubject) return;
     setSaving(true);
     try {
-      const gradesArray = Object.keys(grades).map(studentId => ({
-        studentId,
-        score: grades[studentId]
-      }));
+      const gradesArray = Object.keys(grades).map(studentId => {
+        const val = grades[studentId];
+        const num = val !== '' && val !== null && val !== undefined ? parseFloat(val) : null;
+        return {
+          studentId,
+          score: num !== null && !isNaN(num) ? num : null
+        };
+      });
       
       let proofUrl = '';
       if (proofImage) {
@@ -168,7 +191,7 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
     }
   };
 
-  const gradedCount = Object.values(grades).filter(g => g !== null && g !== undefined).length;
+  const gradedCount = Object.values(grades).filter(g => g !== '' && g !== null && g !== undefined && !isNaN(parseFloat(g))).length;
 
   const renderStep1 = () => (
     <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
@@ -384,47 +407,89 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        {loading ? (
-          <ActivityIndicator size="large" color="#4F46E5" />
-        ) : (
-          students.map((student) => (
-            <View 
-              key={student.id} 
-              style={{ 
-                flexDirection: 'row', alignItems: 'center', padding: 16, 
-                borderRadius: 16, backgroundColor: 'white', marginBottom: 12,
-                borderWidth: 1, borderColor: '#f1f5f9' 
-              }}
-            >
-              <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#e2e8f0' }}>
-                <Text style={{ fontSize: 18, fontWeight: '900', color: '#4F46E5' }}>{student.name.charAt(0)}</Text>
-              </View>
-              <View style={{ marginLeft: 16, flex: 1 }}>
-                <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>{student.name} {student.surname}</Text>
-              </View>
-              <View style={{ width: 70 }}>
-                <TextInput
-                  placeholder="--"
-                  placeholderTextColor="#94a3b8"
-                  keyboardType="decimal-pad"
-                  maxLength={5}
-                  value={grades[student.id] !== null && grades[student.id] !== undefined ? grades[student.id]?.toString() : ''}
-                  onChangeText={(val) => handleGradeChange(student.id, val)}
-                  style={{
-                    backgroundColor: '#f8fafc',
-                    borderWidth: 1,
-                    borderColor: '#e2e8f0',
-                    borderRadius: 10,
-                    padding: 12,
-                    fontSize: 16,
-                    fontWeight: '800',
-                    color: '#1e293b',
-                    textAlign: 'center'
+        {/* Quick Decimals Assistant Bar */}
+        <View style={{ marginBottom: 16, backgroundColor: 'white', padding: 14, borderRadius: 16, borderWidth: 1, borderColor: '#f1f5f9' }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <Text style={{ fontSize: 11, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Quick Decimal Assistant
+            </Text>
+            {activeStudentId && (
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#0055d4' }}>
+                Editing: {students.find(s => s.id === activeStudentId)?.name}
+              </Text>
+            )}
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {['.1', '.25', '.5', '.75', '20', 'CLEAR'].map(f => (
+                <TouchableOpacity
+                  key={f}
+                  onPress={() => {
+                    const targetId = activeStudentId || students[0]?.id;
+                    if (targetId) applyQuickFraction(targetId, f);
                   }}
-                />
-              </View>
+                  style={{
+                    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12,
+                    backgroundColor: f === 'CLEAR' ? '#fef2f2' : '#eff6ff',
+                    borderWidth: 1, borderColor: f === 'CLEAR' ? '#fecaca' : '#dbeafe'
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '900', color: f === 'CLEAR' ? '#ef4444' : '#0055d4' }}>
+                    {f === 'CLEAR' ? 'Clear' : f}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
-          ))
+          </ScrollView>
+        </View>
+
+        {loading ? (
+          <ActivityIndicator size="large" color="#0055d4" />
+        ) : (
+          students.map((student) => {
+            const isSelected = activeStudentId === student.id;
+            return (
+              <TouchableOpacity 
+                key={student.id} 
+                onPress={() => setActiveStudentId(student.id)}
+                activeOpacity={0.9}
+                style={{ 
+                  flexDirection: 'row', alignItems: 'center', padding: 16, 
+                  borderRadius: 16, backgroundColor: 'white', marginBottom: 12,
+                  borderWidth: 1.5, borderColor: isSelected ? '#0055d4' : '#f1f5f9' 
+                }}
+              >
+                <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: isSelected ? '#0055d4' : '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: isSelected ? '#0055d4' : '#e2e8f0' }}>
+                  <Text style={{ fontSize: 18, fontWeight: '900', color: isSelected ? 'white' : '#0055d4' }}>{student.name.charAt(0)}</Text>
+                </View>
+                <View style={{ marginLeft: 16, flex: 1 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>{student.name} {student.surname}</Text>
+                </View>
+                <View style={{ width: 75 }}>
+                  <TextInput
+                    placeholder="--"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="decimal-pad"
+                    maxLength={5}
+                    value={grades[student.id] || ''}
+                    onFocus={() => setActiveStudentId(student.id)}
+                    onChangeText={(val) => handleGradeChange(student.id, val)}
+                    style={{
+                      backgroundColor: isSelected ? '#eff6ff' : '#f8fafc',
+                      borderWidth: 1.5,
+                      borderColor: isSelected ? '#0055d4' : '#e2e8f0',
+                      borderRadius: 12,
+                      padding: 12,
+                      fontSize: 16,
+                      fontWeight: '800',
+                      color: '#1e293b',
+                      textAlign: 'center'
+                    }}
+                  />
+                </View>
+              </TouchableOpacity>
+            );
+          })
         )}
 
         <View style={{ marginTop: 24, padding: 16, borderRadius: 16, backgroundColor: 'white', borderWidth: 1, borderColor: '#f1f5f9' }}>
