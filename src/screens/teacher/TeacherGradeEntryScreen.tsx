@@ -195,52 +195,39 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
 
   const renderStep1 = () => (
     <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
-      {/* Top Bar */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}>
+      {/* Top Header */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 28 }}>
+        <TouchableOpacity 
+          onPress={() => navigation.goBack()} 
+          style={{ width: 44, height: 44, borderRadius: 16, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9', marginRight: 16 }}
+        >
           <ChevronLeft size={22} color="#1e293b" />
         </TouchableOpacity>
-        <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#dbeafe' }}>
-          <Text style={{ fontSize: 12, fontWeight: '800', color: '#0055d4' }}>Grade Entry</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 24, fontWeight: '900', color: '#1e293b', letterSpacing: -0.5 }}>Grade Entry</Text>
+          <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '600', marginTop: 2 }}>Select class to record evaluations</Text>
         </View>
       </View>
 
-      {/* Hero Header Banner */}
-      <View style={{
-        backgroundColor: '#0055d4', borderRadius: 24, padding: 22, marginBottom: 24,
-        shadowColor: '#0055d4', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.25, shadowRadius: 12, elevation: 6
-      }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}>
-            <Award size={22} color="white" />
-          </View>
-          <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
-            <Text style={{ color: 'white', fontWeight: '800', fontSize: 11, textTransform: 'uppercase' }}>Term Assessment</Text>
-          </View>
-        </View>
-        <Text style={{ color: 'white', fontSize: 20, fontWeight: '900', marginBottom: 4 }}>Select Class to Grade</Text>
-        <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '600', lineHeight: 18 }}>
-          Record student marks, update term evaluation records, and upload exam sheets.
-        </Text>
-      </View>
-
-      {/* Section Title */}
+      {/* Classes List Header */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-        <Text style={{ fontSize: 13, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.8 }}>Assigned Classes</Text>
-        <Text style={{ fontSize: 12, fontWeight: '700', color: '#94a3b8' }}>{classes.length} {classes.length === 1 ? 'Class' : 'Classes'}</Text>
+        <Text style={{ fontSize: 12, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8 }}>Your Classes</Text>
+        <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+          <Text style={{ fontSize: 12, fontWeight: '800', color: '#0055d4' }}>{classes.length} Available</Text>
+        </View>
       </View>
 
       {/* Classes List */}
       {loading ? (
         <ActivityIndicator size="large" color="#0055d4" style={{ marginVertical: 40 }} />
       ) : classes.length === 0 ? (
-        <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40, backgroundColor: 'white', borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9' }}>
+        <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 50, backgroundColor: 'white', borderRadius: 24, borderWidth: 1, borderColor: '#f1f5f9' }}>
           <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
             <Users size={28} color="#94a3b8" />
           </View>
-          <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e293b' }}>No classes found</Text>
+          <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e293b' }}>No classes assigned</Text>
           <Text style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', marginTop: 4, paddingHorizontal: 32 }}>
-            You haven't been assigned to any classes yet.
+            You have not been assigned to any classes yet.
           </Text>
         </View>
       ) : (
@@ -250,19 +237,19 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
             onPress={() => handleClassSelect(cls)}
             activeOpacity={0.85}
             style={{ 
-              flexDirection: 'row', alignItems: 'center', padding: 18, 
-              borderRadius: 20, backgroundColor: 'white', marginBottom: 14,
-              borderWidth: 1.5, borderColor: '#f1f5f9',
-              shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.04, shadowRadius: 8, elevation: 2
+              flexDirection: 'row', alignItems: 'center', padding: 20, 
+              borderRadius: 22, backgroundColor: 'white', marginBottom: 14,
+              borderWidth: 1, borderColor: '#f1f5f9',
+              shadowColor: '#0f172a', shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.03, shadowRadius: 10, elevation: 2
             }}
           >
-            <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' }}>
-              <Users size={26} color="#0055d4" />
+            <View style={{ width: 54, height: 54, borderRadius: 18, backgroundColor: '#0055d4', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 20, fontWeight: '900', color: 'white' }}>{cls.name}</Text>
             </View>
             <View style={{ marginLeft: 16, flex: 1 }}>
-              <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b' }}>{cls.name}</Text>
-              <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '700', marginTop: 2 }}>
+              <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>Class {cls.name}</Text>
+              <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '600', marginTop: 3 }}>
                 {cls.students || cls.studentsCount || 0} students enrolled
               </Text>
             </View>
@@ -272,37 +259,6 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         ))
       )}
-
-      {/* Guidelines & Grading Notes Card (Fills empty space with valuable context) */}
-      <View style={{ marginTop: 10, backgroundColor: 'white', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: '#f1f5f9' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
-          <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#fef3c7', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
-            <Sparkles size={18} color="#d97706" />
-          </View>
-          <Text style={{ fontSize: 15, fontWeight: '900', color: '#1e293b' }}>Grading Quick Tips</Text>
-        </View>
-
-        <View style={{ gap: 12 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#0055d4', marginTop: 6, marginRight: 10 }} />
-            <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '600', flex: 1, lineHeight: 18 }}>
-              Select a class above, then choose the subject and term to enter scores.
-            </Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#0055d4', marginTop: 6, marginRight: 10 }} />
-            <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '600', flex: 1, lineHeight: 18 }}>
-              You can optionally attach physical exam sheet photos or proof documents.
-            </Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#0055d4', marginTop: 6, marginRight: 10 }} />
-            <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '600', flex: 1, lineHeight: 18 }}>
-              Submitted grades immediately update student report card calculations.
-            </Text>
-          </View>
-        </View>
-      </View>
     </ScrollView>
   );
 
