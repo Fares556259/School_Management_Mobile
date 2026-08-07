@@ -95,11 +95,19 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
   };
 
   const handleGradeChange = (studentId: string, value: string) => {
-    const num = parseFloat(value);
-    setGrades(prev => ({
-      ...prev,
-      [studentId]: isNaN(num) ? null : num,
-    }));
+    const cleaned = value.replace(',', '.');
+    if (cleaned === '') {
+      setGrades(prev => ({ ...prev, [studentId]: null }));
+      return;
+    }
+    if (!/^\d*\.?\d*$/.test(cleaned)) return;
+    const num = parseFloat(cleaned);
+    if (!isNaN(num)) {
+      if (num < 0 || num > 20) {
+        return;
+      }
+      setGrades(prev => ({ ...prev, [studentId]: num }));
+    }
   };
 
   const pickImage = async (useCamera = false) => {
@@ -398,7 +406,7 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
                 <TextInput
                   placeholder="--"
                   placeholderTextColor="#94a3b8"
-                  keyboardType="numeric"
+                  keyboardType="decimal-pad"
                   maxLength={5}
                   value={grades[student.id] !== null && grades[student.id] !== undefined ? grades[student.id]?.toString() : ''}
                   onChangeText={(val) => handleGradeChange(student.id, val)}
