@@ -88,65 +88,6 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
           contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0055d4" />}
         >
-          {/* Task Instructions & Teacher Attachments Card */}
-          {(task.description || attachments.length > 0) && (
-            <View style={{ backgroundColor: 'white', borderRadius: 24, padding: 20, marginBottom: 20, borderWidth: 1, borderColor: '#f1f5f9' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-                <Paperclip size={16} color="#0055d4" />
-                <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4', textTransform: 'uppercase', letterSpacing: 0.5, marginLeft: 6 }}>
-                  Task Details & Attachments
-                </Text>
-              </View>
-
-              {task.description ? (
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#334155', lineHeight: 21, marginBottom: attachments.length > 0 ? 16 : 0 }}>
-                  {task.description}
-                </Text>
-              ) : null}
-
-              {attachments.length > 0 && (
-                <View style={{ marginTop: task.description ? 4 : 0 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#64748b', marginBottom: 10 }}>
-                    Attached Files ({attachments.length})
-                  </Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-                    {attachments.map((att: any, idx: number) => {
-                      const uri = typeof att === 'string' ? att : (att.uri || att.url);
-                      const isPdf = att.type === 'PDF' || (uri && uri.toLowerCase().includes('.pdf'));
-
-                      return (
-                        <TouchableOpacity
-                          key={idx}
-                          activeOpacity={0.85}
-                          onPress={() => {
-                            if (isPdf) {
-                              Linking.openURL(uri);
-                            } else {
-                              setSelectedImg(uri);
-                            }
-                          }}
-                          style={{
-                            width: 88, height: 88, borderRadius: 16, overflow: 'hidden',
-                            backgroundColor: '#f8fafc', borderWidth: 1.5, borderColor: isPdf ? '#dbeafe' : '#e2e8f0',
-                            alignItems: 'center', justifyContent: 'center'
-                          }}
-                        >
-                          {isPdf ? (
-                            <View style={{ alignItems: 'center', justifyContent: 'center', padding: 8 }}>
-                              <FileIcon size={26} color="#0055d4" />
-                              <Text style={{ fontSize: 10, fontWeight: '900', color: '#0055d4', marginTop: 4 }}>PDF</Text>
-                            </View>
-                          ) : (
-                            <Image source={{ uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                          )}
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-              )}
-            </View>
-          )}
           {/* Progress Card */}
           <View style={{ backgroundColor: 'white', borderRadius: 28, padding: 24, marginBottom: 24, borderWidth: 1, borderColor: '#f1f5f9' }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -231,6 +172,66 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
               </View>
             </View>
           ))}
+
+          {/* Task Instructions & Teacher Attachments Card (Bottom) */}
+          {(task.description || attachments.length > 0) && (
+            <View style={{ backgroundColor: 'white', borderRadius: 24, padding: 20, marginTop: 16, borderWidth: 1, borderColor: '#f1f5f9' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                <Paperclip size={16} color="#0055d4" />
+                <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4', textTransform: 'uppercase', letterSpacing: 0.5, marginLeft: 6 }}>
+                  Task Details & Attachments
+                </Text>
+              </View>
+
+              {task.description ? (
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#334155', lineHeight: 21, marginBottom: attachments.length > 0 ? 16 : 0 }}>
+                  {task.description}
+                </Text>
+              ) : null}
+
+              {attachments.length > 0 && (
+                <View style={{ marginTop: task.description ? 4 : 0 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#64748b', marginBottom: 10 }}>
+                    Attached Files ({attachments.length})
+                  </Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+                    {attachments.map((att: any, idx: number) => {
+                      const uri = typeof att === 'string' ? att : (att.uri || att.url);
+                      const isPdf = att.type === 'PDF' || (uri && uri.toLowerCase().includes('.pdf'));
+
+                      return (
+                        <TouchableOpacity
+                          key={idx}
+                          activeOpacity={0.85}
+                          onPress={() => {
+                            if (isPdf) {
+                              Linking.openURL(uri);
+                            } else {
+                              setSelectedImg(uri);
+                            }
+                          }}
+                          style={{
+                            width: 88, height: 88, borderRadius: 16, overflow: 'hidden',
+                            backgroundColor: '#f8fafc', borderWidth: 1.5, borderColor: isPdf ? '#dbeafe' : '#e2e8f0',
+                            alignItems: 'center', justifyContent: 'center'
+                          }}
+                        >
+                          {isPdf ? (
+                            <View style={{ alignItems: 'center', justifyContent: 'center', padding: 8 }}>
+                              <FileIcon size={26} color="#0055d4" />
+                              <Text style={{ fontSize: 10, fontWeight: '900', color: '#0055d4', marginTop: 4 }}>PDF</Text>
+                            </View>
+                          ) : (
+                            <Image source={{ uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+          )}
         </ScrollView>
       )}
 
