@@ -74,13 +74,15 @@ export const TeacherClassesScreen = ({ navigation }: any) => {
     try {
       setLoading(true);
       const res = await teacherService.fetchClasses();
-      setClasses(res);
+      const safeClasses = Array.isArray(res) ? res : [];
+      setClasses(safeClasses);
       // Auto-select if none
-      if (res.length > 0 && !selectedTeacherClass) {
-        setSelectedTeacherClass(res[0]);
+      if (safeClasses.length > 0 && !selectedTeacherClass) {
+        setSelectedTeacherClass(safeClasses[0]);
       }
     } catch (err) {
       console.error("[TEACHER-CLASSES-LOAD]", err);
+      setClasses([]);
     } finally {
       setLoading(false);
     }
@@ -96,8 +98,9 @@ export const TeacherClassesScreen = ({ navigation }: any) => {
     setRefreshing(false);
   };
 
-  const filteredClasses = classes.filter(c => 
-    c.name.toLowerCase().includes(search.toLowerCase())
+  const safeClassesList = Array.isArray(classes) ? classes : [];
+  const filteredClasses = safeClassesList.filter(c => 
+    c && c.name && c.name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (

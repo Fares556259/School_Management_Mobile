@@ -50,8 +50,8 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
         teacherService.fetchTasks(),
         teacherService.fetchClasses()
       ]);
-      const safeTasksRes = tasksRes || [];
-      const safeClassesRes = classesRes || [];
+      const safeTasksRes = Array.isArray(tasksRes) ? tasksRes : [];
+      const safeClassesRes = Array.isArray(classesRes) ? classesRes : [];
       
       setTasks(safeTasksRes);
       setClasses(safeClassesRes);
