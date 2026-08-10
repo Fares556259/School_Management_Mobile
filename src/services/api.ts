@@ -396,21 +396,25 @@ export const studentService = {
     ];
 
     const today = new Date();
-    const currentMonth = today.getMonth() + 1;
+    const currentMonthIndex = today.getMonth();
+    const currentMonth = currentMonthIndex + 1;
     const currentYear = today.getFullYear();
+
+    // If we are in July (6) or later, the school year starts this year. Otherwise, it started last year.
+    const schoolYearStartYear = (currentMonthIndex >= 6) ? currentYear : currentYear - 1;
 
     // Define the academic cycle: Sep (9) to Jun (6)
     const academicMonths = [
-      { month: 9, year: 2025 },
-      { month: 10, year: 2025 },
-      { month: 11, year: 2025 },
-      { month: 12, year: 2025 },
-      { month: 1, year: 2026 },
-      { month: 2, year: 2026 },
-      { month: 3, year: 2026 },
-      { month: 4, year: 2026 },
-      { month: 5, year: 2026 },
-      { month: 6, year: 2026 },
+      { month: 9, year: schoolYearStartYear },
+      { month: 10, year: schoolYearStartYear },
+      { month: 11, year: schoolYearStartYear },
+      { month: 12, year: schoolYearStartYear },
+      { month: 1, year: schoolYearStartYear + 1 },
+      { month: 2, year: schoolYearStartYear + 1 },
+      { month: 3, year: schoolYearStartYear + 1 },
+      { month: 4, year: schoolYearStartYear + 1 },
+      { month: 5, year: schoolYearStartYear + 1 },
+      { month: 6, year: schoolYearStartYear + 1 },
     ];
 
     const tuitionFee = s.class?.level?.tuitionFee || 120;

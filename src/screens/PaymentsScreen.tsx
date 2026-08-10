@@ -206,7 +206,10 @@ export const PaymentsScreen = ({ navigation }: any) => {
         <View style={{ paddingHorizontal: 24, flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>{t.paymentHistory || 'Installments'}</Text>
           <View style={{ backgroundColor: '#e0e7ff', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
-            <Text style={{ fontSize: 13, fontWeight: '800', color: '#4338ca' }}>2025/2026</Text>
+            <Text style={{ fontSize: 13, fontWeight: '800', color: '#4338ca' }}>
+              {new Date().getMonth() >= 6 ? new Date().getFullYear() : new Date().getFullYear() - 1}/
+              {new Date().getMonth() >= 6 ? new Date().getFullYear() + 1 : new Date().getFullYear()}
+            </Text>
           </View>
         </View>
 
