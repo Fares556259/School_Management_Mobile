@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ScrollView, TouchableOpacity, Image, Platform, RefreshControl, StatusBar, Dimensions, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,7 +17,7 @@ import {
   TrendingDown,
   Clock,
   CreditCard,
-  CreditCardIcon
+  Check
 } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
@@ -33,7 +33,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
   const [history, setHistory] = useState<PaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeFilter, setActiveFilter] = useState('All');
+  const [activeFilter, setActiveFilter] = useState<'Due' | 'Paid'>('Due');
 
   const loadData = useCallback(async (id: string, isRefreshing = false) => {
     if (!isRefreshing) setLoading(true);
@@ -67,39 +67,24 @@ export const PaymentsScreen = ({ navigation }: any) => {
     }
   };
 
-  // Derive counts for tabs
-  const counts = useMemo(() => ({
-    All: history.length,
-    Paid: history.filter(p => p.status === 'Paid').length,
-    Unpaid: history.filter(p => p.status !== 'Paid' && p.status !== 'Locked').length,
-  }), [history]);
-
-  // Sorting & Filtering Logic
+  // Sorting & Filtering Logic: Ignore "Locked" entirely.
   const processedList = useMemo(() => {
-    let list = [...history];
-    if (activeFilter === 'Paid') list = list.filter(p => p.status === 'Paid');
-    if (activeFilter === 'Unpaid') list = list.filter(p => p.status !== 'Paid' && p.status !== 'Locked');
-
-    return list;
+    const actionable = history.filter(p => p.status !== 'Locked');
+    if (activeFilter === 'Due') {
+      return actionable.filter(p => p.status !== 'Paid');
+    } else {
+      return actionable.filter(p => p.status === 'Paid');
+    }
   }, [history, activeFilter]);
 
-  // Summary Logic
+  // Summary Logic: Total outstanding for currently due items
   const summary = useMemo(() => {
-    const activeMonths = history.filter(p => p.status !== 'Locked');
-    const totalOutstanding = activeMonths.reduce((acc, p) =>
+    const actionable = history.filter(p => p.status !== 'Locked');
+    const totalOutstanding = actionable.reduce((acc, p) =>
       p.status !== 'Paid' ? acc + (p.totalAmount - p.paidAmount) : acc, 0);
-    const totalPaid = history.reduce((acc, p) => acc + p.paidAmount, 0);
-    const paidMonths = history.filter(p => p.status === 'Paid').length;
-    const totalMonths = activeMonths.length;
-    const firstUnfilled = history.find(p => p.status !== 'Paid' && p.status !== 'Locked');
-    const allPaid = totalOutstanding === 0 && totalMonths > 0;
     return {
       outstanding: totalOutstanding,
-      totalPaid,
-      paidMonths,
-      totalMonths,
-      nextDue: firstUnfilled ? firstUnfilled.month : 'All clear!',
-      allPaid,
+      allPaid: totalOutstanding === 0 && actionable.length > 0,
     };
   }, [history]);
 
@@ -128,10 +113,10 @@ export const PaymentsScreen = ({ navigation }: any) => {
         {/* Summary Card */}
         <View style={{ paddingHorizontal: 20, marginTop: 16, marginBottom: 28 }}>
           <View style={{
-            backgroundColor: '#0055d4',
+            backgroundColor: summary.outstanding === 0 ? '#10b981' : '#0055d4',
             borderRadius: 32,
             padding: 28,
-            shadowColor: '#0055d4',
+            shadowColor: summary.outstanding === 0 ? '#10b981' : '#0055d4',
             shadowOffset: { width: 0, height: 12 },
             shadowOpacity: 0.25,
             shadowRadius: 24,
@@ -146,7 +131,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
               <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
                 <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginBottom: 12 }}>
                   <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    {summary.outstanding === 0 ? (isRTL ? 'خلاص تام!' : 'All Caught Up!') : t.totalOutstanding || 'Total Due'}
+                    {summary.outstanding === 0 ? (isRTL ? 'خلاص تام!' : 'All Caught Up!') : (isRTL ? 'المبلغ المستحق حالياً' : 'Total Due Now')}
                   </Text>
                 </View>
                 <Text style={{ color: '#ffffff', fontSize: 44, fontWeight: '900', letterSpacing: -1.5, textAlign: isRTL ? 'right' : 'left' }}>
@@ -160,7 +145,11 @@ export const PaymentsScreen = ({ navigation }: any) => {
                 alignItems: 'center', justifyContent: 'center',
                 shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8
               }}>
-                <CreditCard size={26} color="#0055d4" strokeWidth={2.5} />
+                {summary.outstanding === 0 ? (
+                  <Check size={26} color="#10b981" strokeWidth={3} />
+                ) : (
+                  <CreditCard size={26} color="#0055d4" strokeWidth={2.5} />
+                )}
               </View>
             </View>
           </View>
@@ -170,9 +159,8 @@ export const PaymentsScreen = ({ navigation }: any) => {
         <View style={{ marginBottom: 24, paddingHorizontal: 20 }}>
           <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 12 }}>
             {[
-              { key: 'All', label: t.filterAll },
-              { key: 'Paid', label: t.filterPaid },
-              { key: 'Unpaid', label: t.filterUnpaid }
+              { key: 'Due' as const, label: isRTL ? 'المطلوب سداده' : 'Required Actions', icon: <AlertCircle size={18} /> },
+              { key: 'Paid' as const, label: isRTL ? 'سجل الدفعات' : 'Paid History', icon: <CheckCircle2 size={18} /> }
             ].map(tab => {
               const isActive = activeFilter === tab.key;
               return (
@@ -182,8 +170,11 @@ export const PaymentsScreen = ({ navigation }: any) => {
                   activeOpacity={0.85}
                   style={{
                     flex: 1,
+                    flexDirection: isRTL ? 'row-reverse' : 'row',
                     alignItems: 'center',
-                    paddingVertical: 12,
+                    justifyContent: 'center',
+                    gap: 8,
+                    paddingVertical: 14,
                     borderRadius: 20,
                     backgroundColor: isActive ? '#0055d4' : '#ffffff',
                     borderWidth: isActive ? 0 : 1,
@@ -195,6 +186,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
                     elevation: isActive ? 4 : 1,
                   }}
                 >
+                  {React.cloneElement(tab.icon, { color: isActive ? '#ffffff' : '#64748b' })}
                   <Text style={{ fontSize: 14, fontWeight: '800', color: isActive ? '#ffffff' : '#64748b' }}>{tab.label}</Text>
                 </TouchableOpacity>
               );
@@ -204,7 +196,9 @@ export const PaymentsScreen = ({ navigation }: any) => {
 
         {/* Payment History Title */}
         <View style={{ paddingHorizontal: 24, flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>{t.paymentHistory || 'Installments'}</Text>
+          <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>
+            {activeFilter === 'Due' ? (isRTL ? 'الأقساط المستحقة' : 'Due Installments') : (isRTL ? 'الأقساط المدفوعة' : 'Paid Installments')}
+          </Text>
           <View style={{ backgroundColor: '#e0e7ff', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
             <Text style={{ fontSize: 13, fontWeight: '800', color: '#4338ca' }}>
               {new Date().getMonth() >= 6 ? new Date().getFullYear() : new Date().getFullYear() - 1}/
@@ -219,7 +213,6 @@ export const PaymentsScreen = ({ navigation }: any) => {
             <View style={{ gap: 16 }}>
               {processedList.map((item) => {
                 const isPaid = item.status === 'Paid';
-                const isLocked = item.status === 'Locked';
                 const isOverdue = item.isOverdue;
                 const isPartial = item.status === 'Partial';
 
@@ -227,7 +220,6 @@ export const PaymentsScreen = ({ navigation }: any) => {
                   Paid:    { label: t.paid || 'Paid',        color: '#10b981', bg: '#d1fae5', icon: <CheckCircle2 size={16} color="#10b981" strokeWidth={3} /> },
                   Partial: { label: t.pending || 'Partial',  color: '#f59e0b', bg: '#fef3c7', icon: <Clock size={16} color="#f59e0b" strokeWidth={3} /> },
                   Due:     { label: isOverdue ? (t.overdueBadge || 'Overdue') : (t.pending || 'Pending'), color: isOverdue ? '#ef4444' : '#f59e0b', bg: isOverdue ? '#fee2e2' : '#fef3c7', icon: isOverdue ? <AlertCircle size={16} color="#ef4444" strokeWidth={3} /> : <Clock size={16} color="#f59e0b" strokeWidth={3} /> },
-                  Locked:  { label: t.upcoming || 'Upcoming', color: '#94a3b8', bg: '#f1f5f9', icon: null },
                 };
                 const config = statusConfig[item.status] || statusConfig.Due;
 
@@ -248,10 +240,9 @@ export const PaymentsScreen = ({ navigation }: any) => {
                       padding: 20,
                       shadowColor: '#000', 
                       shadowOffset: { width: 0, height: 8 },
-                      shadowOpacity: isLocked ? 0.02 : 0.06, 
+                      shadowOpacity: 0.06, 
                       shadowRadius: 16, 
-                      elevation: isLocked ? 0 : 2,
-                      opacity: isLocked ? 0.6 : 1,
+                      elevation: 2,
                       borderWidth: 1,
                       borderColor: 'rgba(0,0,0,0.02)'
                     }}
@@ -308,7 +299,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
             </View>
           ) : (
             <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 64, backgroundColor: '#ffffff', borderRadius: 28, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.04, shadowRadius: 16, elevation: 2 }}>
-              <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+              <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: activeFilter === 'Due' ? '#dcfce7' : '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
                 {activeFilter === 'Paid' ? (
                   <Wallet size={36} color="#64748b" strokeWidth={2} />
                 ) : (
@@ -316,10 +307,10 @@ export const PaymentsScreen = ({ navigation }: any) => {
                 )}
               </View>
               <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', textAlign: 'center', marginBottom: 8 }}>
-                {activeFilter === 'Paid' ? 'لا توجد وصولات مدفوعة' : activeFilter === 'Unpaid' ? 'تم خلاص كافة الأقساط!' : 'لا توجد أقساط مسجلة'}
+                {activeFilter === 'Paid' ? (isRTL ? 'لا توجد وصولات مدفوعة' : 'No Paid Installments') : (isRTL ? 'أنت في السليم!' : 'All Caught Up!')}
               </Text>
               <Text style={{ fontSize: 14, fontWeight: '700', color: '#94a3b8', textAlign: 'center', paddingHorizontal: 40, lineHeight: 22 }}>
-                {activeFilter === 'Unpaid' ? 'ليس لديك أي أقساط متأخرة.' : 'ستظهر الوثائق والأقساط هنا عند تفعيلها.'}
+                {activeFilter === 'Paid' ? (isRTL ? 'لم تقم بخلاص أي أقساط بعد.' : 'You haven\'t made any payments yet.') : (isRTL ? 'ليس لديك أي أقساط أو مستحقات متأخرة حالياً.' : 'You have no pending or overdue payments right now.')}
               </Text>
             </View>
           )}
