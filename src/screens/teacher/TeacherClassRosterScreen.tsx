@@ -3,13 +3,14 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StatusBar,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, User, Search, Mail, Phone, Calendar } from 'lucide-react-native';
 import { teacherService } from '../../services/api';
+import { useLanguage } from '../../context/LanguageContext';
 
-const StudentRow = ({ student }: any) => {
+const StudentRow = ({ student, language }: any) => {
   const initials = student.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
   
   return (
     <View style={{ 
-      flexDirection: 'row', 
+      flexDirection: language === 'ar' ? 'row-reverse' : 'row', 
       alignItems: 'center', 
       backgroundColor: 'white', 
       padding: 16, 
@@ -26,12 +27,12 @@ const StudentRow = ({ student }: any) => {
         </View>
       )}
       
-      <View style={{ flex: 1, marginLeft: 16 }}>
+      <View style={{ flex: 1, marginLeft: language === 'ar' ? 0 : 16, marginRight: language === 'ar' ? 16 : 0, alignItems: language === 'ar' ? 'flex-end' : 'flex-start' }}>
         <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e293b' }}>{student.name} {student.surname}</Text>
       </View>
       
       <TouchableOpacity style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}>
-        <ChevronLeft size={18} color="#94a3b8" style={{ transform: [{ rotate: '180deg' }] }} />
+        <ChevronLeft size={18} color="#94a3b8" style={{ transform: [{ rotate: language === 'ar' ? '0deg' : '180deg' }] }} />
       </TouchableOpacity>
     </View>
   );
@@ -39,6 +40,7 @@ const StudentRow = ({ student }: any) => {
 
 export const TeacherClassRosterScreen = ({ route, navigation }: any) => {
   const { classItem } = route.params;
+  const { t, language, isRTL } = useLanguage();
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -75,13 +77,17 @@ export const TeacherClassRosterScreen = ({ route, navigation }: any) => {
       <StatusBar barStyle="dark-content" />
       
       {/* Header */}
-      <View style={{ paddingHorizontal: 20, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
+      <View style={{ paddingHorizontal: 20, paddingVertical: 14, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}>
-          <ChevronLeft size={22} color="#1e293b" />
+          <View style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
+            <ChevronLeft size={22} color="#1e293b" />
+          </View>
         </TouchableOpacity>
-        <View style={{ flex: 1, marginLeft: 16 }}>
-          <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>{classItem.name}</Text>
-          <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 1 }}>Student Roster · {students.length} students</Text>
+        <View style={{ flex: 1, marginLeft: isRTL ? 0 : 16, marginRight: isRTL ? 16 : 0 }}>
+          <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>{classItem.name}</Text>
+          <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 1, textAlign: isRTL ? 'right' : 'left' }}>
+            {t.teacherClassRoster} · {students.length} {t.teacherStudentsTotal}
+          </Text>
         </View>
       </View>
 
@@ -96,10 +102,12 @@ export const TeacherClassRosterScreen = ({ route, navigation }: any) => {
         ) : students.length === 0 ? (
           <View style={{ alignItems: 'center', marginTop: 100 }}>
             <User size={64} color="#cbd5e1" />
-            <Text style={{ fontSize: 16, color: '#64748b', fontWeight: 'bold', marginTop: 16 }}>No students in this class</Text>
+            <Text style={{ fontSize: 16, color: '#64748b', fontWeight: 'bold', marginTop: 16 }}>
+              {language === 'ar' ? 'لا يوجد تلاميذ' : language === 'fr' ? 'Aucun élève' : 'No students'}
+            </Text>
           </View>
         ) : (
-          students.map((s, index) => <StudentRow key={s.id || index} student={s} />)
+          students.map((s, index) => <StudentRow key={s.id || index} student={s} language={language} />)
         )}
       </ScrollView>
     </SafeAreaView>

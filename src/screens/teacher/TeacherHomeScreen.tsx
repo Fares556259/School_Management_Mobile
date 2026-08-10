@@ -16,6 +16,7 @@ import {
 import { useAppStore } from '../../store/useAppStore';
 import { teacherService } from '../../services/api';
 import { Skeleton } from '../../components/Skeleton';
+import { useLanguage } from '../../context/LanguageContext';
 
 const QuickAction = ({ icon: Icon, title, color, onPress }: any) => (
   <TouchableOpacity 
@@ -134,11 +135,11 @@ const ClassCard = ({ subject, className, time, room, students, status }: any) =>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <MapPin size={12} color="#737c7f" />
-            <Text style={{ fontSize: 12, color: '#737c7f' }}>Room {room}</Text>
+            <Text style={{ fontSize: 12, color: '#737c7f' }}>{status === 'Live' ? '' : ''}{room}</Text>
           </View>
         </View>
         
-        <Text style={{ fontSize: 12, color: '#b0b8bc', marginTop: 4 }}>{students} students enrolled</Text>
+        <Text style={{ fontSize: 12, color: '#b0b8bc', marginTop: 4 }}>{students}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -146,6 +147,7 @@ const ClassCard = ({ subject, className, time, room, students, status }: any) =>
 
 export const TeacherHomeScreen = ({ navigation }: any) => {
   const { userName, userAvatarUrl } = useAppStore();
+  const { t, language, isRTL } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -172,7 +174,7 @@ export const TeacherHomeScreen = ({ navigation }: any) => {
     setRefreshing(false);
   };
 
-  const today = new Date().toLocaleDateString('en-US', { 
+  const today = new Date().toLocaleDateString(language === 'ar' ? 'ar-TN' : language === 'fr' ? 'fr-FR' : 'en-US', { 
     weekday: 'long', 
     month: 'short', 
     day: 'numeric' 
@@ -251,9 +253,11 @@ export const TeacherHomeScreen = ({ navigation }: any) => {
           borderBottomLeftRadius: 40,
           borderBottomRightRadius: 40
         }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View>
-              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '600' }}>Good morning 👋</Text>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '600' }}>
+                {language === 'ar' ? 'صباح الخير 👋' : language === 'fr' ? 'Bonjour 👋' : 'Good morning 👋'}
+              </Text>
               <Text style={{ color: 'white', fontSize: 24, fontWeight: '900', marginTop: 4 }}>{userName || 'Teacher'}</Text>
             </View>
             <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
@@ -265,59 +269,63 @@ export const TeacherHomeScreen = ({ navigation }: any) => {
           </View>
           
           <View style={{ 
-            flexDirection: 'row', 
+            flexDirection: isRTL ? 'row-reverse' : 'row', 
             alignItems: 'center', 
             backgroundColor: 'rgba(255,255,255,0.15)', 
             paddingHorizontal: 12, 
             paddingVertical: 8, 
             borderRadius: 12, 
             marginTop: 16,
-            alignSelf: 'flex-start'
+            alignSelf: isRTL ? 'flex-end' : 'flex-start'
           }}>
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#22c55e', marginRight: 8 }} />
-            <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>{today} · {data?.todayClassesCount || 0} classes today</Text>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#22c55e', marginRight: isRTL ? 0 : 8, marginLeft: isRTL ? 8 : 0 }} />
+            <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+              {today} · {data?.todayClassesCount || 0} {t.teacherClasses}
+            </Text>
           </View>
 
           {/* Floating Summary Row */}
           <View style={{ 
-            flexDirection: 'row', 
+            flexDirection: isRTL ? 'row-reverse' : 'row', 
             gap: 12, 
             marginTop: 32,
             marginBottom: -65 // Pull into the next section
           }}>
-            <SummaryCard value={data?.totalClasses || 0} label="Classes" />
-            <SummaryCard value={data?.totalTasksGiven || 0} label="Tasks given" />
-            <SummaryCard value={data?.totalResources || 0} label="Resources" />
+            <SummaryCard value={data?.totalClasses || 0} label={t.teacherClasses} />
+            <SummaryCard value={data?.totalTasksGiven || 0} label={t.teacherTasks} />
+            <SummaryCard value={data?.totalResources || 0} label={t.documents} />
           </View>
         </View>
 
         {/* Quick Actions */}
         <View style={{ marginTop: 80, paddingHorizontal: 20 }}>
-          <Text style={{ fontSize: 16, fontWeight: '900', color: '#2b3437', marginBottom: 16, textTransform: 'uppercase', letterSpacing: 1 }}>Quick actions</Text>
-          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+          <Text style={{ fontSize: 16, fontWeight: '900', color: '#2b3437', marginBottom: 16, textTransform: 'uppercase', letterSpacing: 1, textAlign: isRTL ? 'right' : 'left' }}>
+            {t.teacherQuickActions}
+          </Text>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 12, marginBottom: 12 }}>
             <QuickAction 
               icon={ClipboardList} 
-              title="Attendance" 
+              title={t.teacherAttendance} 
               color="#0055d4" 
               onPress={() => navigation.navigate('TeacherAttendance')} 
             />
             <QuickAction 
               icon={BookOpen} 
-              title="Add Lesson" 
+              title={t.teacherUploadLesson} 
               color="#22c55e" 
               onPress={() => navigation.navigate('TeacherLessons')} 
             />
           </View>
-          <View style={{ flexDirection: 'row', gap: 12 }}>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 12 }}>
             <QuickAction 
               icon={PlusCircle} 
-              title="Create Task" 
+              title={t.teacherAddTask} 
               color="#f59e0b" 
               onPress={() => navigation.navigate('TeacherTasks')} 
             />
             <QuickAction 
               icon={FileText} 
-              title="Add Grade" 
+              title={t.teacherGradeStudent} 
               color="#8b5cf6" 
               onPress={() => navigation.navigate('TeacherGrades')} 
             />
@@ -326,10 +334,14 @@ export const TeacherHomeScreen = ({ navigation }: any) => {
 
         {/* Today's Classes */}
         <View style={{ marginTop: 32, paddingHorizontal: 20 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <Text style={{ fontSize: 16, fontWeight: '900', color: '#2b3437', textTransform: 'uppercase', letterSpacing: 1 }}>Today's classes</Text>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <Text style={{ fontSize: 16, fontWeight: '900', color: '#2b3437', textTransform: 'uppercase', letterSpacing: 1 }}>
+              {t.todaysSchedule}
+            </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Classes')}>
-              <Text style={{ fontSize: 13, color: '#0055d4', fontWeight: 'bold' }}>See all</Text>
+              <Text style={{ fontSize: 13, color: '#0055d4', fontWeight: 'bold' }}>
+                {language === 'ar' ? 'عرض الكل' : language === 'fr' ? 'Voir tout' : 'See all'}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -339,16 +351,22 @@ export const TeacherHomeScreen = ({ navigation }: any) => {
               subject={c.subject}
               className={c.className}
               time={c.time}
-              room={c.room}
-              students={c.students}
-              status={c.status}
+              room={`${language === 'ar' ? 'قاعة' : language === 'fr' ? 'Salle' : 'Room'} ${c.room}`}
+              students={`${c.students} ${t.teacherStudentsTotal}`}
+              status={
+                c.status === 'Completed' ? (language === 'ar' ? 'مكتمل' : language === 'fr' ? 'Terminé' : 'Completed')
+                : c.status === 'Live' ? (language === 'ar' ? 'مباشر' : language === 'fr' ? 'En cours' : 'Live')
+                : (language === 'ar' ? 'قادم' : language === 'fr' ? 'À venir' : 'Upcoming')
+              }
             />
           ))}
 
           {(!data?.todayClasses || data.todayClasses.length === 0) && (
             <View style={{ alignItems: 'center', paddingVertical: 40, backgroundColor: 'white', borderRadius: 24, borderWidth: 1, borderColor: '#f1f4f6' }}>
               <Clock size={48} color="#d1d5db" />
-              <Text style={{ color: '#737c7f', fontWeight: 'bold', marginTop: 12 }}>No classes scheduled for today</Text>
+              <Text style={{ color: '#737c7f', fontWeight: 'bold', marginTop: 12 }}>
+                {t.teacherNoClassesToday}
+              </Text>
             </View>
           )}
         </View>

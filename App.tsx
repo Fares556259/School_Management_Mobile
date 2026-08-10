@@ -41,6 +41,17 @@ import Constants from 'expo-constants';
 import "./src/styles/global.css";
 
 import { LanguageProvider, useLanguage } from './src/context/LanguageContext';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 2,
+    },
+  },
+});
+
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -141,7 +152,7 @@ function BottomTabsContent({ onSignOut }: { onSignOut: () => void }) {
       {isTeacher ? (
         <>
           <Tab.Screen name="Home" component={TeacherHomeScreen} options={{ tabBarLabel: t.tabHome }} />
-          <Tab.Screen name="Classes" component={TeacherClassesScreen} options={{ tabBarLabel: (t as any).classes || 'Classes' }} />
+          <Tab.Screen name="Classes" component={TeacherClassesScreen} options={{ tabBarLabel: (t as any).teacherClasses || 'Classes' }} />
           {profileTab}
         </>
       ) : (
@@ -366,45 +377,47 @@ export default function App() {
   }
 
   return (
-    <LanguageProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaProvider>
-          <NavigationContainer ref={navigationRef}>
-            {authState === 'landing' ? (
-              <LandingScreen onSelectRole={onSelectRole} />
-            ) : authState === 'signedOut' ? (
-              <SignInScreen role={selectedRole} onSignIn={handleSignIn} onBack={() => setAuthState('landing')} />
-            ) : (
-              <Stack.Navigator screenOptions={{ headerShown: false }}>
-                <Stack.Screen
-                  name="MainTabs"
-                  children={MainTabsScreen}
-                />
-                <Stack.Screen name="Attendance" component={AttendanceScreen} />
-                <Stack.Screen name="Notifications" component={NotificationsScreen} />
-                <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
-                <Stack.Screen name="HomeworkDetail" component={HomeworkDetailScreen} />
-                <Stack.Screen name="ExamDetail" component={ExamDetailScreen} />
-                <Stack.Screen name="AnnouncementDetail" component={AnnouncementDetailScreen} />
-                <Stack.Screen name="LinkChild" component={LinkChildScreen} />
-                <Stack.Screen name="DocumentCenter" component={DocumentCenterScreen} />
-                <Stack.Screen name="Exams" component={ExamsScreen} />
-                <Stack.Screen name="Results" component={ResultsScreen} />
-                <Stack.Screen name="TeacherTaskDetail" component={TeacherTaskDetailScreen} />
-                <Stack.Screen name="StudentSubmission" component={StudentSubmissionScreen} />
-                <Stack.Screen name="TeacherClassRoster" component={TeacherClassRosterScreen} />
-                <Stack.Screen name="TeacherAttendance" component={TeacherAttendanceScreen} />
-                <Stack.Screen name="TeacherLessons" component={TeacherLessonsScreen} />
-                <Stack.Screen name="TeacherTasks" component={TeacherTasksScreen} />
-                <Stack.Screen name="TeacherGrades" component={TeacherGradeEntryScreen} />
-                <Stack.Screen name="TeacherProfile">
-                  {(props) => <ProfileScreen {...props} onSignOut={handleSignOut} />}
-                </Stack.Screen>
-              </Stack.Navigator>
-            )}
-          </NavigationContainer>
-        </SafeAreaProvider>
-      </GestureHandlerRootView>
-    </LanguageProvider>
+    <QueryClientProvider client={queryClient}>
+      <LanguageProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <SafeAreaProvider>
+            <NavigationContainer ref={navigationRef}>
+              {authState === 'landing' ? (
+                <LandingScreen onSelectRole={onSelectRole} />
+              ) : authState === 'signedOut' ? (
+                <SignInScreen role={selectedRole} onSignIn={handleSignIn} onBack={() => setAuthState('landing')} />
+              ) : (
+                <Stack.Navigator screenOptions={{ headerShown: false }}>
+                  <Stack.Screen
+                    name="MainTabs"
+                    children={MainTabsScreen}
+                  />
+                  <Stack.Screen name="Attendance" component={AttendanceScreen} />
+                  <Stack.Screen name="Notifications" component={NotificationsScreen} />
+                  <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
+                  <Stack.Screen name="HomeworkDetail" component={HomeworkDetailScreen} />
+                  <Stack.Screen name="ExamDetail" component={ExamDetailScreen} />
+                  <Stack.Screen name="AnnouncementDetail" component={AnnouncementDetailScreen} />
+                  <Stack.Screen name="LinkChild" component={LinkChildScreen} />
+                  <Stack.Screen name="DocumentCenter" component={DocumentCenterScreen} />
+                  <Stack.Screen name="Exams" component={ExamsScreen} />
+                  <Stack.Screen name="Results" component={ResultsScreen} />
+                  <Stack.Screen name="TeacherTaskDetail" component={TeacherTaskDetailScreen} />
+                  <Stack.Screen name="StudentSubmission" component={StudentSubmissionScreen} />
+                  <Stack.Screen name="TeacherClassRoster" component={TeacherClassRosterScreen} />
+                  <Stack.Screen name="TeacherAttendance" component={TeacherAttendanceScreen} />
+                  <Stack.Screen name="TeacherLessons" component={TeacherLessonsScreen} />
+                  <Stack.Screen name="TeacherTasks" component={TeacherTasksScreen} />
+                  <Stack.Screen name="TeacherGrades" component={TeacherGradeEntryScreen} />
+                  <Stack.Screen name="TeacherProfile">
+                    {(props) => <ProfileScreen {...props} onSignOut={handleSignOut} />}
+                  </Stack.Screen>
+                </Stack.Navigator>
+              )}
+            </NavigationContainer>
+          </SafeAreaProvider>
+        </GestureHandlerRootView>
+      </LanguageProvider>
+    </QueryClientProvider>
   );
 }

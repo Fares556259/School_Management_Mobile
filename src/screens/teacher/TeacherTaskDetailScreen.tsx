@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, CheckCircle2, Clock, Users, Image as ImageIcon, FileText as FileIcon, Paperclip } from 'lucide-react-native';
 import { teacherService } from '../../services/api';
+import { useLanguage } from '../../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
@@ -23,6 +24,7 @@ const Avatar = ({ name, img, size = 44 }: any) => {
 
 export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
   const { task } = route.params;
+  const { t, language, isRTL } = useLanguage();
   const [data, setData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
@@ -68,13 +70,15 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
       <StatusBar barStyle="dark-content" />
 
       {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
+      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}>
-          <ChevronLeft size={22} color="#1e293b" />
+          <View style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
+            <ChevronLeft size={22} color="#1e293b" />
+          </View>
         </TouchableOpacity>
-        <View style={{ flex: 1, marginLeft: 16 }}>
-          <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }} numberOfLines={1}>{task.title}</Text>
-          <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 1 }}>{task.className}</Text>
+        <View style={{ flex: 1, marginLeft: isRTL ? 0 : 16, marginRight: isRTL ? 16 : 0 }}>
+          <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>{task.title}</Text>
+          <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 1, textAlign: isRTL ? 'right' : 'left' }}>{task.className}</Text>
         </View>
       </View>
 
@@ -90,28 +94,28 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
         >
           {/* Progress Card */}
           <View style={{ backgroundColor: 'white', borderRadius: 28, padding: 24, marginBottom: 24, borderWidth: 1, borderColor: '#f1f5f9' }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <View>
-                <Text style={{ fontSize: 13, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>Overall Progress</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 4 }}>
+                <Text style={{ fontSize: 13, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'التقدم الإجمالي' : language === 'fr' ? 'Progrès global' : 'Overall Progress'}</Text>
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'baseline', marginTop: 4 }}>
                   <Text style={{ fontSize: 36, fontWeight: '900', color: percent === 100 ? '#16a34a' : '#0055d4' }}>{percent}%</Text>
-                  <Text style={{ fontSize: 14, color: '#94a3b8', marginLeft: 8, fontWeight: '700' }}>completed</Text>
+                  <Text style={{ fontSize: 14, color: '#94a3b8', marginLeft: isRTL ? 0 : 8, marginRight: isRTL ? 8 : 0, fontWeight: '700' }}>{language === 'ar' ? 'مكتملة' : language === 'fr' ? 'terminé' : 'completed'}</Text>
                 </View>
               </View>
               <View style={{ alignItems: 'center' }}>
                 <Text style={{ fontSize: 28, fontWeight: '900', color: '#1e293b' }}>{submittedCount}</Text>
-                <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700' }}>of {total}</Text>
+                <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700' }}>{language === 'ar' ? `من ${total}` : language === 'fr' ? `sur ${total}` : `of ${total}`}</Text>
               </View>
             </View>
             <View style={{ height: 10, backgroundColor: '#f1f5f9', borderRadius: 5, overflow: 'hidden' }}>
-              <View style={{ height: '100%', width: `${percent}%`, backgroundColor: percent === 100 ? '#16a34a' : '#0055d4', borderRadius: 5 }} />
+              <View style={{ height: '100%', width: `${percent}%`, backgroundColor: percent === 100 ? '#16a34a' : '#0055d4', borderRadius: 5, alignSelf: isRTL ? 'flex-end' : 'flex-start' }} />
             </View>
           </View>
 
           {/* Submitted Section */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginBottom: 14 }}>
             <CheckCircle2 size={18} color="#16a34a" />
-            <Text style={{ fontSize: 15, fontWeight: '900', color: '#1e293b', marginLeft: 8 }}>Submitted ({submittedCount})</Text>
+            <Text style={{ fontSize: 15, fontWeight: '900', color: '#1e293b', marginLeft: isRTL ? 0 : 8, marginRight: isRTL ? 8 : 0 }}>{language === 'ar' ? `المُسلّمة (${submittedCount})` : language === 'fr' ? `Soumis (${submittedCount})` : `Submitted (${submittedCount})`}</Text>
           </View>
 
           {data?.submitted?.length > 0 ? (
@@ -120,12 +124,12 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
                 key={student.id}
                 activeOpacity={0.8}
                 onPress={() => navigation.navigate('StudentSubmission', { student, task })}
-                style={{ backgroundColor: 'white', borderRadius: 20, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: '#dcfce7', flexDirection: 'row', alignItems: 'center' }}
+                style={{ backgroundColor: 'white', borderRadius: 20, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: '#dcfce7', flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}
               >
                 <Avatar name={student.name} img={student.avatar} />
-                <View style={{ flex: 1, marginLeft: 14 }}>
-                  <Text style={{ fontSize: 15, fontWeight: '800', color: '#1e293b' }}>{student.name}</Text>
-                  <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '600', marginTop: 2 }}>
+                <View style={{ flex: 1, marginLeft: isRTL ? 0 : 14, marginRight: isRTL ? 14 : 0 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '800', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>{student.name}</Text>
+                  <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '600', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>
                     {student.submittedAt ? new Date(student.submittedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
                   </Text>
                 </View>
@@ -139,7 +143,7 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
                       <Image source={{ uri: student.submissionImg.split(',')[0] }} style={{ width: 56, height: 56, borderRadius: 12, borderWidth: 2, borderColor: '#bbf7d0' }} resizeMode="cover" />
                     )}
                     {student.submissionImg.split(',').length > 1 && (
-                      <View style={{ position: 'absolute', top: -6, right: -6, backgroundColor: '#0055d4', borderRadius: 10, width: 20, height: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'white' }}>
+                      <View style={{ position: 'absolute', top: -6, [isRTL ? 'left' : 'right']: -6, backgroundColor: '#0055d4', borderRadius: 10, width: 20, height: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'white' }}>
                         <Text style={{ color: 'white', fontSize: 9, fontWeight: '900' }}>+{student.submissionImg.split(',').length - 1}</Text>
                       </View>
                     )}
@@ -153,22 +157,22 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
             ))
           ) : (
             <View style={{ padding: 24, alignItems: 'center', backgroundColor: 'white', borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 10 }}>
-              <Text style={{ color: '#94a3b8', fontWeight: '600', fontSize: 14 }}>No submissions yet</Text>
+              <Text style={{ color: '#94a3b8', fontWeight: '600', fontSize: 14 }}>{language === 'ar' ? 'لا يوجد تسليمات بعد' : language === 'fr' ? 'Aucune soumission pour le moment' : 'No submissions yet'}</Text>
             </View>
           )}
 
           {/* Pending Section */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 16, marginBottom: 14 }}>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginTop: 16, marginBottom: 14 }}>
             <Clock size={18} color="#f59e0b" />
-            <Text style={{ fontSize: 15, fontWeight: '900', color: '#1e293b', marginLeft: 8 }}>Pending ({data?.pending?.length ?? 0})</Text>
+            <Text style={{ fontSize: 15, fontWeight: '900', color: '#1e293b', marginLeft: isRTL ? 0 : 8, marginRight: isRTL ? 8 : 0 }}>{language === 'ar' ? `قيد الانتظار (${data?.pending?.length ?? 0})` : language === 'fr' ? `En attente (${data?.pending?.length ?? 0})` : `Pending (${data?.pending?.length ?? 0})`}</Text>
           </View>
 
           {data?.pending?.map((student: any) => (
-            <View key={student.id} style={{ backgroundColor: 'white', borderRadius: 20, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: '#fef3c7', flexDirection: 'row', alignItems: 'center' }}>
+            <View key={student.id} style={{ backgroundColor: 'white', borderRadius: 20, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: '#fef3c7', flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
               <Avatar name={student.name} img={student.avatar} />
-              <Text style={{ fontSize: 15, fontWeight: '800', color: '#1e293b', marginLeft: 14, flex: 1 }}>{student.name}</Text>
+              <Text style={{ fontSize: 15, fontWeight: '800', color: '#1e293b', marginLeft: isRTL ? 0 : 14, marginRight: isRTL ? 14 : 0, flex: 1, textAlign: isRTL ? 'right' : 'left' }}>{student.name}</Text>
               <View style={{ backgroundColor: '#fff7ed', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, borderWidth: 1, borderColor: '#fed7aa' }}>
-                <Text style={{ fontSize: 11, fontWeight: '900', color: '#ea580c' }}>⏳ Pending</Text>
+                <Text style={{ fontSize: 11, fontWeight: '900', color: '#ea580c' }}>⏳ {language === 'ar' ? 'قيد الانتظار' : language === 'fr' ? 'En attente' : 'Pending'}</Text>
               </View>
             </View>
           ))}
@@ -176,25 +180,25 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
           {/* Task Instructions & Teacher Attachments Card (Bottom) */}
           {(task.description || attachments.length > 0) && (
             <View style={{ backgroundColor: 'white', borderRadius: 24, padding: 20, marginTop: 16, borderWidth: 1, borderColor: '#f1f5f9' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginBottom: 10 }}>
                 <Paperclip size={16} color="#0055d4" />
-                <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4', textTransform: 'uppercase', letterSpacing: 0.5, marginLeft: 6 }}>
-                  Task Details & Attachments
+                <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4', textTransform: 'uppercase', letterSpacing: 0.5, marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }}>
+                  {language === 'ar' ? 'تفاصيل المهمة والمرفقات' : language === 'fr' ? 'Détails de la tâche et pièces jointes' : 'Task Details & Attachments'}
                 </Text>
               </View>
 
               {task.description ? (
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#334155', lineHeight: 21, marginBottom: attachments.length > 0 ? 16 : 0 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#334155', lineHeight: 21, marginBottom: attachments.length > 0 ? 16 : 0, textAlign: isRTL ? 'right' : 'left' }}>
                   {task.description}
                 </Text>
               ) : null}
 
               {attachments.length > 0 && (
                 <View style={{ marginTop: task.description ? 4 : 0 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#64748b', marginBottom: 10 }}>
-                    Attached Files ({attachments.length})
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#64748b', marginBottom: 10, textAlign: isRTL ? 'right' : 'left' }}>
+                    {language === 'ar' ? `الملفات المرفقة (${attachments.length})` : language === 'fr' ? `Fichiers joints (${attachments.length})` : `Attached Files (${attachments.length})`}
                   </Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }} style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
                     {attachments.map((att: any, idx: number) => {
                       const uri = typeof att === 'string' ? att : (att.uri || att.url);
                       const isPdf = att.type === 'PDF' || (uri && uri.toLowerCase().includes('.pdf'));
@@ -213,7 +217,8 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
                           style={{
                             width: 88, height: 88, borderRadius: 16, overflow: 'hidden',
                             backgroundColor: '#f8fafc', borderWidth: 1.5, borderColor: isPdf ? '#dbeafe' : '#e2e8f0',
-                            alignItems: 'center', justifyContent: 'center'
+                            alignItems: 'center', justifyContent: 'center',
+                            transform: [{ scaleX: isRTL ? -1 : 1 }]
                           }}
                         >
                           {isPdf ? (
@@ -241,7 +246,7 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
           {selectedImg && (
             <Image source={{ uri: selectedImg }} style={{ width: width - 40, height: width - 40, borderRadius: 16 }} resizeMode="contain" />
           )}
-          <Text style={{ color: 'white', marginTop: 20, fontSize: 14, fontWeight: '600', opacity: 0.7 }}>Tap anywhere to close</Text>
+          <Text style={{ color: 'white', marginTop: 20, fontSize: 14, fontWeight: '600', opacity: 0.7 }}>{language === 'ar' ? 'انقر في أي مكان للإغلاق' : language === 'fr' ? 'Appuyez n\'importe où pour fermer' : 'Tap anywhere to close'}</Text>
         </TouchableOpacity>
       </Modal>
     </SafeAreaView>

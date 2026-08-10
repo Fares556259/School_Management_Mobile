@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, StatusBar, Image as RNImage, Animated } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   ChevronLeft,
@@ -24,6 +25,7 @@ import {
 } from 'lucide-react-native';
 import { teacherService } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
+import { useLanguage } from '../../context/LanguageContext';
 import moment from 'moment';
 import { TextInput } from 'react-native-gesture-handler';
 import * as ImagePicker from 'expo-image-picker';
@@ -77,11 +79,11 @@ const DateItem = ({ day, date, active, isToday, onPress }: any) => {
   );
 };
 
-const AttendanceButton = ({ type, active, onPress }: any) => {
+const AttendanceButton = ({ type, active, onPress, t, language }: any) => {
   const configs: any = {
-    PRESENT: { color: '#10b981', bg: '#ecfdf5', label: 'Present' },
-    ABSENT: { color: '#ef4444', bg: '#fef2f2', label: 'Absent' },
-    LATE: { color: '#f59e0b', bg: '#fffbeb', label: 'Late' }
+    PRESENT: { color: '#10b981', bg: '#ecfdf5', label: t?.teacherPresent || 'Present' },
+    ABSENT: { color: '#ef4444', bg: '#fef2f2', label: t?.teacherAbsent || 'Absent' },
+    LATE: { color: '#f59e0b', bg: '#fffbeb', label: t?.teacherLate || 'Late' }
   };
   const config = configs[type];
 
@@ -112,7 +114,7 @@ const StarRating = ({ score, onScoreChange }: any) => {
 
 const QUICK_TAGS = ['Excused', 'Unexcused', 'Parent notified', 'Missing homework', 'Disruptive', 'Needs support', 'Great participation', 'Conflict with peer', 'Monitor closely'];
 
-const StudentRow = ({ student, status, onStatusChange, note, onNoteChange, score, onScoreChange, resetKey }: any) => {
+const StudentRow = ({ student, status, onStatusChange, note, onNoteChange, score, onScoreChange, resetKey, language, t }: any) => {
   const [showNote, setShowNote] = useState(false);
   const hasNote = note?.length > 0;
 
@@ -128,9 +130,9 @@ const StudentRow = ({ student, status, onStatusChange, note, onNoteChange, score
 
   return (
     <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 28, marginBottom: 16, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 15, elevation: 2 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+      <View style={{ flexDirection: language === 'ar' ? 'row-reverse' : 'row', alignItems: 'center', marginBottom: 20 }}>
         <View style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}><Text style={{ fontSize: 20, fontWeight: '900', color: '#0055d4' }}>{student.name.charAt(0)}</Text></View>
-        <View style={{ marginLeft: 16, flex: 1 }}><Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b' }}>{student.name} {student.surname}</Text></View>
+        <View style={{ marginLeft: language === 'ar' ? 0 : 16, marginRight: language === 'ar' ? 16 : 0, flex: 1, alignItems: language === 'ar' ? 'flex-end' : 'flex-start' }}><Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b' }}>{student.name} {student.surname}</Text></View>
         <TouchableOpacity onPress={() => setShowNote(!showNote)} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: showNote ? '#eff6ff' : '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: showNote ? '#dbeafe' : '#f1f5f9' }}>
           <MessageSquare size={20} color={showNote || hasNote ? '#0055d4' : '#64748b'} />
           {hasNote && !showNote && (
@@ -138,28 +140,68 @@ const StudentRow = ({ student, status, onStatusChange, note, onNoteChange, score
           )}
         </TouchableOpacity>
       </View>
-      <View style={{ marginBottom: 20 }}><Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 12, letterSpacing: 0.5 }}>Participation Score</Text><StarRating score={score} onScoreChange={onScoreChange} /></View>
-      <View style={{ flexDirection: 'row', marginBottom: showNote ? 16 : 0 }}><AttendanceButton type="PRESENT" active={status === 'PRESENT'} onPress={() => onStatusChange('PRESENT')} /><AttendanceButton type="ABSENT" active={status === 'ABSENT'} onPress={() => onStatusChange('ABSENT')} /><AttendanceButton type="LATE" active={status === 'LATE'} onPress={() => onStatusChange('LATE')} /></View>
+      <View style={{ marginBottom: 20, alignItems: language === 'ar' ? 'flex-end' : 'flex-start' }}><Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 12, letterSpacing: 0.5 }}>{language === 'ar' ? 'نقاط المشاركة' : language === 'fr' ? 'Note de participation' : 'Participation Score'}</Text><StarRating score={score} onScoreChange={onScoreChange} /></View>
+      <View style={{ flexDirection: language === 'ar' ? 'row-reverse' : 'row', marginBottom: showNote ? 16 : 0 }}><AttendanceButton type="PRESENT" active={status === 'PRESENT'} onPress={() => onStatusChange('PRESENT')} t={t} language={language} /><AttendanceButton type="ABSENT" active={status === 'ABSENT'} onPress={() => onStatusChange('ABSENT')} t={t} language={language} /><AttendanceButton type="LATE" active={status === 'LATE'} onPress={() => onStatusChange('LATE')} t={t} language={language} /></View>
       {showNote && (
-        <View style={{ marginTop: 4 }}>
-          <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 10, letterSpacing: 0.5 }}>Quick Tags</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>{QUICK_TAGS.map(tag => (<TouchableOpacity key={tag} onPress={() => handleTagPress(tag)} style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: '#f1f5f9', borderWidth: 1, borderColor: '#e2e8f0' }}><Text style={{ fontSize: 12, fontWeight: '700', color: '#475569' }}>{tag}</Text></TouchableOpacity>))}</View>
-          <View style={{ backgroundColor: '#f8fafc', borderRadius: 18, padding: 16, borderWidth: 1, borderColor: '#f1f5f9' }}><TextInput placeholder="Add a detailed note..." placeholderTextColor="#94a3b8" multiline value={note} onChangeText={onNoteChange} style={{ fontSize: 14, color: '#1e293b', fontWeight: '600', minHeight: 80, textAlignVertical: 'top', padding: 0 }} /></View>
+        <View style={{ marginTop: 4, alignItems: language === 'ar' ? 'flex-end' : 'flex-start' }}>
+          <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 10, letterSpacing: 0.5 }}>{language === 'ar' ? 'إشارات سريعة' : language === 'fr' ? 'Tags rapides' : 'Quick Tags'}</Text>
+          <View style={{ flexDirection: language === 'ar' ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16, justifyContent: language === 'ar' ? 'flex-end' : 'flex-start' }}>{QUICK_TAGS.map(tag => (<TouchableOpacity key={tag} onPress={() => handleTagPress(tag)} style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: '#f1f5f9', borderWidth: 1, borderColor: '#e2e8f0' }}><Text style={{ fontSize: 12, fontWeight: '700', color: '#475569' }}>{tag}</Text></TouchableOpacity>))}</View>
+          <View style={{ backgroundColor: '#f8fafc', borderRadius: 18, padding: 16, borderWidth: 1, borderColor: '#f1f5f9', width: '100%' }}><TextInput placeholder={language === 'ar' ? 'أضف ملاحظة تفصيلية...' : language === 'fr' ? 'Ajouter une note détaillée...' : 'Add a detailed note...'} placeholderTextColor="#94a3b8" multiline value={note} onChangeText={onNoteChange} style={{ fontSize: 14, color: '#1e293b', fontWeight: '600', minHeight: 80, textAlignVertical: 'top', padding: 0, textAlign: language === 'ar' ? 'right' : 'left' }} /></View>
         </View>
       )}
     </View>
   );
 };
 
-const getSubjectName = (name: string) => {
-  if (!name) return 'General';
+const getSubjectName = (name: string, lang: string) => {
+  if (!name) return lang === 'ar' ? 'عام' : lang === 'fr' ? 'Général' : 'General';
   const parts = name.split('|');
-  return parts[parts.length - 1].trim();
+  if (parts.length === 3) {
+    if (lang === 'ar') return parts[1].trim();
+    if (lang === 'fr') return parts[2].trim();
+    return parts[0].trim();
+  }
+  if (parts.length === 2) {
+    if (lang === 'ar') return parts[1].trim();
+    return parts[0].trim();
+  }
+  return parts[0].trim();
 };
+
+const getLongDayName = (dateObj: any, lang: string) => {
+  if (lang === 'ar') {
+    const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    return days[dateObj.day()];
+  }
+  if (lang === 'fr') {
+    const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+    return days[dateObj.day()];
+  }
+  return dateObj.format('dddd');
+};
+
+const getShortDayName = (dateObj: any, lang: string) => {
+  if (lang === 'ar') {
+    const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    return days[dateObj.day()];
+  }
+  if (lang === 'fr') {
+    const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+    return days[dateObj.day()];
+  }
+  return dateObj.format('ddd');
+};
+
+const getCalendarHeaderDays = (lang: string) => {
+  if (lang === 'ar') return ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س'];
+  if (lang === 'fr') return ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+  return ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+};
+
 
 export const TeacherAttendanceScreen = ({ navigation }: any) => {
   const { selectedTeacherClass, setSelectedTeacherClass } = useAppStore();
-  const [loading, setLoading] = useState(true);
+  const { t, language, isRTL } = useLanguage();
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
@@ -189,31 +231,57 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
   const sliderDates = Array.from({ length: 7 }, (_, i) => selectedDate.clone().subtract(3, 'days').add(i, 'days'));
   const hasChanges = JSON.stringify(attendance) !== JSON.stringify(initialAttendance) || JSON.stringify(notes) !== JSON.stringify(initialNotes) || JSON.stringify(scores) !== JSON.stringify(initialScores) || newTask.title.length > 0 || newTask.attachments.length > 0;
 
-  const loadClasses = async () => {
-    try {
-      setLoading(true);
+  const { data: classesData, isLoading: loadingClasses } = useQuery({
+    queryKey: ['teacherClasses'],
+    queryFn: async () => {
       const res = await teacherService.fetchClasses();
       const safeRes = res || [];
       setClasses(safeRes);
-      // Auto-select first class if none selected
-      if (safeRes.length > 0 && !selectedTeacherClass) { 
-        setSelectedTeacherClass(safeRes[0]); 
-      }
-    } catch (err) { console.error(err); } finally { setLoading(false); }
-  };
+      return safeRes;
+    }
+  });
 
-  const loadStudents = async (classId: string, date: string, slotId?: number, showLoader = true) => {
-    try {
-      if (showLoader) setLoading(true);
-      const res = await teacherService.fetchClassStudents(classId, date, slotId);
-      if (!res || !Array.isArray(res.students)) { setHasLesson(false); setSessions([]); return; }
+  useEffect(() => {
+    if (classesData && classesData.length > 0 && !selectedTeacherClass) {
+      setSelectedTeacherClass(classesData[0]);
+    }
+  }, [classesData, selectedTeacherClass]);
+
+  const { 
+    data: lessonData, 
+    isLoading: loadingStudents, 
+    refetch: refetchStudents 
+  } = useQuery({
+    queryKey: ['attendanceStudents', selectedTeacherClass?.id, selectedDate.format('YYYY-MM-DD'), activeSlotId],
+    queryFn: async () => {
+      if (!selectedTeacherClass) return null;
+      return await teacherService.fetchClassStudents(selectedTeacherClass.id, selectedDate.format('YYYY-MM-DD'), activeSlotId || undefined);
+    },
+    enabled: !!selectedTeacherClass
+  });
+
+  const loading = loadingClasses || loadingStudents;
+
+  useEffect(() => {
+    if (lessonData) {
+      const res = lessonData;
+      if (!res || !Array.isArray(res.students)) { 
+        setHasLesson(false); setSessions([]); 
+        return; 
+      }
       setStudents(res.students);
       setHasLesson(res.hasLesson);
       setLessonId(res.lessonId || null);
       setSessions(res.sessions || []);
-      setActiveSlotId(res.activeSlotId || null);
+      
+      // Keep activeSlotId consistent if returned by the server (first load)
+      if (res.activeSlotId && !activeSlotId) {
+        setActiveSlotId(res.activeSlotId);
+      }
+      
       setAssignments(res.assignments || []);
       setShowClassSwitcher(false);
+      
       const initialAtt: Record<string, string> = {};
       const initialN: Record<string, string> = {};
       const initialS: Record<string, number> = {};
@@ -225,22 +293,14 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
       setAttendance(initialAtt); setInitialAttendance(initialAtt);
       setNotes(initialN); setInitialNotes(initialN);
       setScores(initialS); setInitialScores(initialS);
-    } catch (err) { console.error(err); } finally { if (showLoader) setLoading(false); }
-  };
+    }
+  }, [lessonData]);
 
   const handleClassSelect = (cls: any) => {
     setSelectedTeacherClass(cls);
     setShowClassSwitcher(false);
   };
 
-  useEffect(() => { loadClasses(); }, []);
-
-  // Sync data whenever selected class or date changes
-  useEffect(() => {
-    if (selectedTeacherClass) {
-      loadStudents(selectedTeacherClass.id, selectedDate.format('YYYY-MM-DD'));
-    }
-  }, [selectedTeacherClass, selectedDate]);
 
   const handlePickImage = async () => {
     try {
@@ -280,7 +340,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
       setSaving(false);
       alert('Saved successfully!');
       // Silently refresh data in background
-      loadStudents(selectedClass.id, selectedDate.format('YYYY-MM-DD'), activeSlotId || undefined, false);
+      refetchStudents();
     } catch (err) { alert('Failed to save data'); setSaving(false); }
   };
 
@@ -305,8 +365,8 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
               <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>{calendarMonth.format('MMMM YYYY')}</Text>
               <TouchableOpacity onPress={() => setCalendarMonth(prev => prev.clone().add(1, 'month'))} style={{ padding: 8 }}><ChevronRight size={24} color="#1e293b" /></TouchableOpacity>
             </View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+              {getCalendarHeaderDays(language).map((day, idx) => (
                 <View key={`header-${idx}`} style={{ width: '14.28%', alignItems: 'center', marginBottom: 16 }}>
                   <Text style={{ fontSize: 13, fontWeight: '800', color: '#94a3b8' }}>{day}</Text>
                 </View>
@@ -320,8 +380,8 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
                     key={day.format('YYYY-MM-DD')} 
                     onPress={() => {
                       setSelectedDate(day);
+                      setActiveSlotId(null);
                       setShowDatePicker(false);
-                      if (selectedClass) loadStudents(selectedClass.id, day.format('YYYY-MM-DD'));
                     }}
                     style={{ width: '14.28%', height: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}
                   >
@@ -339,45 +399,50 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
         </View>
       )}
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingVertical: 16, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}><ChevronLeft size={22} color="#1e293b" /></TouchableOpacity>
-        <TouchableOpacity onPress={() => setShowClassSwitcher(true)} style={{ flex: 1, marginHorizontal: 16, alignItems: 'center' }}><View style={{ flexDirection: 'row', alignItems: 'center' }}><Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>{selectedClass?.name || 'Select Class'}</Text><ChevronDown size={16} color="#0055d4" style={{ marginLeft: 6 }} /></View><Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', marginTop: 2 }}>Tap to switch</Text></TouchableOpacity>
+      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingVertical: 16, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}>
+          <View style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
+            <ChevronLeft size={22} color="#1e293b" />
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setShowClassSwitcher(true)} style={{ flex: 1, marginHorizontal: 16, alignItems: 'center' }}><View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}><Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>{selectedClass?.name || (language === 'ar' ? 'اختر القسم' : language === 'fr' ? 'Sélectionner la classe' : 'Select Class')}</Text><ChevronDown size={16} color="#0055d4" style={{ marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }} /></View><Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', marginTop: 2 }}>{language === 'ar' ? 'انقر للتغيير' : language === 'fr' ? 'Appuyer pour changer' : 'Tap to switch'}</Text></TouchableOpacity>
         <TouchableOpacity onPress={handleSave} disabled={saving || loading || !hasChanges} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: saving || hasChanges ? '#0055d4' : '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: saving || hasChanges ? '#0055d4' : '#f1f5f9' }}>
           {saving ? <ActivityIndicator size="small" color="white" /> : <Save size={22} color={saving || hasChanges ? 'white' : '#94a3b8'} />}
         </TouchableOpacity>
       </View>
-      <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 200 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadStudents(selectedClass.id, selectedDate.format('YYYY-MM-DD'))} />}>
+      <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 200 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await refetchStudents(); setRefreshing(false); }} />}>
         <View style={{ marginBottom: 32 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b' }}>
-              {selectedDate.isSame(moment(), 'day') ? "Today's Schedule" : `${selectedDate.format('dddd')}'s Schedule`}
+              {selectedDate.isSame(moment(), 'day') ? t.todaysSchedule : (language === 'ar' ? `جدول يوم ${getLongDayName(selectedDate, language)}` : `${getLongDayName(selectedDate, language)} ${t.teacherMySchedule}`)}
             </Text>
             {!selectedDate.isSame(moment(), 'day') && (
-              <TouchableOpacity onPress={() => { setSelectedDate(moment()); if (selectedClass) loadStudents(selectedClass.id, moment().format('YYYY-MM-DD')); }}>
-                <Text style={{ fontSize: 13, fontWeight: '800', color: '#0055d4' }}>Back to Today</Text>
+              <TouchableOpacity onPress={() => { setSelectedDate(moment()); setActiveSlotId(null); }}>
+                <Text style={{ fontSize: 13, fontWeight: '800', color: '#0055d4' }}>{t.backToToday}</Text>
               </TouchableOpacity>
             )}
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <TouchableOpacity onPress={() => { setCalendarMonth(selectedDate.clone()); setShowDatePicker(true); }} style={{ width: 48, height: 76, borderRadius: 20, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => { setCalendarMonth(selectedDate.clone()); setShowDatePicker(true); }} style={{ width: 48, height: 76, borderRadius: 20, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center', marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0, borderWidth: 1, borderColor: '#e2e8f0' }}>
               <CalendarIcon size={24} color="#64748b" />
             </TouchableOpacity>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 8 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 8 }} style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
               {sliderDates.map((dateObj, idx) => {
                 const isSelected = selectedDate.isSame(dateObj, 'day');
                 const isToday = moment().isSame(dateObj, 'day');
                 return (
-                  <DateItem
-                    key={idx}
-                    day={dateObj.format('ddd')}
-                    date={dateObj.format('D')}
-                    active={isSelected}
-                    isToday={isToday}
-                    onPress={() => {
-                      setSelectedDate(dateObj);
-                      if (selectedClass) loadStudents(selectedClass.id, dateObj.format('YYYY-MM-DD'));
-                    }}
-                  />
+                  <View key={idx} style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
+                    <DateItem
+                      day={getShortDayName(dateObj, language)}
+                      date={dateObj.format('D')}
+                      active={isSelected}
+                      isToday={isToday}
+                      onPress={() => {
+                        setSelectedDate(dateObj);
+                        setActiveSlotId(null);
+                      }}
+                    />
+                  </View>
                 );
               })}
             </ScrollView>
@@ -393,12 +458,12 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
                   borderWidth: 1, borderColor: '#e2e8f0',
                   flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
                 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Clock size={18} color="#0055d4" style={{ marginRight: 12 }} />
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
+                  <Clock size={18} color="#0055d4" style={{ marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }} />
                   <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e293b' }}>
                     {sessions.find(s => s.slotId === activeSlotId) 
-                      ? `${getSubjectName(sessions.find(s => s.slotId === activeSlotId).subjectName)} • ${sessions.find(s => s.slotId === activeSlotId).startTime.substring(0, 5)}`
-                      : 'Select Session'}
+                      ? `${getSubjectName(sessions.find(s => s.slotId === activeSlotId).subjectName, language)} • ${sessions.find(s => s.slotId === activeSlotId).startTime.substring(0, 5)}`
+                      : (language === 'ar' ? 'اختر الحصة' : language === 'fr' ? 'Sélectionner une séance' : 'Select Session')}
                   </Text>
                 </View>
                 <ChevronDown size={20} color="#64748b" />
@@ -407,7 +472,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
           )}
         </View>
         <View>
-          {hasLesson && !loading && <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}><Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b', textTransform: 'uppercase', letterSpacing: 1 }}>Student List</Text><View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 }}><Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4' }}>{students.length} students</Text></View></View>}
+          {hasLesson && !loading && <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}><Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b', textTransform: 'uppercase', letterSpacing: 1 }}>{t.teacherClassRoster}</Text><View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 }}><Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4' }}>{students.length} {t.teacherStudents}</Text></View></View>}
           {loading && !refreshing ? (
             <View style={{ gap: 16 }}>
               {[1, 2, 3, 4].map((i) => (
@@ -430,25 +495,25 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
                 </View>
               ))}
             </View>
-          ) : !hasLesson ? <View style={{ alignItems: 'center', marginTop: 40, backgroundColor: 'white', padding: 40, borderRadius: 32, borderWidth: 1, borderColor: '#f1f5f9' }}><Clock size={48} color="#0055d4" strokeWidth={1.5} /><Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b', textAlign: 'center', marginTop: 20 }}>No class today</Text><Text style={{ fontSize: 14, color: '#64748b', fontWeight: '600', textAlign: 'center', marginTop: 8, lineHeight: 20 }}>You don't have any scheduled lessons for this class on this date.</Text></View> : (
+          ) : !hasLesson ? <View style={{ alignItems: 'center', marginTop: 40, backgroundColor: 'white', padding: 40, borderRadius: 32, borderWidth: 1, borderColor: '#f1f5f9' }}><Clock size={48} color="#0055d4" strokeWidth={1.5} /><Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b', textAlign: 'center', marginTop: 20 }}>{t.teacherNoClassesToday}</Text><Text style={{ fontSize: 14, color: '#64748b', fontWeight: '600', textAlign: 'center', marginTop: 8, lineHeight: 20 }}>{language === 'ar' ? 'ليس لديك حصص مبرمجة في هذا اليوم لهذا القسم' : language === 'fr' ? 'Vous n\'avez aucune leçon programmée pour cette classe à cette date.' : 'You don\'t have any scheduled lessons for this class on this date.'}</Text></View> : (
             <View>
-              {students.map(s => <StudentRow key={s.id} student={s} status={attendance[s.id]} onStatusChange={(status: string) => setAttendance(prev => ({ ...prev, [s.id]: status }))} note={notes[s.id]} onNoteChange={(text: string) => setNotes(prev => ({ ...prev, [s.id]: text }))} score={scores[s.id]} onScoreChange={(score: number) => setScores(prev => ({ ...prev, [s.id]: score }))} resetKey={saveCount} />)}
+              {students.map(s => <StudentRow key={s.id} student={s} status={attendance[s.id]} onStatusChange={(status: string) => setAttendance(prev => ({ ...prev, [s.id]: status }))} note={notes[s.id]} onNoteChange={(text: string) => setNotes(prev => ({ ...prev, [s.id]: text }))} score={scores[s.id]} onScoreChange={(score: number) => setScores(prev => ({ ...prev, [s.id]: score }))} resetKey={saveCount} language={language} t={t} />)}
               
               <View style={{ marginTop: 24, gap: 16 }}>
                 <View style={{ backgroundColor: 'white', borderRadius: 28, padding: 20, borderWidth: 1, borderColor: '#f1f5f9' }}>
-                  <TouchableOpacity onPress={() => setNewTask(prev => ({ ...prev, show: !prev.show }))} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <TouchableOpacity onPress={() => setNewTask(prev => ({ ...prev, show: !prev.show }))} style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
                     <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#fff7ed', alignItems: 'center', justifyContent: 'center' }}><ClipboardList size={22} color="#f59e0b" /></View>
-                    <View style={{ flex: 1, marginLeft: 16 }}><Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>Assign a Task</Text><Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 2 }}>For the whole class</Text></View>
+                    <View style={{ flex: 1, marginLeft: isRTL ? 0 : 16, marginRight: isRTL ? 16 : 0, alignItems: isRTL ? 'flex-end' : 'flex-start' }}><Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>{language === 'ar' ? 'تعيين مهمة' : language === 'fr' ? 'Attribuer une tâche' : 'Assign a Task'}</Text><Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 2 }}>{language === 'ar' ? 'لكامل القسم' : language === 'fr' ? 'Pour toute la classe' : 'For the whole class'}</Text></View>
                     <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}><Plus size={18} color="#64748b" /></View>
                   </TouchableOpacity>
                   {newTask.show && (
                     <View style={{ marginTop: 20, gap: 12 }}>
-                      <TextInput placeholder="Task Title" placeholderTextColor="#94a3b8" value={newTask.title} onChangeText={(t) => setNewTask(prev => ({ ...prev, title: t }))} style={{ backgroundColor: '#f8fafc', borderRadius: 16, padding: 16, fontSize: 14, fontWeight: '700', color: '#1e293b', borderWidth: 1, borderColor: '#f1f5f9' }} />
-                      <TextInput placeholder="Description (optional)" placeholderTextColor="#94a3b8" multiline value={newTask.description} onChangeText={(t) => setNewTask(prev => ({ ...prev, description: t }))} style={{ backgroundColor: '#f8fafc', borderRadius: 16, padding: 16, fontSize: 14, fontWeight: '600', color: '#1e293b', borderWidth: 1, borderColor: '#f1f5f9', minHeight: 80, textAlignVertical: 'top' }} />
-                      <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginTop: 10, letterSpacing: 0.5 }}>Attachments</Text>
-                      <View style={{ flexDirection: 'row', gap: 12 }}>
-                        <TouchableOpacity onPress={handlePickImage} style={{ flex: 1, height: 48, borderRadius: 14, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}><ImageIcon size={18} color="#8b5cf6" /><Text style={{ fontSize: 13, fontWeight: '800', color: '#8b5cf6' }}>Add Image</Text></TouchableOpacity>
-                        <TouchableOpacity onPress={handlePickDocument} style={{ flex: 1, height: 48, borderRadius: 14, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}><FileIcon size={18} color="#0055d4" /><Text style={{ fontSize: 13, fontWeight: '800', color: '#0055d4' }}>Add PDF</Text></TouchableOpacity>
+                      <TextInput placeholder={language === 'ar' ? 'عنوان المهمة' : language === 'fr' ? 'Titre de la tâche' : 'Task Title'} placeholderTextColor="#94a3b8" value={newTask.title} onChangeText={(t) => setNewTask(prev => ({ ...prev, title: t }))} style={{ backgroundColor: '#f8fafc', borderRadius: 16, padding: 16, fontSize: 14, fontWeight: '700', color: '#1e293b', borderWidth: 1, borderColor: '#f1f5f9', textAlign: isRTL ? 'right' : 'left' }} />
+                      <TextInput placeholder={language === 'ar' ? 'وصف (اختياري)' : language === 'fr' ? 'Description (optionnel)' : 'Description (optional)'} placeholderTextColor="#94a3b8" multiline value={newTask.description} onChangeText={(t) => setNewTask(prev => ({ ...prev, description: t }))} style={{ backgroundColor: '#f8fafc', borderRadius: 16, padding: 16, fontSize: 14, fontWeight: '600', color: '#1e293b', borderWidth: 1, borderColor: '#f1f5f9', minHeight: 80, textAlignVertical: 'top', textAlign: isRTL ? 'right' : 'left' }} />
+                      <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginTop: 10, letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{t.teacherAttachments}</Text>
+                      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 12 }}>
+                        <TouchableOpacity onPress={handlePickImage} style={{ flex: 1, height: 48, borderRadius: 14, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center', flexDirection: isRTL ? 'row-reverse' : 'row', gap: 8 }}><ImageIcon size={18} color="#8b5cf6" /><Text style={{ fontSize: 13, fontWeight: '800', color: '#8b5cf6' }}>{language === 'ar' ? 'إضافة صورة' : language === 'fr' ? 'Ajouter une image' : 'Add Image'}</Text></TouchableOpacity>
+                        <TouchableOpacity onPress={handlePickDocument} style={{ flex: 1, height: 48, borderRadius: 14, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', flexDirection: isRTL ? 'row-reverse' : 'row', gap: 8 }}><FileIcon size={18} color="#0055d4" /><Text style={{ fontSize: 13, fontWeight: '800', color: '#0055d4' }}>{language === 'ar' ? 'إضافة ملف' : language === 'fr' ? 'Ajouter PDF' : 'Add PDF'}</Text></TouchableOpacity>
                       </View>
                       {newTask.attachments.length > 0 && (
                         <View style={{ marginTop: 12, gap: 8 }}>{newTask.attachments.map((file, idx) => (<View key={idx} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 12, borderRadius: 14, borderWidth: 1, borderColor: '#f1f5f9' }}>{file.type === 'IMAGE' ? <ImageIcon size={18} color="#8b5cf6" /> : <FileIcon size={18} color="#0055d4" />}<Text style={{ flex: 1, marginLeft: 12, fontSize: 13, fontWeight: '700', color: '#1e293b' }} numberOfLines={1}>{file.name}</Text><TouchableOpacity onPress={() => removeAttachment(idx)}><Trash2 size={18} color="#ef4444" /></TouchableOpacity></View>))}</View>
@@ -459,17 +524,17 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
 
                 {assignments.length > 0 && (
                   <View style={{ marginTop: 8 }}>
-                    <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>Assigned Tasks</Text>
+                    <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16, textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'المهام المعينة' : language === 'fr' ? 'Tâches assignées' : 'Assigned Tasks'}</Text>
                     {assignments.map((task: any) => (
                       <View key={task.id} style={{ backgroundColor: 'white', borderRadius: 24, padding: 16, borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 12 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                        <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginBottom: 10 }}>
                           <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#fff7ed', alignItems: 'center', justifyContent: 'center' }}><ClipboardList size={18} color="#f59e0b" /></View>
-                          <Text style={{ flex: 1, marginLeft: 12, fontSize: 16, fontWeight: '800', color: '#1e293b' }}>{task.title}</Text>
+                          <Text style={{ flex: 1, marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0, fontSize: 16, fontWeight: '800', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>{task.title}</Text>
                           {task.attachments?.length > 0 && (
-                            <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}><Text style={{ fontSize: 10, fontWeight: '900', color: '#0055d4' }}>{task.attachments.length} files</Text></View>
+                            <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}><Text style={{ fontSize: 10, fontWeight: '900', color: '#0055d4' }}>{task.attachments.length} {t.teacherFiles}</Text></View>
                           )}
                         </View>
-                        {task.description && (<Text style={{ fontSize: 14, color: '#64748b', fontWeight: '600', marginLeft: 48 }}>{task.description}</Text>)}
+                        {task.description && (<Text style={{ fontSize: 14, color: '#64748b', fontWeight: '600', marginLeft: isRTL ? 0 : 48, marginRight: isRTL ? 48 : 0, textAlign: isRTL ? 'right' : 'left' }}>{task.description}</Text>)}
                       </View>
                     ))}
                   </View>
@@ -481,7 +546,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
       </ScrollView>
       {hasChanges && (
         <View style={{ position: 'absolute', bottom: 110, left: 24, right: 24 }}>
-          <TouchableOpacity onPress={handleSave} disabled={saving} activeOpacity={0.9} style={{ backgroundColor: '#0055d4', paddingVertical: 20, borderRadius: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#0055d4', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10, opacity: saving ? 0.6 : 1 }}>{saving ? <ActivityIndicator color="white" /> : <><Save size={22} color="white" style={{ marginRight: 12 }} /><Text style={{ color: 'white', fontSize: 16, fontWeight: '900' }}>Save Changes</Text></>}</TouchableOpacity>
+          <TouchableOpacity onPress={handleSave} disabled={saving} activeOpacity={0.9} style={{ backgroundColor: '#0055d4', paddingVertical: 20, borderRadius: 24, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#0055d4', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10, opacity: saving ? 0.6 : 1 }}>{saving ? <ActivityIndicator color="white" /> : <><Save size={22} color="white" style={{ marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }} /><Text style={{ color: 'white', fontSize: 16, fontWeight: '900' }}>{language === 'ar' ? 'حفظ التغييرات' : language === 'fr' ? 'Sauvegarder les modifications' : 'Save Changes'}</Text></>}</TouchableOpacity>
         </View>
       )}
       {showClassSwitcher && (
@@ -489,7 +554,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
           <TouchableOpacity activeOpacity={1} onPress={() => setShowClassSwitcher(false)} style={{ flex: 1 }} />
           <View style={{ backgroundColor: 'white', borderTopLeftRadius: 40, borderTopRightRadius: 40, padding: 32, paddingBottom: 60, shadowColor: '#000', shadowOffset: { width: 0, height: -10 }, shadowOpacity: 0.1, shadowRadius: 30, elevation: 20 }}>
             <View style={{ width: 40, height: 5, backgroundColor: '#e2e8f0', borderRadius: 10, alignSelf: 'center', marginBottom: 24 }} />
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}><Text style={{ fontSize: 24, fontWeight: '900', color: '#1e293b' }}>Switch Class</Text><TouchableOpacity onPress={() => setShowClassSwitcher(false)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}><X size={20} color="#64748b" /></TouchableOpacity></View>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}><Text style={{ fontSize: 24, fontWeight: '900', color: '#1e293b' }}>{language === 'ar' ? 'تغيير القسم' : language === 'fr' ? 'Changer de classe' : 'Switch Class'}</Text><TouchableOpacity onPress={() => setShowClassSwitcher(false)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}><X size={20} color="#64748b" /></TouchableOpacity></View>
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>{classes.map((cls) => (<TouchableOpacity key={cls.id} onPress={() => handleClassSelect(cls)} activeOpacity={0.8} style={{ flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 24, backgroundColor: selectedClass?.id === cls.id ? '#eff6ff' : 'white', marginBottom: 12, borderWidth: 1.5, borderColor: selectedClass?.id === cls.id ? '#0055d4' : '#f1f5f9', shadowColor: selectedClass?.id === cls.id ? '#0055d4' : '#000', shadowOpacity: selectedClass?.id === cls.id ? 0.05 : 0.02, shadowRadius: 10, elevation: 1 }}><View style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: selectedClass?.id === cls.id ? '#0055d4' : '#f8fafc', alignItems: 'center', justifyContent: 'center' }}><Layout size={28} color={selectedClass?.id === cls.id ? 'white' : '#94a3b8'} /></View><View style={{ marginLeft: 20, flex: 1 }}><Text style={{ fontSize: 18, fontWeight: '900', color: selectedClass?.id === cls.id ? '#0055d4' : '#1e293b' }}>{cls.name}</Text><Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '700', marginTop: 2 }}>{cls.level || 'Standard'}</Text></View>{selectedClass?.id === cls.id && <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#0055d4', alignItems: 'center', justifyContent: 'center' }}><Check size={16} color="white" strokeWidth={3} /></View>}</TouchableOpacity>))}</ScrollView>
           </View>
         </View>
@@ -500,17 +565,17 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
           <TouchableOpacity activeOpacity={1} onPress={() => setShowSessionSwitcher(false)} style={{ flex: 1 }} />
           <View style={{ backgroundColor: 'white', borderTopLeftRadius: 40, borderTopRightRadius: 40, padding: 32, paddingBottom: 60, shadowColor: '#000', shadowOffset: { width: 0, height: -10 }, shadowOpacity: 0.1, shadowRadius: 30, elevation: 20 }}>
             <View style={{ width: 40, height: 5, backgroundColor: '#e2e8f0', borderRadius: 10, alignSelf: 'center', marginBottom: 24 }} />
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}><Text style={{ fontSize: 24, fontWeight: '900', color: '#1e293b' }}>Select Session</Text><TouchableOpacity onPress={() => setShowSessionSwitcher(false)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}><X size={20} color="#64748b" /></TouchableOpacity></View>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}><Text style={{ fontSize: 24, fontWeight: '900', color: '#1e293b' }}>{language === 'ar' ? 'اختر الحصة' : language === 'fr' ? 'Sélectionner une séance' : 'Select Session'}</Text><TouchableOpacity onPress={() => setShowSessionSwitcher(false)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}><X size={20} color="#64748b" /></TouchableOpacity></View>
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>{sessions.map((session) => {
               const isActive = activeSlotId === session.slotId;
               return (
                 <TouchableOpacity key={session.slotId} onPress={() => {
                   setShowSessionSwitcher(false);
-                  if (selectedClass) loadStudents(selectedClass.id, selectedDate.format('YYYY-MM-DD'), session.slotId, false);
+                  setActiveSlotId(session.slotId);
                 }} activeOpacity={0.8} style={{ flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 24, backgroundColor: isActive ? '#eff6ff' : 'white', marginBottom: 12, borderWidth: 1.5, borderColor: isActive ? '#0055d4' : '#f1f5f9', shadowColor: isActive ? '#0055d4' : '#000', shadowOpacity: isActive ? 0.05 : 0.02, shadowRadius: 10, elevation: 1 }}>
                   <View style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: isActive ? '#0055d4' : '#f8fafc', alignItems: 'center', justifyContent: 'center' }}><Clock size={28} color={isActive ? 'white' : '#94a3b8'} /></View>
                   <View style={{ marginLeft: 20, flex: 1 }}>
-                    <Text style={{ fontSize: 18, fontWeight: '900', color: isActive ? '#0055d4' : '#1e293b' }}>{getSubjectName(session.subjectName)}</Text>
+                    <Text style={{ fontSize: 18, fontWeight: '900', color: isActive ? '#0055d4' : '#1e293b' }}>{getSubjectName(session.subjectName, language)}</Text>
                     <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '700', marginTop: 2 }}>{session.startTime.substring(0, 5)} - {session.endTime.substring(0, 5)}</Text>
                   </View>
                   {isActive && <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#0055d4', alignItems: 'center', justifyContent: 'center' }}><Check size={16} color="white" strokeWidth={3} /></View>}

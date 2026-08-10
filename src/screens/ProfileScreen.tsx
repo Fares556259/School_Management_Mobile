@@ -14,6 +14,7 @@ import * as Haptics from 'expo-haptics';
 
 import { GlobalHeader } from '../components/GlobalHeader';
 import { Image } from 'expo-image';
+import { useQuery } from '@tanstack/react-query';
 
 const { width } = Dimensions.get('window');
 
@@ -214,7 +215,6 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
   const { t, language, setLanguage, isRTL } = useLanguage();
   const [profile, setProfile] = useState<any>(null);
   const [schoolInfo, setSchoolInfo] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const insets = useSafeAreaInsets();
   
@@ -320,43 +320,39 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     }
   };
 
-  useFocusEffect(
-    React.useCallback(() => {
-      loadProfile();
-    }, [userRole])
-  );
-
-  const loadProfile = async () => {
-    setLoading(true);
-    try {
-      let userProfile: any = null;
-      if (userRole === 'teacher') {
-        userProfile = await teacherService.fetchProfile();
-      } else {
-        userProfile = await parentService.fetchParentProfile();
+  const { isLoading: loading, refetch: loadProfile } = useQuery({
+    queryKey: ['profile', userRole],
+    queryFn: async () => {
+      try {
+        let userProfile: any = null;
+        if (userRole === 'teacher') {
+          userProfile = await teacherService.fetchProfile();
+        } else {
+          userProfile = await parentService.fetchParentProfile();
+        }
+        
+        const school = await parentService.fetchSchoolInfo();
+        
+        if (userProfile) {
+          setProfile(userProfile);
+          setUserName(`${userProfile.name} ${userProfile.surname}`);
+          setUserAvatarUrl(userProfile.img);
+          setEditData({
+            name: userProfile.name || '',
+            surname: userProfile.surname || '',
+            phone: userProfile.phone || ''
+          });
+        }
+        if (school) {
+          setSchoolInfo(school);
+        }
+        return { userProfile, school };
+      } catch (error) {
+        console.error('Failed to load profile:', error);
+        return null;
       }
-      
-      const school = await parentService.fetchSchoolInfo();
-      
-      if (userProfile) {
-        setProfile(userProfile);
-        setUserName(`${userProfile.name} ${userProfile.surname}`);
-        setUserAvatarUrl(userProfile.img);
-        setEditData({
-          name: userProfile.name || '',
-          surname: userProfile.surname || '',
-          phone: userProfile.phone || ''
-        });
-      }
-      if (school) {
-        setSchoolInfo(school);
-      }
-    } catch (error) {
-      console.error('Failed to load profile:', error);
-    } finally {
-      setLoading(false);
     }
-  };
+  });
 
   // Photo Modal State
   const [photoModalVisible, setPhotoModalVisible] = useState(false);
