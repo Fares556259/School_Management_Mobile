@@ -161,7 +161,7 @@ export const CoursesScreen = () => {
                 
                 <View style={{ gap: 16 }}>
                   {group.items.map((course, index) => {
-                    const theme = Objec(t as any).values(SUBJECT_THEMES).find(t => course.name.includes(Objec(t as any).keys(SUBJECT_THEMES).find(k => SUBJECT_THEMES[k] === t) || '')) || SUBJECT_THEMES.Default;
+                    const theme = Object.values(SUBJECT_THEMES).find((tTheme: any) => course.name.includes(Object.keys(SUBJECT_THEMES).find(k => SUBJECT_THEMES[k] === tTheme) || '')) || SUBJECT_THEMES.Default;
                     const ThemeIcon = theme.icon;
                     const arabicName = getTranslatedSubject(course.name);
                     const isExpanded = expandedCourses[course.id];
