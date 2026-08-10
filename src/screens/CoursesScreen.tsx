@@ -133,11 +133,11 @@ export const CoursesScreen = () => {
         {/* Header */}
         <View style={{ marginBottom: 28, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
           <Text style={{ fontSize: 13, fontWeight: '900', color: '#0055d4', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 6, textAlign: isRTL ? 'right' : 'left' }}>
-            {t.academicPortal || 'ACADEMIC PORTAL'}
+            {(t as any).academicPortal || 'ACADEMIC PORTAL'}
           </Text>
-          <Text style={{ fontSize: 32, fontWeight: '900', color: '#1e293b', letterSpacing: -0.5, textAlign: isRTL ? 'right' : 'left' }}>{t.coursesHub || 'Courses Hub'}</Text>
+          <Text style={{ fontSize: 32, fontWeight: '900', color: '#1e293b', letterSpacing: -0.5, textAlign: isRTL ? 'right' : 'left' }}>{(t as any).coursesHub || 'Courses Hub'}</Text>
           <Text style={{ fontSize: 14, color: '#64748b', marginTop: 6, fontWeight: '600', lineHeight: 22, textAlign: isRTL ? 'right' : 'left' }}>
-            {t.coursesSub || 'Your registered courses'} {child?.name || 'التلميذ'}.
+            {(t as any).coursesSub || 'Your registered courses'} {child?.name || 'التلميذ'}.
           </Text>
         </View>
 
@@ -146,9 +146,9 @@ export const CoursesScreen = () => {
             <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
               <BookOpen size={32} color="#cbd5e1" />
             </View>
-            <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', marginBottom: 6 }}>{t.noCourses || 'No courses yet'}</Text>
+            <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', marginBottom: 6 }}>{(t as any).noCourses || 'No courses yet'}</Text>
             <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '700', textAlign: 'center', lineHeight: 20 }}>
-              {t.noCoursesSub || 'You will see courses here once assigned.'}
+              {(t as any).noCoursesSub || 'You will see courses here once assigned.'}
             </Text>
           </View>
         ) : (
@@ -161,7 +161,7 @@ export const CoursesScreen = () => {
                 
                 <View style={{ gap: 16 }}>
                   {group.items.map((course, index) => {
-                    const theme = Object.values(SUBJECT_THEMES).find(t => course.name.includes(Object.keys(SUBJECT_THEMES).find(k => SUBJECT_THEMES[k] === t) || '')) || SUBJECT_THEMES.Default;
+                    const theme = Objec(t as any).values(SUBJECT_THEMES).find(t => course.name.includes(Objec(t as any).keys(SUBJECT_THEMES).find(k => SUBJECT_THEMES[k] === t) || '')) || SUBJECT_THEMES.Default;
                     const ThemeIcon = theme.icon;
                     const arabicName = getTranslatedSubject(course.name);
                     const isExpanded = expandedCourses[course.id];
@@ -184,12 +184,12 @@ export const CoursesScreen = () => {
                           <View style={{ flex: 1, marginHorizontal: 16, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
                             <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b' }}>{arabicName}</Text>
                             <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '700', marginTop: 2 }}>
-                              {t.teacher || 'Teacher'}: {course.teacher || 'N/A'}
+                              {(t as any).teacher || 'Teacher'}: {course.teacher || 'N/A'}
                             </Text>
                           </View>
                           <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
                             <Text style={{ fontSize: 22, fontWeight: '900', color: '#0f172a' }}>{course.resources?.length || 0}</Text>
-                            <Text style={{ fontSize: 10, color: '#94a3b8', fontWeight: '800', marginLeft: 2 }}>{t.filesCount || 'FILES'}</Text>
+                            <Text style={{ fontSize: 10, color: '#94a3b8', fontWeight: '800', marginLeft: 2 }}>{(t as any).filesCount || 'FILES'}</Text>
                           </View>
                         </TouchableOpacity>
 
@@ -231,7 +231,7 @@ export const CoursesScreen = () => {
                         )}
                         {isExpanded && course.resources?.length === 0 && (
                           <View style={{ paddingVertical: 16, alignItems: 'center' }}>
-                            <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>{t.noFiles || 'No materials available'}</Text>
+                            <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>{(t as any).noFiles || 'No materials available'}</Text>
                           </View>
                         )}
                       </View>
