@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ScrollView, TouchableOpacity, Image, Platform, RefreshControl, StatusBar, Dimensions, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
@@ -42,9 +43,22 @@ export const PaymentsScreen = ({ navigation }: any) => {
     setRefreshing(false);
   }, []);
 
-  useEffect(() => {
-    if (selectedChildId) loadData(selectedChildId);
-  }, [selectedChildId]);
+  useFocusEffect(
+    useCallback(() => {
+      let interval: NodeJS.Timeout;
+      if (selectedChildId) {
+        loadData(selectedChildId);
+        
+        // Poll every 3 seconds silently to ensure "instant" sync when admin updates
+        interval = setInterval(() => {
+          loadData(selectedChildId, true);
+        }, 3000);
+      }
+      return () => {
+        if (interval) clearInterval(interval);
+      };
+    }, [selectedChildId, loadData])
+  );
 
   const onRefresh = () => {
     if (selectedChildId) {
