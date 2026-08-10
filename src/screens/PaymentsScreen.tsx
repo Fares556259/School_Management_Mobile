@@ -233,7 +233,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
                   <View
                     key={`${item.id}-${item.month}`}
                     style={{
-                      backgroundColor: '#ffffff', 
+                      backgroundColor: isPaid ? '#f8fafc' : '#ffffff', 
                       borderRadius: 24,
                       padding: 20,
                       shadowColor: '#000', 
@@ -241,10 +241,19 @@ export const PaymentsScreen = ({ navigation }: any) => {
                       shadowOpacity: 0.06, 
                       shadowRadius: 16, 
                       elevation: 2,
-                      borderWidth: 1,
-                      borderColor: 'rgba(0,0,0,0.02)'
+                      borderWidth: isPaid ? 1.5 : 1,
+                      borderColor: isPaid ? '#cbd5e1' : 'rgba(0,0,0,0.02)',
+                      borderStyle: isPaid ? 'dashed' : 'solid',
+                      overflow: 'hidden'
                     }}
                   >
+                    {/* Background Paid Watermark */}
+                    {isPaid && (
+                      <View style={{ position: 'absolute', right: -20, top: 10, opacity: 0.04, transform: [{ rotate: '-15deg' }] }}>
+                        <Text style={{ fontSize: 80, fontWeight: '900', color: '#10b981' }}>{isRTL ? 'خالص' : 'PAID'}</Text>
+                      </View>
+                    )}
+
                     <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       
                       {/* Left: Month Icon + Details */}
@@ -257,7 +266,11 @@ export const PaymentsScreen = ({ navigation }: any) => {
                           marginRight: isRTL ? 0 : 16,
                           marginLeft: isRTL ? 16 : 0
                         }}>
-                          <Calendar color={config.color} size={24} strokeWidth={2.5} />
+                          {isPaid ? (
+                            <ReceiptText color={config.color} size={24} strokeWidth={2.5} />
+                          ) : (
+                            <Calendar color={config.color} size={24} strokeWidth={2.5} />
+                          )}
                         </View>
 
                         <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start', flex: 1, marginTop: 4 }}>
@@ -289,8 +302,18 @@ export const PaymentsScreen = ({ navigation }: any) => {
                           </Text>
                         </View>
                       </View>
-
                     </View>
+
+                    {/* Paid Actions Footer */}
+                    {isPaid && (
+                      <>
+                        <View style={{ height: 1, backgroundColor: '#e2e8f0', marginVertical: 16, borderStyle: 'dashed', borderWidth: 1, borderColor: '#e2e8f0' }} />
+                        <TouchableOpacity style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 4 }}>
+                          <DownloadCloud size={16} color="#0055d4" strokeWidth={2.5} />
+                          <Text style={{ fontSize: 13, fontWeight: '800', color: '#0055d4' }}>{isRTL ? 'تحميل الوصل' : 'Download Receipt'}</Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
                   </View>
                 );
               })}
