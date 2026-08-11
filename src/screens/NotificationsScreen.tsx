@@ -1,13 +1,16 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Alert, RefreshControl, View, Text, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, SectionList, StyleSheet, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, AlertTriangle, Info, Check, Trash2, Calendar, Clock, Bell, MessageCircle, FileText } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, AlertTriangle, Info, Check, Trash2, Calendar, Clock, Bell, MessageCircle, FileText } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
+import { useLanguage } from '../context/LanguageContext';
 import { studentService, authStorage } from '../services/api';
 import { Notification } from '../types';
 import { RectButton, Swipeable } from 'react-native-gesture-handler';
 import Animated, { FadeInUp, Layout } from 'react-native-reanimated';
 import { Image } from 'expo-image';
+import { cacheManager } from '../utils/cacheManager';
+import { SkeletonBlock } from '../components/SkeletonView';
 
 const { width } = Dimensions.get('window');
 
@@ -22,32 +25,37 @@ const ICON_CONFIG: Record<string, { icon: any, color: string, bgColor: string, a
 };
 
 const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onPress: (n: Notification) => void, onDelete: (id: number) => void }) => {
+  const { t, isRTL, getTranslatedSubject } = useLanguage();
   const absenceCount = item.message.match(/(\d+) absences/)?.[1] || item.message.match(/missed (\d+) sessions/)?.[1];
   
   let dynamicType = item.type;
-  let dynamicTitle = item.title || 'Notification';
+  let dynamicTitle = item.title || t.notifDefaultTitle;
   let displayMessage = item.message;
   
   if (item.message.includes('A remark was left')) {
     dynamicType = 'REMARK';
-    dynamicTitle = 'Teacher Remark';
+    dynamicTitle = t.notifTeacherRemark || 'Teacher Remark';
     displayMessage = item.message.replace(/A remark was left for [^:]+:\s*"/, '"');
   } else if (item.type === 'ATTENDANCE') {
-    dynamicTitle = 'Attendance Update';
-    // Clean up long attendance message
+    dynamicTitle = t.notifAttendanceUpdate || 'Attendance Update';
     const match = item.message.match(/has been marked as (present|absent|late) on (.*) for (.*) session at (.*) by/i);
     if (match) {
-       const status = match[1];
-       const subjectShort = match[3].split('|')[0].trim();
-       displayMessage = `${item.studentName} was marked ${status.toLowerCase()} for ${subjectShort}.`;
+       const status = match[1].toLowerCase();
+       const translatedStatus = status === 'late' ? t.lateWord : status === 'absent' ? t.absentWord : t.presentWord;
+       const subjectShort = getTranslatedSubject(match[3].split('|')[0].trim());
+       if (isRTL) {
+           displayMessage = `${t.markedAs} ${item.studentName} ${translatedStatus} ${t.forWord} ${subjectShort}.`;
+       } else {
+           displayMessage = `${item.studentName} ${t.markedAs} ${translatedStatus} ${t.forWord} ${subjectShort}.`;
+       }
     }
   } else if (item.type === 'PAYMENT') {
-    dynamicTitle = 'Payment Alert';
+    dynamicTitle = t.notifPaymentAlert || 'Payment Alert';
   } else if (item.message.toLowerCase().includes('assignment') || item.message.toLowerCase().includes('task')) {
     dynamicType = 'ASSIGNMENT';
-    dynamicTitle = 'New Assignment';
+    dynamicTitle = t.notifNewAssignment || 'New Assignment';
   } else if (item.studentName === 'SCHOOL' || item.message.toLowerCase().includes('exam schedule')) {
-    dynamicTitle = 'School Announcement';
+    dynamicTitle = t.notifSchoolAnnouncement || 'School Announcement';
   }
 
   const extendedConfig = {
@@ -62,7 +70,7 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
   const renderRightActions = () => (
     <RectButton style={styles.deleteAction} onPress={() => onDelete(item.id)}>
       <Trash2 size={22} color="white" />
-      <Text style={styles.actionText}>Delete</Text>
+      <Text style={styles.actionText}>{t.deleteBtn || 'Delete'}</Text>
     </RectButton>
   );
 
@@ -76,16 +84,16 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
         <TouchableOpacity 
           activeOpacity={0.7}
           onPress={() => onPress(item)}
-          style={[styles.cardContent, item.isNew && styles.unreadCard]}
+          style={[styles.cardContent, item.isNew && styles.unreadCard, isRTL && { flexDirection: 'row-reverse' }]}
         >
-          <View style={[styles.iconContainer, { backgroundColor: config.bgColor }]}>
+          <View style={[styles.iconContainer, { backgroundColor: config.bgColor }, isRTL ? { marginLeft: 16, marginRight: 0 } : { marginRight: 16 }]}>
             <Icon size={18} color={config.color} strokeWidth={2.5} />
           </View>
           
-          <View style={styles.textContainer}>
-            <View style={styles.cardHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, paddingRight: 8 }}>
-                {item.isNew && <View style={styles.unreadDot} />}
+          <View style={[styles.textContainer, isRTL && { alignItems: 'flex-end' }]}>
+            <View style={[styles.cardHeader, isRTL && { flexDirection: 'row-reverse' }]}>
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', flex: 1, paddingRight: isRTL ? 0 : 8, paddingLeft: isRTL ? 8 : 0 }}>
+                {item.isNew && <View style={[styles.unreadDot, isRTL ? { marginLeft: 8, marginRight: 0 } : { marginRight: 8 }]} />}
                 <Text style={[styles.titleText, item.isNew && styles.unreadTitleText]} numberOfLines={1}>
                   {dynamicTitle}
                 </Text>
@@ -93,18 +101,18 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
               <Text style={[styles.timeText, item.isNew && styles.unreadTimeText]}>{item.time}</Text>
             </View>
             
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginBottom: 6 }}>
               <Text style={styles.typeText}>{item.studentName}</Text>
             </View>
             
-            <Text style={[styles.messageText, item.isNew && styles.unreadMessageText]} numberOfLines={1}>
+            <Text style={[styles.messageText, item.isNew && styles.unreadMessageText, isRTL && { textAlign: 'right' }]} numberOfLines={1}>
               {displayMessage}
             </Text>
 
             {absenceCount && (
-              <View style={styles.absencePill}>
-                <View style={styles.pillDot} />
-                <Text style={styles.pillText}>{absenceCount} absences</Text>
+              <View style={[styles.absencePill, isRTL && { alignSelf: 'flex-end', flexDirection: 'row-reverse' }]}>
+                <View style={[styles.pillDot, isRTL ? { marginLeft: 6, marginRight: 0 } : { marginRight: 6 }]} />
+                <Text style={styles.pillText}>{absenceCount} {t.notifAbsences || 'absences'}</Text>
               </View>
             )}
           </View>
@@ -116,17 +124,30 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
 
 export const NotificationsScreen = ({ navigation }: any) => {
   const { userId, selectedChildId, setUnreadNotificationsCount } = useAppStore();
+  const { t, isRTL } = useLanguage();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<FilterType>('All');
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (isRefresh = false) => {
     if (!userId) return;
+    const cacheKey = `NOTIFICATIONS_CACHE_${userId}_${selectedChildId}`;
+    
+    const cachedData = await cacheManager.get<Notification[]>(cacheKey);
+    if (!isRefresh && cachedData) {
+      setNotifications(cachedData);
+      setUnreadNotificationsCount(cachedData.filter(n => n.isNew).length);
+      setLoading(false);
+    } else {
+      if (!isRefresh) setLoading(true);
+    }
+
     try {
       const data = await studentService.fetchNotifications(userId, selectedChildId);
       setNotifications(data);
       setUnreadNotificationsCount(data.filter(n => n.isNew).length);
+      await cacheManager.set(cacheKey, data);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
     } finally {
@@ -141,7 +162,7 @@ export const NotificationsScreen = ({ navigation }: any) => {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchNotifications();
+    fetchNotifications(true);
   }, [userId, selectedChildId]);
 
   const handleDelete = async (id: number) => {
@@ -198,9 +219,9 @@ export const NotificationsScreen = ({ navigation }: any) => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
 
-      let title = 'Older';
-      if (date.toDateString() === today.toDateString()) title = 'Today';
-      else if (date.toDateString() === yesterday.toDateString()) title = 'Yesterday';
+      let title = t.older || 'Older';
+      if (date.toDateString() === today.toDateString()) title = t.today || 'Today';
+      else if (date.toDateString() === yesterday.toDateString()) title = t.yesterday || 'Yesterday';
 
       const existingGroup = groups.find(g => g.title === title);
       if (existingGroup) existingGroup.data.push(n);
@@ -212,9 +233,27 @@ export const NotificationsScreen = ({ navigation }: any) => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0055d4" />
-      </View>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <StatusBar barStyle="dark-content" />
+        <View style={[styles.header, isRTL && { flexDirection: 'row-reverse' }]}>
+          <View style={styles.backButton} />
+        </View>
+        <View style={[styles.titleSection, isRTL && { alignItems: 'flex-end' }]}>
+          <Text style={styles.title}>{t.notificationsScreenTitle || 'Notifications'}</Text>
+        </View>
+        <View style={{ paddingHorizontal: 24, gap: 16 }}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <View key={i} style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#ffffff', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#f1f5f9' }}>
+              <SkeletonBlock width={40} height={40} borderRadius={20} />
+              <View style={{ flex: 1, marginLeft: isRTL ? 0 : 16, marginRight: isRTL ? 16 : 0, gap: 8 }}>
+                <SkeletonBlock width="60%" height={16} />
+                <SkeletonBlock width="40%" height={12} />
+                <SkeletonBlock width="100%" height={14} />
+              </View>
+            </View>
+          ))}
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -222,31 +261,33 @@ export const NotificationsScreen = ({ navigation }: any) => {
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       
-      <View style={styles.header}>
+      <View style={[styles.header, isRTL && { flexDirection: 'row-reverse' }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <ChevronLeft size={20} color="#0f172a" strokeWidth={3} />
+          {isRTL ? <ChevronRight size={20} color="#0f172a" strokeWidth={3} /> : <ChevronLeft size={20} color="#0f172a" strokeWidth={3} />}
         </TouchableOpacity>
         <TouchableOpacity onPress={handleMarkAllAsRead} style={styles.markAllButton}>
-          <Text style={styles.markAllText}>Mark all as read</Text>
+          <Text style={styles.markAllText}>{t.markAllAsRead || 'Mark all as read'}</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.titleSection}>
-        <Text style={styles.title}>Notifications</Text>
+      <View style={[styles.titleSection, isRTL && { alignItems: 'flex-end' }]}>
+        <Text style={styles.title}>{t.notificationsScreenTitle || 'Notifications'}</Text>
       </View>
 
-      <View style={styles.filterContainer}>
-        {(['All', 'Unread', 'Urgent'] as FilterType[]).map(f => (
+      <View style={[styles.filterContainer, isRTL && { flexDirection: 'row-reverse' }]}>
+        {(['All', 'Unread', 'Urgent'] as FilterType[]).map(f => {
+          const tabLabel = f === 'All' ? t.filterAll : f === 'Unread' ? t.filterUnread : t.filterUrgent;
+          return (
           <TouchableOpacity 
             key={f}
             onPress={() => setFilter(f)}
             style={[styles.filterTab, filter === f && styles.activeFilterTab]}
           >
             <Text style={[styles.filterTabText, filter === f && styles.activeFilterTabText]}>
-              {f}{f === 'Unread' ? ` (${notifications.filter(n => n.isNew).length})` : ''}
+              {tabLabel}{f === 'Unread' ? ` (${notifications.filter(n => n.isNew).length})` : ''}
             </Text>
           </TouchableOpacity>
-        ))}
+        )})}
       </View>
 
       <SectionList
@@ -260,7 +301,7 @@ export const NotificationsScreen = ({ navigation }: any) => {
           />
         )}
         renderSectionHeader={({ section: { title } }) => (
-          <View style={styles.sectionHeader}>
+          <View style={[styles.sectionHeader, isRTL && { alignItems: 'flex-end' }]}>
             <Text style={styles.sectionTitle}>{title}</Text>
           </View>
         )}
