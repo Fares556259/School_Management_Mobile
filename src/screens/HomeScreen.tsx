@@ -15,11 +15,14 @@ import {
 } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
+import { cacheManager } from '../utils/cacheManager';
+import Reanimated, { FadeInDown } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { FlingGestureHandler, Directions, State } from 'react-native-gesture-handler';
 import { studentService } from '../services/api';
 import { StudentDayData } from '../types';
 import { GlobalHeader } from '../components/GlobalHeader';
 import { SkeletonBlock } from '../components/SkeletonView';
-import * as Haptics from 'expo-haptics';
 
 const Monitor = (props: any) => <Layout {...props} />;
 
@@ -68,8 +71,8 @@ const StatPill = ({ count, label, color, bgColor, borderColor }: any) => (
 const SessionCard = ({ session }: any) => {
   const { t, isRTL, getTranslatedSubject } = useLanguage();
   const isAbsent = session.attendance?.toUpperCase() === 'ABSENT' || session.attendance?.toUpperCase() === 'ABS';
-  const isPresent = session.attendance?.toUpperCase() === 'PRESENT' || session.attendance?.toUpperCase() === 'PRES';
-  const isLate = session.attendance?.toUpperCase() === 'LATE';
+  const isPresent = session.attendance?.toUpperCase() === 'PRESENT' || session.attendance?.toUpperCase() === 'PRÉSENT' || session.attendance?.toUpperCase() === 'PRES';
+  const isLate = session.attendance?.toUpperCase() === 'LATE' || session.attendance?.toUpperCase() === 'RETARD' || session.attendance?.toUpperCase() === 'EN RETARD';
 
   const pillColor = isAbsent ? '#ef4444' : isPresent ? '#22c55e' : isLate ? '#f59e0b' : '#cbd5e1';
   const badgeBg = isAbsent ? '#fee2e2' : isPresent ? '#dcfce7' : isLate ? '#fef3c7' : '#f1f5f9';
@@ -120,7 +123,7 @@ const SessionCard = ({ session }: any) => {
 const EmptySessionsUI = () => {
   const { t } = useLanguage();
   return (
-    <View style={styles.emptyBox}>
+    <View style={[styles.emptyStateBox, { gap: 8 }]}>
       <View style={styles.emptyIconCircle}>
         <Coffee size={30} color="#0072e6" />
       </View>
@@ -153,7 +156,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
   const [loading, setLoading] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
   const [dayData, setDayData] = React.useState<StudentDayData>({ sessions: [], notes: [], files: [], homeworkDue: [], homeworkGiven: [], exams: [] });
-  const [selectedDate, setSelectedDate] = React.useState(new Date());
+    const [selectedDate, setSelectedDate] = React.useState(new Date());
   const [showDatePicker, setShowDatePicker] = React.useState(false);
   const [selectedRemark, setSelectedRemark] = React.useState<any>(null);
 
@@ -176,13 +179,24 @@ export const HomeScreen = ({ navigation, route }: any) => {
     }
   }, [route?.params?.scrollTo, loading, tasksYPosition]);
 
-  const fetchHome = async () => {
+  const fetchHome = async (isRefresh = false) => {
     if (!selectedChildId) return;
+    const dateStr = selectedDate.toISOString().split('T')[0];
+    const cacheKey = `HOME_DAY_CACHE_${selectedChildId}_${dateStr}`;
+
+    const cachedData = await cacheManager.get<StudentDayData>(cacheKey);
+    if (!isRefresh && cachedData) {
+      setDayData(cachedData);
+      setLoading(false);
+    } else {
+      if (!isRefresh) setLoading(true);
+    }
+
     try {
-      setLoading(true);
-      const dateStr = selectedDate.toISOString().split('T')[0];
       const data = await studentService.fetchDayData(selectedChildId, dateStr);
       setDayData(data);
+      await cacheManager.set(cacheKey, data);
+      
       const hasAbsent = data.sessions?.some((s: any) => s.attendance?.toUpperCase() === 'ABSENT' || s.attendance?.toUpperCase() === 'ABS');
       setStudentStatus(selectedChildId, hasAbsent ? 'Absent' : 'Present');
     } catch (e) {
@@ -196,6 +210,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
   React.useEffect(() => { fetchHome(); }, [selectedChildId, selectedDate]);
 
   const onRefresh = React.useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setRefreshing(true);
     fetchHome();
   }, [selectedChildId, selectedDate]);
@@ -213,12 +228,31 @@ export const HomeScreen = ({ navigation, route }: any) => {
   );
   const daysArr = [t.sunday, t.monday, t.tuesday, t.wednesday, t.thursday, t.friday, t.saturday];
 
+  const changeDate = (days: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + days);
+    setSelectedDate(newDate);
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
       <GlobalHeader navigation={navigation} />
 
-      <ScrollView
+      <FlingGestureHandler
+        direction={isRTL ? Directions.RIGHT : Directions.LEFT}
+        onHandlerStateChange={({ nativeEvent }) => {
+          if (nativeEvent.state === State.ACTIVE) changeDate(1);
+        }}
+      >
+        <FlingGestureHandler
+          direction={isRTL ? Directions.LEFT : Directions.RIGHT}
+          onHandlerStateChange={({ nativeEvent }) => {
+            if (nativeEvent.state === State.ACTIVE) changeDate(-1);
+          }}
+        >
+          <ScrollView
         ref={scrollViewRef}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0072e6" />}
@@ -231,7 +265,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
               {selectedDate.toDateString() !== new Date().toDateString() && (
                 <TouchableOpacity onPress={() => setSelectedDate(new Date())}>
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#1e293b' }}>{t.todaysSchedule}</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#1e293b' }}>{(t as any).today || 'Today'}</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity onPress={() => navigation.navigate('Attendance')} style={styles.sectionActionBtn}>
@@ -252,7 +286,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
                   date={d.getDate()}
                   active={d.toDateString() === selectedDate.toDateString()}
                   isToday={d.toDateString() === new Date().toDateString()}
-                  onPress={() => setSelectedDate(d)}
+                  onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setSelectedDate(d); }}
                 />
               ))}
             </ScrollView>
@@ -296,10 +330,11 @@ export const HomeScreen = ({ navigation, route }: any) => {
             />
           )}
 
+          {/* Sessions List */}
           {loading ? (
-            <View style={{ gap: 12 }}>
+            <View style={{ gap: 12, marginTop: 16 }}>
               {[1, 2, 3].map(i => (
-                <View key={i} style={[styles.card, { padding: 16 }]}>
+                <View key={i} style={[styles.sessionCardV2, { padding: 16 }]} >
                   <SkeletonBlock width="50%" height={14} marginBottom={10} />
                   <SkeletonBlock width="100%" height={12} marginBottom={6} />
                   <SkeletonBlock width="70%" height={12} />
@@ -307,162 +342,121 @@ export const HomeScreen = ({ navigation, route }: any) => {
               ))}
             </View>
           ) : (
-            <>
-              {/* Sessions List */}
-              <View style={{ gap: 12, marginTop: 16 }}>
-                {dayData.sessions.length > 0 ? (
-                  dayData.sessions.map((s: any) => <SessionCard key={s.id} session={s} />)
-                ) : (
-                  <EmptySessionsUI />
-                )}
-              </View>
+            <View style={{ gap: 12, marginTop: 16 }}>
+              {dayData.sessions.length > 0 ? (
+                dayData.sessions.map((s: any, index: number) => (
+                  <Reanimated.View key={s.id} entering={FadeInDown.duration(400).delay(index * 100)}>
+                    <SessionCard session={s} />
+                  </Reanimated.View>
+                ))
+              ) : (
+                <EmptySessionsUI />
+              )}
+            </View>
+          )}
 
-              {/* Tasks */}
-              <Text
-                onLayout={(e) => setTasksYPosition(e.nativeEvent.layout.y)}
-                style={{ height: 0 }}
-              />
-              <SectionHeader title={t.tasks} />
-              <View style={{ gap: 12 }}>
-                {allTasks.length > 0 ? (
-                  allTasks.map((task: any) => (
-                    <TouchableOpacity
-                      key={task.id}
-                      onPress={() => navigation.navigate('HomeworkDetail', { homework: task, studentId: selectedChildId })}
-                      activeOpacity={0.85}
-                      style={styles.taskCardItem}
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                        <View style={[styles.taskBadge, {
-                          backgroundColor: task.isCompleted ? '#dcfce7' : '#fff7ed',
-                          borderColor: task.isCompleted ? '#86efac' : '#fed7aa',
-                        }]}>
-                          <Text style={[styles.taskBadgeText, { color: task.isCompleted ? '#16a34a' : '#ea580c' }]}>
-                            {task.isCompleted ? '✓ ' + t.paid : t.pending}
-                          </Text>
-                        </View>
-                        <View style={[styles.taskIcon, { backgroundColor: task.isCompleted ? '#dcfce7' : '#eff6ff', width: 32, height: 32 }]}>
-                          <CheckCircle2 size={16} color={task.isCompleted ? '#16a34a' : '#0072e6'} />
-                        </View>
+          {/* Tasks & Homework Section */}
+          <Text
+            onLayout={(e) => setTasksYPosition(e.nativeEvent.layout.y)}
+            style={{ height: 0 }}
+          />
+          <SectionHeader title={t.tasks} />
+          
+          {loading ? (
+            <View style={{ gap: 12 }}>
+              <View style={[styles.taskCardItem, { padding: 16 }]}><SkeletonBlock width="100%" height={40} /></View>
+            </View>
+          ) : (
+            <View style={{ gap: 12 }}>
+              {allTasks.length > 0 ? (
+                allTasks.map((task: any, index: number) => (
+                  <Reanimated.View key={task.id} entering={FadeInDown.duration(400).delay(index * 100)}>
+                  <TouchableOpacity
+                    key={task.id}
+                    onPress={() => navigation.navigate('HomeworkDetail', { homework: task, studentId: selectedChildId })}
+                    activeOpacity={0.85}
+                    style={styles.taskCardItem}
+                  >
+                    <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <View style={[styles.taskBadge, {
+                        backgroundColor: task.isCompleted ? '#dcfce7' : '#eff6ff',
+                        borderColor: task.isCompleted ? '#86efac' : '#bfdbfe',
+                      }]}>
+                        <Text style={[styles.taskBadgeText, { color: task.isCompleted ? '#16a34a' : '#0072e6' }]}>
+                          {task.isCompleted ? '✓ ' + (t as any).completedTask : (t as any).pendingTask}
+                        </Text>
                       </View>
-                      <Text style={styles.listRowTitle}>{getTranslatedSubject(task.subject)} — {task.title}</Text>
-                      <Text style={styles.listRowMeta}>{t.teacher}: {task.teacher || t.teacher}</Text>
-                    </TouchableOpacity>
-                  ))
-                ) : (
-                  <View style={styles.emptyStateBox}>
-                    <View style={{width: 56, height: 56, borderRadius: 28, backgroundColor: '#dcfce7', alignItems: 'center', justifyContent: 'center', marginBottom: 12}}>
-                      <CheckCircle2 size={28} color="#16a34a" />
+                      <View style={[styles.taskIcon, { backgroundColor: task.isCompleted ? '#dcfce7' : '#eff6ff' }]}>
+                        <CheckCircle2 size={18} color={task.isCompleted ? '#16a34a' : '#0072e6'} />
+                      </View>
                     </View>
-                    <Text style={styles.emptyStateText}>{t.allCaughtUp}</Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Teacher Remarks */}
-              <SectionHeader title={t.teacherRemarks} />
-              <View style={{ gap: 12 }}>
-                {dayData.notes?.filter((n: any) => n.text !== 'INITIALIZED_BULK').length > 0 ? (
-                  dayData.notes.filter((n: any) => n.text !== 'INITIALIZED_BULK').map((note: any) => (
-                    <TouchableOpacity
-                      key={note.id}
-                      activeOpacity={0.8}
-                      onPress={() => { Haptics.selectionAsync(); setSelectedRemark(note); }}
-                      style={styles.remarkCard}
-                    >
-                      <View style={styles.remarkIconWrapper}>
-                        <MessageSquare size={18} color="#94a3b8" />
-                      </View>
-                      <View style={styles.remarkContent}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                          <Text style={[styles.remarkTitle, { flex: 1, marginBottom: 0, paddingRight: 8 }]} numberOfLines={2}>{note.text || ''}</Text>
-                          <Text style={styles.remarkTime}>{note.time || ''}</Text>
-                        </View>
-                        <Text style={styles.remarkMeta}>{t.teacher}: {note.author || t.teacher}</Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))
-                ) : (
-                  <View style={styles.emptyStateBox}>
-                    <View style={{width: 56, height: 56, borderRadius: 28, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginBottom: 12}}>
-                      <MessageSquare size={28} color="#0072e6" />
+                    <Text style={[styles.listRowTitle, { textAlign: isRTL ? 'right' : 'left' }]}>{getTranslatedSubject(task.subject)} — {task.title}</Text>
+                    <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginTop: 8 }}>
+                      <UserIcon size={14} color="#64748b" style={{ marginRight: isRTL ? 0 : 6, marginLeft: isRTL ? 6 : 0 }} />
+                      <Text style={[styles.listRowMeta, { marginTop: 0 }]}>{t.teacher}: {task.teacher || t.teacher}</Text>
                     </View>
-                    <Text style={styles.emptyStateText}>{t.noRemarks}</Text>
+                  </TouchableOpacity>
+                  </Reanimated.View>
+                ))
+              ) : (
+                <View style={styles.emptyStateBox}>
+                  <View style={{width: 56, height: 56, borderRadius: 28, backgroundColor: '#dcfce7', alignItems: 'center', justifyContent: 'center'}}>
+                    <CheckCircle2 size={28} color="#16a34a" />
                   </View>
-                )}
-              </View>
+                  <Text style={styles.emptyStateText}>{t.allCaughtUp}</Text>
+                </View>
+              )}
+            </View>
+          )}
 
-              {/* Remark Modal */}
-              <Modal visible={!!selectedRemark} transparent animationType="fade" onRequestClose={() => setSelectedRemark(null)}>
-                <TouchableOpacity activeOpacity={1} onPress={() => setSelectedRemark(null)} style={styles.modalOverlay}>
-                  <View style={styles.modalCard}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                      <Text style={styles.modalTitle}>Teacher Remark</Text>
-                      <TouchableOpacity onPress={() => setSelectedRemark(null)} style={styles.closeBtn}>
-                        <X size={20} color="#64748b" />
-                      </TouchableOpacity>
+          {/* Teacher Remarks */}
+          <SectionHeader title={t.teacherRemarks} />
+          
+          {loading ? (
+             <View style={{ gap: 12 }}>
+               <View style={[styles.remarkCard, { padding: 16 }]}><SkeletonBlock width="100%" height={30} /></View>
+             </View>
+          ) : (
+            <View style={{ gap: 12 }}>
+              {dayData.notes?.filter((n: any) => n.text !== 'INITIALIZED_BULK').length > 0 ? (
+                dayData.notes.filter((n: any) => n.text !== 'INITIALIZED_BULK').map((note: any, index: number) => (
+                    <Reanimated.View key={note.id} entering={FadeInDown.duration(400).delay(index * 100)}>
+                  <TouchableOpacity
+                    key={note.id}
+                    activeOpacity={0.8}
+                    onPress={() => { Haptics.selectionAsync(); setSelectedRemark(note); }}
+                    style={styles.remarkCard}
+                  >
+                    <View style={styles.remarkIconWrapper}>
+                      <MessageSquare size={18} color="#94a3b8" />
                     </View>
-                    <ScrollView showsVerticalScrollIndicator={false}>
-                      <View style={{ backgroundColor: '#f8fafc', padding: 20, borderRadius: 16, marginBottom: 20 }}>
-                        <Text style={[styles.modalBody, { color: '#334155', fontSize: 16, lineHeight: 24, marginTop: 0 }]}>{selectedRemark?.text}</Text>
+                    <View style={[styles.remarkContent, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+                      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%', marginBottom: 4 }}>
+                        <Text style={[styles.remarkTitle, { flex: 1, marginBottom: 0, paddingRight: isRTL ? 0 : 8, paddingLeft: isRTL ? 8 : 0, textAlign: isRTL ? 'right' : 'left' }]} numberOfLines={2}>{note.text || ''}</Text>
+                        <Text style={styles.remarkTime}>{note.time || ''}</Text>
                       </View>
-
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 16 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
-                            <Text style={{ fontWeight: '800', color: '#0072e6', fontSize: 16 }}>
-                              {selectedRemark?.author?.charAt(0)?.toUpperCase() || 'T'}
-                            </Text>
-                          </View>
-                          <View>
-                            <Text style={{ fontSize: 10, fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Written By</Text>
-                            <Text style={{ fontSize: 14, fontWeight: '800', color: '#1e293b' }}>{selectedRemark?.author || 'Teacher'}</Text>
-                          </View>
-                        </View>
-                        
-                        <View style={{ alignItems: 'flex-end' }}>
-                          <Text style={{ fontSize: 10, fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Time</Text>
-                          <Text style={{ fontSize: 14, fontWeight: '800', color: '#1e293b' }}>{selectedRemark?.time || '--:--'}</Text>
-                        </View>
+                      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginTop: 4 }}>
+                        <UserIcon size={12} color="#64748b" style={{ marginRight: isRTL ? 0 : 6, marginLeft: isRTL ? 6 : 0 }} />
+                        <Text style={[styles.remarkMeta, { marginTop: 0 }]}>{t.teacher}: {note.author || t.teacher}</Text>
                       </View>
-                    </ScrollView>
+                    </View>
+                  </TouchableOpacity>
+                  </Reanimated.View>
+                ))
+              ) : (
+                <View style={styles.emptyStateBox}>
+                  <View style={{width: 56, height: 56, borderRadius: 28, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center'}}>
+                    <MessageSquare size={28} color="#0072e6" />
                   </View>
-                </TouchableOpacity>
-              </Modal>
-
-
-
-              {/* Quick Actions */}
-              <SectionHeader title={t.quickActions} />
-              <View style={[styles.quickActionsRow, { flexDirection: isRTL ? 'row-reverse' : 'row', marginBottom: 100 }]}>
-                <TouchableOpacity
-                  onPress={() => { Haptics.selectionAsync(); navigation.navigate('Exams'); }}
-                  activeOpacity={0.85}
-                  style={[styles.quickCard, { borderColor: '#ffffff', alignItems: isRTL ? 'flex-end' : 'flex-start' }]}
-                >
-                  <View style={[styles.quickIcon, { backgroundColor: '#f3e8ff', borderWidth: 0 }]}>
-                    <FileText size={22} color="#9333ea" />
-                  </View>
-                  <Text style={[styles.quickTitle, { color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }]}>{t.examCenter}</Text>
-                  <Text style={[styles.quickSub, { textAlign: isRTL ? 'right' : 'left' }]}>{t.examCenterSub}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => { Haptics.selectionAsync(); navigation.navigate('Results'); }}
-                  activeOpacity={0.85}
-                  style={[styles.quickCard, { borderColor: '#ffffff', alignItems: isRTL ? 'flex-end' : 'flex-start' }]}
-                >
-                  <View style={[styles.quickIcon, { backgroundColor: '#dcfce7', borderWidth: 0 }]}>
-                    <Award size={22} color="#16a34a" />
-                  </View>
-                  <Text style={[styles.quickTitle, { color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }]}>{t.reportCard}</Text>
-                  <Text style={[styles.quickSub, { textAlign: isRTL ? 'right' : 'left' }]}>{t.reportCardSub}</Text>
-                </TouchableOpacity>
-              </View>
-            </>
+                  <Text style={styles.emptyStateText}>{t.noRemarks}</Text>
+                </View>
+              )}
+            </View>
           )}
         </View>
       </ScrollView>
+        </FlingGestureHandler>
+      </FlingGestureHandler>
     </SafeAreaView>
   );
 };
