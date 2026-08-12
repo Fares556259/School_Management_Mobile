@@ -199,6 +199,21 @@ export const AnnouncementDetailScreen = ({ route, navigation }: any) => {
             </Text>
           </View>
 
+          {/* Attached Images */}
+          {announcement.images && announcement.images.length > 0 && (
+            <View style={{ marginBottom: 32, gap: 16 }}>
+              {announcement.images.map((imgUrl: string, index: number) => (
+                <Image 
+                  key={index}
+                  source={{ uri: imgUrl }} 
+                  style={{ width: '100%', height: 250, borderRadius: 16, borderWidth: 1, borderColor: '#f1f5f9' }}
+                  contentFit="cover"
+                  transition={200}
+                />
+              ))}
+            </View>
+          )}
+
           {/* Download Button Component */}
           {!!announcement.pdfUrl && announcement.pdfUrl.trim() !== '' && announcement.pdfUrl !== 'null' && (
             <TouchableOpacity 

@@ -88,6 +88,7 @@ export interface Announcement {
   date: string;
   category: string;
   image: string;
+  images?: string[];
   excerpt: string;
   content: string;
   pdfUrl?: string;

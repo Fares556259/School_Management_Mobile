@@ -529,10 +529,19 @@ export const studentService = {
     const data = await apiFetch(url);
     if (!Array.isArray(data)) return [];
     
-    return data.map((item: any) => ({
-      ...item,
-      image: getFullImageUrl(item.img || item.image),
-    }));
+    return data.map((item: any) => {
+      const rawImg = item.img || item.image || '';
+      let images: string[] = [];
+      if (rawImg && typeof rawImg === 'string') {
+        images = rawImg.split(',').map((url: string) => getFullImageUrl(url)).filter(Boolean) as string[];
+      }
+      
+      return {
+        ...item,
+        images,
+        image: images.length > 0 ? images[0] : 'https://ui-avatars.com/api/?name=Announcement&background=0055d4&color=fff&size=512',
+      };
+    });
   },
   
   fetchAttendanceHistory: async (studentId: string): Promise<AttendanceHistoryDay[]> => {
