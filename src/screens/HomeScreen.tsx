@@ -184,12 +184,15 @@ export const HomeScreen = ({ navigation, route }: any) => {
     const dateStr = selectedDate.toISOString().split('T')[0];
     const cacheKey = `HOME_DAY_CACHE_${selectedChildId}_${dateStr}`;
 
+    if (!isRefresh) {
+      setLoading(true);
+      setDayData({ sessions: [], notes: [], files: [], homeworkDue: [], homeworkGiven: [], exams: [] });
+    }
+
     const cachedData = await cacheManager.get<StudentDayData>(cacheKey);
     if (!isRefresh && cachedData) {
       setDayData(cachedData);
       setLoading(false);
-    } else {
-      if (!isRefresh) setLoading(true);
     }
 
     try {
