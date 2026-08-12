@@ -24,6 +24,8 @@ import { useLanguage } from '../context/LanguageContext';
 import { studentService } from '../services/api';
 import { PaymentRecord } from '../types';
 import { GlobalHeader } from '../components/GlobalHeader';
+import { cacheManager } from '../utils/cacheManager';
+import { SkeletonBlock } from '../components/SkeletonView';
 
 const { width } = Dimensions.get('window');
 
@@ -37,8 +39,17 @@ export const PaymentsScreen = ({ navigation }: any) => {
 
   const loadData = useCallback(async (id: string, isRefreshing = false) => {
     if (!isRefreshing) setLoading(true);
+    const cacheKey = `PAYMENTS_CACHE_${id}`;
+    
+    const cachedData = await cacheManager.get<PaymentRecord[]>(cacheKey);
+    if (!isRefreshing && cachedData) {
+      setHistory(cachedData);
+      setLoading(false);
+    }
+    
     const data = await studentService.fetchPayments(id, isRefreshing);
     setHistory(data);
+    await cacheManager.set(cacheKey, data);
     setLoading(false);
     setRefreshing(false);
   }, []);
@@ -79,18 +90,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
     };
   }, [history]);
 
-  if (loading && !refreshing) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
-        <GlobalHeader navigation={navigation} />
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color="#0055d4" />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
+  // Removed full-screen ActivityIndicator loading state
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
@@ -198,7 +198,27 @@ export const PaymentsScreen = ({ navigation }: any) => {
 
         {/* Payment List */}
         <View style={{ paddingHorizontal: 20 }}>
-          {processedList.length > 0 ? (
+          {loading && !refreshing ? (
+             <View style={{ gap: 16 }}>
+               {[1, 2, 3].map(i => (
+                 <View key={i} style={{ backgroundColor: '#ffffff', borderRadius: 24, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.04, shadowRadius: 16, elevation: 2, borderWidth: 1, borderColor: 'rgba(0,0,0,0.02)' }}>
+                   <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'flex-start', flex: 1 }}>
+                        <SkeletonBlock width={54} height={54} borderRadius={18} style={{ marginRight: isRTL ? 0 : 16, marginLeft: isRTL ? 16 : 0 }} />
+                        <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start', flex: 1, marginTop: 4 }}>
+                          <SkeletonBlock width={120} height={16} marginBottom={8} />
+                          <SkeletonBlock width={80} height={14} />
+                        </View>
+                      </View>
+                      <View style={{ alignItems: isRTL ? 'flex-start' : 'flex-end' }}>
+                         <SkeletonBlock width={90} height={20} marginBottom={12} />
+                         <SkeletonBlock width={70} height={24} borderRadius={12} />
+                      </View>
+                   </View>
+                 </View>
+               ))}
+             </View>
+          ) : processedList.length > 0 ? (
             <View style={{ gap: 16 }}>
               {processedList.map((item) => {
                 const isPaid = item.status === 'Paid';
