@@ -380,6 +380,13 @@ const translations = {
     totalDueNow: "المبلغ المستحق حالياً",
     downloadReceiptAction: "تحميل الوصل",
     paidWatermark: "خالص",
+    domainSciences: "العلوم",
+    domainLanguages: "اللغات",
+    domainArtsTech: "الفنون والتكنولوجيا",
+    domainHumanities: "العلوم الإنسانية",
+    domainReligion: "التربية الدينية والأخلاقية",
+    domainSport: "الرياضة",
+    domainOther: "مواد أخرى",
   },
   fr: {
     tabHome: "Accueil",
@@ -754,6 +761,13 @@ const translations = {
     totalDueNow: "Total dû actuellement",
     downloadReceiptAction: "Télécharger le reçu",
     paidWatermark: "PAYÉ",
+    domainSciences: "SCIENCES",
+    domainLanguages: "LANGUES",
+    domainArtsTech: "ARTS & TECHNOLOGIES",
+    domainHumanities: "SCIENCES HUMAINES",
+    domainReligion: "RELIGION & VALEURS",
+    domainSport: "SPORT",
+    domainOther: "AUTRES MATIÈRES",
   },
   en: {
     tabHome: "Home",
@@ -1128,6 +1142,13 @@ const translations = {
     totalDueNow: "Total Due Now",
     downloadReceiptAction: "Download Receipt",
     paidWatermark: "PAID",
+    domainSciences: "SCIENCES",
+    domainLanguages: "LANGUAGES",
+    domainArtsTech: "ARTS & TECHNOLOGY",
+    domainHumanities: "HUMANITIES",
+    domainReligion: "RELIGION & VALUES",
+    domainSport: "SPORT",
+    domainOther: "OTHER SUBJECTS",
   }
 };
 

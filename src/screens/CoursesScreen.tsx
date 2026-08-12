@@ -156,7 +156,15 @@ export const CoursesScreen = () => {
             {groupedCourses.map((group) => (
               <View key={group.domain.id} style={{ backgroundColor: 'white', borderRadius: 28, padding: 20, marginBottom: 8, borderWidth: 2, borderColor: '#e2e8f0', borderBottomWidth: 6, borderBottomColor: '#cbd5e1' }}>
                 <View style={{ backgroundColor: group.domain.color, paddingVertical: 14, borderRadius: 16, alignItems: 'center', marginBottom: 20, borderBottomWidth: 4, borderBottomColor: 'rgba(0,0,0,0.2)' }}>
-                  <Text style={{ color: 'white', fontWeight: '900', fontSize: 16, letterSpacing: 1 }}>{group.domain.title}</Text>
+                  <Text style={{ color: 'white', fontWeight: '900', fontSize: 16, letterSpacing: 1 }}>
+                    {group.domain.id === 'SCIENCES' ? ((t as any).domainSciences || group.domain.title) :
+                     group.domain.id === 'LANGUAGES' ? ((t as any).domainLanguages || group.domain.title) :
+                     group.domain.id === 'ARTS_TECH' ? ((t as any).domainArtsTech || group.domain.title) :
+                     group.domain.id === 'HUMANITIES' ? ((t as any).domainHumanities || group.domain.title) :
+                     group.domain.id === 'RELIGION' ? ((t as any).domainReligion || group.domain.title) :
+                     group.domain.id === 'SPORT' ? ((t as any).domainSport || group.domain.title) :
+                     group.domain.id === 'OTHER' ? ((t as any).domainOther || group.domain.title) : group.domain.title}
+                  </Text>
                 </View>
                 
                 <View style={{ gap: 16 }}>
