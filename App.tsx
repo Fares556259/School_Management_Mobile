@@ -262,6 +262,22 @@ export default function App() {
       }
     };
     bootstrap();
+
+    const { DeviceEventEmitter } = require('react-native');
+    const authSubscription = DeviceEventEmitter.addListener('auth_unauthorized', () => {
+      // Clear local state and go back to landing
+      authService.logout().then(() => {
+        setChildren([]);
+        setUserName("User");
+        setUserRole(null);
+        setUserId(null);
+        setAuthState('landing');
+      });
+    });
+
+    return () => {
+      authSubscription.remove();
+    };
   }, []);
 
   const navigateToNotification = (data: any) => {

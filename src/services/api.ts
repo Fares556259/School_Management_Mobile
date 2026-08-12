@@ -49,7 +49,8 @@ export const authStorage = {
   clear: () => AsyncStorage.multiRemove([USER_ID_KEY, USER_ROLE_KEY, SCHOOL_ID_KEY, JWT_TOKEN_KEY, STUDENTS_CACHE_KEY]),
   isLoggedIn: async () => {
     const id = await AsyncStorage.getItem(USER_ID_KEY);
-    return !!id;
+    const token = await AsyncStorage.getItem(JWT_TOKEN_KEY);
+    return !!id && !!token;
   },
   // Legacy compatibility wrappers
   getParentId: () => AsyncStorage.getItem(USER_ID_KEY),
@@ -102,6 +103,12 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
       if (!response.ok) {
         const text = await response.text();
         console.warn(`API Error [${response.status}] [${duration}ms] ${endpoint}: ${text}`);
+        
+        if (response.status === 401) {
+          const { DeviceEventEmitter } = require('react-native');
+          DeviceEventEmitter.emit('auth_unauthorized');
+        }
+        
         return null;
       }
 
@@ -229,8 +236,7 @@ export const authService = {
   },
 
   isLoggedIn: async (): Promise<boolean> => {
-    const id = await authStorage.getParentId();
-    return !!id;
+    return authStorage.isLoggedIn();
   },
 };
 
