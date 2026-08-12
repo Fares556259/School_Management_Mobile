@@ -327,6 +327,8 @@ const translations = {
     notifDefaultTitle: "إشعار",
     notifTeacherRemark: "ملاحظة المعلم",
     notifAttendanceUpdate: "تحديث الحضور",
+    completedTask: "مكتمل",
+    pendingTask: "قيد الانتظار",
   },
   fr: {
     tabHome: "Accueil",
@@ -648,6 +650,8 @@ const translations = {
     notifDefaultTitle: "Notification",
     notifTeacherRemark: "Remarque du professeur",
     notifAttendanceUpdate: "Mise à jour de présence",
+    completedTask: "Terminé",
+    pendingTask: "À faire",
   },
   en: {
     tabHome: "Home",
@@ -969,6 +973,8 @@ const translations = {
     notifDefaultTitle: "Notification",
     notifTeacherRemark: "Teacher Remark",
     notifAttendanceUpdate: "Attendance Update",
+    completedTask: "Completed",
+    pendingTask: "Pending",
   }
 };
 
