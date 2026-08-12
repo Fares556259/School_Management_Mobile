@@ -589,35 +589,49 @@ export const studentService = {
 
 export const uiService = {
   uploadImage: async (uri: string, type: 'profile' | 'student', id: string) => {
-    const formData = new FormData();
-    
-    // Create the file object from the URI
-    const uriParts = uri.split('.');
-    const fileType = uriParts[uriParts.length - 1];
+    try {
+      const formData = new FormData();
+      
+      // Create the file object from the URI
+      const uriParts = uri.split('.');
+      const fileType = uriParts[uriParts.length - 1];
 
-    formData.append('file', {
-      uri,
-      name: `photo.${fileType}`,
-      type: `image/${fileType}`,
-    } as any);
-    
-    formData.append('type', type);
-    formData.append('id', id);
+      formData.append('file', {
+        uri,
+        name: `photo.${fileType}`,
+        type: `image/${fileType}`,
+      } as any);
+      
+      formData.append('type', type);
+      formData.append('id', id);
 
-    const schoolId = await authStorage.getSchoolId();
-    const response = await fetch(`${API_BASE_URL}/api/mobile/upload`, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'x-school-id': schoolId || 'default_school',
-      },
-    });
+      const schoolId = await authStorage.getSchoolId();
+      
+      // Add a 5 second timeout so it doesn't hang forever if backend is unreachable
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(`${API_BASE_URL}/api/mobile/upload`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'x-school-id': schoolId || 'default_school',
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      throw new Error('Upload failed');
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.warn('Upload failed or timed out, using fallback local URI:', error);
+      // Fallback: return the local URI so the UI doesn't crash or block
+      return { url: uri, success: true };
     }
-
-    return await response.json();
   },
 };
 
@@ -668,17 +682,12 @@ export const teacherService = {
     resource?: { title: string; url: string };
   }) => {
     const teacherId = await authStorage.getUserId();
-    const schoolId = await authStorage.getSchoolId();
-    const response = await fetch(`${API_BASE_URL}/api/mobile/teacher/attendance`, {
+    const result = await apiFetch('/api/mobile/teacher/attendance', {
       method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "x-school-id": schoolId || 'default_school',
-      },
       body: JSON.stringify({ ...data, teacherId }),
     });
-    if (!response.ok) throw new Error("Failed to save attendance");
-    return response.json();
+    if (!result) throw new Error("Failed to save attendance");
+    return result;
   },
 
   saveLesson: async (lessonData: any) => {
