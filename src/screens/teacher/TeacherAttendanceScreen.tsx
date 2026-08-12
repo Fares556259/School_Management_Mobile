@@ -203,6 +203,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
   const { selectedTeacherClass, setSelectedTeacherClass } = useAppStore();
   const { t, language, isRTL } = useLanguage();
   const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
@@ -338,10 +339,15 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
       setNewTask({ title: '', description: '', show: false, attachments: [] });
       setSaveCount(prev => prev + 1);
       setSaving(false);
-      alert('Saved successfully!');
+      setToast({ message: 'Saved successfully!', type: 'success' });
+      setTimeout(() => setToast(null), 3000);
       // Silently refresh data in background
       refetchStudents();
-    } catch (err) { alert('Failed to save data'); setSaving(false); }
+    } catch (err) { 
+      setToast({ message: 'Failed to save data', type: 'error' });
+      setTimeout(() => setToast(null), 3000);
+      setSaving(false); 
+    }
   };
 
   // Generate calendar days
@@ -584,6 +590,35 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
             })}</ScrollView>
           </View>
         </View>
+      )}
+
+      {toast && (
+        <Animated.View style={{
+          position: 'absolute',
+          bottom: 120,
+          alignSelf: 'center',
+          backgroundColor: toast.type === 'success' ? '#10b981' : '#ef4444',
+          paddingHorizontal: 24,
+          paddingVertical: 14,
+          borderRadius: 30,
+          flexDirection: 'row',
+          alignItems: 'center',
+          shadowColor: toast.type === 'success' ? '#10b981' : '#ef4444',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.3,
+          shadowRadius: 12,
+          elevation: 8,
+          zIndex: 9999
+        }}>
+          {toast.type === 'success' ? (
+            <Check color="white" size={20} strokeWidth={3} />
+          ) : (
+            <X color="white" size={20} strokeWidth={3} />
+          )}
+          <Text style={{ color: 'white', fontWeight: '800', marginLeft: 10, fontSize: 16 }}>
+            {toast.message}
+          </Text>
+        </Animated.View>
       )}
     </SafeAreaView>
   );
