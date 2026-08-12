@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLanguage } from '../context/LanguageContext';
 import { ChevronLeft, AlertTriangle, Calendar, Bell, Info, MessageCircle } from 'lucide-react-native';
 
 const ICON_CONFIG: Record<string, { icon: any, color: string, bgColor: string }> = {
@@ -13,6 +14,7 @@ const ICON_CONFIG: Record<string, { icon: any, color: string, bgColor: string }>
 
 export const NotificationDetailScreen = ({ route, navigation }: any) => {
   const { notification } = route.params;
+  const { t, isRTL } = useLanguage();
   const config = ICON_CONFIG[notification.type] || ICON_CONFIG.DEFAULT;
   const Icon = config.icon;
 
@@ -43,7 +45,7 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <ChevronLeft size={20} color="#0f172a" strokeWidth={3} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Details</Text>
+        <Text style={styles.headerTitle}>{t.details}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -53,9 +55,9 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
           <View style={[styles.mainIconWrapper, { backgroundColor: config.bgColor }]}>
             <Icon size={32} color={config.color} strokeWidth={2.5} />
           </View>
-          <Text style={styles.typeLabel}>{notification.type} ALERT</Text>
+          <Text style={styles.typeLabel}>{notification.type} {t.alertWord}</Text>
           <Text style={styles.studentName}>{notification.studentName}</Text>
-          <Text style={styles.timeLabel}>{notification.time || '1d ago'}</Text>
+          <Text style={styles.timeLabel}>{notification.time || t.ago1d}</Text>
         </View>
 
         <View style={styles.divider} />
@@ -66,17 +68,17 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
             <View style={styles.statsRow}>
               <View style={[styles.statCard, { width: '47%' }]}>
                 <Text style={[styles.statValue, { color: '#ef4444' }]}>{absenceCount}</Text>
-                <Text style={styles.statLabel}>Absences this month</Text>
+                <Text style={styles.statLabel}>{t.absencesThisMonth}</Text>
               </View>
               <View style={[styles.statCard, { width: '47%' }]}>
                 <Text style={[styles.statValue, { color: '#94a3b8' }]}>{notification.className || 'N/A'}</Text>
-                <Text style={styles.statLabel}>Grade</Text>
+                <Text style={styles.statLabel}>{t.grade}</Text>
               </View>
             </View>
 
             {/* Sessions Section */}
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionLabel}>SESSIONS HISTORY</Text>
+              <Text style={styles.sectionLabel}>{t.sessionsHistory}</Text>
             </View>
 
             {realSessions.length > 0 ? (
@@ -91,13 +93,13 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
               ))
             ) : (
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>Detailed session data will appear here.</Text>
+                <Text style={styles.emptyText}>{t.detailedSessionData}</Text>
               </View>
             )}
 
             {/* Contact Section */}
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionLabel}>SCHOOL CONTACT</Text>
+              <Text style={styles.sectionLabel}>{t.schoolContact}</Text>
             </View>
 
             <View style={styles.contactCard}>
@@ -105,7 +107,7 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
                 <Text style={styles.avatarText}>AD</Text>
               </View>
               <View style={styles.contactInfo}>
-                <Text style={styles.contactLabel}>ADMINISTRATION</Text>
+                <Text style={styles.contactLabel}>{t.administration}</Text>
                 <Text style={styles.contactName}>SnapSchool Admin</Text>
                 <TouchableOpacity onPress={() => Linking.openURL('tel:+21671000000')}>
                   <Text style={styles.contactPhone}>+216 71 000 000</Text>
@@ -115,7 +117,7 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
 
             {/* Footer Button */}
             <TouchableOpacity onPress={() => Linking.openURL('tel:+21671000000')} style={styles.callButton}>
-              <Text style={styles.callButtonText}>Call School</Text>
+              <Text style={styles.callButtonText}>{t.callSchool}</Text>
             </TouchableOpacity>
           </>
         ) : (
@@ -123,14 +125,14 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
             <View style={styles.messageBubble}>
               <View style={styles.bubbleHeader}>
                 <MessageCircle size={20} color="#0055d4" />
-                <Text style={styles.bubbleTitle}>{notification.title || 'Official Message'}</Text>
+                <Text style={styles.bubbleTitle}>{notification.title || t.officialMessage}</Text>
               </View>
               <Text style={styles.announcementMessage}>{notification.message}</Text>
             </View>
             
             <View style={styles.infoCard}>
               <Info size={18} color="#64748b" />
-              <Text style={styles.infoText}>This is a school announcement. For any questions, please contact your child's teacher via the Courses tab.</Text>
+              <Text style={styles.infoText}>{t.announcementInfo}</Text>
             </View>
 
             {notification.message?.toLowerCase().includes('task') && (
@@ -141,7 +143,7 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
                 })}
                 style={[styles.callButton, { backgroundColor: '#0055d4', borderWidth: 0, marginTop: 24, marginHorizontal: 0 }]}
               >
-                <Text style={[styles.callButtonText, { color: 'white' }]}>View Task</Text>
+                <Text style={[styles.callButtonText, { color: 'white' }]}>{t.viewTask}</Text>
               </TouchableOpacity>
             )}
           </View>
