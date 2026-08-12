@@ -267,8 +267,11 @@ export const HomeScreen = ({ navigation, route }: any) => {
             <Text style={styles.sectionTitle}>{t.todaysSchedule}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
               {selectedDate.toDateString() !== new Date().toDateString() && (
-                <TouchableOpacity onPress={() => setSelectedDate(new Date())}>
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#1e293b' }}>{(t as any).today || 'Today'}</Text>
+                <TouchableOpacity 
+                  onPress={() => setSelectedDate(new Date())}
+                  style={{ backgroundColor: '#eff6ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: '#bfdbfe' }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '900', color: '#0072e6' }}>{(t as any).today || 'Today'}</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity onPress={() => navigation.navigate('Attendance')} style={styles.sectionActionBtn}>
