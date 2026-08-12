@@ -639,15 +639,8 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
                   color="#8b5cf6" iconBg="bg-purple-50"
                   label={t.reportCardItem} 
                   subtitle={t.profileReportCardSub}
+                  isLast
                   onPress={() => navigation.navigate('Results')} 
-                />
-                <SettingItemV3 
-                  icon={FileText} 
-                  color="#f59e0b" iconBg="bg-orange-50"
-                  label={t.documentCenterItem} 
-                  subtitle={t.profileDocumentCenterSub}
-                  isLast 
-                  onPress={() => navigation.navigate('DocumentCenter')} 
                 />
               </View>
             )}
