@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Image, StatusBar, Share, Acti
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, Share2, Clock, Megaphone, Download, Calendar } from 'lucide-react-native';
 import { downloadAndPreviewPDF } from '../utils/fileUtils';
+import moment from 'moment';
 
 const { width } = Dimensions.get('window');
 
@@ -144,8 +145,8 @@ export const AnnouncementDetailScreen = ({ route, navigation }: any) => {
             </View>
             <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#d1d5db', marginHorizontal: 12 }} />
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Calendar size={14} color="#64748b" />
-              <Text style={{ fontSize: 13, color: '#64748b', marginLeft: 6, fontWeight: '500' }}>{announcement.date}</Text>
+              <Calendar size={14} color="#94a3b8" />
+              <Text style={{ fontSize: 13, color: '#64748b', marginLeft: 6, fontWeight: '500' }}>{moment(announcement.date).format('DD MMM, YYYY')}</Text>
             </View>
           </View>
 

@@ -10,6 +10,7 @@ import { GlobalHeader } from '../components/GlobalHeader';
 import { Image } from 'expo-image';
 import { SkeletonBlock } from '../components/SkeletonView';
 import * as Haptics from 'expo-haptics';
+import moment from 'moment';
 
 // ─── Announcement Card ────────────────────────────────────────────────────────
 const AnnouncementCard = ({ item, onPress }: any) => {
@@ -58,7 +59,7 @@ const AnnouncementCard = ({ item, onPress }: any) => {
               {isUrgent ? (isRTL ? 'عاجل 🚨' : 'URGENT') : (isRTL ? 'أخبار المدرسة 📢' : (item.category || 'SCHOOL NEWS'))}
             </Text>
           </View>
-          <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700' }}>{item.date}</Text>
+          <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700' }}>{moment(item.date).format('DD MMM, YYYY')}</Text>
         </View>
 
         <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', marginBottom: 8, letterSpacing: -0.3, lineHeight: 24, textAlign: isRTL ? 'right' : 'left' }}>
