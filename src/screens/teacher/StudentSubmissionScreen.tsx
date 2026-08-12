@@ -65,13 +65,13 @@ export const StudentSubmissionScreen = ({ route, navigation }: any) => {
           </View>
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: isRTL ? 0 : 16, marginRight: isRTL ? 16 : 0 }}>
-          <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'التسليم' : language === 'fr' ? 'Soumission' : 'Submission'}</Text>
+          <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>{(t?.submission || 'Submission')}</Text>
           <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 1, textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>{task?.title}</Text>
         </View>
         {/* Completed Badge */}
         <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#dcfce7', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: '#bbf7d0' }}>
           <CheckCircle2 size={14} color="#16a34a" />
-          <Text style={{ fontSize: 12, fontWeight: '900', color: '#16a34a', marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }}>{language === 'ar' ? 'مكتمل' : language === 'fr' ? 'Terminé' : 'Completed'}</Text>
+          <Text style={{ fontSize: 12, fontWeight: '900', color: '#16a34a', marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }}>{(t?.completed || 'Completed')}</Text>
         </View>
       </View>
 
@@ -97,16 +97,16 @@ export const StudentSubmissionScreen = ({ route, navigation }: any) => {
               <Calendar size={22} color="#16a34a" />
             </View>
             <View>
-              <Text style={{ fontSize: 12, fontWeight: '900', color: '#16a34a', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'تم التسليم' : language === 'fr' ? 'Soumis' : 'Submitted'}</Text>
+              <Text style={{ fontSize: 12, fontWeight: '900', color: '#16a34a', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{(t?.submitted || 'Submitted')}</Text>
               <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e293b', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>{submittedDate}</Text>
-              <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '600', marginTop: 1, textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'في' : language === 'fr' ? 'à' : 'at'} {submittedTime}</Text>
+              <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '600', marginTop: 1, textAlign: isRTL ? 'right' : 'left' }}>{(t?.at || 'at')} {submittedTime}</Text>
             </View>
           </View>
         )}
 
         {/* Work Photo */}
         <Text style={{ fontSize: 12, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12, textAlign: isRTL ? 'right' : 'left' }}>
-          {language === 'ar' ? 'العمل المُسلّم' : language === 'fr' ? 'Travail soumis' : 'Work Submitted'}
+          {(t?.workSubmitted || 'Work Submitted')}
         </Text>
 
         {student.submissionImg ? (
@@ -127,7 +127,7 @@ export const StudentSubmissionScreen = ({ route, navigation }: any) => {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 15, fontWeight: '700', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>{fileName}</Text>
-                      <Text style={{ fontSize: 12, color: '#94a3b8', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'مستند PDF' : language === 'fr' ? 'Document PDF' : 'PDF Document'}</Text>
+                      <Text style={{ fontSize: 12, color: '#94a3b8', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>{(t?.pdfDocument || 'PDF Document')}</Text>
                     </View>
                     <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}>
                       <Download size={18} color="#64748b" />
@@ -150,7 +150,7 @@ export const StudentSubmissionScreen = ({ route, navigation }: any) => {
                   />
                   <View style={{ position: 'absolute', bottom: 14, [isRTL ? 'left' : 'right']: 14, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 10, padding: 8, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
                     <Maximize2 size={14} color="white" />
-                    <Text style={{ color: 'white', fontSize: 12, fontWeight: '700', marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }}>{language === 'ar' ? 'انقر للتكبير' : language === 'fr' ? 'Appuyez pour agrandir' : 'Tap to expand'}</Text>
+                    <Text style={{ color: 'white', fontSize: 12, fontWeight: '700', marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }}>{(t?.tapToExpand || 'Tap to expand')}</Text>
                   </View>
                 </TouchableOpacity>
               );
@@ -159,7 +159,7 @@ export const StudentSubmissionScreen = ({ route, navigation }: any) => {
         ) : (
           <View style={{ backgroundColor: 'white', borderRadius: 24, padding: 40, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#f1f5f9', borderStyle: 'dashed' }}>
             <Camera size={40} color="#d1d5db" />
-            <Text style={{ color: '#94a3b8', fontWeight: '700', marginTop: 12, fontSize: 15, textAlign: 'center' }}>{language === 'ar' ? 'لم يتم تسليم صورة' : language === 'fr' ? 'Aucune photo soumise' : 'No photo submitted'}</Text>
+            <Text style={{ color: '#94a3b8', fontWeight: '700', marginTop: 12, fontSize: 15, textAlign: 'center' }}>{(t?.noPhotoSubmitted || 'No photo submitted')}</Text>
             <Text style={{ color: '#cbd5e1', fontWeight: '500', marginTop: 4, fontSize: 13, textAlign: 'center' }}>{language === 'ar' ? 'تم وضع علامة على المهمة كمكتملة بدون إرفاق صورة' : language === 'fr' ? 'L\'étudiant a marqué comme terminé sans joindre de photo' : 'The student marked as done without attaching a photo'}</Text>
           </View>
         )}

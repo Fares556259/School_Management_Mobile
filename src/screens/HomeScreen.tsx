@@ -223,7 +223,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
 
   const allTasks = Array.from(
     new Map(
-      [...(dayData.homeworkDue || []), ...(dayData.homeworkGiven || [])].map((t: any) => [t.id, t])
+      (dayData.homeworkGiven || []).map((t: any) => [t.id, t])
     ).values()
   );
   const daysArr = [t.sunday, t.monday, t.tuesday, t.wednesday, t.thursday, t.friday, t.saturday];

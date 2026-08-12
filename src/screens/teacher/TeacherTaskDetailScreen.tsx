@@ -96,10 +96,10 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
           <View style={{ backgroundColor: 'white', borderRadius: 28, padding: 24, marginBottom: 24, borderWidth: 1, borderColor: '#f1f5f9' }}>
             <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <View>
-                <Text style={{ fontSize: 13, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'التقدم الإجمالي' : language === 'fr' ? 'Progrès global' : 'Overall Progress'}</Text>
+                <Text style={{ fontSize: 13, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{(t?.overallProgress || 'Overall Progress')}</Text>
                 <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'baseline', marginTop: 4 }}>
                   <Text style={{ fontSize: 36, fontWeight: '900', color: percent === 100 ? '#16a34a' : '#0055d4' }}>{percent}%</Text>
-                  <Text style={{ fontSize: 14, color: '#94a3b8', marginLeft: isRTL ? 0 : 8, marginRight: isRTL ? 8 : 0, fontWeight: '700' }}>{language === 'ar' ? 'مكتملة' : language === 'fr' ? 'terminé' : 'completed'}</Text>
+                  <Text style={{ fontSize: 14, color: '#94a3b8', marginLeft: isRTL ? 0 : 8, marginRight: isRTL ? 8 : 0, fontWeight: '700' }}>{(t?.completed2 || 'completed')}</Text>
                 </View>
               </View>
               <View style={{ alignItems: 'center' }}>
@@ -157,7 +157,7 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
             ))
           ) : (
             <View style={{ padding: 24, alignItems: 'center', backgroundColor: 'white', borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 10 }}>
-              <Text style={{ color: '#94a3b8', fontWeight: '600', fontSize: 14 }}>{language === 'ar' ? 'لا يوجد تسليمات بعد' : language === 'fr' ? 'Aucune soumission pour le moment' : 'No submissions yet'}</Text>
+              <Text style={{ color: '#94a3b8', fontWeight: '600', fontSize: 14 }}>{(t?.noSubmissionsYet || 'No submissions yet')}</Text>
             </View>
           )}
 
@@ -172,7 +172,7 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
               <Avatar name={student.name} img={student.avatar} />
               <Text style={{ fontSize: 15, fontWeight: '800', color: '#1e293b', marginLeft: isRTL ? 0 : 14, marginRight: isRTL ? 14 : 0, flex: 1, textAlign: isRTL ? 'right' : 'left' }}>{student.name}</Text>
               <View style={{ backgroundColor: '#fff7ed', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, borderWidth: 1, borderColor: '#fed7aa' }}>
-                <Text style={{ fontSize: 11, fontWeight: '900', color: '#ea580c' }}>⏳ {language === 'ar' ? 'قيد الانتظار' : language === 'fr' ? 'En attente' : 'Pending'}</Text>
+                <Text style={{ fontSize: 11, fontWeight: '900', color: '#ea580c' }}>⏳ {(t?.pending || 'Pending')}</Text>
               </View>
             </View>
           ))}
@@ -183,7 +183,7 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
               <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginBottom: 10 }}>
                 <Paperclip size={16} color="#0055d4" />
                 <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4', textTransform: 'uppercase', letterSpacing: 0.5, marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }}>
-                  {language === 'ar' ? 'تفاصيل المهمة والمرفقات' : language === 'fr' ? 'Détails de la tâche et pièces jointes' : 'Task Details & Attachments'}
+                  {(t?.taskDetailsAttachments || 'Task Details & Attachments')}
                 </Text>
               </View>
 

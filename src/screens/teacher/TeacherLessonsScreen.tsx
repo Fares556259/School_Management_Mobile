@@ -35,7 +35,7 @@ const getSubjectName = (name: string, lang: string) => {
 
 // ─── Resource Card ──────────────────────────────────────────────────────────
 const ResourceCard = ({ item }: any) => {
-  const { language, isRTL } = useLanguage();
+  const { t, language, isRTL } = useLanguage();
   const isLink = item.url?.startsWith('http') && !item.url?.includes('upload');
   const ext = item.url?.split('.').pop()?.toLowerCase();
   const isPdf = ext === 'pdf';
@@ -69,7 +69,7 @@ const ResourceCard = ({ item }: any) => {
           </Text>
         ) : null}
         <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '700', marginTop: item.description ? 4 : 2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          {getSubjectName(item.subject, language)} · {new Date(item.createdAt).toLocaleDateString(language === 'ar' ? 'ar-SA' : language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric' })}
+          {getSubjectName(item.subject, language)} · {new Date(item.createdAt).toLocaleDateString((t?.enus1 || 'en-US'), { month: 'short', day: 'numeric' })}
         </Text>
       </View>
       <View style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
@@ -252,10 +252,10 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
 
         <TouchableOpacity onPress={() => setShowClassSwitcher(true)} style={{ flex: 1, marginHorizontal: 16, alignItems: 'center' }}>
           <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
-            <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>{selectedClass?.name || (language === 'ar' ? 'اختر القسم' : language === 'fr' ? 'Sélectionner la classe' : 'Select Class')}</Text>
+            <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>{selectedClass?.name || ((t?.selectClass1 || 'Select Class'))}</Text>
             <ChevronDown size={16} color="#0055d4" style={{ marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }} />
           </View>
-          <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', marginTop: 2 }}>{language === 'ar' ? 'انقر للتغيير' : language === 'fr' ? 'Appuyer pour changer' : 'Tap to switch'}</Text>
+          <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', marginTop: 2 }}>{(t?.tapToSwitch1 || 'Tap to switch')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setShowAddForm(!showAddForm)} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#dbeafe' }}>
@@ -280,7 +280,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
           >
             <View style={{ backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24, maxHeight: '90%' }}>
               <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>{language === 'ar' ? 'إضافة مادة' : language === 'fr' ? 'Ajouter du matériel' : 'Add Material'}</Text>
+                <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>{(t?.addMaterial || 'Add Material')}</Text>
                 <TouchableOpacity onPress={() => { setShowAddForm(false); setAttachedFiles([]); setFormTitle(''); }}>
                   <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}>
                     <X size={20} color="#64748b" />
@@ -290,17 +290,17 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
 
               <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
                 {/* Title */}
-                <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'العنوان *' : language === 'fr' ? 'Titre *' : 'Title *'}</Text>
+                <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{(t?.title || 'Title *')}</Text>
                 <TextInput
                   style={{ backgroundColor: '#f8fafc', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#f1f5f9', fontSize: 15, color: '#1e293b', marginBottom: 16, textAlign: isRTL ? 'right' : 'left' }}
-                  placeholder={language === 'ar' ? 'مثال: ملاحظات الفصل 3' : language === 'fr' ? 'ex. Notes du Chapitre 3' : 'e.g. Chapter 3 Notes'}
+                  placeholder={(t?.egChapter3Notes || 'e.g. Chapter 3 Notes')}
                   placeholderTextColor="#94a3b8"
                   value={formTitle}
                   onChangeText={setFormTitle}
                 />
 
                 {/* Subject Picker (Inline list) */}
-                <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'المادة *' : language === 'fr' ? 'Matière *' : 'Subject *'}</Text>
+                <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{(t?.subject || 'Subject *')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20, transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     {subjects.map(s => {
@@ -328,17 +328,17 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
                 </ScrollView>
 
                 {/* Target Class Info */}
-                <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'القسم المستهدف' : language === 'fr' ? 'Classe cible' : 'Target Class'}</Text>
+                <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{(t?.targetClass || 'Target Class')}</Text>
                 <View style={{ backgroundColor: '#eff6ff', padding: 14, borderRadius: 14, marginBottom: 20, borderWidth: 1, borderColor: '#dbeafe', flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
                   <Layout size={18} color="#0055d4" />
                   <Text style={{ marginLeft: isRTL ? 0 : 10, marginRight: isRTL ? 10 : 0, color: '#0055d4', fontWeight: '800' }}>{selectedClass?.name || 'Loading...'}</Text>
                 </View>
 
                 {/* Description */}
-                <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'الوصف (اختياري)' : language === 'fr' ? 'Description (optionnel)' : 'Description (optional)'}</Text>
+                <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{(t?.descriptionOptional1 || 'Description (optional)')}</Text>
                 <TextInput
                   style={{ backgroundColor: '#f8fafc', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#f1f5f9', fontSize: 15, color: '#1e293b', marginBottom: 16, minHeight: 70, textAlignVertical: 'top', textAlign: isRTL ? 'right' : 'left' }}
-                  placeholder={language === 'ar' ? 'وصف موجز للمادة...' : language === 'fr' ? 'Brève description du matériel...' : 'Brief description of this material...'}
+                  placeholder={(t?.briefDescriptionOfThisMaterial || 'Brief description of this material...')}
                   placeholderTextColor="#94a3b8"
                   value={formDescription}
                   onChangeText={setFormDescription}
@@ -367,7 +367,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
                 >
                   <Plus size={20} color="#94a3b8" />
                   <Text style={{ marginLeft: isRTL ? 0 : 10, marginRight: isRTL ? 10 : 0, color: '#94a3b8', fontWeight: '800', fontSize: 14 }}>
-                    {language === 'ar' ? 'إرفاق ملفات أو صور' : language === 'fr' ? 'Joindre des fichiers ou des images' : 'Attach Files or Images'}
+                    {(t?.attachFilesOrImages || 'Attach Files or Images')}
                   </Text>
                 </TouchableOpacity>
 
@@ -380,7 +380,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
                     <>
                       <Upload size={18} color="white" />
                       <Text style={{ color: 'white', fontWeight: '900', fontSize: 15, marginLeft: isRTL ? 0 : 10, marginRight: isRTL ? 10 : 0 }}>
-                        {language === 'ar' ? 'رفع ومشاركة' : language === 'fr' ? 'Télécharger et partager' : 'Upload & Share'}
+                        {(t?.uploadShare || 'Upload & Share')}
                       </Text>
                     </>
                   )}
@@ -425,7 +425,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
                   <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
                     <BookOpen size={18} color="#0055d4" style={{ marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }} />
                     <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e293b' }}>
-                      {selectedFilterSubject || (language === 'ar' ? 'كل المواد' : language === 'fr' ? 'Toutes les matières' : 'All Subjects')}
+                      {selectedFilterSubject || ((t?.allSubjects || 'All Subjects'))}
                     </Text>
                   </View>
                   <ChevronDown size={20} color="#64748b" />
@@ -443,12 +443,12 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
                     <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
                       <BookOpen size={44} color="#0055d4" strokeWidth={2} />
                     </View>
-                    <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b', textAlign: 'center' }}>{language === 'ar' ? 'لا يوجد مواد بعد' : language === 'fr' ? 'Aucun matériel pour le moment' : 'No Materials Yet'}</Text>
+                    <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b', textAlign: 'center' }}>{(t?.noMaterialsYet || 'No Materials Yet')}</Text>
                     <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '600', textAlign: 'center', marginTop: 10, paddingHorizontal: 40, lineHeight: 22 }}>
-                      {language === 'ar' ? 'قم برفع ملفات PDF، ملاحظات، أو روابط ليتمكن تلاميذك من الوصول إليها.' : language === 'fr' ? 'Téléchargez des PDF, des notes ou des liens pour que vos élèves y accèdent.' : 'Upload PDFs, notes, or links for your students to access.'}
+                      {(t?.uploadPdfsNotesOrLinks || 'Upload PDFs, notes, or links for your students to access.')}
                     </Text>
                     <TouchableOpacity onPress={() => setShowAddForm(true)} style={{ marginTop: 32, backgroundColor: '#0055d4', paddingHorizontal: 32, paddingVertical: 16, borderRadius: 20 }}>
-                      <Text style={{ color: 'white', fontWeight: '900', fontSize: 15 }}>{language === 'ar' ? 'إضافة مادة' : language === 'fr' ? 'Ajouter du matériel' : 'Add Material'}</Text>
+                      <Text style={{ color: 'white', fontWeight: '900', fontSize: 15 }}>{(t?.addMaterial1 || 'Add Material')}</Text>
                     </TouchableOpacity>
                   </View>
                 );
@@ -475,7 +475,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
                       <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
                         <Text style={{ fontSize: 13, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 }}>{subjectName}</Text>
                         <Text style={{ fontSize: 12, fontWeight: '700', color: '#94a3b8' }}>
-                          {items.length} {items.length === 1 ? (language === 'ar' ? 'ملف' : language === 'fr' ? 'fichier' : 'file') : (language === 'ar' ? 'ملفات' : language === 'fr' ? 'fichiers' : 'files')}
+                          {items.length} {items.length === 1 ? ((t?.file || 'file')) : ((t?.files || 'files'))}
                         </Text>
                       </View>
                       {items.map((r: any) => <ResourceCard key={r.id} item={r} />)}
@@ -495,7 +495,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
           <View style={{ backgroundColor: 'white', borderTopLeftRadius: 40, borderTopRightRadius: 40, padding: 32, paddingBottom: 60 }}>
             <View style={{ width: 40, height: 5, backgroundColor: '#e2e8f0', borderRadius: 10, alignSelf: 'center', marginBottom: 24 }} />
             <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b' }}>{language === 'ar' ? 'تغيير القسم' : language === 'fr' ? 'Changer de classe' : 'Switch Class'}</Text>
+              <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b' }}>{(t?.switchClass1 || 'Switch Class')}</Text>
               <TouchableOpacity onPress={() => setShowClassSwitcher(false)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}>
                 <X size={20} color="#64748b" />
               </TouchableOpacity>
@@ -531,7 +531,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
           <View style={{ backgroundColor: 'white', borderTopLeftRadius: 40, borderTopRightRadius: 40, padding: 32, paddingBottom: 60 }}>
             <View style={{ width: 40, height: 5, backgroundColor: '#e2e8f0', borderRadius: 10, alignSelf: 'center', marginBottom: 24 }} />
             <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b' }}>{language === 'ar' ? 'تصفية حسب المادة' : language === 'fr' ? 'Filtrer par matière' : 'Filter by Subject'}</Text>
+              <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b' }}>{(t?.filterBySubject || 'Filter by Subject')}</Text>
               <TouchableOpacity onPress={() => setShowFilterSubjectSwitcher(false)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}>
                 <X size={20} color="#64748b" />
               </TouchableOpacity>

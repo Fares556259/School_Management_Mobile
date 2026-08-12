@@ -677,8 +677,9 @@ export const teacherService = {
     date: string; 
     records: { studentId: string; status: string; note?: string; score?: number }[];
     lessonId: number | null;
+    slotId?: number | null;
     subjectId?: number | null;
-    task?: { title: string; description?: string };
+    task?: { title: string; description?: string; attachments?: any[] };
     resource?: { title: string; url: string };
   }) => {
     const teacherId = await authStorage.getUserId();

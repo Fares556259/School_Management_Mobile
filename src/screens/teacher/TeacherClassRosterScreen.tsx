@@ -103,7 +103,7 @@ export const TeacherClassRosterScreen = ({ route, navigation }: any) => {
           <View style={{ alignItems: 'center', marginTop: 100 }}>
             <User size={64} color="#cbd5e1" />
             <Text style={{ fontSize: 16, color: '#64748b', fontWeight: 'bold', marginTop: 16 }}>
-              {language === 'ar' ? 'لا يوجد تلاميذ' : language === 'fr' ? 'Aucun élève' : 'No students'}
+              {(t?.noStudents || 'No students')}
             </Text>
           </View>
         ) : (

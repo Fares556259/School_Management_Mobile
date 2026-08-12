@@ -51,7 +51,7 @@ const ClassCard = ({ item, navigation, setSelectedTeacherClass, t, language, isR
       
       <View style={{ flex: 1, alignItems: language === 'ar' ? 'flex-end' : 'flex-start' }}>
         <Text style={{ fontSize: 16, fontWeight: '900', color: '#2b3437' }}>{item.name}</Text>
-        <Text style={{ fontSize: 12, color: '#737c7f', marginTop: 2 }}>{item.subject || (language === 'ar' ? 'مواد مختلفة' : language === 'fr' ? 'Matières diverses' : 'Various subjects')} · {item.students} {t.teacherStudents}</Text>
+        <Text style={{ fontSize: 12, color: '#737c7f', marginTop: 2 }}>{item.subject || ((t?.variousSubjects || 'Various subjects'))} · {item.students} {t.teacherStudents}</Text>
       </View>
       
       <View style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
@@ -114,7 +114,7 @@ export const TeacherClassesScreen = ({ navigation }: any) => {
         <TextInput 
           value={search}
           onChangeText={setSearch}
-          placeholder={language === 'ar' ? 'بحث عن قسم أو تلميذ...' : language === 'fr' ? 'Rechercher des classes ou des élèves...' : 'Search classes or students...'}
+          placeholder={(t?.searchClassesOrStudents || 'Search classes or students...')}
           placeholderTextColor="#94a3b8"
           style={{ flex: 1, marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0, fontSize: 15, color: '#2b3437', textAlign: isRTL ? 'right' : 'left' }}
         />

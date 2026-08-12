@@ -31,7 +31,7 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
 
   const handleCheckStatus = async () => {
     if (!phone.trim()) { 
-      setError(language === 'ar' ? 'الرجاء إدخال رقم الهاتف' : language === 'fr' ? 'Veuillez saisir votre numéro' : 'Please enter your phone number.'); 
+      setError((t?.pleaseEnterYourPhoneNumber || 'Please enter your phone number.')); 
       return; 
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -43,11 +43,11 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
         setTempParent({ name: result.name || 'User', img: result.img || null });
         setStep(result.status);
       } else {
-        setError(result.error || (language === 'ar' ? 'الحساب غير موجود' : 'Account not found. Please contact support.'));
+        setError(result.error || ((t?.accountNotFoundPleaseContact || 'Account not found. Please contact support.')));
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     } catch (e) {
-      setError(language === 'ar' ? 'خطأ في الاتصال بالشبكة' : 'Network error. Please try again.');
+      setError((t?.networkErrorPleaseTryAgain || 'Network error. Please try again.'));
     } finally {
       setIsLoading(false);
     }
@@ -55,7 +55,7 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
 
   const handleFinalAuth = async () => {
     if (!password.trim()) { 
-      setError(language === 'ar' ? 'الرجاء إدخال كلمة السر' : 'Please enter your password.'); 
+      setError((t?.pleaseEnterYourPassword || 'Please enter your password.')); 
       return; 
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -66,7 +66,7 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
       const result = await authService.authenticate(phone.trim(), password, action, role);
       if (result.success) {
         if (step === 'NEEDS_SETUP') {
-          setHint(language === 'ar' ? 'تم إنشاء كلمة السر! تفضل بتسجيل الدخول.' : 'Password set! Please sign in.');
+          setHint((t?.passwordSetPleaseSignIn || 'Password set! Please sign in.'));
           setPassword('');
           setStep('NEEDS_PASSWORD');
           setIsLoading(false);
@@ -79,7 +79,7 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
       } else {
         const errorMessage = result.error || 'Authentication failed.';
         if (errorMessage.toLowerCase().includes('password not set')) {
-          setHint(language === 'ar' ? 'يرجى اختيار كلمة سر جديدة للحساب' : 'Account reset by admin. Please choose a new password.');
+          setHint((t?.accountResetByAdminPlease || 'Account reset by admin. Please choose a new password.'));
           setPassword('');
           setStep('NEEDS_SETUP');
           setIsLoading(false);
@@ -89,7 +89,7 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     } catch (e) {
-      setError(language === 'ar' ? 'فشل تسجيل الدخول. تحقق من الاتصال' : 'Authentication failed. Please check your connection.');
+      setError((t?.authenticationFailedPleaseCheckYour || 'Authentication failed. Please check your connection.'));
     } finally {
       setIsLoading(false);
     }
@@ -107,22 +107,22 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
   };
 
   const stepTitle = step === 'PHONE'
-    ? (language === 'ar' ? 'مرحباً بك مجدداً!' : language === 'fr' ? 'Bienvenue !' : 'Welcome back!')
+    ? ((t?.welcomeBack || 'Welcome back!'))
     : step === 'NEEDS_SETUP'
-    ? (language === 'ar' ? 'أنشئ كلمة السر' : language === 'fr' ? 'Créez votre mot de passe' : 'Create your password')
+    ? ((t?.createYourPassword || 'Create your password'))
     : (language === 'ar' ? `مرحباً، ${tempParent?.name?.split(' ')[0]} 👋` : `Hi, ${tempParent?.name?.split(' ')[0]} 👋`);
 
   const stepSub = step === 'PHONE'
-    ? (language === 'ar' ? 'أدخل رقم الهاتف المسجل لدى المدرسة' : language === 'fr' ? 'Entrez votre numéro de téléphone' : 'Enter your registered phone number')
+    ? ((t?.enterYourRegisteredPhoneNumber || 'Enter your registered phone number'))
     : step === 'NEEDS_SETUP'
-    ? (language === 'ar' ? 'اختر كلمة سر قوية للدخول إلى حسابك' : language === 'fr' ? 'Choisissez un mot de passe sécurisé' : 'Choose a strong password for your first login')
+    ? ((t?.chooseAStrongPasswordFor || 'Choose a strong password for your first login'))
     : (language === 'ar' ? 'أدخل كلمة السر للمتابعة' : language === 'fr' ? 'Entrez votre mot de passe pour continuer' : `Enter your password to continue`);
 
   const btnLabel = step === 'PHONE' 
-    ? (language === 'ar' ? 'متابعة' : language === 'fr' ? 'Continuer' : 'Continue') 
+    ? ((t?.continue || 'Continue')) 
     : step === 'NEEDS_SETUP' 
-    ? (language === 'ar' ? 'حفظ كلمة السر' : language === 'fr' ? 'Créer mot de passe' : 'Set Password') 
-    : (language === 'ar' ? 'تسجيل الدخول' : language === 'fr' ? 'Se connecter' : 'Sign In');
+    ? ((t?.setPassword || 'Set Password')) 
+    : ((t?.signIn || 'Sign In'));
 
   return (
     <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
@@ -206,7 +206,7 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
                 Snap<Text style={{ color: '#0055d4' }}>School</Text>
               </Text>
               <Text style={{ fontSize: 13, color: '#737c7f', fontWeight: 'bold', marginTop: 4, letterSpacing: 1 }}>
-                {role === 'parent' ? (language === 'ar' ? 'فضاء الأولياء' : language === 'fr' ? 'ESPACE PARENTS' : 'PARENT PORTAL') : (language === 'ar' ? 'فضاء المعلمين' : language === 'fr' ? 'ESPACE ENSEIGNANTS' : 'TEACHER PORTAL')}
+                {role === 'parent' ? ((t?.parentPortal || 'PARENT PORTAL')) : ((t?.teacherPortal || 'TEACHER PORTAL'))}
               </Text>
             </View>
 
@@ -237,7 +237,7 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
                 <TextInput
                   value={phone}
                   onChangeText={t => { setPhone(t); setError(''); }}
-                  placeholder={language === 'ar' ? 'مثال: 55 666 777' : 'e.g. 55 666 777'}
+                  placeholder={(t?.eg55666777 || 'e.g. 55 666 777')}
                   placeholderTextColor="#94a3b8"
                   keyboardType="phone-pad"
                   autoFocus
@@ -263,7 +263,7 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
                 <TextInput
                   value={password}
                   onChangeText={t => { setPassword(t); setError(''); }}
-                  placeholder={step === 'NEEDS_SETUP' ? (language === 'ar' ? 'كلمة سر جديدة' : 'Create a strong password') : (language === 'ar' ? 'كلمة السر' : 'Your password')}
+                  placeholder={step === 'NEEDS_SETUP' ? ((t?.createAStrongPassword || 'Create a strong password')) : ((t?.yourPassword || 'Your password'))}
                   placeholderTextColor="#94a3b8"
                   secureTextEntry
                   autoFocus
@@ -337,7 +337,7 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
                 Secure Institutional Access
               </Text>
               <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '500', marginTop: 6, textAlign: 'center', lineHeight: 16 }}>
-                {language === 'ar' ? 'إدارة وتوثيق الحسابات تتم بالتنسيق مع إدارة المدرسة' : 'Account management handled by SnapSchool Admin.'}
+                {(t?.accountManagementHandledBySnapschool || 'Account management handled by SnapSchool Admin.')}
               </Text>
             </View>
           </ScrollView>

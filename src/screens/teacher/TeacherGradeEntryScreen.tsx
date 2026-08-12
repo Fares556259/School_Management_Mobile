@@ -208,16 +208,16 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
           </View>
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 24, fontWeight: '900', color: '#1e293b', letterSpacing: -0.5, textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'إدخال الدرجات' : language === 'fr' ? 'Saisie des notes' : 'Grade Entry'}</Text>
-          <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '600', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'حدد فصلا لتسجيل التقييمات' : language === 'fr' ? 'Sélectionner une classe pour enregistrer les évaluations' : 'Select class to record evaluations'}</Text>
+          <Text style={{ fontSize: 24, fontWeight: '900', color: '#1e293b', letterSpacing: -0.5, textAlign: isRTL ? 'right' : 'left' }}>{(t?.gradeEntry || 'Grade Entry')}</Text>
+          <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '600', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>{(t?.selectClassToRecordEvaluations || 'Select class to record evaluations')}</Text>
         </View>
       </View>
 
       {/* Classes List Header */}
       <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-        <Text style={{ fontSize: 12, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8 }}>{language === 'ar' ? 'فصولك' : language === 'fr' ? 'Vos classes' : 'Your Classes'}</Text>
+        <Text style={{ fontSize: 12, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8 }}>{(t?.yourClasses || 'Your Classes')}</Text>
         <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
-          <Text style={{ fontSize: 12, fontWeight: '800', color: '#0055d4' }}>{classes.length} {language === 'ar' ? 'متاح' : language === 'fr' ? 'Disponible(s)' : 'Available'}</Text>
+          <Text style={{ fontSize: 12, fontWeight: '800', color: '#0055d4' }}>{classes.length} {(t?.available || 'Available')}</Text>
         </View>
       </View>
 
@@ -229,7 +229,7 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
           <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
             <Users size={28} color="#94a3b8" />
           </View>
-          <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e293b' }}>{language === 'ar' ? 'لم يتم تعيين فصول' : language === 'fr' ? 'Aucune classe attribuée' : 'No classes assigned'}</Text>
+          <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e293b' }}>{(t?.noClassesAssigned || 'No classes assigned')}</Text>
           <Text style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', marginTop: 4, paddingHorizontal: 32 }}>
             {language === 'ar' ? 'لم يتم تعيينك لأي فصول بعد.' : language === 'fr' ? 'Vous n\'avez encore été affecté à aucune classe.' : 'You have not been assigned to any classes yet.'}
           </Text>
@@ -254,7 +254,7 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
             <View style={{ marginLeft: isRTL ? 0 : 16, marginRight: isRTL ? 16 : 0, flex: 1 }}>
               <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? `الفصل ${cls.name}` : language === 'fr' ? `Classe ${cls.name}` : `Class ${cls.name}`}</Text>
               <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '600', marginTop: 3, textAlign: isRTL ? 'right' : 'left' }}>
-                {cls.students || cls.studentsCount || 0} {language === 'ar' ? 'طلاب مسجلين' : language === 'fr' ? 'étudiants inscrits' : 'students enrolled'}
+                {cls.students || cls.studentsCount || 0} {(t?.studentsEnrolled || 'students enrolled')}
               </Text>
             </View>
             <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}>
@@ -281,11 +281,11 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>{selectedClass?.name}</Text>
-          <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '700', textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'حدد المادة والفصل الدراسي' : language === 'fr' ? 'Sélectionner la matière et le trimestre' : 'Select Subject & Term'}</Text>
+          <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '700', textAlign: isRTL ? 'right' : 'left' }}>{(t?.selectSubjectTerm || 'Select Subject & Term')}</Text>
         </View>
       </View>
 
-      <Text style={{ fontSize: 13, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12, textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'حدد الفصل الدراسي' : language === 'fr' ? 'Sélectionner le trimestre' : 'Select Term'}</Text>
+      <Text style={{ fontSize: 13, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12, textAlign: isRTL ? 'right' : 'left' }}>{(t?.selectTerm || 'Select Term')}</Text>
       <View style={{ flexDirection: 'row', gap: 12, marginBottom: 28 }}>
         {[1, 2, 3].map(term => (
           <TouchableOpacity
@@ -307,7 +307,7 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
       </View>
 
       <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <Text style={{ fontSize: 13, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.8 }}>{language === 'ar' ? 'المواد المتاحة' : language === 'fr' ? 'Matières disponibles' : 'Available Subjects'}</Text>
+        <Text style={{ fontSize: 13, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.8 }}>{(t?.availableSubjects || 'Available Subjects')}</Text>
         <Text style={{ fontSize: 12, fontWeight: '700', color: '#94a3b8' }}>{subjects.length} {language === 'ar' ? 'مواد' : language === 'fr' ? 'Matière(s)' : (subjects.length === 1 ? 'Subject' : 'Subjects')}</Text>
       </View>
 
@@ -369,9 +369,9 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
         </View>
 
         <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b', textTransform: 'uppercase', letterSpacing: 1 }}>{language === 'ar' ? 'إدخال الدرجات' : language === 'fr' ? 'Saisie des notes' : 'Grade Entry'}</Text>
+          <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b', textTransform: 'uppercase', letterSpacing: 1 }}>{(t?.gradeEntry1 || 'Grade Entry')}</Text>
           <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}>
-            <Text style={{ fontSize: 12, fontWeight: '900', color: '#4F46E5' }}>{gradedCount} / {students.length} {language === 'ar' ? 'مقيّم' : language === 'fr' ? 'noté(s)' : 'graded'}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '900', color: '#4F46E5' }}>{gradedCount} / {students.length} {(t?.graded || 'graded')}</Text>
           </View>
         </View>
 
@@ -379,7 +379,7 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
         <View style={{ marginBottom: 16, backgroundColor: 'white', padding: 14, borderRadius: 16, borderWidth: 1, borderColor: '#f1f5f9' }}>
           <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <Text style={{ fontSize: 11, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              {language === 'ar' ? 'مساعد الأعشار السريع' : language === 'fr' ? 'Assistant décimal rapide' : 'Quick Decimal Assistant'}
+              {(t?.quickDecimalAssistant || 'Quick Decimal Assistant')}
             </Text>
             {activeStudentId && (
               <Text style={{ fontSize: 11, fontWeight: '700', color: '#0055d4' }}>
@@ -403,7 +403,7 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
                   }}
                 >
                   <Text style={{ fontSize: 13, fontWeight: '900', color: f === 'CLEAR' ? '#ef4444' : '#0055d4' }}>
-                    {f === 'CLEAR' ? (language === 'ar' ? 'مسح' : language === 'fr' ? 'Effacer' : 'Clear') : f}
+                    {f === 'CLEAR' ? ((t?.clear || 'Clear')) : f}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -461,12 +461,12 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
         )}
 
         <View style={{ marginTop: 24, padding: 16, borderRadius: 16, backgroundColor: 'white', borderWidth: 1, borderColor: '#f1f5f9' }}>
-          <Text style={{ fontSize: 14, fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: 12, textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'إثبات كشف الدرجات (اختياري)' : language === 'fr' ? 'Preuve de la feuille de notes (Optionnel)' : 'Grade Sheet Proof (Optional)'}</Text>
+          <Text style={{ fontSize: 14, fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: 12, textAlign: isRTL ? 'right' : 'left' }}>{(t?.gradeSheetProofOptional || 'Grade Sheet Proof (Optional)')}</Text>
           {proofImage ? (
             <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 12, borderRadius: 12 }}>
               <ImageIcon size={24} color="#4F46E5" />
               <Text style={{ flex: 1, marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0, fontSize: 14, fontWeight: '700', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>
-                {proofImage.fileName || (language === 'ar' ? 'صورة الإثبات مرفقة' : language === 'fr' ? 'Image de preuve jointe' : 'Proof Image attached')}
+                {proofImage.fileName || ((t?.proofImageAttached || 'Proof Image attached'))}
               </Text>
               <TouchableOpacity onPress={() => setProofImage(null)} style={{ padding: 4 }}>
                 <X size={20} color="#94a3b8" />
@@ -479,14 +479,14 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
                 style={{ flex: 1, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, backgroundColor: '#eff6ff', borderRadius: 12 }}
               >
                 <Camera size={18} color="#4F46E5" />
-                <Text style={{ marginLeft: isRTL ? 0 : 8, marginRight: isRTL ? 8 : 0, fontSize: 14, fontWeight: '800', color: '#4F46E5' }}>{language === 'ar' ? 'كاميرا' : language === 'fr' ? 'Caméra' : 'Camera'}</Text>
+                <Text style={{ marginLeft: isRTL ? 0 : 8, marginRight: isRTL ? 8 : 0, fontSize: 14, fontWeight: '800', color: '#4F46E5' }}>{(t?.camera || 'Camera')}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 onPress={() => pickImage(false)}
                 style={{ flex: 1, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, backgroundColor: '#f8fafc', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' }}
               >
                 <ImageIcon size={18} color="#64748b" />
-                <Text style={{ marginLeft: isRTL ? 0 : 8, marginRight: isRTL ? 8 : 0, fontSize: 14, fontWeight: '800', color: '#64748b' }}>{language === 'ar' ? 'المعرض' : language === 'fr' ? 'Galerie' : 'Gallery'}</Text>
+                <Text style={{ marginLeft: isRTL ? 0 : 8, marginRight: isRTL ? 8 : 0, fontSize: 14, fontWeight: '800', color: '#64748b' }}>{(t?.gallery || 'Gallery')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -509,7 +509,7 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
             {saving ? (
               <ActivityIndicator color="white" />
             ) : (
-              <Text style={{ color: 'white', fontSize: 16, fontWeight: '900' }}>{language === 'ar' ? 'حفظ الدرجات' : language === 'fr' ? 'Enregistrer les notes' : 'Save Grades'}</Text>
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: '900' }}>{(t?.saveGrades || 'Save Grades')}</Text>
             )}
           </TouchableOpacity>
         </View>

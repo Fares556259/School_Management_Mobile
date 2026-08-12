@@ -145,7 +145,7 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
           { (task.description || task.content || task.text) ? (
             <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '600', marginTop: 8, lineHeight: 22, textAlign: isRTL ? 'right' : 'left' }}>{task.description || task.content || task.text}</Text>
           ) : (
-            <Text style={{ fontSize: 14, color: '#cbd5e1', fontWeight: '500', marginTop: 8, fontStyle: 'italic', textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'لم يتم توفير وصف' : language === 'fr' ? 'Aucune description fournie' : 'No description provided'}</Text>
+            <Text style={{ fontSize: 14, color: '#cbd5e1', fontWeight: '500', marginTop: 8, fontStyle: 'italic', textAlign: isRTL ? 'right' : 'left' }}>{(t?.noDescriptionProvided || 'No description provided')}</Text>
           )}
 
           {(task.attachments && task.attachments.length > 0) ? (
@@ -153,32 +153,32 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
               {task.attachments.some((a: any) => a.type === 'IMAGE' || a.uri?.match(/\.(jpg|jpeg|png)$/i)) && (
                 <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#f5f3ff', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12 }}>
                   <ImageIcon size={14} color="#8b5cf6" />
-                  <Text style={{ fontSize: 11, fontWeight: '900', color: '#8b5cf6', marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }}>{language === 'ar' ? 'صورة مرفقة' : language === 'fr' ? 'Photo jointe' : 'Photo Attached'}</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '900', color: '#8b5cf6', marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }}>{(t?.photoAttached || 'Photo Attached')}</Text>
                 </View>
               )}
               {task.attachments.some((a: any) => a.type === 'PDF' || a.uri?.match(/\.pdf$/i)) && (
                 <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#eff6ff', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12 }}>
                   <FileIcon size={14} color="#0055d4" />
-                  <Text style={{ fontSize: 11, fontWeight: '900', color: '#0055d4', marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }}>{language === 'ar' ? 'مستند مرفق' : language === 'fr' ? 'Document joint' : 'Document Attached'}</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '900', color: '#0055d4', marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }}>{(t?.documentAttached || 'Document Attached')}</Text>
                 </View>
               )}
             </View>
           ) : (
              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginTop: 16 }}>
                 <AlertCircle size={14} color="#cbd5e1" />
-                <Text style={{ fontSize: 11, color: '#cbd5e1', fontWeight: '700', marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }}>{language === 'ar' ? 'لا يوجد مرفقات' : language === 'fr' ? 'Aucune pièce jointe' : 'No attachments'}</Text>
+                <Text style={{ fontSize: 11, color: '#cbd5e1', fontWeight: '700', marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }}>{(t?.noAttachments || 'No attachments')}</Text>
              </View>
           )}
 
           {task.total > 0 && (
             <View style={{ marginTop: 20 }}>
               <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>{language === 'ar' ? 'التسليمات' : language === 'fr' ? 'Soumissions' : 'Submissions'}</Text>
+                <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>{(t?.submissions || 'Submissions')}</Text>
                 <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
                   <Text style={{ fontSize: 13, fontWeight: '900', color: task.submitted === task.total ? '#16a34a' : '#0055d4' }}>
                     {task.submitted}
                   </Text>
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#94a3b8' }}>/{task.total} {language === 'ar' ? 'تلاميذ' : language === 'fr' ? 'élèves' : 'students'}</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#94a3b8' }}>/{task.total} {(t?.students || 'students')}</Text>
                 </View>
               </View>
               <View style={{ height: 8, backgroundColor: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
@@ -191,7 +191,7 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
                 }} />
               </View>
               <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '700', marginTop: 6, textAlign: isRTL ? 'right' : 'left' }}>
-                {task.total > 0 ? Math.round((task.submitted / task.total) * 100) : 0}% {language === 'ar' ? 'مكتملة' : language === 'fr' ? 'terminé' : 'completed'}
+                {task.total > 0 ? Math.round((task.submitted / task.total) * 100) : 0}% {(t?.completed3 || 'completed')}
               </Text>
             </View>
           )}
@@ -207,17 +207,17 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
     <>
       {showAddForm && (
         <View style={{ backgroundColor: 'white', padding: 24, borderRadius: 28, marginBottom: 32, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 20, elevation: 5 }}>
-          <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b', marginBottom: 24, textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'إنشاء مهمة جديدة' : language === 'fr' ? 'Créer une nouvelle tâche' : 'Create New Task'}</Text>
+          <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b', marginBottom: 24, textAlign: isRTL ? 'right' : 'left' }}>{(t?.createNewTask || 'Create New Task')}</Text>
           <View style={{ marginBottom: 20 }}>
-            <Text style={{ fontSize: 12, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'العنوان' : language === 'fr' ? 'Titre' : 'Title'}</Text>
-            <TextInput style={{ backgroundColor: '#f8fafc', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#f1f5f9', fontSize: 16, color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }} placeholder={language === 'ar' ? 'مثال: اختبار رياضيات' : language === 'fr' ? 'ex. Quiz de mathématiques' : 'e.g. Math Quiz, History Essay'} placeholderTextColor="#94a3b8" value={title} onChangeText={setTitle} />
+            <Text style={{ fontSize: 12, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', textAlign: isRTL ? 'right' : 'left' }}>{(t?.title1 || 'Title')}</Text>
+            <TextInput style={{ backgroundColor: '#f8fafc', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#f1f5f9', fontSize: 16, color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }} placeholder={(t?.egMathQuizHistoryEssay || 'e.g. Math Quiz, History Essay')} placeholderTextColor="#94a3b8" value={title} onChangeText={setTitle} />
           </View>
           <View style={{ marginBottom: 20 }}>
-            <Text style={{ fontSize: 12, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'الوصف' : language === 'fr' ? 'Description' : 'Description'}</Text>
-            <TextInput style={{ backgroundColor: '#f8fafc', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#f1f5f9', fontSize: 16, color: '#1e293b', height: 100, textAlign: isRTL ? 'right' : 'left', textAlignVertical: 'top' }} placeholder={language === 'ar' ? 'تفاصيل المهمة...' : language === 'fr' ? 'Détails sur la tâche...' : 'Details about the task...'} placeholderTextColor="#94a3b8" multiline value={description} onChangeText={setDescription} />
+            <Text style={{ fontSize: 12, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', textAlign: isRTL ? 'right' : 'left' }}>{(t?.description || 'Description')}</Text>
+            <TextInput style={{ backgroundColor: '#f8fafc', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#f1f5f9', fontSize: 16, color: '#1e293b', height: 100, textAlign: isRTL ? 'right' : 'left', textAlignVertical: 'top' }} placeholder={(t?.detailsAboutTheTask || 'Details about the task...')} placeholderTextColor="#94a3b8" multiline value={description} onChangeText={setDescription} />
           </View>
           <View style={{ marginBottom: 24 }}>
-            <Text style={{ fontSize: 12, fontWeight: '900', color: '#94a3b8', marginBottom: 12, textTransform: 'uppercase', textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'القسم' : language === 'fr' ? 'Classe' : 'Class'}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '900', color: '#94a3b8', marginBottom: 12, textTransform: 'uppercase', textAlign: isRTL ? 'right' : 'left' }}>{(t?.class || 'Class')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
               {classes.map((c: any) => (
                 <TouchableOpacity key={c.id} onPress={() => setSelectedClassId(c.id)} style={{ paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, backgroundColor: selectedClassId === c.id ? '#0055d4' : '#f8fafc', borderWidth: 1, borderColor: selectedClassId === c.id ? '#0055d4' : '#f1f5f9', transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
@@ -228,7 +228,7 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
           </View>
 
           <View style={{ marginBottom: 24 }}>
-            <Text style={{ fontSize: 12, fontWeight: '900', color: '#94a3b8', marginBottom: 12, textTransform: 'uppercase', textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'المرفقات' : language === 'fr' ? 'Pièces jointes' : 'Attachments'}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '900', color: '#94a3b8', marginBottom: 12, textTransform: 'uppercase', textAlign: isRTL ? 'right' : 'left' }}>{(t?.attachments || 'Attachments')}</Text>
             
             <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: 12, marginBottom: attachments.length > 0 ? 16 : 0 }}>
               {attachments.map((asset, idx) => (
@@ -244,12 +244,12 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
             {attachments.length < 5 && (
               <TouchableOpacity onPress={pickImages} disabled={uploading} style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#f1f5f9', borderStyle: 'dashed' }}>
                 <ImageIcon size={20} color="#0055d4" />
-                <Text style={{ marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0, fontSize: 14, fontWeight: '800', color: '#0055d4' }}>{language === 'ar' ? 'إضافة صور (كحد أقصى 5)' : language === 'fr' ? 'Ajouter des images (Max 5)' : 'Add Images (Max 5)'}</Text>
+                <Text style={{ marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0, fontSize: 14, fontWeight: '800', color: '#0055d4' }}>{(t?.addImagesMax5 || 'Add Images (Max 5)')}</Text>
               </TouchableOpacity>
             )}
           </View>
           <TouchableOpacity onPress={handleCreateTask} disabled={createTaskMutation.isPending || uploading} activeOpacity={0.9} style={{ backgroundColor: '#0055d4', paddingVertical: 18, borderRadius: 20, alignItems: 'center', shadowColor: '#0055d4', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 15, elevation: 8 }}>
-            {createTaskMutation.isPending || uploading ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white', fontWeight: '900', fontSize: 16 }}>{language === 'ar' ? 'إنشاء المهمة' : language === 'fr' ? 'Créer la tâche' : 'Create Task'}</Text>}
+            {createTaskMutation.isPending || uploading ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white', fontWeight: '900', fontSize: 16 }}>{(t?.createTask || 'Create Task')}</Text>}
           </TouchableOpacity>
         </View>
       )}
@@ -257,7 +257,7 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
       <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b', textTransform: 'uppercase', letterSpacing: 1 }}>{t.teacherTasks}</Text>
         <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 }}>
-          <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4' }}>{filteredTasks.length} {language === 'ar' ? 'مهام' : language === 'fr' ? 'tâches' : 'tasks'}</Text>
+          <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4' }}>{filteredTasks.length} {(t?.tasks || 'tasks')}</Text>
         </View>
       </View>
 
@@ -296,10 +296,10 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
         
         <TouchableOpacity onPress={() => setShowClassSwitcher(true)} style={{ flex: 1, marginHorizontal: 16, alignItems: 'center' }}>
           <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
-            <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>{selectedTeacherClass?.name || (language === 'ar' ? 'اختر القسم' : language === 'fr' ? 'Sélectionner la classe' : 'Select Class')}</Text>
+            <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>{selectedTeacherClass?.name || ((t?.selectClass2 || 'Select Class'))}</Text>
             <ChevronDown size={16} color="#0055d4" style={{ marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }} />
           </View>
-          <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', marginTop: 2 }}>{language === 'ar' ? 'انقر للتغيير' : language === 'fr' ? 'Appuyer pour changer' : 'Tap to switch'}</Text>
+          <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', marginTop: 2 }}>{(t?.tapToSwitch2 || 'Tap to switch')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setShowAddForm(!showAddForm)} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#dbeafe' }}>
@@ -318,7 +318,7 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
           !loading && filteredTasks.length === 0 ? (
             <View style={{ alignItems: 'center', paddingVertical: 60 }}>
               <CheckCircle2 size={48} color="#d1d5db" />
-              <Text style={{ color: '#737c7f', fontWeight: 'bold', marginTop: 16 }}>{language === 'ar' ? 'لا يوجد مهام نشطة' : language === 'fr' ? 'Aucune tâche active trouvée' : 'No active tasks found'}</Text>
+              <Text style={{ color: '#737c7f', fontWeight: 'bold', marginTop: 16 }}>{(t?.noActiveTasksFound || 'No active tasks found')}</Text>
             </View>
           ) : null
         }
@@ -331,7 +331,7 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
           <View style={{ backgroundColor: 'white', borderTopLeftRadius: 40, borderTopRightRadius: 40, padding: 32, paddingBottom: 60, shadowColor: '#000', shadowOffset: { width: 0, height: -10 }, shadowOpacity: 0.1, shadowRadius: 30, elevation: 20 }}>
             <View style={{ width: 40, height: 5, backgroundColor: '#e2e8f0', borderRadius: 10, alignSelf: 'center', marginBottom: 24 }} />
             <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-              <Text style={{ fontSize: 24, fontWeight: '900', color: '#1e293b' }}>{language === 'ar' ? 'تغيير القسم' : language === 'fr' ? 'Changer de classe' : 'Switch Class'}</Text>
+              <Text style={{ fontSize: 24, fontWeight: '900', color: '#1e293b' }}>{(t?.switchClass2 || 'Switch Class')}</Text>
               <TouchableOpacity onPress={() => setShowClassSwitcher(false)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}><X size={20} color="#64748b" /></TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
@@ -342,7 +342,7 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
                   </View>
                   <View style={{ marginLeft: isRTL ? 0 : 20, marginRight: isRTL ? 20 : 0, flex: 1 }}>
                     <Text style={{ fontSize: 18, fontWeight: '900', color: selectedTeacherClass?.id === cls.id ? '#0055d4' : '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>{cls.name}</Text>
-                    <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '700', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>{cls.level || (language === 'ar' ? 'قياسي' : language === 'fr' ? 'Standard' : 'Standard')}</Text>
+                    <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '700', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>{cls.level || ((t?.standard || 'Standard'))}</Text>
                   </View>
                   {selectedTeacherClass?.id === cls.id && (
                     <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#0055d4', alignItems: 'center', justifyContent: 'center' }}>

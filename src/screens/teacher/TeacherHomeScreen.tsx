@@ -174,7 +174,7 @@ export const TeacherHomeScreen = ({ navigation }: any) => {
     setRefreshing(false);
   };
 
-  const today = new Date().toLocaleDateString(language === 'ar' ? 'ar-TN' : language === 'fr' ? 'fr-FR' : 'en-US', { 
+  const today = new Date().toLocaleDateString((t?.enus || 'en-US'), { 
     weekday: 'long', 
     month: 'short', 
     day: 'numeric' 
@@ -256,7 +256,7 @@ export const TeacherHomeScreen = ({ navigation }: any) => {
           <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
               <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '600' }}>
-                {language === 'ar' ? 'صباح الخير 👋' : language === 'fr' ? 'Bonjour 👋' : 'Good morning 👋'}
+                {(t?.goodMorning || 'Good morning 👋')}
               </Text>
               <Text style={{ color: 'white', fontSize: 24, fontWeight: '900', marginTop: 4 }}>{userName || 'Teacher'}</Text>
             </View>
@@ -340,7 +340,7 @@ export const TeacherHomeScreen = ({ navigation }: any) => {
             </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Classes')}>
               <Text style={{ fontSize: 13, color: '#0055d4', fontWeight: 'bold' }}>
-                {language === 'ar' ? 'عرض الكل' : language === 'fr' ? 'Voir tout' : 'See all'}
+                {(t?.seeAll || 'See all')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -351,12 +351,12 @@ export const TeacherHomeScreen = ({ navigation }: any) => {
               subject={c.subject}
               className={c.className}
               time={c.time}
-              room={`${language === 'ar' ? 'قاعة' : language === 'fr' ? 'Salle' : 'Room'} ${c.room}`}
+              room={`${(t?.room || 'Room')} ${c.room}`}
               students={`${c.students} ${t.teacherStudentsTotal}`}
               status={
-                c.status === 'Completed' ? (language === 'ar' ? 'مكتمل' : language === 'fr' ? 'Terminé' : 'Completed')
-                : c.status === 'Live' ? (language === 'ar' ? 'مباشر' : language === 'fr' ? 'En cours' : 'Live')
-                : (language === 'ar' ? 'قادم' : language === 'fr' ? 'À venir' : 'Upcoming')
+                c.status === 'Completed' ? ((t?.completed1 || 'Completed'))
+                : c.status === 'Live' ? ((t?.live || 'Live'))
+                : ((t?.upcoming || 'Upcoming'))
               }
             />
           ))}

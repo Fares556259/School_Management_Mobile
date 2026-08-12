@@ -17,7 +17,6 @@ import { AnnouncementDetailScreen } from './src/screens/AnnouncementDetailScreen
 import { LandingScreen } from './src/screens/LandingScreen';
 import { ExamsScreen } from './src/screens/ExamsScreen';
 import { ResultsScreen } from './src/screens/ResultsScreen';
-import { DocumentCenterScreen } from './src/screens/DocumentCenterScreen';
 import { TeacherClassesScreen } from './src/screens/teacher/TeacherClassesScreen';
 import { TeacherHomeScreen } from './src/screens/teacher/TeacherHomeScreen';
 import { TeacherAttendanceScreen } from './src/screens/teacher/TeacherAttendanceScreen';
@@ -272,7 +271,7 @@ export default function App() {
         studentId: data.studentId
       });
     } else if (data.type === 'RESOURCE' && data.resourceId) {
-      (navigationRef as any).navigate('DocumentCenter');
+      (navigationRef as any).navigate('Courses');
     } else if (data.type === 'ANNOUNCEMENT' || data.type === 'ATTENDANCE') {
       (navigationRef as any).navigate('NotificationDetail', { 
         notification: { 
@@ -399,7 +398,6 @@ export default function App() {
                   <Stack.Screen name="ExamDetail" component={ExamDetailScreen} />
                   <Stack.Screen name="AnnouncementDetail" component={AnnouncementDetailScreen} />
                   <Stack.Screen name="LinkChild" component={LinkChildScreen} />
-                  <Stack.Screen name="DocumentCenter" component={DocumentCenterScreen} />
                   <Stack.Screen name="Exams" component={ExamsScreen} />
                   <Stack.Screen name="Results" component={ResultsScreen} />
                   <Stack.Screen name="TeacherTaskDetail" component={TeacherTaskDetailScreen} />

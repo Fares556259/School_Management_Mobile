@@ -137,10 +137,10 @@ export const LandingScreen = ({ onSelectRole }: { onSelectRole: (role: 'parent' 
             
             <View style={{ marginTop: 20, alignItems: 'center' }}>
               <Text style={{ fontSize: 24, fontWeight: '800', color: '#2b3437' }}>
-                {language === 'ar' ? 'مرحباً بكم' : language === 'fr' ? 'Bienvenue' : 'Welcome'}
+                {(t?.welcome || 'Welcome')}
               </Text>
               <Text style={{ fontSize: 14, color: '#737c7f', marginTop: 6, textAlign: 'center', fontWeight: '600' }}>
-                {language === 'ar' ? 'اختر حسابك للمتابعة والدخول للتطبيق' : language === 'fr' ? 'Sélectionnez votre profil pour continuer' : 'Please select your profile to continue to your account'}
+                {(t?.pleaseSelectYourProfileTo || 'Please select your profile to continue to your account')}
               </Text>
             </View>
           </View>
@@ -148,21 +148,21 @@ export const LandingScreen = ({ onSelectRole }: { onSelectRole: (role: 'parent' 
           {/* Role Cards */}
           <View>
             <RoleCard 
-              title={language === 'ar' ? 'ولي الأمر' : language === 'fr' ? 'Parent' : 'Parent'}
-              description={language === 'ar' ? 'متابعة أعداد ومواظبة وجدول الأبناء' : language === 'fr' ? 'Suivi des notes, absences et emplois du temps' : 'Monitor progress, grades, and school schedule.'}
+              title={(t?.parent || 'Parent')}
+              description={(t?.monitorProgressGradesAndSchool || 'Monitor progress, grades, and school schedule.')}
               image={require('../../assets/3d/parent.jpg')}
               onPress={() => onSelectRole('parent')}
             />
             
             <RoleCard 
-              title={language === 'ar' ? 'المدرس' : language === 'fr' ? 'Enseignant' : 'Teacher'}
-              description={language === 'ar' ? 'إدارة الدروس والواجبات والغيابات' : language === 'fr' ? 'Gestion des cours, absences et devoirs' : 'Manage lessons, attendance, and student performance.'}
+              title={(t?.teacher || 'Teacher')}
+              description={(t?.manageLessonsAttendanceAndStudent || 'Manage lessons, attendance, and student performance.')}
               image={require('../../assets/3d/teacher.jpg')}
               onPress={() => onSelectRole('teacher')}
             />
             
             <RoleCard 
-              title={language === 'ar' ? 'التلميذ' : language === 'fr' ? 'Élève' : 'Student'}
+              title={(t?.student || 'Student')}
               description={language === 'ar' ? 'متابعة الدروس والروض والإعلانات' : language === 'fr' ? 'Accès aux devoirs et annonces de l\'école' : 'Access homework, attendance, and official announcements.'}
               image={require('../../assets/3d/student.jpg')}
               onPress={() => handleFutureRole('Student')}
