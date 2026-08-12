@@ -15,6 +15,7 @@ import * as Haptics from 'expo-haptics';
 import { GlobalHeader } from '../components/GlobalHeader';
 import { Image } from 'expo-image';
 import { useQuery } from '@tanstack/react-query';
+import { SkeletonBlock } from '../components/SkeletonView';
 
 const { width } = Dimensions.get('window');
 
@@ -519,9 +520,52 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-surface-background">
-        <ActivityIndicator size="large" color="#0055d4" />
-      </View>
+      <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }} edges={['top']}>
+        <StatusBar barStyle="dark-content" />
+        <ScrollView showsVerticalScrollIndicator={false} className="flex-1" contentContainerStyle={{ paddingBottom: 150, backgroundColor: '#f8fafc' }}>
+          
+          <View className="items-center mt-12 mb-2">
+             <SkeletonBlock width={150} height={16} />
+          </View>
+
+          <View style={{
+            backgroundColor: 'white',
+            borderRadius: 24,
+            padding: 20,
+            flexDirection: isRTL ? 'row-reverse' : 'row',
+            alignItems: 'center',
+            marginTop: 16,
+            marginHorizontal: 24,
+            borderWidth: 1,
+            borderColor: '#e2e8f0',
+          }}>
+            <SkeletonBlock width={64} height={64} borderRadius={32} style={{ marginRight: isRTL ? 0 : 16, marginLeft: isRTL ? 16 : 0 }} />
+            <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+              <SkeletonBlock width={140} height={20} marginBottom={8} />
+              <SkeletonBlock width={100} height={14} />
+            </View>
+          </View>
+
+          {[1, 2].map((sectionIndex) => (
+             <View key={sectionIndex} className="mt-8">
+               <View style={{ marginHorizontal: 24, marginBottom: 10, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                 <SkeletonBlock width={100} height={14} />
+               </View>
+               <View className="bg-white mx-6 rounded-[24px] overflow-hidden border border-surface-low/60 shadow-sm shadow-black/5 p-2">
+                 {[1, 2, 3].map((itemIndex) => (
+                    <View key={itemIndex} style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: itemIndex !== 3 ? 1 : 0, borderBottomColor: '#f1f5f9' }}>
+                      <SkeletonBlock width={42} height={42} borderRadius={14} style={{ marginRight: isRTL ? 0 : 16, marginLeft: isRTL ? 16 : 0 }} />
+                      <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                        <SkeletonBlock width={120} height={16} marginBottom={6} />
+                        <SkeletonBlock width={160} height={12} />
+                      </View>
+                    </View>
+                 ))}
+               </View>
+             </View>
+          ))}
+        </ScrollView>
+      </SafeAreaView>
     );
   }
 
