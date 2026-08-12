@@ -45,18 +45,9 @@ export const PaymentsScreen = ({ navigation }: any) => {
 
   useFocusEffect(
     useCallback(() => {
-      let interval: NodeJS.Timeout;
       if (selectedChildId) {
         loadData(selectedChildId);
-        
-        // Poll every 3 seconds silently to ensure "instant" sync when admin updates
-        interval = setInterval(() => {
-          loadData(selectedChildId, true);
-        }, 3000);
       }
-      return () => {
-        if (interval) clearInterval(interval);
-      };
     }, [selectedChildId, loadData])
   );
 

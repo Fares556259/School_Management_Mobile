@@ -366,6 +366,9 @@ const translations = {
     viewTask: "عرض المهمة",
     alertWord: "تنبيه",
     ago1d: "منذ يوم",
+    quickTagsList: ['معذور', 'غير معذور', 'تم إعلام الولي', 'وظيفة ناقصة', 'مشاغب', 'يحتاج دعم', 'مشاركة ممتازة', 'شجار مع زميل', 'مراقبة عن كثب'],
+    saveSuccess: "تم الحفظ بنجاح!",
+    saveError: "فشل في حفظ البيانات",
   },
   fr: {
     tabHome: "Accueil",
@@ -726,6 +729,9 @@ const translations = {
     viewTask: "Voir la tâche",
     alertWord: "ALERTE",
     ago1d: "Il y a 1j",
+    quickTagsList: ['Excusé', 'Non excusé', 'Parent notifié', 'Devoir manquant', 'Perturbateur', 'A besoin de soutien', 'Excellente participation', 'Conflit avec un pair', 'À surveiller de près'],
+    saveSuccess: "Enregistré avec succès !",
+    saveError: "Échec de l'enregistrement",
   },
   en: {
     tabHome: "Home",
@@ -1086,6 +1092,9 @@ const translations = {
     viewTask: "View Task",
     alertWord: "ALERT",
     ago1d: "1d ago",
+    quickTagsList: ['Excused', 'Unexcused', 'Parent notified', 'Missing homework', 'Disruptive', 'Needs support', 'Great participation', 'Conflict with peer', 'Monitor closely'],
+    saveSuccess: "Saved successfully!",
+    saveError: "Failed to save data",
   }
 };
 

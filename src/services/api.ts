@@ -30,7 +30,9 @@ export const getFullImageUrl = (url: string | null): string | null => {
   const cleanUrl = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
   const fullUrl = `${API_BASE_URL}${cleanUrl}`;
   
-  console.log(`[DEBUG-IMAGE] Normalized: ${trimmed} -> ${fullUrl}`);
+  if (__DEV__) {
+    console.log(`[DEBUG-IMAGE] Normalized: ${trimmed} -> ${fullUrl}`);
+  }
   return fullUrl;
 };
 
@@ -60,7 +62,9 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   const requestKey = `${options.method || 'GET'}:${endpoint}:${options.body || ''}`;
   
   if (inflightRequests.has(requestKey)) {
-    console.log(`[DEBUG-API] Reusing in-flight request: ${endpoint}`);
+    if (__DEV__) {
+      console.log(`[DEBUG-API] Reusing in-flight request: ${endpoint}`);
+    }
     return inflightRequests.get(requestKey);
   }
 
@@ -75,7 +79,9 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
       const schoolId = await authStorage.getSchoolId();
       const token = await authStorage.getToken();
       const url = `${API_BASE_URL}${endpoint}`;
-      console.log(`[DEBUG-API] Calling: ${url}`);
+      if (__DEV__) {
+        console.log(`[DEBUG-API] Calling: ${url}`);
+      }
 
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -376,19 +382,9 @@ export const studentService = {
   },
 
   fetchPayments: async (studentId: string, forceRefresh = false): Promise<PaymentRecord[]> => {
-    if (forceRefresh) {
-      await parentService.fetchChildren();
-    }
-    const cached = await AsyncStorage.getItem(STUDENTS_CACHE_KEY);
-    if (!cached) {
-      await parentService.fetchChildren(); // Ensure we have data
-      const freshCache = await AsyncStorage.getItem(STUDENTS_CACHE_KEY);
-      if (!freshCache) return [];
-    }
-
-    const students: any[] = JSON.parse(await AsyncStorage.getItem(STUDENTS_CACHE_KEY) || '[]');
-    const s = students.find((x) => x.id === studentId);
-    if (!s) return [];
+    // Fetch payments directly from the new backend API endpoint
+    const data = await apiFetch(`/api/mobile/payments?studentId=${studentId}`);
+    const payments = Array.isArray(data) ? data : [];
 
     const MONTH_NAMES = [
       '', 'January', 'February', 'March', 'April', 'May', 'June',
@@ -417,11 +413,14 @@ export const studentService = {
       { month: 6, year: schoolYearStartYear + 1 },
     ];
 
-    const tuitionFee = s.class?.level?.tuitionFee || 120;
+    // Fetch student data from cache to get tuition fee, fallback to 120
+    const students: any[] = JSON.parse(await AsyncStorage.getItem(STUDENTS_CACHE_KEY) || '[]');
+    const s = students.find((x) => x.id === studentId);
+    const tuitionFee = s?.class?.level?.tuitionFee || 120;
 
     const timeline: PaymentRecord[] = academicMonths.map((cycle, index) => {
       // Look for a payment record for this specific month/year
-      const p = (s.payments || []).find((x: any) => x.month === cycle.month && x.year === cycle.year);
+      const p = payments.find((x: any) => x.month === cycle.month && x.year === cycle.year);
       
       const dueDate = p?.dueDate || `${cycle.year}-${String(cycle.month).padStart(2, '0')}-01`;
       const due = new Date(dueDate);
@@ -628,9 +627,8 @@ export const uiService = {
 
       return await response.json();
     } catch (error) {
-      console.warn('Upload failed or timed out, using fallback local URI:', error);
-      // Fallback: return the local URI so the UI doesn't crash or block
-      return { url: uri, success: true };
+      console.warn('Upload failed or timed out:', error);
+      return { success: false, error: 'Upload failed' };
     }
   },
 };

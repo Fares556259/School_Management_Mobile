@@ -174,7 +174,8 @@ export const TeacherHomeScreen = ({ navigation }: any) => {
     setRefreshing(false);
   };
 
-  const today = new Date().toLocaleDateString((t?.enus || 'en-US'), { 
+  const locale = language === 'ar' ? 'ar-TN' : language === 'fr' ? 'fr-FR' : 'en-US';
+  const today = new Date().toLocaleDateString(locale, { 
     weekday: 'long', 
     month: 'short', 
     day: 'numeric' 

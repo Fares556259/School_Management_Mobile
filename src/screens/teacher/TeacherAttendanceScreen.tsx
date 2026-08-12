@@ -145,7 +145,7 @@ const StudentRow = ({ student, status, onStatusChange, note, onNoteChange, score
       {showNote && (
         <View style={{ marginTop: 4, alignItems: language === 'ar' ? 'flex-end' : 'flex-start' }}>
           <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 10, letterSpacing: 0.5 }}>{(t?.quickTags || 'Quick Tags')}</Text>
-          <View style={{ flexDirection: language === 'ar' ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16, justifyContent: language === 'ar' ? 'flex-end' : 'flex-start' }}>{QUICK_TAGS.map(tag => (<TouchableOpacity key={tag} onPress={() => handleTagPress(tag)} style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: '#f1f5f9', borderWidth: 1, borderColor: '#e2e8f0' }}><Text style={{ fontSize: 12, fontWeight: '700', color: '#475569' }}>{tag}</Text></TouchableOpacity>))}</View>
+          <View style={{ flexDirection: language === 'ar' ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16, justifyContent: language === 'ar' ? 'flex-end' : 'flex-start' }}>{(t?.quickTagsList || QUICK_TAGS).map((tag: string) => (<TouchableOpacity key={tag} onPress={() => handleTagPress(tag)} style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: '#f1f5f9', borderWidth: 1, borderColor: '#e2e8f0' }}><Text style={{ fontSize: 12, fontWeight: '700', color: '#475569' }}>{tag}</Text></TouchableOpacity>))}</View>
           <View style={{ backgroundColor: '#f8fafc', borderRadius: 18, padding: 16, borderWidth: 1, borderColor: '#f1f5f9', width: '100%' }}><TextInput placeholder={(t?.addADetailedNote || 'Add a detailed note...')} placeholderTextColor="#94a3b8" multiline value={note} onChangeText={onNoteChange} style={{ fontSize: 14, color: '#1e293b', fontWeight: '600', minHeight: 80, textAlignVertical: 'top', padding: 0, textAlign: language === 'ar' ? 'right' : 'left' }} /></View>
         </View>
       )}
@@ -314,9 +314,20 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
   };
 
   const handlePickDocument = async () => {
-    alert('PDF Support: UI is ready! To enable the actual file picker in this preview, please restart the Expo server. In a real build, this will open the document library.');
-    const demoPdf = { type: 'PDF', uri: 'mock-uri', name: 'assignment_worksheet.pdf' };
-    setNewTask(prev => ({ ...prev, attachments: [...prev.attachments, demoPdf] }));
+    try {
+      const DocumentPicker = await import('expo-document-picker');
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        setNewTask(prev => ({ ...prev, attachments: [...prev.attachments, { type: 'PDF', uri: asset.uri, name: asset.name }] }));
+      }
+    } catch (err) {
+      alert('Error picking document');
+    }
   };
 
   const removeAttachment = (index: number) => {
@@ -339,12 +350,12 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
       setNewTask({ title: '', description: '', show: false, attachments: [] });
       setSaveCount(prev => prev + 1);
       setSaving(false);
-      setToast({ message: 'Saved successfully!', type: 'success' });
+      setToast({ message: t?.saveSuccess || 'Saved successfully!', type: 'success' });
       setTimeout(() => setToast(null), 3000);
       // Silently refresh data in background
       refetchStudents();
     } catch (err) { 
-      setToast({ message: 'Failed to save data', type: 'error' });
+      setToast({ message: t?.saveError || 'Failed to save data', type: 'error' });
       setTimeout(() => setToast(null), 3000);
       setSaving(false); 
     }

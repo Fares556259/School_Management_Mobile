@@ -61,7 +61,7 @@ const CircularProgress = ({ size, progress, imageUri, name, updating, onPress }:
           <Text style={{ fontSize: size / 3, fontWeight: '900', color: '#737c7f', fontFamily: 'PlusJakartaSans-ExtraBold' }}>{initial}</Text>
         )}
         {updating && (
-          <View className="absolute inset-0 bg-black/20 items-center justify-center">
+          <View style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.2)', alignItems: 'center', justifyContent: 'center' }}>
             <ActivityIndicator size="small" color="white" />
           </View>
         )}
@@ -71,7 +71,7 @@ const CircularProgress = ({ size, progress, imageUri, name, updating, onPress }:
       <TouchableOpacity 
         onPress={onPress}
         activeOpacity={0.8}
-        className="absolute bottom-1 right-1 bg-white p-2 rounded-full border border-brand-primary/10 shadow-lg"
+        style={{ position: 'absolute', bottom: 4, right: 4, backgroundColor: 'white', padding: 8, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(0,85,212,0.1)', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 }}
       >
         <Camera size={18} color="#0055d4" />
       </TouchableOpacity>

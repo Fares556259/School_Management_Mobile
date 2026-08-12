@@ -70,9 +70,9 @@ const StatPill = ({ count, label, color, bgColor, borderColor }: any) => (
 // ─── Session Card ─────────────────────────────────────────────────────────────
 const SessionCard = ({ session }: any) => {
   const { t, isRTL, getTranslatedSubject } = useLanguage();
-  const isAbsent = session.attendance?.toUpperCase() === 'ABSENT' || session.attendance?.toUpperCase() === 'ABS';
-  const isPresent = session.attendance?.toUpperCase() === 'PRESENT' || session.attendance?.toUpperCase() === 'PRÉSENT' || session.attendance?.toUpperCase() === 'PRES';
-  const isLate = session.attendance?.toUpperCase() === 'LATE' || session.attendance?.toUpperCase() === 'RETARD' || session.attendance?.toUpperCase() === 'EN RETARD';
+  const isAbsent = session.attendance === 'ABSENT';
+  const isPresent = session.attendance === 'PRESENT';
+  const isLate = session.attendance === 'LATE';
 
   const pillColor = isAbsent ? '#ef4444' : isPresent ? '#22c55e' : isLate ? '#f59e0b' : '#cbd5e1';
   const badgeBg = isAbsent ? '#fee2e2' : isPresent ? '#dcfce7' : isLate ? '#fef3c7' : '#f1f5f9';
