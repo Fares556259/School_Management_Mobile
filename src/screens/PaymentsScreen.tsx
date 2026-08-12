@@ -162,8 +162,9 @@ export const PaymentsScreen = ({ navigation }: any) => {
                     flexDirection: isRTL ? 'row-reverse' : 'row',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 8,
+                    gap: 6,
                     paddingVertical: 14,
+                    paddingHorizontal: 8,
                     borderRadius: 20,
                     backgroundColor: isActive ? '#0055d4' : '#ffffff',
                     borderWidth: isActive ? 0 : 1,
@@ -176,7 +177,13 @@ export const PaymentsScreen = ({ navigation }: any) => {
                   }}
                 >
                   {React.cloneElement(tab.icon, { color: isActive ? '#ffffff' : '#64748b' })}
-                  <Text style={{ fontSize: 14, fontWeight: '800', color: isActive ? '#ffffff' : '#64748b' }}>{tab.label}</Text>
+                  <Text 
+                    numberOfLines={1} 
+                    adjustsFontSizeToFit
+                    style={{ fontSize: 13, fontWeight: '800', color: isActive ? '#ffffff' : '#64748b', flexShrink: 1 }}
+                  >
+                    {tab.label}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
