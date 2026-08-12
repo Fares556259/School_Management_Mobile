@@ -123,7 +123,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
                 <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
                   <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginBottom: 12 }}>
                     <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                      {isRTL ? 'المبلغ المستحق حالياً' : 'Total Due Now'}
+                      {t.totalDueNow || (isRTL ? 'المبلغ المستحق حالياً' : 'Total Due Now')}
                     </Text>
                   </View>
                   <Text style={{ color: '#ffffff', fontSize: 44, fontWeight: '900', letterSpacing: -1.5, textAlign: isRTL ? 'right' : 'left' }}>
@@ -148,8 +148,8 @@ export const PaymentsScreen = ({ navigation }: any) => {
         <View style={{ marginBottom: 24, paddingHorizontal: 20 }}>
           <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 12 }}>
             {[
-              { key: 'Due' as const, label: isRTL ? 'المطلوب سداده' : 'Required Actions', icon: <AlertCircle size={18} /> },
-              { key: 'Paid' as const, label: isRTL ? 'سجل الدفعات' : 'Paid History', icon: <CheckCircle2 size={18} /> }
+              { key: 'Due' as const, label: t.requiredActions || (isRTL ? 'المطلوب سداده' : 'Required Actions'), icon: <AlertCircle size={18} /> },
+              { key: 'Paid' as const, label: t.paidHistoryTab || (isRTL ? 'سجل الدفعات' : 'Paid History'), icon: <CheckCircle2 size={18} /> }
             ].map(tab => {
               const isActive = activeFilter === tab.key;
               return (
@@ -186,7 +186,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
         {/* Payment History Title */}
         <View style={{ paddingHorizontal: 24, flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>
-            {activeFilter === 'Due' ? (isRTL ? 'الأقساط المستحقة' : 'Due Installments') : (isRTL ? 'الأقساط المدفوعة' : 'Paid Installments')}
+            {activeFilter === 'Due' ? (t.dueInstallmentsTitle || (isRTL ? 'الأقساط المستحقة' : 'Due Installments')) : (t.paidInstallmentsTitle || (isRTL ? 'الأقساط المدفوعة' : 'Paid Installments'))}
           </Text>
           <View style={{ backgroundColor: '#e0e7ff', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
             <Text style={{ fontSize: 13, fontWeight: '800', color: '#4338ca' }}>
@@ -261,7 +261,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
                     {/* Background Paid Watermark */}
                     {isPaid && (
                       <View style={{ position: 'absolute', right: -20, top: 10, opacity: 0.04, transform: [{ rotate: '-15deg' }] }}>
-                        <Text style={{ fontSize: 80, fontWeight: '900', color: '#10b981' }}>{isRTL ? 'خالص' : 'PAID'}</Text>
+                        <Text style={{ fontSize: 80, fontWeight: '900', color: '#10b981' }}>{t.paidWatermark || (isRTL ? 'خالص' : 'PAID')}</Text>
                       </View>
                     )}
 
@@ -321,7 +321,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
                         <View style={{ height: 1, backgroundColor: '#e2e8f0', marginVertical: 16, borderStyle: 'dashed', borderWidth: 1, borderColor: '#e2e8f0' }} />
                         <TouchableOpacity style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 4 }}>
                           <DownloadCloud size={16} color="#0055d4" strokeWidth={2.5} />
-                          <Text style={{ fontSize: 13, fontWeight: '800', color: '#0055d4' }}>{isRTL ? 'تحميل الوصل' : 'Download Receipt'}</Text>
+                          <Text style={{ fontSize: 13, fontWeight: '800', color: '#0055d4' }}>{t.downloadReceiptAction || (isRTL ? 'تحميل الوصل' : 'Download Receipt')}</Text>
                         </TouchableOpacity>
                       </>
                     )}
@@ -339,10 +339,10 @@ export const PaymentsScreen = ({ navigation }: any) => {
                 )}
               </View>
               <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', textAlign: 'center', marginBottom: 8 }}>
-                {activeFilter === 'Paid' ? (isRTL ? 'لا توجد وصولات مدفوعة' : 'No Paid Installments') : (isRTL ? 'أنت في السليم!' : 'All Caught Up!')}
+                {activeFilter === 'Paid' ? (t.noPaidInstallments || (isRTL ? 'لا توجد وصولات مدفوعة' : 'No Paid Installments')) : (t.allCaughtUpState || (isRTL ? 'أنت في السليم!' : 'All Caught Up!'))}
               </Text>
               <Text style={{ fontSize: 14, fontWeight: '700', color: '#94a3b8', textAlign: 'center', paddingHorizontal: 40, lineHeight: 22 }}>
-                {activeFilter === 'Paid' ? (isRTL ? 'لم تقم بخلاص أي أقساط بعد.' : 'You haven\'t made any payments yet.') : (isRTL ? 'ليس لديك أي أقساط أو مستحقات متأخرة حالياً.' : 'You have no pending or overdue payments right now.')}
+                {activeFilter === 'Paid' ? (t.noPaymentsYet || (isRTL ? 'لم تقم بخلاص أي أقساط بعد.' : 'You haven\'t made any payments yet.')) : (t.noPendingPayments || (isRTL ? 'ليس لديك أي أقساط أو مستحقات متأخرة حالياً.' : 'You have no pending or overdue payments right now.'))}
               </Text>
             </View>
           )}
