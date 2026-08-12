@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getFullImageUrl } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 import { ChevronLeft, Calendar, CheckCircle2, FileText, Image as ImageIcon, Download, Camera, MoreHorizontal, X } from 'lucide-react-native';
 import { downloadAndPreviewPDF } from '../utils/fileUtils';
 import * as ImagePicker from 'expo-image-picker';
@@ -18,6 +19,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
   const [statusLoading, setStatusLoading] = React.useState(true);
 
   const studentId = route.params.studentId;
+  const { t, isRTL } = useLanguage();
 
   // Always fetch the real completion status from the backend on mount
   React.useEffect(() => {
@@ -46,7 +48,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please allow photo access to attach work.');
+        Alert.alert(t.permissionNeeded, t.allowPhotoAccess);
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -71,7 +73,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
         setSubmissionFiles(prev => [...prev, ...uploadedFiles]);
       }
     } catch (e: any) {
-      Alert.alert('Error', 'Could not pick image: ' + (e.message || ''));
+      Alert.alert(t.error, t.error + ': ' + (e.message || ''));
     } finally {
       setUploadingImg(false);
     }
@@ -100,7 +102,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
         setSubmissionFiles(prev => [...prev, ...uploadedFiles]);
       }
     } catch (e: any) {
-      Alert.alert('Error', 'Could not pick document: ' + (e.message || ''));
+      Alert.alert(t.error, t.error + ': ' + (e.message || ''));
     } finally {
       setUploadingImg(false);
     }
@@ -117,9 +119,9 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
       const imageUrl = submissionFiles.map(f => f.url).join(',') || undefined;
       await studentService.submitTask(studentId, homework.id, imageUrl);
       setIsCompleted(true);
-      Alert.alert("Success! 🎉", "Task marked as completed. Well done!");
+      Alert.alert(t.successAlert, t.taskCompletedWellDone);
     } catch (e: any) {
-      Alert.alert("Error", `Failed to update task status: ${e.message || "Unknown error"}`);
+      Alert.alert("Error", `${t.failedToUpdate} ${e.message || 'Unknown error'}`);
     } finally {
       setSubmitting(false);
     }
@@ -137,7 +139,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
           if (found) {
             setHomework(found);
           } else {
-            Alert.alert("Error", "Task not found or expired.");
+            Alert.alert("Error", t.taskNotFound);
             navigation.goBack();
           }
         } catch (e) {
@@ -158,9 +160,9 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
     );
   }
 
-  const teacherName = homework.teacher || 'Teacher';
+  const teacherName = homework.teacher || t.teacher || 'Teacher';
   const teacherInitials = teacherName.split(' ').map((n: string) => n[0]).join('').toUpperCase();
-  const description = homework.description || 'No description provided.';
+  const description = homework.description || t.noDescription;
   
   // Parse multiple attachments
   const attachmentUrls = (homework.img ? homework.img.split(',') : []).map(getFullImageUrl).filter(Boolean);
@@ -216,8 +218,8 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
       const isTomorrow = date.toDateString() === tomorrow.toDateString();
       const options: any = { month: 'short', day: 'numeric', year: 'numeric' };
       const formatted = date.toLocaleDateString('en-US', options);
-      if (isToday) return { main: formatted, sub: 'Today' };
-      if (isTomorrow) return { main: formatted, sub: 'Tomorrow · 12:00 AM' };
+      if (isToday) return { main: formatted, sub: t.todayDate };
+      if (isTomorrow) return { main: formatted, sub: `${t.tomorrowDate} · 12:00 AM` };
       return { main: formatted, sub: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
     } catch (e) {
       return { main: dateStr, sub: '' };
@@ -231,13 +233,13 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
     const due = new Date(homework.dueDate);
     const now = new Date();
     const diff = due.getTime() - now.getTime();
-    if (diff <= 0) return { label: 'Deadline passed', percent: 100, color: '#ef4444' };
+    if (diff <= 0) return { label: t.deadlinePassed, percent: 100, color: '#ef4444' };
     
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const days = Math.floor(hours / 24);
     
-    if (days > 0) return { label: `~${days} days left`, percent: Math.max(10, 100 - (days * 10)), color: '#f59e0b' };
-    return { label: `~${hours} hours left`, percent: 75, color: '#f59e0b' };
+    if (days > 0) return { label: `~${days} ${t.daysLeft}`, percent: Math.max(10, 100 - (days * 10)), color: '#f59e0b' };
+    return { label: `~${hours} ${t.hoursLeft}`, percent: 75, color: '#f59e0b' };
   };
 
   const urgency = getTimeRemaining();
@@ -266,7 +268,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
         >
           <ChevronLeft color="#1a1d1e" size={20} strokeWidth={2.5} />
         </TouchableOpacity>
-        <Text style={{ fontSize: 18, fontWeight: '800', color: '#1a1d1e' }}>Task Details</Text>
+        <Text style={{ fontSize: 18, fontWeight: '800', color: '#1a1d1e' }}>{t.taskDetails}</Text>
         <TouchableOpacity 
           style={{ 
             width: 44, 
@@ -299,7 +301,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
           borderColor: isCompleted ? '#d1fae5' : '#ffedd5'
         }}>
           <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: isCompleted ? '#10b981' : '#f59e0b', marginRight: 8 }} />
-          {isCompleted ? <Text style={{ color: '#10b981', fontSize: 13, fontWeight: '700' }}>Completed</Text> : <Text style={{ color: '#f59e0b', fontSize: 13, fontWeight: '700' }}>Pending</Text>}
+          {isCompleted ? <Text style={{ color: '#10b981', fontSize: 13, fontWeight: '700' }}>{t.completed}</Text> : <Text style={{ color: '#f59e0b', fontSize: 13, fontWeight: '700' }}>{t.pending}</Text>}
         </View>
 
         <Text style={{ fontSize: 36, fontWeight: '800', color: '#1a1d1e', lineHeight: 42, marginBottom: 20, letterSpacing: -1 }}>
@@ -327,7 +329,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
               <Calendar size={20} color="#0055d4" strokeWidth={2.5} />
             </View>
             <View>
-              <Text style={{ fontSize: 12, fontWeight: '800', color: '#0055d4', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>Assigned Date</Text>
+              <Text style={{ fontSize: 12, fontWeight: '800', color: '#0055d4', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>{t.assignedDate}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
                 <Text style={{ fontSize: 18, fontWeight: '800', color: '#1a1d1e' }}>{assignedDate.main}</Text>
                 <Text style={{ fontSize: 13, color: '#adb5bd', marginLeft: 8, fontWeight: '600' }}>({assignedDate.sub})</Text>
@@ -336,14 +338,14 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
           </View>
         </View>
         <View style={{ marginBottom: 32 }}>
-          <Text style={{ fontSize: 12, fontWeight: '800', color: '#adb5bd', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 16 }}>Instructions</Text>
+          <Text style={{ fontSize: 12, fontWeight: '800', color: '#adb5bd', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 16 }}>{t.instructions}</Text>
           <Text style={{ fontSize: 16, color: '#495057', lineHeight: 26, fontWeight: '500' }}>
             {renderHighlightedText(description)}
           </Text>
         </View>
 
         <View style={{ marginBottom: 32 }}>
-          <Text style={{ fontSize: 12, fontWeight: '800', color: '#adb5bd', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 16 }}>Attachments</Text>
+          <Text style={{ fontSize: 12, fontWeight: '800', color: '#adb5bd', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 16 }}>{t.attachments}</Text>
           
           {attachmentUrls.length > 0 ? (
             attachmentUrls.map((url: any, index: number) => {
@@ -394,24 +396,24 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
             })
           ) : (
             <View style={{ padding: 20, alignItems: 'center', backgroundColor: '#f8f9fa', borderRadius: 16 }}>
-              <Text style={{ color: '#adb5bd', fontSize: 14 }}>No attachments provided.</Text>
+              <Text style={{ color: '#adb5bd', fontSize: 14 }}>{t.noAttachments}</Text>
             </View>
           )}
         </View>
         <View style={{ marginTop: 40, marginBottom: 20 }}>
           {!isCompleted && (
             <>
-              <Text style={{ fontSize: 12, fontWeight: '800', color: '#adb5bd', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>Attach Your Work (Optional)</Text>
+              <Text style={{ fontSize: 12, fontWeight: '800', color: '#adb5bd', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>{t.attachWork}</Text>
               
               <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
-                <TouchableOpacity onPress={pickSubmissionImage} disabled={uploadingImg} style={{ flex: 1, height: 48, borderRadius: 14, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}><ImageIcon size={18} color="#8b5cf6" /><Text style={{ fontSize: 13, fontWeight: '800', color: '#8b5cf6' }}>Add Photos</Text></TouchableOpacity>
-                <TouchableOpacity onPress={pickSubmissionDocument} disabled={uploadingImg} style={{ flex: 1, height: 48, borderRadius: 14, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}><FileText size={18} color="#0055d4" /><Text style={{ fontSize: 13, fontWeight: '800', color: '#0055d4' }}>Add PDF/Doc</Text></TouchableOpacity>
+                <TouchableOpacity onPress={pickSubmissionImage} disabled={uploadingImg} style={{ flex: 1, height: 48, borderRadius: 14, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}><ImageIcon size={18} color="#8b5cf6" /><Text style={{ fontSize: 13, fontWeight: '800', color: '#8b5cf6' }}>{t.addPhotos}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={pickSubmissionDocument} disabled={uploadingImg} style={{ flex: 1, height: 48, borderRadius: 14, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}><FileText size={18} color="#0055d4" /><Text style={{ fontSize: 13, fontWeight: '800', color: '#0055d4' }}>{t.addPdfDoc}</Text></TouchableOpacity>
               </View>
 
               {uploadingImg && (
                 <View style={{ padding: 20, alignItems: 'center' }}>
                   <ActivityIndicator color="#0055d4" />
-                  <Text style={{ color: '#64748b', fontSize: 13, marginTop: 8, fontWeight: '600' }}>Uploading...</Text>
+                  <Text style={{ color: '#64748b', fontSize: 13, marginTop: 8, fontWeight: '600' }}>{t.uploading}</Text>
                 </View>
               )}
 
@@ -434,11 +436,11 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
             {submitting ? <ActivityIndicator size="small" color="#ffffff" /> : (
               <>
                 <CheckCircle2 size={24} color="#ffffff" strokeWidth={2.5} style={{ marginRight: 12 }} />
-                <Text style={{ fontSize: 18, fontWeight: '800', color: '#ffffff' }}>{isCompleted ? 'Completed ✓' : 'Mark as Complete'}</Text>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: '#ffffff' }}>{isCompleted ? t.completedCheck : t.markAsComplete}</Text>
               </>
             )}
           </TouchableOpacity>
-          {!isCompleted && <Text style={{ textAlign: 'center', color: '#adb5bd', fontSize: 13, marginTop: 12, fontWeight: '600' }}>Marking this as complete will notify your teacher.</Text>}
+          {!isCompleted && <Text style={{ textAlign: 'center', color: '#adb5bd', fontSize: 13, marginTop: 12, fontWeight: '600' }}>{t.notifyTeacher}</Text>}
         </View>
       </ScrollView>
     </SafeAreaView>
