@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StatusBar, Share, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, StatusBar, Share, ActivityIndicator, Dimensions, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Share2, Clock, Megaphone, Download, Calendar } from 'lucide-react-native';
+import { ChevronLeft, Share2, Clock, Megaphone, Download, Calendar, X } from 'lucide-react-native';
 import { downloadAndPreviewPDF } from '../utils/fileUtils';
 import moment from 'moment';
 
@@ -11,7 +11,9 @@ export const AnnouncementDetailScreen = ({ route, navigation }: any) => {
   const { announcement } = route.params;
 
   const [downloading, setDownloading] = React.useState(false);
+  const [downloadingImage, setDownloadingImage] = React.useState(false);
   const [schoolName, setSchoolName] = React.useState('School');
+  const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     import('../services/api').then(({ parentService }) => {
@@ -35,13 +37,26 @@ export const AnnouncementDetailScreen = ({ route, navigation }: any) => {
   };
 
   const handleDownload = async () => {
-    if (announcement.pdfUrl) {
+    if (!announcement.pdfUrl || announcement.pdfUrl === 'null') return;
+    try {
       setDownloading(true);
-      try {
-        await downloadAndPreviewPDF(announcement.pdfUrl, `${announcement.title}.pdf`);
-      } finally {
-        setDownloading(false);
-      }
+      await downloadAndPreviewPDF(announcement.pdfUrl, `Announcement_${announcement.id}.pdf`);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleDownloadImage = async (imgUrl: string) => {
+    try {
+      setDownloadingImage(true);
+      const fileName = `Image_${Date.now()}.jpg`;
+      await downloadAndPreviewPDF(imgUrl, fileName);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setDownloadingImage(false);
     }
   };
 
@@ -203,13 +218,14 @@ export const AnnouncementDetailScreen = ({ route, navigation }: any) => {
           {announcement.images && announcement.images.length > 0 && (
             <View style={{ marginBottom: 32, gap: 16 }}>
               {announcement.images.map((imgUrl: string, index: number) => (
-                <Image 
-                  key={index}
-                  source={{ uri: imgUrl }} 
-                  style={{ width: '100%', height: 250, borderRadius: 16, borderWidth: 1, borderColor: '#f1f5f9' }}
-                  contentFit="cover"
-                  transition={200}
-                />
+                <TouchableOpacity key={index} onPress={() => setSelectedImage(imgUrl)} activeOpacity={0.8}>
+                  <Image 
+                    source={{ uri: imgUrl }} 
+                    style={{ width: '100%', height: 250, borderRadius: 16, borderWidth: 1, borderColor: '#f1f5f9' }}
+                    contentFit="cover"
+                    transition={200}
+                  />
+                </TouchableOpacity>
               ))}
             </View>
           )}
@@ -247,6 +263,43 @@ export const AnnouncementDetailScreen = ({ route, navigation }: any) => {
 
         </View>
       </ScrollView>
+
+      {/* Image Viewer Modal */}
+      <Modal visible={!!selectedImage} transparent={true} animationType="fade" onRequestClose={() => setSelectedImage(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)' }}>
+          <SafeAreaView style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 20, zIndex: 10 }}>
+              <TouchableOpacity 
+                onPress={() => setSelectedImage(null)}
+                style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X color="#fff" size={24} />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                onPress={() => selectedImage && handleDownloadImage(selectedImage)}
+                style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' }}
+              >
+                {downloadingImage ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Download color="#fff" size={22} />
+                )}
+              </TouchableOpacity>
+            </View>
+            
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+              {selectedImage && (
+                <Image
+                  source={{ uri: selectedImage }}
+                  style={{ width: '100%', height: '100%' }}
+                  resizeMode="contain"
+                />
+              )}
+            </View>
+          </SafeAreaView>
+        </View>
+      </Modal>
     </View>
   );
 };
