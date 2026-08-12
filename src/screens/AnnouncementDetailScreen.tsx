@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, StatusBar, Share, ActivityIndicator, Dimensions, Modal } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, Share2, Clock, Megaphone, Download, Calendar, X } from 'lucide-react-native';
 import { downloadAndPreviewPDF } from '../utils/fileUtils';
 import moment from 'moment';
@@ -9,6 +9,7 @@ const { width } = Dimensions.get('window');
 
 export const AnnouncementDetailScreen = ({ route, navigation }: any) => {
   const { announcement } = route.params;
+  const insets = useSafeAreaInsets();
 
   const [downloading, setDownloading] = React.useState(false);
   const [downloadingImage, setDownloadingImage] = React.useState(false);
@@ -267,37 +268,45 @@ export const AnnouncementDetailScreen = ({ route, navigation }: any) => {
       {/* Image Viewer Modal */}
       <Modal visible={!!selectedImage} transparent={true} animationType="fade" onRequestClose={() => setSelectedImage(null)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)' }}>
-          <SafeAreaView style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 20, zIndex: 10 }}>
-              <TouchableOpacity 
-                onPress={() => setSelectedImage(null)}
-                style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <X color="#fff" size={24} />
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                onPress={() => selectedImage && handleDownloadImage(selectedImage)}
-                style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' }}
-              >
-                {downloadingImage ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Download color="#fff" size={22} />
-                )}
-              </TouchableOpacity>
-            </View>
+          <View style={{ 
+            flexDirection: 'row', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            paddingHorizontal: 20, 
+            paddingTop: Math.max(insets.top, 50), 
+            paddingBottom: 20, 
+            position: 'absolute',
+            top: 0, left: 0, right: 0,
+            zIndex: 20 
+          }}>
+            <TouchableOpacity 
+              onPress={() => setSelectedImage(null)}
+              style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <X color="#fff" size={24} />
+            </TouchableOpacity>
             
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-              {selectedImage && (
-                <Image
-                  source={{ uri: selectedImage }}
-                  style={{ width: '100%', height: '100%' }}
-                  resizeMode="contain"
-                />
+            <TouchableOpacity 
+              onPress={() => selectedImage && handleDownloadImage(selectedImage)}
+              style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}
+            >
+              {downloadingImage ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Download color="#fff" size={22} />
               )}
-            </View>
-          </SafeAreaView>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            {selectedImage && (
+              <Image
+                source={{ uri: selectedImage }}
+                style={{ width: '100%', height: '100%' }}
+                resizeMode="contain"
+              />
+            )}
+          </View>
         </View>
       </Modal>
     </View>
