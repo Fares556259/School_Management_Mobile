@@ -10,6 +10,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { studentService } from '../services/api';
 import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GlobalHeader } from '../components/GlobalHeader';
 
 const SUBJECT_THEMES: Record<string, { icon: any }> = {
   'Mathematics': { icon: Calculator },
@@ -41,7 +42,7 @@ const getSubjectDomain = (subjectName: string) => {
   return { id: 'OTHER', title: 'OTHER SUBJECTS', color: '#0055d4', bg: '#eff6ff', keywords: [] };
 };
 
-export const CoursesScreen = () => {
+export const CoursesScreen = ({ navigation }: any) => {
   const { selectedChildId, children } = useAppStore();
   const { t, isRTL, getTranslatedSubject } = useLanguage();
   const [loading, setLoading] = useState(true);
@@ -126,8 +127,9 @@ export const CoursesScreen = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }}>
+      <GlobalHeader navigation={navigation} />
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 120 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
