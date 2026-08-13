@@ -30,6 +30,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
   const [loading, setLoading] = React.useState(!initialHomework.title);
   const [downloading, setDownloading] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
+  const [uploadProgress, setUploadProgress] = React.useState(0);
   const [isCompleted, setIsCompleted] = React.useState(false);
   const [statusLoading, setStatusLoading] = React.useState(true);
 
@@ -106,6 +107,10 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
   };
 
   const pickSubmissionDocument = async () => {
+    if (submissionFiles.length >= 4) {
+      Alert.alert("Limite atteinte", "Vous pouvez ajouter 4 fichiers au maximum.");
+      return;
+    }
     try {
       const DocumentPicker = await import('expo-document-picker');
       const result = await DocumentPicker.getDocumentAsync({
@@ -113,24 +118,23 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
         multiple: true,
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        setUploadingImg(true);
-        const { uiService } = await import('../services/api');
+        const remainingSlots = 4 - submissionFiles.length;
+        const assetsToUpload = result.assets.slice(0, remainingSlots);
+
+        if (result.assets.length > remainingSlots) {
+          Alert.alert("Information", `Seuls ${remainingSlots} document(s) ont été ajoutés (maximum 4 fichiers).`);
+        }
         
-        const uploadedFiles = await Promise.all(
-          result.assets.map(async (asset) => {
-            const uri = asset.uri;
-            const fileName = asset.name;
-            const uploadedUrl = await uiService.uploadImage(uri, 'student', studentId);
-            return { name: fileName, url: uploadedUrl?.url || uri, type: 'PDF' };
-          })
-        );
+        const localFiles = assetsToUpload.map((asset) => {
+          const uri = asset.uri;
+          const fileName = asset.name || uri.split('/').pop() || 'document.pdf';
+          return { name: fileName, url: uri, type: 'PDF' };
+        });
         
-        setSubmissionFiles(prev => [...prev, ...uploadedFiles]);
+        setSubmissionFiles(prev => [...prev, ...localFiles]);
       }
     } catch (e: any) {
       Alert.alert(t.error, t.error + ': ' + (e.message || ''));
-    } finally {
-      setUploadingImg(false);
     }
   };
 
@@ -144,6 +148,10 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
       const { studentService, uiService } = await import('../services/api');
       
       const uploadedUrls: string[] = [];
+      const localFiles = submissionFiles.filter(f => !f.url.startsWith('http'));
+      const totalFiles = localFiles.length;
+      let uploadedCount = 0;
+
       for (const file of submissionFiles) {
         if (file.url && file.url.startsWith('http')) {
           uploadedUrls.push(file.url);
@@ -153,6 +161,8 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
           if (uploadedRes?.url) {
              uploadedUrls.push(uploadedRes.url);
           }
+          uploadedCount++;
+          setUploadProgress(Math.round((uploadedCount / totalFiles) * 100));
         }
       }
 
@@ -161,9 +171,9 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
       
       // Update local URLs to remote URLs immediately
       setSubmissionFiles(uploadedUrls.map((url, idx) => ({
-        name: `Photo_${idx + 1}.jpg`,
+        name: `File_${idx + 1}`,
         url: url,
-        type: 'IMAGE'
+        type: url.toLowerCase().includes('.pdf') ? 'PDF' : 'IMAGE'
       })));
       
       setIsCompleted(true);
@@ -710,11 +720,12 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
               {t.attachWork}
             </Text>
             
-            <View style={{ marginBottom: submissionFiles.length > 0 ? 14 : 0 }}>
+            <View style={{ marginBottom: submissionFiles.length > 0 ? 14 : 0, flexDirection: 'row', gap: 10 }}>
               <TouchableOpacity 
                 onPress={pickSubmissionImage} 
                 disabled={uploadingImg || submissionFiles.length >= 4} 
                 style={{ 
+                  flex: 1,
                   height: 48, 
                   borderRadius: 12, 
                   backgroundColor: submissionFiles.length >= 4 ? '#f1f5f9' : '#f5f3ff', 
@@ -729,10 +740,39 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
               >
                 <ImageIcon size={18} color={submissionFiles.length >= 4 ? '#94a3b8' : '#7c3aed'} />
                 <Text style={{ fontSize: 14, fontWeight: '800', color: submissionFiles.length >= 4 ? '#94a3b8' : '#7c3aed' }}>
-                  {t.addPhotos} ({submissionFiles.length}/4)
+                  {t.addPhotos || 'Photos'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                onPress={pickSubmissionDocument} 
+                disabled={uploadingImg || submissionFiles.length >= 4} 
+                style={{ 
+                  flex: 1,
+                  height: 48, 
+                  borderRadius: 12, 
+                  backgroundColor: submissionFiles.length >= 4 ? '#f1f5f9' : '#eff6ff', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  flexDirection: isRTL ? 'row-reverse' : 'row', 
+                  gap: 8, 
+                  borderWidth: 1, 
+                  borderColor: submissionFiles.length >= 4 ? '#cbd5e1' : '#bfdbfe',
+                  opacity: submissionFiles.length >= 4 ? 0.6 : 1
+                }}
+              >
+                <FileText size={18} color={submissionFiles.length >= 4 ? '#94a3b8' : '#0055d4'} />
+                <Text style={{ fontSize: 14, fontWeight: '800', color: submissionFiles.length >= 4 ? '#94a3b8' : '#0055d4' }}>
+                  {t.addDocuments || 'PDF'}
                 </Text>
               </TouchableOpacity>
             </View>
+            
+            {submissionFiles.length < 4 && (
+              <Text style={{ fontSize: 12, color: '#64748b', marginTop: 10, textAlign: 'center', fontWeight: '500' }}>
+                {submissionFiles.length}/4 {t.attachments || 'attachments'}
+              </Text>
+            )}
 
             {uploadingImg && (
               <View style={{ padding: 16, alignItems: 'center' }}>
@@ -789,11 +829,20 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
             shadowOpacity: 0.25, 
             shadowRadius: 8, 
             elevation: 4, 
-            opacity: submitting ? 0.7 : 1 
+            opacity: submitting ? 0.7 : 1,
+            overflow: 'hidden'
           }}
         >
+          {submitting && uploadProgress > 0 && uploadProgress < 100 && (
+            <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${uploadProgress}%`, backgroundColor: 'rgba(255,255,255,0.2)' }} />
+          )}
           {submitting ? (
-            <ActivityIndicator size="small" color="#ffffff" />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <ActivityIndicator size="small" color="#ffffff" />
+              {uploadProgress > 0 && uploadProgress < 100 && (
+                <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>{uploadProgress}%</Text>
+              )}
+            </View>
           ) : (
             <>
               <CheckCircle2 size={22} color="#ffffff" strokeWidth={2.5} style={{ marginRight: isRTL ? 0 : 10, marginLeft: isRTL ? 10 : 0 }} />
