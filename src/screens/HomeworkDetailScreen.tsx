@@ -782,13 +782,23 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
             )}
 
             {submissionFiles.length > 0 && (
-              <View style={{ gap: 8 }}>
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: 12, marginTop: 8 }}>
                 {submissionFiles.map((file, idx) => (
-                  <View key={idx} style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 10, borderRadius: 12, borderWidth: 1, borderColor: '#f1f5f9' }}>
-                    {file.type === 'IMAGE' ? <ImageIcon size={16} color="#7c3aed" /> : <FileText size={16} color="#0055d4" />}
-                    <Text style={{ flex: 1, marginLeft: isRTL ? 0 : 10, marginRight: isRTL ? 10 : 0, fontSize: 13, fontWeight: '700', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>{file.name}</Text>
-                    <TouchableOpacity onPress={() => removeSubmissionFile(idx)} disabled={uploadingImg}>
-                      <X size={17} color="#ef4444" />
+                  <View key={idx} style={{ width: '47%', aspectRatio: 1, borderRadius: 16, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', position: 'relative' }}>
+                    {file.type === 'IMAGE' ? (
+                      <Image source={{ uri: file.url }} style={{ width: '100%', height: '100%', borderRadius: 15 }} resizeMode="cover" />
+                    ) : (
+                      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#eff6ff', borderRadius: 15, padding: 10 }}>
+                        <FileText size={32} color="#0055d4" />
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#0055d4', marginTop: 8, textAlign: 'center' }} numberOfLines={2}>{file.name}</Text>
+                      </View>
+                    )}
+                    <TouchableOpacity 
+                      onPress={() => removeSubmissionFile(idx)} 
+                      disabled={uploadingImg}
+                      style={{ position: 'absolute', top: -6, right: isRTL ? undefined : -6, left: isRTL ? -6 : undefined, backgroundColor: '#ef4444', width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'white', zIndex: 10 }}
+                    >
+                      <X size={14} color="white" strokeWidth={3} />
                     </TouchableOpacity>
                   </View>
                 ))}
