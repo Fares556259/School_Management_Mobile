@@ -530,7 +530,7 @@ export const studentService = {
     if (!Array.isArray(data)) return [];
     
     return data.map((item: any) => {
-      const rawImg = item.img || item.image || '';
+      const rawImg = item.rawImg !== undefined ? item.rawImg : (item.img || item.image || '');
       let images: string[] = [];
       if (rawImg && typeof rawImg === 'string') {
         images = rawImg.split(',').map((url: string) => getFullImageUrl(url)).filter(Boolean) as string[];
@@ -539,7 +539,7 @@ export const studentService = {
       return {
         ...item,
         images,
-        image: images.length > 0 ? images[0] : 'https://ui-avatars.com/api/?name=Announcement&background=0055d4&color=fff&size=512',
+        image: images.length > 0 ? images[0] : (item.image || 'https://ui-avatars.com/api/?name=Announcement&background=0055d4&color=fff&size=512'),
       };
     });
   },
