@@ -602,49 +602,68 @@ export const studentService = {
 };
 
 export const uiService = {
-  uploadImage: async (uri: string, type: 'profile' | 'student', id: string) => {
-    try {
-      const formData = new FormData();
-      
-      // Create the file object from the URI
-      const uriParts = uri.split('.');
-      const fileType = uriParts[uriParts.length - 1];
+  uploadImage: async (uri: string, type: 'profile' | 'student', id: string, onProgress?: (event: ProgressEvent) => void) => {
+    return new Promise(async (resolve) => {
+      try {
+        const formData = new FormData();
+        
+        const uriParts = uri.split('.');
+        const fileType = uriParts[uriParts.length - 1];
 
-      formData.append('file', {
-        uri,
-        name: `photo.${fileType}`,
-        type: `image/${fileType}`,
-      } as any);
-      
-      formData.append('type', type);
-      formData.append('id', id);
+        formData.append('file', {
+          uri,
+          name: `photo.${fileType}`,
+          type: `image/${fileType}`,
+        } as any);
+        
+        formData.append('type', type);
+        formData.append('id', id);
 
-      const schoolId = await authStorage.getSchoolId();
-      
-      // Add a 5 second timeout so it doesn't hang forever if backend is unreachable
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch(`${API_BASE_URL}/api/mobile/upload`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'x-school-id': schoolId || 'default_school',
-        },
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
+        const schoolId = await authStorage.getSchoolId();
+        
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${API_BASE_URL}/api/mobile/upload`);
+        xhr.setRequestHeader('x-school-id', schoolId || 'default_school');
 
-      if (!response.ok) {
-        throw new Error('Upload failed');
+        if (onProgress) {
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              onProgress(event);
+            }
+          };
+        }
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const response = JSON.parse(xhr.responseText);
+              resolve(response);
+            } catch (e) {
+              resolve({ success: false, error: 'Failed to parse response' });
+            }
+          } else {
+            resolve({ success: false, error: 'Upload failed' });
+          }
+        };
+
+        xhr.onerror = () => {
+          console.warn('Upload failed (XHR onerror)');
+          resolve({ success: false, error: 'Upload failed' });
+        };
+
+        xhr.ontimeout = () => {
+          console.warn('Upload timed out');
+          resolve({ success: false, error: 'Upload timed out' });
+        };
+        
+        xhr.timeout = 30000; // 30 second timeout
+
+        xhr.send(formData);
+      } catch (error) {
+        console.warn('Upload setup failed:', error);
+        resolve({ success: false, error: 'Upload setup failed' });
       }
-
-      return await response.json();
-    } catch (error) {
-      console.warn('Upload failed or timed out:', error);
-      return { success: false, error: 'Upload failed' };
-    }
+    });
   },
 };
 

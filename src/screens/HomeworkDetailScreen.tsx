@@ -149,20 +149,29 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
       
       const uploadedUrls: string[] = [];
       const localFiles = submissionFiles.filter(f => !f.url.startsWith('http'));
-      const totalFiles = localFiles.length;
+      const totalLocalFiles = localFiles.length;
       let uploadedCount = 0;
 
       for (const file of submissionFiles) {
         if (file.url && file.url.startsWith('http')) {
           uploadedUrls.push(file.url);
         } else {
-          // Upload local URI
-          const uploadedRes = await uiService.uploadImage(file.url, 'student', studentId);
+          const baseProgress = totalLocalFiles > 0 ? (uploadedCount / totalLocalFiles) * 100 : 0;
+          
+          const uploadedRes = await uiService.uploadImage(file.url, 'student', studentId, (event) => {
+             if (totalLocalFiles > 0) {
+               const fileProgress = (event.loaded / event.total) * (100 / totalLocalFiles);
+               setUploadProgress(Math.round(baseProgress + fileProgress));
+             }
+          });
+          
           if (uploadedRes?.url) {
              uploadedUrls.push(uploadedRes.url);
           }
           uploadedCount++;
-          setUploadProgress(Math.round((uploadedCount / totalFiles) * 100));
+          if (totalLocalFiles > 0) {
+            setUploadProgress(Math.round((uploadedCount / totalLocalFiles) * 100));
+          }
         }
       }
 
