@@ -109,7 +109,7 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
               <Text style={{ fontSize: 12, fontWeight: '800', color: (task.dueDate && moment(task.dueDate).year() > 1970) ? '#c2410c' : '#475569', marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }}>
                 {language === 'ar' ? 'آخر موعد: ' : language === 'fr' ? 'À rendre le : ' : 'Due: '}
                 {(task.dueDate && moment(task.dueDate).year() > 1970)
-                  ? moment(task.dueDate).format('DD MMM YYYY, HH:mm')
+                  ? moment(task.dueDate).format('DD MMM YYYY')
                   : (t?.notDetermined || (language === 'fr' ? 'Non déterminée' : language === 'ar' ? 'غير محدد' : 'Not set'))}
               </Text>
             </View>

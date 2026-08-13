@@ -248,7 +248,7 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
                 <Clock size={12} color={hasDueDate ? '#d97706' : '#64748b'} />
                 <Text style={{ fontSize: 11, fontWeight: '800', color: hasDueDate ? '#b45309' : '#64748b', marginLeft: isRTL ? 0 : 5, marginRight: isRTL ? 5 : 0 }}>
                   {language === 'ar' ? 'آخر موعد: ' : language === 'fr' ? 'Date limite : ' : 'Due: '}
-                  {hasDueDate ? moment(task.dueDate).format('DD MMM YYYY, HH:mm') : (t?.notDetermined || (language === 'fr' ? 'Non déterminée' : language === 'ar' ? 'غير محدد' : 'Not set'))}
+                  {hasDueDate ? moment(task.dueDate).format('DD MMM YYYY') : (t?.notDetermined || (language === 'fr' ? 'Non déterminée' : language === 'ar' ? 'غير محدد' : 'Not set'))}
                 </Text>
               </View>
             </View>
@@ -353,7 +353,7 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
                 <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 10 }}>
                   <Clock size={18} color="#d97706" />
                   <Text style={{ fontSize: 14, fontWeight: '800', color: '#b45309' }}>
-                    {moment(dueDate).format('DD MMM, YYYY · HH:mm')}
+                    {moment(dueDate).format('DD MMM YYYY')}
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => setDueDate(null)} style={{ padding: 6, backgroundColor: '#ffedd5', borderRadius: 10 }}>
