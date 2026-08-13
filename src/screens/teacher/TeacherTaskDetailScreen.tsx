@@ -156,26 +156,42 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
                     {student.submittedAt ? new Date(student.submittedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
                   </Text>
                 </View>
-                {student.attachments && student.attachments.length > 0 ? (
-                  <View style={{ position: 'relative' }}>
-                    {student.attachments[0].type === 'pdf' ? (
-                      <View style={{ width: 56, height: 56, borderRadius: 12, borderWidth: 2, borderColor: '#bbf7d0', backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}>
-                        <Text style={{ fontSize: 10, fontWeight: '700', color: '#64748b' }}>PDF</Text>
+                {(() => {
+                  let attachments = student.attachments;
+                  if (!attachments || attachments.length === 0) {
+                    if (student.submissionImg && typeof student.submissionImg === 'string') {
+                      attachments = student.submissionImg.split(',').filter(Boolean).map((url: string) => ({
+                        url,
+                        type: url.toLowerCase().includes('.pdf') ? 'pdf' : 'image'
+                      }));
+                    }
+                  }
+
+                  if (attachments && attachments.length > 0) {
+                    return (
+                      <View style={{ position: 'relative' }}>
+                        {attachments[0].type === 'pdf' ? (
+                          <View style={{ width: 56, height: 56, borderRadius: 12, borderWidth: 2, borderColor: '#bbf7d0', backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}>
+                            <Text style={{ fontSize: 10, fontWeight: '700', color: '#64748b' }}>PDF</Text>
+                          </View>
+                        ) : (
+                          <Image source={{ uri: attachments[0].url }} style={{ width: 56, height: 56, borderRadius: 12, borderWidth: 2, borderColor: '#bbf7d0' }} resizeMode="cover" />
+                        )}
+                        {attachments.length > 1 && (
+                          <View style={{ position: 'absolute', top: -6, [isRTL ? 'left' : 'right']: -6, backgroundColor: '#0055d4', borderRadius: 10, width: 20, height: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'white' }}>
+                            <Text style={{ color: 'white', fontSize: 9, fontWeight: '900' }}>+{attachments.length - 1}</Text>
+                          </View>
+                        )}
                       </View>
-                    ) : (
-                      <Image source={{ uri: student.attachments[0].url }} style={{ width: 56, height: 56, borderRadius: 12, borderWidth: 2, borderColor: '#bbf7d0' }} resizeMode="cover" />
-                    )}
-                    {student.attachments.length > 1 && (
-                      <View style={{ position: 'absolute', top: -6, [isRTL ? 'left' : 'right']: -6, backgroundColor: '#0055d4', borderRadius: 10, width: 20, height: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'white' }}>
-                        <Text style={{ color: 'white', fontSize: 9, fontWeight: '900' }}>+{student.attachments.length - 1}</Text>
-                      </View>
-                    )}
-                  </View>
-                ) : (
-                  <View style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: '#dcfce7', alignItems: 'center', justifyContent: 'center' }}>
-                    <CheckCircle2 size={22} color="#16a34a" />
-                  </View>
-                )}
+                    );
+                  }
+
+                  return (
+                    <View style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: '#dcfce7', alignItems: 'center', justifyContent: 'center' }}>
+                      <CheckCircle2 size={22} color="#16a34a" />
+                    </View>
+                  );
+                })()}
               </TouchableOpacity>
             ))
           ) : (

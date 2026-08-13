@@ -109,10 +109,22 @@ export const StudentSubmissionScreen = ({ route, navigation }: any) => {
           {(t?.workSubmitted || 'Work Submitted')}
         </Text>
 
-        {student.attachments && student.attachments.length > 0 ? (
-          <View style={{ gap: 16 }}>
-            {student.attachments.map((att: { url: string; type: string }, index: number) => {
-              const url = att.url;
+        {(() => {
+          let attachments = student.attachments;
+          if (!attachments || attachments.length === 0) {
+            if (student.submissionImg && typeof student.submissionImg === 'string') {
+              attachments = student.submissionImg.split(',').filter(Boolean).map((url: string) => ({
+                url,
+                type: url.toLowerCase().includes('.pdf') ? 'pdf' : 'image'
+              }));
+            }
+          }
+          
+          if (attachments && attachments.length > 0) {
+            return (
+              <View style={{ gap: 16 }}>
+                {attachments.map((att: { url: string; type: string }, index: number) => {
+                  const url = att.url;
               const isPdf = att.type === 'pdf';
               if (isPdf) {
                 const fileName = url.split('/').pop() || `Document_${index + 1}.pdf`;
@@ -156,14 +168,18 @@ export const StudentSubmissionScreen = ({ route, navigation }: any) => {
                 </TouchableOpacity>
               );
             })}
-          </View>
-        ) : (
-          <View style={{ backgroundColor: 'white', borderRadius: 24, padding: 40, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#f1f5f9', borderStyle: 'dashed' }}>
-            <Camera size={40} color="#d1d5db" />
-            <Text style={{ color: '#94a3b8', fontWeight: '700', marginTop: 12, fontSize: 15, textAlign: 'center' }}>{(t?.noPhotoSubmitted || 'No work attached')}</Text>
-            <Text style={{ color: '#cbd5e1', fontWeight: '500', marginTop: 4, fontSize: 13, textAlign: 'center' }}>{language === 'ar' ? 'تم وضع علامة على المهمة كمكتملة بدون إرفاق عمل' : language === 'fr' ? 'L\'étudiant a marqué comme terminé sans joindre de travail' : 'The student marked as done without attaching any work'}</Text>
-          </View>
-        )}
+              </View>
+            );
+          }
+          
+          return (
+            <View style={{ backgroundColor: 'white', borderRadius: 24, padding: 40, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#f1f5f9', borderStyle: 'dashed' }}>
+              <Camera size={40} color="#d1d5db" />
+              <Text style={{ color: '#94a3b8', fontWeight: '700', marginTop: 12, fontSize: 15, textAlign: 'center' }}>{(t?.noPhotoSubmitted || 'No work attached')}</Text>
+              <Text style={{ color: '#cbd5e1', fontWeight: '500', marginTop: 4, fontSize: 13, textAlign: 'center' }}>{language === 'ar' ? 'تم وضع علامة على المهمة كمكتملة بدون إرفاق عمل' : language === 'fr' ? 'L\'étudiant a marqué comme terminé sans joindre de travail' : 'The student marked as done without attaching any work'}</Text>
+            </View>
+          );
+        })()}
       </ScrollView>
 
       {/* Full-screen Image Viewer */}
