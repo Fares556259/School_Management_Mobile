@@ -167,6 +167,39 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
       })));
       
       setIsCompleted(true);
+      homework.isCompleted = true;
+
+      // Optimistically update AsyncStorage cache for HomeScreen so task completion status is INSTANT (0ms delay)
+      try {
+        const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+        const keys = await AsyncStorage.getAllKeys();
+        const studentKeys = keys.filter(k => k.startsWith(`home_data_${studentId}`));
+        for (const k of studentKeys) {
+          const cachedStr = await AsyncStorage.getItem(k);
+          if (cachedStr) {
+            const cached = JSON.parse(cachedStr);
+            let updated = false;
+            if (cached.homeworkGiven) {
+              cached.homeworkGiven = cached.homeworkGiven.map((h: any) => {
+                if (h.id === homework.id) { updated = true; return { ...h, isCompleted: true }; }
+                return h;
+              });
+            }
+            if (cached.homeworkDue) {
+              cached.homeworkDue = cached.homeworkDue.map((h: any) => {
+                if (h.id === homework.id) { updated = true; return { ...h, isCompleted: true }; }
+                return h;
+              });
+            }
+            if (updated) {
+              await AsyncStorage.setItem(k, JSON.stringify(cached));
+            }
+          }
+        }
+      } catch (cacheErr) {
+        console.warn('Cache update error:', cacheErr);
+      }
+
       Alert.alert(t.successAlert, t.taskCompletedWellDone);
     } catch (e: any) {
       Alert.alert("Error", `${t.failedToUpdate} ${e.message || 'Unknown error'}`);
