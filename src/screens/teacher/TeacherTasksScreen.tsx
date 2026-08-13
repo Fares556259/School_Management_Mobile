@@ -117,7 +117,7 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
       selectionLimit: 5 - attachments.length,
-      quality: 0.7,
+      quality: 0.3,
     });
     if (!result.canceled) {
       setAttachments(prev => [...prev, ...result.assets].slice(0, 5));

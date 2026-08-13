@@ -136,7 +136,7 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
       const options: ImagePicker.ImagePickerOptions = {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        quality: 0.7,
+        quality: 0.3,
       };
 
       const result = useCamera 

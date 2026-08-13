@@ -186,7 +186,7 @@ export const AttendanceScreen = ({ navigation }: any) => {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
-        quality: 0.7,
+        quality: 0.3,
       });
 
       if (result.canceled || !result.assets[0].uri) return;

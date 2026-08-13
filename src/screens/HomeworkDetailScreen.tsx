@@ -82,7 +82,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: false,
         allowsMultipleSelection: true,
-        quality: 0.7,
+        quality: 0.3,
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const remainingSlots = 4 - submissionFiles.length;
@@ -272,7 +272,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
       if (isToday) return { main: formatted, sub: t.todayDate || (language === 'fr' ? "Aujourd'hui" : language === 'ar' ? "اليوم" : "Today") };
       if (isTomorrow) return { main: formatted, sub: t.tomorrowDate || (language === 'fr' ? "Demain" : language === 'ar' ? "غداً" : "Tomorrow") };
       
-      return { main: formatted, sub: date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }) };
+      return { main: formatted, sub: '' };
     } catch (e) {
       return { main: dateStr, sub: '' };
     }
@@ -570,12 +570,18 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
           {attachmentUrls.length > 0 ? (
             attachmentUrls.map((url: any, index: number) => {
               const isPdf = url.toLowerCase().endsWith('.pdf');
-              const fileName = url.split('/').pop() || `Attachment_${index + 1}`;
+              const typeLabel = language === 'fr' ? (isPdf ? 'Document' : 'Image') : language === 'ar' ? (isPdf ? 'مستند' : 'صورة') : (isPdf ? 'Document' : 'Image');
+              const fileName = `${typeLabel} ${index + 1}`;
+              const subLabel = language === 'fr' 
+                ? (isPdf ? 'Document PDF' : 'Fichier Image') 
+                : language === 'ar' 
+                  ? (isPdf ? 'مستند PDF' : 'ملف صورة') 
+                  : (isPdf ? 'PDF Document' : 'Image File');
               
               return (
                 <TouchableOpacity 
                   key={index}
-                  onPress={() => handleDownload(url, fileName)}
+                  onPress={() => handleDownload(url, url.split('/').pop() || `Attachment_${index + 1}`)}
                   activeOpacity={0.7}
                   style={{ 
                     backgroundColor: '#f8fafc', 
@@ -607,7 +613,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
                   <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
                     <Text style={{ fontSize: 14, fontWeight: '700', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>{fileName}</Text>
                     <Text style={{ fontSize: 12, color: '#64748b', marginTop: 2, fontWeight: '500', textAlign: isRTL ? 'right' : 'left' }}>
-                      {isPdf ? 'Document PDF' : 'Fichier Image'}
+                      {subLabel}
                     </Text>
                   </View>
                   <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#cbd5e1', alignItems: 'center', justifyContent: 'center' }}>

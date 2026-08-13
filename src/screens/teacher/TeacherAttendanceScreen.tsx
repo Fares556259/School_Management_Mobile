@@ -305,7 +305,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
 
   const handlePickImage = async () => {
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.7 });
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.3 });
       if (!result.canceled) {
         const asset = result.assets[0];
         setNewTask(prev => ({ ...prev, attachments: [...prev.attachments, { type: 'IMAGE', uri: asset.uri, name: 'image.jpg' }] }));
