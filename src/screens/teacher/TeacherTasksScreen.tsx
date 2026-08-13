@@ -222,7 +222,13 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
   const renderTask = ({ item: task }: any) => {
     const hasDueDate = task.dueDate && moment(task.dueDate).year() > 1970;
     return (
-      <TouchableOpacity key={task.id} activeOpacity={0.85} onPress={() => navigation.navigate('TeacherTaskDetail', { task })} style={{ backgroundColor: 'white', padding: 24, borderRadius: 32, marginBottom: 16, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOpacity: 0.02, shadowRadius: 15, elevation: 2 }}>
+      <TouchableOpacity key={task.id} activeOpacity={0.85} onPress={() => !task.isUploading && navigation.navigate('TeacherTaskDetail', { task })} style={{ backgroundColor: 'white', padding: 24, borderRadius: 32, marginBottom: 16, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOpacity: 0.02, shadowRadius: 15, elevation: 2, opacity: task.isUploading ? 0.6 : 1, position: 'relative', overflow: 'hidden' }}>
+        {task.isUploading && (
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.7)', zIndex: 10, alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator size="large" color="#0055d4" />
+            <Text style={{ marginTop: 12, fontWeight: '800', color: '#0055d4' }}>{language === 'ar' ? 'جاري الإنشاء...' : language === 'fr' ? 'Création...' : 'Creating...'}</Text>
+          </View>
+        )}
         <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 19, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>{task.title}</Text>
