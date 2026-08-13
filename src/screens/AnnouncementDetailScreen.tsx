@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Image, StatusBar, Share, Acti
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, Share2, Clock, Megaphone, Download, Calendar, X } from 'lucide-react-native';
 import { downloadAndPreviewPDF } from '../utils/fileUtils';
+import { useLanguage } from '../context/LanguageContext';
 import moment from 'moment';
 
 const { width } = Dimensions.get('window');
@@ -10,6 +11,7 @@ const { width } = Dimensions.get('window');
 export const AnnouncementDetailScreen = ({ route, navigation }: any) => {
   const { announcement } = route.params;
   const insets = useSafeAreaInsets();
+  const { t, isRTL } = useLanguage();
 
   const [downloading, setDownloading] = React.useState(false);
   const [downloadingImage, setDownloadingImage] = React.useState(false);
@@ -142,7 +144,7 @@ export const AnnouncementDetailScreen = ({ route, navigation }: any) => {
         }}>
           
           {/* Metadata Row */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginBottom: 16 }}>
             <View style={{ 
               backgroundColor: isUrgent ? '#fee2e2' : '#e0f2fe', 
               paddingHorizontal: 12, 
@@ -160,9 +162,9 @@ export const AnnouncementDetailScreen = ({ route, navigation }: any) => {
               </Text>
             </View>
             <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#d1d5db', marginHorizontal: 12 }} />
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
               <Calendar size={14} color="#94a3b8" />
-              <Text style={{ fontSize: 13, color: '#64748b', marginLeft: 6, fontWeight: '500' }}>{moment(announcement.date).format('DD MMM, YYYY')}</Text>
+              <Text style={{ fontSize: 13, color: '#64748b', marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0, fontWeight: '500' }}>{moment(announcement.date).format('DD MMM, YYYY')}</Text>
             </View>
           </View>
 
@@ -173,14 +175,15 @@ export const AnnouncementDetailScreen = ({ route, navigation }: any) => {
             color: '#0f172a', 
             lineHeight: 36,
             marginBottom: 24,
-            letterSpacing: -0.5
+            letterSpacing: -0.5,
+            textAlign: isRTL ? 'right' : 'left'
           }}>
             {announcement.title}
           </Text>
 
           {/* Author / School Admin Banner */}
           <View style={{ 
-            flexDirection: 'row', 
+            flexDirection: isRTL ? 'row-reverse' : 'row', 
             alignItems: 'center', 
             marginBottom: 32,
             backgroundColor: '#f8fafc',
@@ -197,9 +200,9 @@ export const AnnouncementDetailScreen = ({ route, navigation }: any) => {
             }}>
               <Megaphone color="#ffffff" size={20} />
             </View>
-            <View style={{ marginLeft: 16 }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: '#1e293b' }}>{schoolName} Admin</Text>
-              <Text style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>Official Communication</Text>
+            <View style={{ marginLeft: isRTL ? 0 : 16, marginRight: isRTL ? 16 : 0, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: '#1e293b' }}>{schoolName} {t.announcementAdmin || 'Admin'}</Text>
+              <Text style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>{t.officialCommunication || 'Official Communication'}</Text>
             </View>
           </View>
 
@@ -209,7 +212,7 @@ export const AnnouncementDetailScreen = ({ route, navigation }: any) => {
               fontSize: 16, 
               color: '#334155', 
               lineHeight: 28,
-              textAlign: 'left'
+              textAlign: isRTL ? 'right' : 'left'
             }}>
               {announcement.content}
             </Text>
@@ -223,8 +226,7 @@ export const AnnouncementDetailScreen = ({ route, navigation }: any) => {
                   <Image 
                     source={{ uri: imgUrl }} 
                     style={{ width: '100%', height: 250, borderRadius: 16, borderWidth: 1, borderColor: '#f1f5f9' }}
-                    contentFit="cover"
-                    transition={200}
+                    resizeMode="cover"
                   />
                 </TouchableOpacity>
               ))}
@@ -241,23 +243,23 @@ export const AnnouncementDetailScreen = ({ route, navigation }: any) => {
                 borderColor: '#bfdbfe',
                 padding: 18,
                 borderRadius: 20,
-                flexDirection: 'row',
+                flexDirection: isRTL ? 'row-reverse' : 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 marginBottom: 32,
               }}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', flex: 1 }}>
                 <View style={{ width: 46, height: 46, borderRadius: 12, backgroundColor: '#3b82f6', alignItems: 'center', justifyContent: 'center' }}>
                   <Download color="#ffffff" size={20} />
                 </View>
-                <View style={{ marginLeft: 14, flex: 1 }}>
-                  <Text style={{ fontSize: 16, fontWeight: '700', color: '#1e293b' }}>Attached Document</Text>
-                  <Text style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>Tap to view PDF file</Text>
+                <View style={{ marginLeft: isRTL ? 0 : 14, marginRight: isRTL ? 14 : 0, flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: '#1e293b' }}>{t.attachedDocument || 'Attached Document'}</Text>
+                  <Text style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>{t.tapToViewPdf || 'Tap to view PDF file'}</Text>
                 </View>
               </View>
               {downloading ? (
-                <ActivityIndicator size="small" color="#3b82f6" style={{ marginLeft: 10 }} />
+                <ActivityIndicator size="small" color="#3b82f6" style={{ marginLeft: isRTL ? 0 : 10, marginRight: isRTL ? 10 : 0 }} />
               ) : null}
             </TouchableOpacity>
           )}
@@ -269,15 +271,15 @@ export const AnnouncementDetailScreen = ({ route, navigation }: any) => {
       <Modal visible={!!selectedImage} transparent={true} animationType="fade" onRequestClose={() => setSelectedImage(null)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)' }}>
           <View style={{ 
-            flexDirection: 'row', 
+            flexDirection: isRTL ? 'row-reverse' : 'row', 
             justifyContent: 'space-between', 
             alignItems: 'center', 
-            paddingHorizontal: 20, 
-            paddingTop: Math.max(insets.top, 50), 
+            paddingHorizontal: 24, 
+            paddingTop: Math.max(insets.top, 50) + 10, 
             paddingBottom: 20, 
             position: 'absolute',
             top: 0, left: 0, right: 0,
-            zIndex: 20 
+            zIndex: 999 
           }}>
             <TouchableOpacity 
               onPress={() => setSelectedImage(null)}

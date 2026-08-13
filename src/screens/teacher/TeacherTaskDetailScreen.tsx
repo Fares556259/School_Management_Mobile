@@ -4,9 +4,10 @@ import {
   ActivityIndicator, StatusBar, RefreshControl, Modal, Dimensions, Alert, Linking
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, CheckCircle2, Clock, Users, Image as ImageIcon, FileText as FileIcon, Paperclip } from 'lucide-react-native';
+import { ChevronLeft, CheckCircle2, Clock, Users, Image as ImageIcon, FileText as FileIcon, Paperclip, CalendarDays } from 'lucide-react-native';
 import { teacherService } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
+import moment from 'moment';
 
 const { width } = Dimensions.get('window');
 
@@ -92,6 +93,28 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
           contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0055d4" />}
         >
+          {/* Date Indications (Moved to top) */}
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20, justifyContent: isRTL ? 'flex-end' : 'flex-start' }}>
+            {(task.startDate || task.createdAt) && (
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#f1f5f9', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 }}>
+                <CalendarDays size={14} color="#64748b" />
+                <Text style={{ fontSize: 12, fontWeight: '800', color: '#475569', marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }}>
+                  {language === 'ar' ? 'نُشر في: ' : language === 'fr' ? 'Publié le : ' : 'Posted: '}
+                  {moment(task.startDate || task.createdAt).format('DD MMM YYYY')}
+                </Text>
+              </View>
+            )}
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: (task.dueDate && moment(task.dueDate).year() > 1970) ? '#fff7ed' : '#f1f5f9', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 }}>
+              <Clock size={14} color={(task.dueDate && moment(task.dueDate).year() > 1970) ? '#ea580c' : '#64748b'} />
+              <Text style={{ fontSize: 12, fontWeight: '800', color: (task.dueDate && moment(task.dueDate).year() > 1970) ? '#c2410c' : '#475569', marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }}>
+                {language === 'ar' ? 'آخر موعد: ' : language === 'fr' ? 'À rendre le : ' : 'Due: '}
+                {(task.dueDate && moment(task.dueDate).year() > 1970)
+                  ? moment(task.dueDate).format('DD MMM YYYY, HH:mm')
+                  : (t?.notDetermined || (language === 'fr' ? 'Non déterminée' : language === 'ar' ? 'غير محدد' : 'Not set'))}
+              </Text>
+            </View>
+          </View>
+
           {/* Progress Card */}
           <View style={{ backgroundColor: 'white', borderRadius: 28, padding: 24, marginBottom: 24, borderWidth: 1, borderColor: '#f1f5f9' }}>
             <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -178,9 +201,9 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
           ))}
 
           {/* Task Instructions & Teacher Attachments Card (Bottom) */}
-          {(task.description || attachments.length > 0) && (
+          {(task.description || attachments.length > 0 || task.startDate || task.dueDate) && (
             <View style={{ backgroundColor: 'white', borderRadius: 24, padding: 20, marginTop: 16, borderWidth: 1, borderColor: '#f1f5f9' }}>
-              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginBottom: 10 }}>
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginBottom: 16 }}>
                 <Paperclip size={16} color="#0055d4" />
                 <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4', textTransform: 'uppercase', letterSpacing: 0.5, marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }}>
                   {(t?.taskDetailsAttachments || 'Task Details & Attachments')}

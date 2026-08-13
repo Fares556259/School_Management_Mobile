@@ -584,12 +584,12 @@ export const studentService = {
     }));
   },
 
-  checkTaskStatus: async (studentId: string, assignmentId: number): Promise<boolean> => {
+  checkTaskStatus: async (studentId: string, assignmentId: number): Promise<{isCompleted: boolean, img?: string | null}> => {
     try {
       const data = await apiFetch(`/api/mobile/tasks/submit?studentId=${studentId}&assignmentId=${assignmentId}`);
-      return data?.isCompleted === true;
+      return { isCompleted: data?.isCompleted === true, img: data?.img };
     } catch {
-      return false;
+      return { isCompleted: false, img: null };
     }
   },
 
@@ -711,7 +711,7 @@ export const teacherService = {
     });
   },
 
-  createTask: async (data: { title: string; description?: string; classId: string; attachments?: any[] }) => {
+  createTask: async (data: { title: string; description?: string; classId: string; attachments?: any[]; dueDate?: string | null }) => {
     const teacherId = await authStorage.getUserId();
     return apiFetch('/api/mobile/teacher/tasks', {
       method: 'POST',

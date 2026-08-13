@@ -23,7 +23,7 @@ import {
   File as FileIcon,
   Trash2
 } from 'lucide-react-native';
-import { teacherService } from '../../services/api';
+import { teacherService, API_BASE_URL, authStorage } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
 import { useLanguage } from '../../context/LanguageContext';
 import moment from 'moment';
@@ -338,13 +338,45 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
     if (!selectedClass) return;
     try {
       setSaving(true);
+
+      let finalAttachments: { uri: string }[] = [];
+      if (newTask.attachments && newTask.attachments.length > 0) {
+        const token = await authStorage.getToken();
+        const uploadPromises = newTask.attachments.map(async (asset) => {
+          const formData = new FormData();
+          const filename = asset.name || asset.uri.split('/').pop() || `image_${Date.now()}.jpg`;
+          formData.append('file', {
+            uri: asset.uri,
+            name: filename,
+            type: asset.type === 'PDF' ? 'application/pdf' : 'image/jpeg'
+          } as any);
+
+          const uploadRes = await fetch(`${API_BASE_URL}/api/mobile/upload`, {
+            method: 'POST',
+            body: formData,
+            headers: { 
+              'Content-Type': 'multipart/form-data',
+              'Authorization': `Bearer ${token}`
+            },
+          });
+          const uploadData = await uploadRes.json();
+          if (uploadData?.url) {
+            return { uri: uploadData.url };
+          }
+          return null;
+        });
+
+        const uploadedResults = await Promise.all(uploadPromises);
+        finalAttachments = uploadedResults.filter((result): result is { uri: string } => result !== null);
+      }
+
       await teacherService.saveAttendance({
         classId: selectedClass.id, date: selectedDate.format('YYYY-MM-DD'),
         records: Object.keys(attendance).map(studentId => ({ studentId, status: attendance[studentId], note: notes[studentId], score: scores[studentId] })),
         lessonId: lessonId,
         slotId: activeSlotId,
         subjectId: sessions.find(s => s.slotId === activeSlotId)?.subjectId,
-        task: newTask.title ? { title: newTask.title, description: newTask.description, attachments: newTask.attachments } as any : undefined
+        task: newTask.title ? { title: newTask.title, description: newTask.description, attachments: finalAttachments } as any : undefined
       });
       setInitialAttendance(attendance); setInitialNotes(notes); setInitialScores(scores);
       setNewTask({ title: '', description: '', show: false, attachments: [] });

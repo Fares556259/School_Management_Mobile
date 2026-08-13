@@ -55,7 +55,12 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
           <View style={[styles.mainIconWrapper, { backgroundColor: config.bgColor }]}>
             <Icon size={32} color={config.color} strokeWidth={2.5} />
           </View>
-          <Text style={styles.typeLabel}>{notification.type} {t.alertWord}</Text>
+          <Text style={styles.typeLabel}>
+            {notification.type === 'ANNOUNCEMENT' ? (isRTL ? 'إعلان' : 'ANNONCE') 
+            : notification.type === 'ATTENDANCE' ? (isRTL ? 'تنبيه حضور' : 'PRÉSENCE')
+            : notification.type === 'HOMEWORK' ? (isRTL ? 'واجب مدرسي' : 'DEVOIR')
+            : notification.type} {t.alertWord}
+          </Text>
           <Text style={styles.studentName}>{notification.studentName}</Text>
           <Text style={styles.timeLabel}>{notification.time || t.ago1d}</Text>
         </View>

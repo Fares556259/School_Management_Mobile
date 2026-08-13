@@ -23,6 +23,7 @@ import { studentService } from '../services/api';
 import { StudentDayData } from '../types';
 import { GlobalHeader } from '../components/GlobalHeader';
 import { SkeletonBlock } from '../components/SkeletonView';
+import { useFocusEffect } from '@react-navigation/native';
 
 const Monitor = (props: any) => <Layout {...props} />;
 
@@ -210,8 +211,11 @@ export const HomeScreen = ({ navigation, route }: any) => {
     }
   };
 
-  React.useEffect(() => { fetchHome(); }, [selectedChildId, selectedDate]);
-
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchHome();
+    }, [selectedChildId, selectedDate])
+  );
   const onRefresh = React.useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setRefreshing(true);
