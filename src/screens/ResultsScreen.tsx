@@ -130,14 +130,33 @@ export const ResultsScreen = ({ navigation }: any) => {
   // Group results for selected term by domain
   const groupedResults = useMemo(() => {
     const groups: Record<string, typeof termResults> = {};
+    const apiDomains: Set<string> = new Set();
+
     termResults.forEach(r => {
-      const domain = getSubjectDomain(r.subject);
+      let domain: any;
+      if (r.domain) {
+        domain = { id: r.domain, title: r.domain, color: '#0055d4', bg: '#eff6ff', keywords: [] };
+        apiDomains.add(r.domain);
+      } else {
+        domain = getSubjectDomain(r.subject);
+      }
       if (!groups[domain.id]) groups[domain.id] = [];
       groups[domain.id].push(r);
     });
     
     // Sort domains by their appearance in DOMAIN_GROUPS
     const sortedGroups = DOMAIN_GROUPS.map(d => ({ domain: d, items: groups[d.id] || [] })).filter(g => g.items.length > 0);
+    
+    // Add dynamically provided domains that aren't in DOMAIN_GROUPS
+    Array.from(apiDomains).forEach(apiDomain => {
+      if (!DOMAIN_GROUPS.some(d => d.id === apiDomain)) {
+        sortedGroups.push({
+          domain: { id: apiDomain, title: apiDomain, color: '#0055d4', bg: '#eff6ff', keywords: [] },
+          items: groups[apiDomain]
+        });
+      }
+    });
+
     if (groups['OTHER'] && groups['OTHER'].length > 0) {
       sortedGroups.push({ domain: getSubjectDomain('OTHER'), items: groups['OTHER'] });
     }
