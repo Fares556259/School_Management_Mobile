@@ -620,10 +620,14 @@ export const uiService = {
         formData.append('id', id);
 
         const schoolId = await authStorage.getSchoolId();
+        const token = await authStorage.getToken();
         
         const xhr = new XMLHttpRequest();
         xhr.open('POST', `${API_BASE_URL}/api/mobile/upload`);
         xhr.setRequestHeader('x-school-id', schoolId || 'default_school');
+        if (token) {
+          xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        }
 
         if (onProgress) {
           xhr.upload.onprogress = (event) => {

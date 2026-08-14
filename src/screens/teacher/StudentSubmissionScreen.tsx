@@ -99,7 +99,6 @@ export const StudentSubmissionScreen = ({ route, navigation }: any) => {
             <View>
               <Text style={{ fontSize: 12, fontWeight: '900', color: '#16a34a', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{(t?.submitted || 'Submitted')}</Text>
               <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e293b', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>{submittedDate}</Text>
-              <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '600', marginTop: 1, textAlign: isRTL ? 'right' : 'left' }}>{(t?.at || 'at')} {submittedTime}</Text>
             </View>
           </View>
         )}
