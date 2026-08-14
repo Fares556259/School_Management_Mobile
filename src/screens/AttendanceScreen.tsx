@@ -194,7 +194,7 @@ export const AttendanceScreen = ({ navigation }: any) => {
       const uri = result.assets[0].uri;
       setLoading(true);
 
-      const uploadRes = await uiService.uploadImage(uri, 'student', selectedChildId!);
+      const uploadRes = (await uiService.uploadImage(uri, 'student', selectedChildId!)) as any;
       await studentService.justifyAttendance(sessionId, uploadRes.url, "Parent uploaded medical certificate via mobile app.");
       await loadHistory();
       alert("Success! Your justification has been submitted for review.");

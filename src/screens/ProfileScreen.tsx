@@ -419,7 +419,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     setUpdating(true);
     try {
       const uploadId = type === 'user' ? userId : id;
-      const { url } = await uiService.uploadImage(uri, type === 'user' ? 'profile' : 'student', uploadId!);
+      const { url } = (await uiService.uploadImage(uri, type === 'user' ? 'profile' : 'student', uploadId!)) as any;
       
       if (type === 'user') {
         let updated = false;

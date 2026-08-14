@@ -283,7 +283,12 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
                </View>
             )}
 
-            {task.total > 0 && (
+            {task.isUploading ? (
+              <View style={{ marginTop: 20, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#eff6ff', padding: 12, borderRadius: 12, justifyContent: 'center' }}>
+                <ActivityIndicator size="small" color="#0055d4" />
+                <Text style={{ marginLeft: isRTL ? 0 : 8, marginRight: isRTL ? 8 : 0, fontSize: 13, fontWeight: '700', color: '#0055d4' }}>{language === 'ar' ? 'جاري إنشاء المهمة...' : language === 'fr' ? 'Création de la tâche...' : 'Creating task...'}</Text>
+              </View>
+            ) : task.total > 0 && (
               <View style={{ marginTop: 20 }}>
                 <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>{(t?.submissions || 'Submissions')}</Text>

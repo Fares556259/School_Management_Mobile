@@ -153,7 +153,7 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
                 <View style={{ flex: 1, marginLeft: isRTL ? 0 : 14, marginRight: isRTL ? 14 : 0 }}>
                   <Text style={{ fontSize: 15, fontWeight: '800', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>{student.name}</Text>
                   <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '600', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>
-                    {student.submittedAt ? new Date(student.submittedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                    {student.submittedAt ? new Date(student.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
                   </Text>
                 </View>
                 {(() => {

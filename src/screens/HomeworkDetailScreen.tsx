@@ -127,8 +127,9 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
         
         const localFiles = assetsToUpload.map((asset) => {
           const uri = asset.uri;
-          const fileName = asset.name || uri.split('/').pop() || 'document.pdf';
-          return { name: fileName, url: uri, type: 'PDF' };
+          const isPdf = uri.toLowerCase().includes('.pdf');
+          const fileName = asset.name || uri.split('/').pop() || (isPdf ? 'document.pdf' : 'image.jpg');
+          return { name: fileName, url: uri, type: isPdf ? 'PDF' : 'IMAGE' };
         });
         
         setSubmissionFiles(prev => [...prev, ...localFiles]);
@@ -770,7 +771,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
               >
                 <FileText size={18} color={submissionFiles.length >= 4 ? '#94a3b8' : '#0055d4'} />
                 <Text style={{ fontSize: 14, fontWeight: '800', color: submissionFiles.length >= 4 ? '#94a3b8' : '#0055d4' }}>
-                  {t.addDocuments || 'PDF'}
+                  {(t as any).addDocuments || 'PDF'}
                 </Text>
               </TouchableOpacity>
             </View>
