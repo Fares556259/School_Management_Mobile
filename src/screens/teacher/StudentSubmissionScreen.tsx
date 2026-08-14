@@ -3,21 +3,124 @@ import {
   View, Text, ScrollView, TouchableOpacity, Image,
   StatusBar, Dimensions, Modal, ActivityIndicator
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, CheckCircle2, Calendar, Camera, Maximize2, FileText, Download, X } from 'lucide-react-native';
 import { downloadAndPreviewPDF } from '../../utils/fileUtils';
 import { useLanguage } from '../../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
+const SubmissionImageCard = ({
+  url,
+  fileName,
+  isRTL,
+  t,
+  onExpand,
+  onDownload,
+  isDownloading
+}: {
+  url: string;
+  fileName: string;
+  isRTL: boolean;
+  t: any;
+  onExpand: (url: string, name: string) => void;
+  onDownload: (url: string, name: string) => void;
+  isDownloading: boolean;
+}) => {
+  const [loaded, setLoaded] = React.useState(false);
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={() => onExpand(url, fileName)}
+      style={{
+        backgroundColor: '#f1f5f9',
+        borderRadius: 24,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        position: 'relative',
+        height: width - 40,
+        justifyContent: 'center',
+        alignItems: 'center'
+      }}
+    >
+      {/* Background loading spinner (only visible until image is rendered) */}
+      {!loaded && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', zIndex: 0 }}>
+          <ActivityIndicator size="small" color="#0055d4" />
+        </View>
+      )}
+
+      <Image
+        source={{ uri: url }}
+        style={{ width: '100%', height: '100%', borderRadius: 24, zIndex: 1 }}
+        resizeMode="cover"
+        onLoad={() => setLoaded(true)}
+        onError={() => setLoaded(true)}
+        onLoadEnd={() => setLoaded(true)}
+      />
+
+      {/* Floating Download Button on Card */}
+      <View style={{ position: 'absolute', top: 12, [isRTL ? 'left' : 'right']: 12, zIndex: 3 }}>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={(e) => {
+            e.stopPropagation();
+            onDownload(url, fileName);
+          }}
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 19,
+            backgroundColor: 'rgba(15, 23, 42, 0.7)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: 1,
+            borderColor: 'rgba(255,255,255,0.25)'
+          }}
+        >
+          {isDownloading ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <Download size={17} color="white" />
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Bottom Expand Pill */}
+      <View style={{
+        position: 'absolute',
+        bottom: 12,
+        [isRTL ? 'right' : 'left']: 12,
+        backgroundColor: 'rgba(15, 23, 42, 0.7)',
+        borderRadius: 12,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        flexDirection: isRTL ? 'row-reverse' : 'row',
+        alignItems: 'center',
+        zIndex: 3,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.15)'
+      }}>
+        <Maximize2 size={13} color="white" />
+        <Text style={{ color: 'white', fontSize: 11, fontWeight: '700', marginLeft: isRTL ? 0 : 5, marginRight: isRTL ? 5 : 0 }}>
+          {(t?.tapToExpand || 'Tap to expand')}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
 export const StudentSubmissionScreen = ({ route, navigation }: any) => {
   const { student, task } = route.params;
   const { t, language, isRTL } = useLanguage();
+  const insets = useSafeAreaInsets();
+
   const [imgExpanded, setImgExpanded] = React.useState<string | null>(null);
   const [imgExpandedName, setImgExpandedName] = React.useState<string>('work_submission.jpg');
   const [modalImgLoading, setModalImgLoading] = React.useState<boolean>(true);
   const [downloading, setDownloading] = React.useState<string | null>(null);
-  const [loadingMap, setLoadingMap] = React.useState<Record<string, boolean>>({});
 
   const handleDownload = async (url: string, name: string) => {
     if (downloading) return;
@@ -150,58 +253,21 @@ export const StudentSubmissionScreen = ({ route, navigation }: any) => {
                     );
                   }
 
-                  const isCardImgLoading = loadingMap[url] !== false;
-
                   return (
-                    <TouchableOpacity
+                    <SubmissionImageCard
                       key={index}
-                      activeOpacity={0.9}
-                      onPress={() => {
+                      url={url}
+                      fileName={fileName}
+                      isRTL={isRTL}
+                      t={t}
+                      onExpand={(u, name) => {
                         setModalImgLoading(true);
-                        setImgExpandedName(fileName);
-                        setImgExpanded(url);
+                        setImgExpandedName(name);
+                        setImgExpanded(u);
                       }}
-                      style={{ backgroundColor: 'white', borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9', position: 'relative' }}
-                    >
-                      {isCardImgLoading && (
-                        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, height: width - 40, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
-                          <ActivityIndicator size="large" color="#0055d4" />
-                          <Text style={{ marginTop: 10, fontSize: 12, color: '#94a3b8', fontWeight: '600' }}>
-                            {language === 'ar' ? 'جاري تحميل الصورة...' : language === 'fr' ? 'Chargement de l\'image...' : 'Loading image...'}
-                          </Text>
-                        </View>
-                      )}
-
-                      <Image
-                        source={{ uri: url }}
-                        style={{ width: '100%', height: width - 40, borderRadius: 24 }}
-                        resizeMode="cover"
-                        onLoadStart={() => setLoadingMap(prev => ({ ...prev, [url]: true }))}
-                        onLoadEnd={() => setLoadingMap(prev => ({ ...prev, [url]: false }))}
-                      />
-
-                      <View style={{ position: 'absolute', top: 14, left: 14, right: 14, flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'flex-end', zIndex: 2 }}>
-                        <TouchableOpacity
-                          activeOpacity={0.8}
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            handleDownload(url, fileName);
-                          }}
-                          style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}
-                        >
-                          {downloading === url ? (
-                            <ActivityIndicator size="small" color="white" />
-                          ) : (
-                            <Download size={18} color="white" />
-                          )}
-                        </TouchableOpacity>
-                      </View>
-
-                      <View style={{ position: 'absolute', bottom: 14, [isRTL ? 'left' : 'right']: 14, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', zIndex: 2 }}>
-                        <Maximize2 size={14} color="white" />
-                        <Text style={{ color: 'white', fontSize: 12, fontWeight: '700', marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }}>{(t?.tapToExpand || 'Tap to expand')}</Text>
-                      </View>
-                    </TouchableOpacity>
+                      onDownload={(u, name) => handleDownload(u, name)}
+                      isDownloading={downloading === url}
+                    />
                   );
                 })}
               </View>
@@ -220,65 +286,93 @@ export const StudentSubmissionScreen = ({ route, navigation }: any) => {
 
       {/* Full-screen Image Viewer */}
       <Modal visible={!!imgExpanded} transparent animationType="fade" onRequestClose={() => setImgExpanded(null)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(10, 15, 30, 0.97)' }}>
-          <SafeAreaView edges={['top']} style={{ zIndex: 10 }}>
-            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14 }}>
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => setImgExpanded(null)}
-                style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <X size={22} color="white" />
-              </TouchableOpacity>
-              <Text style={{ color: 'white', fontSize: 15, fontWeight: '700', flex: 1, textAlign: 'center', marginHorizontal: 12 }} numberOfLines={1}>
-                {language === 'ar' ? 'معاينة العمل' : language === 'fr' ? 'Aperçu du travail' : 'Work Preview'}
-              </Text>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={() => {
-                  if (imgExpanded) {
-                    handleDownload(imgExpanded, imgExpandedName);
-                  }
-                }}
-                style={{ height: 44, paddingHorizontal: 16, borderRadius: 22, backgroundColor: '#0055d4', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-              >
-                {downloading === imgExpanded ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <>
-                    <Download size={18} color="white" />
-                    <Text style={{ color: 'white', fontWeight: '800', fontSize: 13 }}>
-                      {language === 'ar' ? 'تحميل' : language === 'fr' ? 'Télécharger' : 'Download'}
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
-          </SafeAreaView>
+        <View style={{ flex: 1, backgroundColor: 'rgba(10, 15, 30, 0.98)' }}>
+          {/* Top Bar with safe spacing below Dynamic Island / Notch */}
+          <View style={{
+            paddingTop: Math.max(insets.top + 8, 48),
+            paddingHorizontal: 20,
+            paddingBottom: 14,
+            flexDirection: isRTL ? 'row-reverse' : 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            zIndex: 10
+          }}>
+            {/* Close Button (X) */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setImgExpanded(null)}
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 21,
+                backgroundColor: 'rgba(255,255,255,0.18)',
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.25)',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <X size={20} color="white" strokeWidth={2.5} />
+            </TouchableOpacity>
 
+            {/* Download Button */}
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => {
+                if (imgExpanded) {
+                  handleDownload(imgExpanded, imgExpandedName);
+                }
+              }}
+              style={{
+                height: 42,
+                paddingHorizontal: 16,
+                borderRadius: 21,
+                backgroundColor: '#0055d4',
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.25)',
+                flexDirection: isRTL ? 'row-reverse' : 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6
+              }}
+            >
+              {downloading === imgExpanded ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <>
+                  <Download size={16} color="white" strokeWidth={2.5} />
+                  <Text style={{ color: 'white', fontWeight: '800', fontSize: 13 }}>
+                    {language === 'ar' ? 'تحميل' : language === 'fr' ? 'Télécharger' : 'Download'}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Full Screen Image with Background Loading Spinner */}
           <TouchableOpacity
             activeOpacity={1}
             onPress={() => setImgExpanded(null)}
-            style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10 }}
+            style={{ flex: 1, justifyContent: 'center', alignItems: 'center', position: 'relative', paddingHorizontal: 10 }}
           >
             {modalImgLoading && (
-              <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center', zIndex: 5 }}>
+              <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center', zIndex: 0 }}>
                 <ActivityIndicator size="large" color="#38bdf8" />
-                <Text style={{ color: '#94a3b8', marginTop: 14, fontSize: 13, fontWeight: '600' }}>
-                  {language === 'ar' ? 'جاري تحميل الصورة...' : language === 'fr' ? 'Chargement en cours...' : 'Loading image...'}
-                </Text>
               </View>
             )}
+
             {imgExpanded && (
               <Image
                 source={{ uri: imgExpanded }}
-                style={{ width: width, height: width * 1.3, maxHeight: '82%' }}
+                style={{ width: width, height: '80%', zIndex: 1 }}
                 resizeMode="contain"
-                onLoadStart={() => setModalImgLoading(true)}
+                onLoad={() => setModalImgLoading(false)}
+                onError={() => setModalImgLoading(false)}
                 onLoadEnd={() => setModalImgLoading(false)}
               />
             )}
-            <Text style={{ color: 'white', marginTop: 20, fontSize: 13, fontWeight: '600', opacity: 0.6 }}>
+
+            <Text style={{ color: 'white', marginTop: 16, fontSize: 13, fontWeight: '600', opacity: 0.6, zIndex: 2 }}>
               {language === 'ar' ? 'انقر في أي مكان للإغلاق' : language === 'fr' ? 'Appuyez n\'importe où pour fermer' : 'Tap anywhere to close'}
             </Text>
           </TouchableOpacity>

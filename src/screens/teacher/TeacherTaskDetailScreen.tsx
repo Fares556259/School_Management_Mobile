@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, Image,
   ActivityIndicator, StatusBar, RefreshControl, Modal, Dimensions, Alert, Linking
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, CheckCircle2, Clock, Users, Image as ImageIcon, FileText as FileIcon, Paperclip, CalendarDays, Download, X } from 'lucide-react-native';
 import { teacherService } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
@@ -27,6 +27,7 @@ const Avatar = ({ name, img, size = 44 }: any) => {
 export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
   const { task } = route.params;
   const { t, language, isRTL } = useLanguage();
+  const insets = useSafeAreaInsets();
   const [data, setData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
@@ -294,66 +295,94 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
 
       {/* Full-screen Image Viewer */}
       <Modal visible={!!selectedImg} transparent animationType="fade" onRequestClose={() => setSelectedImg(null)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(10, 15, 30, 0.97)' }}>
-          <SafeAreaView edges={['top']} style={{ zIndex: 10 }}>
-            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14 }}>
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => setSelectedImg(null)}
-                style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <X size={22} color="white" />
-              </TouchableOpacity>
-              <Text style={{ color: 'white', fontSize: 15, fontWeight: '700', flex: 1, textAlign: 'center', marginHorizontal: 12 }} numberOfLines={1}>
-                {language === 'ar' ? 'معاينة المرفق' : language === 'fr' ? 'Aperçu du fichier' : 'Attachment Preview'}
-              </Text>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={() => {
-                  if (selectedImg) {
-                    const fileName = selectedImg.split('/').pop() || 'attachment.jpg';
-                    handleDownload(selectedImg, fileName);
-                  }
-                }}
-                style={{ height: 44, paddingHorizontal: 16, borderRadius: 22, backgroundColor: '#0055d4', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-              >
-                {downloading === selectedImg ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <>
-                    <Download size={18} color="white" />
-                    <Text style={{ color: 'white', fontWeight: '800', fontSize: 13 }}>
-                      {language === 'ar' ? 'تحميل' : language === 'fr' ? 'Télécharger' : 'Download'}
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
-          </SafeAreaView>
+        <View style={{ flex: 1, backgroundColor: 'rgba(10, 15, 30, 0.98)' }}>
+          {/* Top Bar with safe spacing below Dynamic Island / Notch */}
+          <View style={{
+            paddingTop: Math.max(insets.top + 8, 48),
+            paddingHorizontal: 20,
+            paddingBottom: 14,
+            flexDirection: isRTL ? 'row-reverse' : 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            zIndex: 10
+          }}>
+            {/* Close Button (X) */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setSelectedImg(null)}
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 21,
+                backgroundColor: 'rgba(255,255,255,0.18)',
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.25)',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <X size={20} color="white" strokeWidth={2.5} />
+            </TouchableOpacity>
 
+            {/* Download Button */}
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => {
+                if (selectedImg) {
+                  const fileName = selectedImg.split('/').pop() || 'attachment.jpg';
+                  handleDownload(selectedImg, fileName);
+                }
+              }}
+              style={{
+                height: 42,
+                paddingHorizontal: 16,
+                borderRadius: 21,
+                backgroundColor: '#0055d4',
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.25)',
+                flexDirection: isRTL ? 'row-reverse' : 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6
+              }}
+            >
+              {downloading === selectedImg ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <>
+                  <Download size={16} color="white" strokeWidth={2.5} />
+                  <Text style={{ color: 'white', fontWeight: '800', fontSize: 13 }}>
+                    {language === 'ar' ? 'تحميل' : language === 'fr' ? 'Télécharger' : 'Download'}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Full Screen Image with Background Loading Spinner */}
           <TouchableOpacity
             activeOpacity={1}
             onPress={() => setSelectedImg(null)}
-            style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10 }}
+            style={{ flex: 1, justifyContent: 'center', alignItems: 'center', position: 'relative', paddingHorizontal: 10 }}
           >
             {modalImgLoading && (
-              <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center', zIndex: 5 }}>
+              <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center', zIndex: 0 }}>
                 <ActivityIndicator size="large" color="#38bdf8" />
-                <Text style={{ color: '#94a3b8', marginTop: 14, fontSize: 13, fontWeight: '600' }}>
-                  {language === 'ar' ? 'جاري تحميل الصورة...' : language === 'fr' ? 'Chargement en cours...' : 'Loading image...'}
-                </Text>
               </View>
             )}
+
             {selectedImg && (
               <Image
                 source={{ uri: selectedImg }}
-                style={{ width: width, height: width * 1.3, maxHeight: '82%' }}
+                style={{ width: width, height: '80%', zIndex: 1 }}
                 resizeMode="contain"
-                onLoadStart={() => setModalImgLoading(true)}
+                onLoad={() => setModalImgLoading(false)}
+                onError={() => setModalImgLoading(false)}
                 onLoadEnd={() => setModalImgLoading(false)}
               />
             )}
-            <Text style={{ color: 'white', marginTop: 20, fontSize: 13, fontWeight: '600', opacity: 0.6 }}>
+
+            <Text style={{ color: 'white', marginTop: 16, fontSize: 13, fontWeight: '600', opacity: 0.6, zIndex: 2 }}>
               {language === 'ar' ? 'انقر في أي مكان للإغلاق' : language === 'fr' ? 'Appuyez n\'importe où pour fermer' : 'Tap anywhere to close'}
             </Text>
           </TouchableOpacity>
