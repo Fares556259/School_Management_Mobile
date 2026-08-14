@@ -148,7 +148,7 @@ const ChildCard = ({ child, index, onSelect, onEditImage }: any) => {
       </View>
       <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
         <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>
-          {child.name.split(' ')[0]}
+          {child.name}
         </Text>
         <Text style={{ color: textColor, fontSize: 13, fontWeight: '800', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>
           {t.classLabel}: {child.class}
