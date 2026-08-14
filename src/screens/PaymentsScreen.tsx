@@ -105,39 +105,63 @@ export const PaymentsScreen = ({ navigation }: any) => {
         {summary.outstanding > 0 && (
           <View style={{ paddingHorizontal: 20, marginTop: 16, marginBottom: 28 }}>
             <View style={{
-              backgroundColor: '#0055d4',
+              backgroundColor: '#0f172a', // Very dark slate/blue
               borderRadius: 32,
               padding: 28,
-              shadowColor: '#0055d4',
-              shadowOffset: { width: 0, height: 12 },
-              shadowOpacity: 0.25,
-              shadowRadius: 24,
-              elevation: 12,
+              shadowColor: '#0f172a',
+              shadowOffset: { width: 0, height: 20 },
+              shadowOpacity: 0.35,
+              shadowRadius: 32,
+              elevation: 16,
               overflow: 'hidden'
             }}>
-              {/* Background design elements */}
-              <View style={{ position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.1)' }} />
-              <View style={{ position: 'absolute', bottom: -20, left: -20, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+              {/* Premium Geometric Background Gradients */}
+              <View style={{ position: 'absolute', top: -80, right: -60, width: 240, height: 240, borderRadius: 120, backgroundColor: '#3b82f6', opacity: 0.8 }} />
+              <View style={{ position: 'absolute', bottom: -120, left: -80, width: 300, height: 300, borderRadius: 150, backgroundColor: '#6366f1', opacity: 0.9 }} />
+              {/* Glass overlay to blend gradients smoothly */}
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.4)' }} />
               
-              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
-                  <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginBottom: 12 }}>
-                    <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                      {t.totalDueNow || (isRTL ? 'المبلغ المستحق حالياً' : 'Total Due Now')}
+              {/* Content */}
+              <View style={{ position: 'relative', zIndex: 10 }}>
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                    <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
+                      <Wallet size={15} color="#ffffff" strokeWidth={2.5} style={{ marginRight: isRTL ? 0 : 8, marginLeft: isRTL ? 8 : 0 }} />
+                      <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800', letterSpacing: 0.5 }}>
+                        {t.totalDueNow || (isRTL ? 'إجمالي المستحقات' : 'Total Outstanding')}
+                      </Text>
+                    </View>
+                    <Text style={{ color: '#ffffff', fontSize: 48, fontWeight: '900', letterSpacing: -1, textAlign: isRTL ? 'right' : 'left' }}>
+                      {summary.outstanding.toLocaleString()} <Text style={{ fontSize: 24, fontWeight: '700', color: 'rgba(255,255,255,0.7)' }}>{t.currencyTnd}</Text>
                     </Text>
                   </View>
-                  <Text style={{ color: '#ffffff', fontSize: 44, fontWeight: '900', letterSpacing: -1.5, textAlign: isRTL ? 'right' : 'left' }}>
-                    {summary.outstanding.toLocaleString()} <Text style={{ fontSize: 20, fontWeight: '800', color: 'rgba(255,255,255,0.8)' }}>{t.currencyTnd}</Text>
-                  </Text>
+                  
+                  <View style={{ 
+                    width: 60, height: 60, 
+                    borderRadius: 24, 
+                    backgroundColor: 'rgba(255,255,255,0.95)',
+                    alignItems: 'center', justifyContent: 'center',
+                    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16,
+                    transform: [{ rotate: '-8deg' }]
+                  }}>
+                    <CreditCard size={32} color="#3b82f6" strokeWidth={2.5} />
+                  </View>
                 </View>
-                <View style={{ 
-                  width: 52, height: 52, 
-                  borderRadius: 20, 
-                  backgroundColor: '#ffffff',
-                  alignItems: 'center', justifyContent: 'center',
-                  shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8
-                }}>
-                  <CreditCard size={26} color="#0055d4" strokeWidth={2.5} />
+                
+                {/* Fake card chip & number for visual flair */}
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 32 }}>
+                   <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 12, alignItems: 'center' }}>
+                     {/* Chip */}
+                     <View style={{ width: 36, height: 26, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.25)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }} />
+                     {/* Contactless symbol abstraction */}
+                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                       <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.4)', zIndex: 2 }} />
+                       <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.2)', marginLeft: -8, zIndex: 1 }} />
+                     </View>
+                   </View>
+                   <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, fontWeight: '800', letterSpacing: 3, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
+                     **** **** {(new Date().getFullYear() % 100).toString().padStart(2, '0') + (new Date().getMonth() + 1).toString().padStart(2, '0')}
+                   </Text>
                 </View>
               </View>
             </View>
