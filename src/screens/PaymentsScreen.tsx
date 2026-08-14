@@ -73,9 +73,9 @@ export const PaymentsScreen = ({ navigation }: any) => {
   const processedList = useMemo(() => {
     const actionable = history.filter(p => p.status !== 'Locked');
     if (activeFilter === 'Due') {
-      return actionable.filter(p => p.status !== 'Paid');
+      return actionable.filter(p => p.status === 'Due' || p.status === 'Partial');
     } else {
-      return actionable.filter(p => p.status === 'Paid');
+      return actionable.filter(p => p.status === 'Paid' || p.status === 'Partial');
     }
   }, [history, activeFilter]);
 
@@ -83,7 +83,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
   const summary = useMemo(() => {
     const actionable = history.filter(p => p.status !== 'Locked');
     const totalOutstanding = actionable.reduce((acc, p) =>
-      p.status !== 'Paid' ? acc + (p.totalAmount - p.paidAmount) : acc, 0);
+      p.status !== 'Paid' ? acc + Math.max(0, p.totalAmount - p.paidAmount) : acc, 0);
     return {
       outstanding: totalOutstanding,
       allPaid: totalOutstanding === 0 && actionable.length > 0,
@@ -310,7 +310,10 @@ export const PaymentsScreen = ({ navigation }: any) => {
                       {/* Right: Amount & Status */}
                       <View style={{ alignItems: isRTL ? 'flex-start' : 'flex-end' }}>
                         <Text style={{ fontSize: 20, fontWeight: '900', color: '#0f172a', textAlign: isRTL ? 'left' : 'right' }}>
-                          {isPartial ? `${item.paidAmount.toLocaleString()} / ` : ''}{item.totalAmount.toLocaleString()} <Text style={{ fontSize: 12, fontWeight: '800', color: '#64748b' }}>{t.currencyTnd}</Text>
+                          {activeFilter === 'Due' ? 
+                            (isPartial ? Math.max(0, item.totalAmount - item.paidAmount).toLocaleString() : item.totalAmount.toLocaleString())
+                          : (isPartial ? item.paidAmount.toLocaleString() : item.totalAmount.toLocaleString())} 
+                          <Text style={{ fontSize: 12, fontWeight: '800', color: '#64748b' }}> {t.currencyTnd}</Text>
                         </Text>
                         
                         <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: config.bg, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, marginTop: 12, gap: 6 }}>
