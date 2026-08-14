@@ -4,9 +4,10 @@ import {
   ActivityIndicator, StatusBar, RefreshControl, Modal, Dimensions, Alert, Linking
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, CheckCircle2, Clock, Users, Image as ImageIcon, FileText as FileIcon, Paperclip, CalendarDays } from 'lucide-react-native';
+import { ChevronLeft, CheckCircle2, Clock, Users, Image as ImageIcon, FileText as FileIcon, Paperclip, CalendarDays, Download, X } from 'lucide-react-native';
 import { teacherService } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
+import { downloadAndPreviewPDF } from '../../utils/fileUtils';
 import moment from 'moment';
 
 const { width } = Dimensions.get('window');
@@ -30,6 +31,18 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
   const [selectedImg, setSelectedImg] = React.useState<string | null>(null);
+  const [modalImgLoading, setModalImgLoading] = React.useState(true);
+  const [downloading, setDownloading] = React.useState<string | null>(null);
+
+  const handleDownload = async (url: string, name: string) => {
+    if (downloading) return;
+    setDownloading(url);
+    try {
+      await downloadAndPreviewPDF(url, name);
+    } finally {
+      setDownloading(null);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -281,12 +294,70 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
 
       {/* Full-screen Image Viewer */}
       <Modal visible={!!selectedImg} transparent animationType="fade" onRequestClose={() => setSelectedImg(null)}>
-        <TouchableOpacity activeOpacity={1} onPress={() => setSelectedImg(null)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' }}>
-          {selectedImg && (
-            <Image source={{ uri: selectedImg }} style={{ width: width - 40, height: width - 40, borderRadius: 16 }} resizeMode="contain" />
-          )}
-          <Text style={{ color: 'white', marginTop: 20, fontSize: 14, fontWeight: '600', opacity: 0.7 }}>{language === 'ar' ? 'انقر في أي مكان للإغلاق' : language === 'fr' ? 'Appuyez n\'importe où pour fermer' : 'Tap anywhere to close'}</Text>
-        </TouchableOpacity>
+        <View style={{ flex: 1, backgroundColor: 'rgba(10, 15, 30, 0.97)' }}>
+          <SafeAreaView edges={['top']} style={{ zIndex: 10 }}>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14 }}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setSelectedImg(null)}
+                style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X size={22} color="white" />
+              </TouchableOpacity>
+              <Text style={{ color: 'white', fontSize: 15, fontWeight: '700', flex: 1, textAlign: 'center', marginHorizontal: 12 }} numberOfLines={1}>
+                {language === 'ar' ? 'معاينة المرفق' : language === 'fr' ? 'Aperçu du fichier' : 'Attachment Preview'}
+              </Text>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => {
+                  if (selectedImg) {
+                    const fileName = selectedImg.split('/').pop() || 'attachment.jpg';
+                    handleDownload(selectedImg, fileName);
+                  }
+                }}
+                style={{ height: 44, paddingHorizontal: 16, borderRadius: 22, backgroundColor: '#0055d4', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+              >
+                {downloading === selectedImg ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <>
+                    <Download size={18} color="white" />
+                    <Text style={{ color: 'white', fontWeight: '800', fontSize: 13 }}>
+                      {language === 'ar' ? 'تحميل' : language === 'fr' ? 'Télécharger' : 'Download'}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => setSelectedImg(null)}
+            style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10 }}
+          >
+            {modalImgLoading && (
+              <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center', zIndex: 5 }}>
+                <ActivityIndicator size="large" color="#38bdf8" />
+                <Text style={{ color: '#94a3b8', marginTop: 14, fontSize: 13, fontWeight: '600' }}>
+                  {language === 'ar' ? 'جاري تحميل الصورة...' : language === 'fr' ? 'Chargement en cours...' : 'Loading image...'}
+                </Text>
+              </View>
+            )}
+            {selectedImg && (
+              <Image
+                source={{ uri: selectedImg }}
+                style={{ width: width, height: width * 1.3, maxHeight: '82%' }}
+                resizeMode="contain"
+                onLoadStart={() => setModalImgLoading(true)}
+                onLoadEnd={() => setModalImgLoading(false)}
+              />
+            )}
+            <Text style={{ color: 'white', marginTop: 20, fontSize: 13, fontWeight: '600', opacity: 0.6 }}>
+              {language === 'ar' ? 'انقر في أي مكان للإغلاق' : language === 'fr' ? 'Appuyez n\'importe où pour fermer' : 'Tap anywhere to close'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </Modal>
     </SafeAreaView>
   );
