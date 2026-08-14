@@ -48,6 +48,7 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
 
   const { data: classes = [], isLoading: loadingClasses } = useQuery({
     queryKey: ['teacherClasses'],
+    staleTime: 1000 * 60 * 5, // 5 minutes
     queryFn: async () => {
       const res = await teacherService.fetchClasses();
       const safeClasses = Array.isArray(res) ? res : [];
@@ -63,6 +64,7 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
 
   const { data: tasks = [], isLoading: loadingTasks, refetch: onRefresh, isRefetching: refreshing } = useQuery({
     queryKey: ['teacherTasks'],
+    staleTime: 1000 * 60 * 5, // 5 minutes
     queryFn: async () => {
       const res = await teacherService.fetchTasks();
       return Array.isArray(res) ? res : [];
