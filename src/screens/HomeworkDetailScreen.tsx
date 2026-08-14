@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, Dimensions, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getFullImageUrl } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
@@ -17,7 +17,8 @@ import {
   Paperclip, 
   BookOpen, 
   User, 
-  AlertCircle 
+  AlertCircle,
+  Sparkles
 } from 'lucide-react-native';
 import { downloadAndPreviewPDF } from '../utils/fileUtils';
 import * as ImagePicker from 'expo-image-picker';
@@ -33,6 +34,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
   const [uploadProgress, setUploadProgress] = React.useState(0);
   const [isCompleted, setIsCompleted] = React.useState(false);
   const [statusLoading, setStatusLoading] = React.useState(true);
+  const [showSuccessModal, setShowSuccessModal] = React.useState(false);
 
   const studentId = route.params.studentId;
   const { t, language, isRTL, getTranslatedSubject } = useLanguage();
@@ -146,22 +148,28 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
   const handleMarkAsDone = async () => {
     try {
       setSubmitting(true);
+      setUploadProgress(0);
       const { studentService, uiService } = await import('../services/api');
       
       const localFiles = submissionFiles.filter(f => !f.url.startsWith('http'));
       const existingUrls = submissionFiles.filter(f => f.url.startsWith('http')).map(f => f.url);
       const totalLocalFiles = localFiles.length;
       
-      let fileProgresses = new Array(totalLocalFiles).fill(0);
+      const loadedBytes = new Array(totalLocalFiles).fill(0);
+      const totalBytes = new Array(totalLocalFiles).fill(1);
       
       const uploadPromises = localFiles.map((file, index) => {
         return uiService.uploadImage(file.url, 'student', studentId, (event) => {
-           if (event.total > 0) {
-             const progress = (event.loaded / event.total);
-             fileProgresses[index] = progress;
-             const totalProgress = (fileProgresses.reduce((a, b) => a + b, 0) / totalLocalFiles) * 100;
-             setUploadProgress(Math.round(totalProgress));
-           }
+          if (event && event.loaded > 0) {
+            loadedBytes[index] = event.loaded;
+            if (event.total && event.total > 0) {
+              totalBytes[index] = event.total;
+            }
+            const currentLoaded = loadedBytes.reduce((a, b) => a + b, 0);
+            const currentTotal = totalBytes.reduce((a, b) => a + b, 0);
+            const totalPct = Math.min(99, Math.max(1, Math.round((currentLoaded / currentTotal) * 100)));
+            setUploadProgress(totalPct);
+          }
         });
       });
 
@@ -173,10 +181,11 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
       const allUrls = [...existingUrls, ...uploadedUrls];
       const finalImageUrl = allUrls.length > 0 ? allUrls.join(',') : undefined;
       
+      setUploadProgress(100);
       await studentService.submitTask(studentId, homework.id, finalImageUrl);
       
       setSubmitting(false);
-      setUploadProgress(0);      
+      
       // Update local URLs to remote URLs immediately
       setSubmissionFiles(allUrls.map((url, idx) => ({
         name: `File_${idx + 1}`,
@@ -218,7 +227,8 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
         console.warn('Cache update error:', cacheErr);
       }
 
-      Alert.alert(t.successAlert, t.taskCompletedWellDone);
+      // Show beautiful custom celebratory popup
+      setShowSuccessModal(true);
     } catch (e: any) {
       Alert.alert("Error", `${t.failedToUpdate} ${e.message || 'Unknown error'}`);
     } finally {
@@ -838,7 +848,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
           style={{ 
             backgroundColor: isCompleted ? '#16a34a' : '#0055d4', 
             borderRadius: 16, 
-            height: 54, 
+            height: 56, 
             flexDirection: isRTL ? 'row-reverse' : 'row', 
             alignItems: 'center', 
             justifyContent: 'center', 
@@ -847,19 +857,33 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
             shadowOpacity: 0.25, 
             shadowRadius: 8, 
             elevation: 4, 
-            opacity: submitting ? 0.7 : 1,
-            overflow: 'hidden'
+            opacity: submitting ? 0.9 : 1,
+            overflow: 'hidden',
+            position: 'relative'
           }}
         >
-          {submitting && uploadProgress > 0 && uploadProgress < 100 && (
-            <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${uploadProgress}%`, backgroundColor: 'rgba(255,255,255,0.2)' }} />
+          {/* Animated upload progress fill background */}
+          {submitting && (
+            <View style={{
+              position: 'absolute',
+              [isRTL ? 'right' : 'left']: 0,
+              top: 0,
+              bottom: 0,
+              width: `${Math.max(8, uploadProgress)}%`,
+              backgroundColor: 'rgba(255, 255, 255, 0.25)'
+            }} />
           )}
+
           {submitting ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 10 }}>
               <ActivityIndicator size="small" color="#ffffff" />
-              {uploadProgress > 0 && uploadProgress < 100 && (
-                <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>{uploadProgress}%</Text>
-              )}
+              <Text style={{ fontSize: 16, fontWeight: '800', color: '#ffffff' }}>
+                {submissionFiles.some(f => !f.url.startsWith('http'))
+                  ? (uploadProgress < 100
+                      ? (language === 'ar' ? `جاري الرفع (${uploadProgress}%)` : language === 'fr' ? `Téléversement (${uploadProgress}%)` : `Uploading (${uploadProgress}%)`)
+                      : (language === 'ar' ? 'جاري تأكيد التسليم...' : language === 'fr' ? 'Validation en cours...' : 'Saving submission...'))
+                  : (language === 'ar' ? 'جاري تأكيد التسليم...' : language === 'fr' ? 'Validation en cours...' : 'Submitting...')}
+              </Text>
             </View>
           ) : (
             <>
@@ -876,6 +900,113 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
           </Text>
         )}
       </View>
+
+      {/* Celebratory Modern Success Modal */}
+      <Modal visible={showSuccessModal} transparent animationType="fade" onRequestClose={() => setShowSuccessModal(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.65)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <View style={{
+            backgroundColor: '#ffffff',
+            borderRadius: 30,
+            padding: 28,
+            width: '100%',
+            maxWidth: 360,
+            alignItems: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 12 },
+            shadowOpacity: 0.2,
+            shadowRadius: 24,
+            elevation: 16,
+            position: 'relative'
+          }}>
+            {/* Close X button top corner */}
+            <TouchableOpacity
+              onPress={() => setShowSuccessModal(false)}
+              style={{
+                position: 'absolute',
+                top: 18,
+                [isRTL ? 'left' : 'right']: 18,
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: '#f1f5f9',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <X size={16} color="#64748b" strokeWidth={2.5} />
+            </TouchableOpacity>
+
+            {/* Celebratory Icon */}
+            <View style={{
+              width: 76,
+              height: 76,
+              borderRadius: 38,
+              backgroundColor: '#dcfce7',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 20,
+              borderWidth: 3,
+              borderColor: '#bbf7d0'
+            }}>
+              <CheckCircle2 size={40} color="#16a34a" strokeWidth={2.5} />
+            </View>
+
+            {/* Title */}
+            <Text style={{ fontSize: 22, fontWeight: '900', color: '#0f172a', textAlign: 'center', marginBottom: 8 }}>
+              {language === 'ar' ? 'تم التسليم بنجاح! 🎉' : language === 'fr' ? 'Devoir rendu avec succès ! 🎉' : 'Submitted Successfully! 🎉'}
+            </Text>
+
+            {/* Message */}
+            <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '600', textAlign: 'center', lineHeight: 22, marginBottom: submissionFiles.length > 0 ? 16 : 24 }}>
+              {t?.taskCompletedWellDone || (language === 'ar' ? 'تم وضع علامة على المهمة كمكتملة وإرسال عملك إلى المعلم.' : language === 'fr' ? 'Votre devoir a été marqué comme terminé et transmis.' : 'Your work has been marked as complete and sent to your teacher.')}
+            </Text>
+
+            {/* Attached files badge if any */}
+            {submissionFiles.length > 0 && (
+              <View style={{
+                backgroundColor: '#eff6ff',
+                paddingHorizontal: 16,
+                paddingVertical: 10,
+                borderRadius: 14,
+                flexDirection: isRTL ? 'row-reverse' : 'row',
+                alignItems: 'center',
+                gap: 8,
+                marginBottom: 24,
+                borderWidth: 1,
+                borderColor: '#dbeafe'
+              }}>
+                <FileText size={16} color="#0055d4" />
+                <Text style={{ fontSize: 13, fontWeight: '700', color: '#0055d4' }}>
+                  {submissionFiles.length} {language === 'ar' ? 'ملفات مرفقة بنجاح' : language === 'fr' ? 'fichiers joints avec succès' : 'files attached successfully'}
+                </Text>
+              </View>
+            )}
+
+            {/* Primary Action Button */}
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => setShowSuccessModal(false)}
+              style={{
+                backgroundColor: '#16a34a',
+                height: 52,
+                borderRadius: 16,
+                width: '100%',
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#16a34a',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 4
+              }}
+            >
+              <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '800' }}>
+                {language === 'ar' ? 'رائع، استمرار' : language === 'fr' ? 'Super, continuer' : 'Great, Continue'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
