@@ -147,39 +147,37 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
       setSubmitting(true);
       const { studentService, uiService } = await import('../services/api');
       
-      const uploadedUrls: string[] = [];
       const localFiles = submissionFiles.filter(f => !f.url.startsWith('http'));
+      const existingUrls = submissionFiles.filter(f => f.url.startsWith('http')).map(f => f.url);
       const totalLocalFiles = localFiles.length;
-      let uploadedCount = 0;
+      
+      let fileProgresses = new Array(totalLocalFiles).fill(0);
+      
+      const uploadPromises = localFiles.map((file, index) => {
+        return uiService.uploadImage(file.url, 'student', studentId, (event) => {
+           if (event.total > 0) {
+             const progress = (event.loaded / event.total);
+             fileProgresses[index] = progress;
+             const totalProgress = (fileProgresses.reduce((a, b) => a + b, 0) / totalLocalFiles) * 100;
+             setUploadProgress(Math.round(totalProgress));
+           }
+        });
+      });
 
-      for (const file of submissionFiles) {
-        if (file.url && file.url.startsWith('http')) {
-          uploadedUrls.push(file.url);
-        } else {
-          const baseProgress = totalLocalFiles > 0 ? (uploadedCount / totalLocalFiles) * 100 : 0;
-          
-          const uploadedRes = await uiService.uploadImage(file.url, 'student', studentId, (event) => {
-             if (totalLocalFiles > 0) {
-               const fileProgress = (event.loaded / event.total) * (100 / totalLocalFiles);
-               setUploadProgress(Math.round(baseProgress + fileProgress));
-             }
-          });
-          
-          if (uploadedRes?.url) {
-             uploadedUrls.push(uploadedRes.url);
-          }
-          uploadedCount++;
-          if (totalLocalFiles > 0) {
-            setUploadProgress(Math.round((uploadedCount / totalLocalFiles) * 100));
-          }
-        }
-      }
-
-      const finalImageUrl = uploadedUrls.length > 0 ? uploadedUrls.join(',') : undefined;
+      const uploadedResults = await Promise.all(uploadPromises);
+      const uploadedUrls = uploadedResults
+        .filter((res: any) => res?.url)
+        .map((res: any) => res.url);
+        
+      const allUrls = [...existingUrls, ...uploadedUrls];
+      const finalImageUrl = allUrls.length > 0 ? allUrls.join(',') : undefined;
+      
       await studentService.submitTask(studentId, homework.id, finalImageUrl);
       
+      setSubmitting(false);
+      setUploadProgress(0);      
       // Update local URLs to remote URLs immediately
-      setSubmissionFiles(uploadedUrls.map((url, idx) => ({
+      setSubmissionFiles(allUrls.map((url, idx) => ({
         name: `File_${idx + 1}`,
         url: url,
         type: url.toLowerCase().includes('.pdf') ? 'PDF' : 'IMAGE'
