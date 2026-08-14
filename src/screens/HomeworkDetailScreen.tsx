@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, Dimensions, Modal } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, Dimensions, Modal, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getFullImageUrl } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
@@ -31,10 +31,20 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
   const [loading, setLoading] = React.useState(!initialHomework.title);
   const [downloading, setDownloading] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
+  const [submitPhase, setSubmitPhase] = React.useState<'idle' | 'uploading' | 'saving'>('idle');
   const [uploadProgress, setUploadProgress] = React.useState(0);
+  const progressAnim = React.useRef(new Animated.Value(0)).current;
   const [isCompleted, setIsCompleted] = React.useState(false);
   const [statusLoading, setStatusLoading] = React.useState(true);
   const [showSuccessModal, setShowSuccessModal] = React.useState(false);
+
+  React.useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: uploadProgress,
+      duration: 400,
+      useNativeDriver: false,
+    }).start();
+  }, [uploadProgress]);
 
   const studentId = route.params.studentId;
   const { t, language, isRTL, getTranslatedSubject } = useLanguage();
@@ -148,6 +158,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
   const handleMarkAsDone = async () => {
     try {
       setSubmitting(true);
+      setSubmitPhase('uploading');
       setUploadProgress(0);
       const { studentService, uiService } = await import('../services/api');
       
@@ -167,7 +178,11 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
             }
             const currentLoaded = loadedBytes.reduce((a, b) => a + b, 0);
             const currentTotal = totalBytes.reduce((a, b) => a + b, 0);
-            const totalPct = Math.min(99, Math.max(1, Math.round((currentLoaded / currentTotal) * 100)));
+            let totalPct = Math.round((currentLoaded / currentTotal) * 100);
+            if (totalPct === 100 && currentLoaded < currentTotal) {
+               totalPct = 99; 
+            }
+            if (totalPct > 99) totalPct = 99; // Reserve 100% for saving phase
             setUploadProgress(totalPct);
           }
         });
@@ -181,10 +196,12 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
       const allUrls = [...existingUrls, ...uploadedUrls];
       const finalImageUrl = allUrls.length > 0 ? allUrls.join(',') : undefined;
       
+      setSubmitPhase('saving');
       setUploadProgress(100);
       await studentService.submitTask(studentId, homework.id, finalImageUrl);
       
       setSubmitting(false);
+      setSubmitPhase('idle');
       
       // Update local URLs to remote URLs immediately
       setSubmissionFiles(allUrls.map((url, idx) => ({
@@ -659,16 +676,17 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
                     width: 42, 
                     height: 42, 
                     borderRadius: 12, 
-                    backgroundColor: isPdf ? '#fee2e2' : '#eff6ff', 
+                    backgroundColor: isPdf ? '#fee2e2' : '#f1f5f9', 
                     alignItems: 'center', 
                     justifyContent: 'center', 
                     marginRight: isRTL ? 0 : 12,
-                    marginLeft: isRTL ? 12 : 0
+                    marginLeft: isRTL ? 12 : 0,
+                    overflow: 'hidden'
                   }}>
                     {downloading === url ? (
                       <ActivityIndicator size="small" color={isPdf ? "#ef4444" : "#0055d4"} />
                     ) : (
-                      isPdf ? <FileText color="#ef4444" size={20} /> : <ImageIcon color="#0055d4" size={20} />
+                      isPdf ? <FileText color="#ef4444" size={20} /> : <Image source={{ uri: url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
                     )}
                   </View>
                   <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
@@ -706,16 +724,30 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
                 {language === 'ar' ? 'عملي' : language === 'fr' ? 'Mon Travail' : 'My Work'}
               </Text>
             </View>
-            <View style={{ gap: 8 }}>
-              {submissionFiles.map((file, idx) => (
-                <View key={idx} style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#ffffff', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#f1f5f9' }}>
-                  <ImageIcon size={18} color="#0055d4" />
-                  <Text style={{ flex: 1, marginLeft: isRTL ? 0 : 10, marginRight: isRTL ? 10 : 0, fontSize: 14, fontWeight: '700', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>{file.name}</Text>
-                  <TouchableOpacity onPress={() => handleDownload(file.url, file.name)} style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}>
-                    <Download size={14} color="#64748b" />
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: 12 }}>
+              {submissionFiles.map((file, idx) => {
+                const isPdf = file.type === 'PDF' || file.url.toLowerCase().endsWith('.pdf');
+                return (
+                  <TouchableOpacity 
+                    key={idx}
+                    onPress={() => handleDownload(file.url, file.name)}
+                    activeOpacity={0.8}
+                    style={{ width: '47%', aspectRatio: 1, borderRadius: 16, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e2e8f0', overflow: 'hidden', position: 'relative' }}
+                  >
+                    {!isPdf ? (
+                      <Image source={{ uri: file.url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                    ) : (
+                      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#eff6ff', padding: 12 }}>
+                        <FileText size={32} color="#0055d4" />
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#0055d4', marginTop: 8, textAlign: 'center' }} numberOfLines={2}>{file.name}</Text>
+                      </View>
+                    )}
+                    <View style={{ position: 'absolute', bottom: 8, right: isRTL ? undefined : 8, left: isRTL ? 8 : undefined, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 }}>
+                      {downloading === file.url ? <ActivityIndicator size="small" color="#0055d4" /> : <Download size={14} color="#0f172a" />}
+                    </View>
                   </TouchableOpacity>
-                </View>
-              ))}
+                );
+              })}
             </View>
           </View>
         )}
@@ -864,12 +896,15 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
         >
           {/* Animated upload progress fill background */}
           {submitting && (
-            <View style={{
+            <Animated.View style={{
               position: 'absolute',
               [isRTL ? 'right' : 'left']: 0,
               top: 0,
               bottom: 0,
-              width: `${Math.max(8, uploadProgress)}%`,
+              width: progressAnim.interpolate({
+                inputRange: [0, 100],
+                outputRange: ['0%', '100%']
+              }),
               backgroundColor: 'rgba(255, 255, 255, 0.25)'
             }} />
           )}
@@ -878,11 +913,9 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
             <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 10 }}>
               <ActivityIndicator size="small" color="#ffffff" />
               <Text style={{ fontSize: 16, fontWeight: '800', color: '#ffffff' }}>
-                {submissionFiles.some(f => !f.url.startsWith('http'))
-                  ? (uploadProgress < 100
-                      ? (language === 'ar' ? `جاري الرفع (${uploadProgress}%)` : language === 'fr' ? `Téléversement (${uploadProgress}%)` : `Uploading (${uploadProgress}%)`)
-                      : (language === 'ar' ? 'جاري تأكيد التسليم...' : language === 'fr' ? 'Validation en cours...' : 'Saving submission...'))
-                  : (language === 'ar' ? 'جاري تأكيد التسليم...' : language === 'fr' ? 'Validation en cours...' : 'Submitting...')}
+                {submitPhase === 'uploading'
+                  ? (language === 'ar' ? `جاري الرفع (${uploadProgress}%)` : language === 'fr' ? `Téléversement (${uploadProgress}%)` : `Uploading (${uploadProgress}%)`)
+                  : (language === 'ar' ? 'جاري تأكيد التسليم...' : language === 'fr' ? 'Validation en cours...' : 'Saving submission...')}
               </Text>
             </View>
           ) : (

@@ -228,7 +228,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
           ) : processedList.length > 0 ? (
             <View style={{ gap: 16 }}>
               {processedList.map((item) => {
-                const isPaid = item.status === 'Paid';
+                const isPaid = item.status === 'Paid' || (item.status === 'Partial' && activeFilter === 'Paid');
                 const isOverdue = item.isOverdue;
                 const isPartial = item.status === 'Partial';
 
@@ -237,7 +237,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
                   Partial: { label: t.pending || 'Partial',  color: '#f59e0b', bg: '#fef3c7', icon: <Clock size={16} color="#f59e0b" strokeWidth={3} /> },
                   Due:     { label: isOverdue ? (t.overdueBadge || 'Overdue') : (t.pending || 'Pending'), color: isOverdue ? '#ef4444' : '#f59e0b', bg: isOverdue ? '#fee2e2' : '#fef3c7', icon: isOverdue ? <AlertCircle size={16} color="#ef4444" strokeWidth={3} /> : <Clock size={16} color="#f59e0b" strokeWidth={3} /> },
                 };
-                const config = statusConfig[item.status] || statusConfig.Due;
+                const config = statusConfig[isPaid ? 'Paid' : item.status] || statusConfig.Due;
 
                 const monthNamesAr: Record<string, string> = {
                   SEP: 'سبتمبر', OCT: 'أكتوبر', NOV: 'نوفمبر', DEC: 'ديسمبر', JAN: 'يناير', FEB: 'فبراير', MAR: 'مارس', APR: 'أبريل', MAY: 'ماي', JUN: 'جوان', JUL: 'جويلية', AUG: 'أوت'

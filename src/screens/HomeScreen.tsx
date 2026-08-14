@@ -180,8 +180,14 @@ export const HomeScreen = ({ navigation, route }: any) => {
     }
   }, [route?.params?.scrollTo, loading, tasksYPosition]);
 
+  const requestRef = React.useRef(0);
+
   const fetchHome = async (isRefresh = false) => {
     if (!selectedChildId) return;
+    
+    // Increment request ID to track the latest request
+    const currentReq = ++requestRef.current;
+    
     const dateStr = selectedDate.toISOString().split('T')[0];
     const cacheKey = `HOME_DAY_CACHE_${selectedChildId}_${dateStr}`;
 
@@ -191,6 +197,10 @@ export const HomeScreen = ({ navigation, route }: any) => {
     }
 
     const cachedData = await cacheManager.get<StudentDayData>(cacheKey);
+    
+    // If a newer request was triggered, abort this one
+    if (requestRef.current !== currentReq) return;
+
     if (!isRefresh && cachedData) {
       setDayData(cachedData);
       setLoading(false);
@@ -198,6 +208,10 @@ export const HomeScreen = ({ navigation, route }: any) => {
 
     try {
       const data = await studentService.fetchDayData(selectedChildId, dateStr);
+      
+      // If a newer request was triggered while fetching from network, abort this one
+      if (requestRef.current !== currentReq) return;
+
       setDayData(data);
       await cacheManager.set(cacheKey, data);
       
@@ -206,8 +220,10 @@ export const HomeScreen = ({ navigation, route }: any) => {
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (requestRef.current === currentReq) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
@@ -443,7 +459,6 @@ export const HomeScreen = ({ navigation, route }: any) => {
                     <View style={[styles.remarkContent, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
                       <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%', marginBottom: 4 }}>
                         <Text style={[styles.remarkTitle, { flex: 1, marginBottom: 0, paddingRight: isRTL ? 0 : 8, paddingLeft: isRTL ? 8 : 0, textAlign: isRTL ? 'right' : 'left' }]} numberOfLines={2}>{note.text || ''}</Text>
-                        <Text style={styles.remarkTime}>{note.time || ''}</Text>
                       </View>
                       <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginTop: 4 }}>
                         <UserIcon size={12} color="#64748b" style={{ marginRight: isRTL ? 0 : 6, marginLeft: isRTL ? 6 : 0 }} />
