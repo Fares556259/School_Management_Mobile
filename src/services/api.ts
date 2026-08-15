@@ -109,6 +109,16 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
           DeviceEventEmitter.emit('auth_unauthorized');
         }
         
+        // Try to return the parsed JSON error if it exists (e.g. 400 Bad Request with {error: '...'})
+        try {
+          const parsed = JSON.parse(text);
+          if (parsed && typeof parsed === 'object') {
+            return parsed;
+          }
+        } catch (e) {
+          // If not JSON, fall through and return null
+        }
+        
         return null;
       }
 
@@ -149,6 +159,11 @@ export const authService = {
     });
 
     if (!data) return { success: false, error: 'Network error or account not found.' };
+    
+    if (data.success === false) {
+      return { success: false, error: data.error };
+    }
+
     return {
       success: true,
       status: data.status,
