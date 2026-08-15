@@ -235,13 +235,7 @@ export const ResultsScreen = ({ navigation }: any) => {
         contentContainerStyle={styles.scrollContainer}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0055d4']} tintColor="#0055d4" />}
       >
-        <View style={styles.headerTitleSection}>
-          <Text style={styles.eyebrow}>Academic Achievements</Text>
-          <Text style={styles.title}>Report Card</Text>
-          <Text style={styles.subtitle}>
-            Performance overview and official marks for {activeChild?.name || 'your child'}.
-          </Text>
-        </View>
+
 
         {resultsData.results.length === 0 ? (
           <View style={styles.emptyCard}>
