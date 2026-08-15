@@ -171,8 +171,10 @@ export const ResultsScreen = ({ navigation }: any) => {
   // Calculate class average for current term
   const termClassAverage = useMemo(() => {
     if (termResults.length === 0) return 0;
-    const sum = termResults.reduce((acc, curr) => acc + (curr.classAverage || curr.score), 0);
-    return parseFloat((sum / termResults.length).toFixed(2));
+    const valid = termResults.filter(r => r.score !== null && r.score !== '-');
+    if (valid.length === 0) return 0;
+    const sum = valid.reduce((acc, curr) => acc + (curr.classAverage || curr.score), 0);
+    return parseFloat((sum / valid.length).toFixed(2));
   }, [termResults]);
 
   const ratingLabel = termAverage >= 15 ? 'Excellent' : termAverage >= 12 ? 'Good' : termAverage >= 10 ? 'Satisfactory' : 'Needs Work';
@@ -284,7 +286,7 @@ export const ResultsScreen = ({ navigation }: any) => {
                                 </Text>
                               </View>
                               <View style={styles.scoreTextGroup}>
-                                <Text style={styles.subjectScore}>{item.score}</Text>
+                                <Text style={styles.subjectScore}>{item.score !== null && item.score !== '-' ? item.score : '--'}</Text>
                                 <Text style={styles.maxScore}>/ 20</Text>
                               </View>
                             </View>
