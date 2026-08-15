@@ -165,8 +165,40 @@ export const ResultsScreen = ({ navigation }: any) => {
 
   const termAverage = useMemo(() => {
     if (termResults.length === 0) return null;
-    return resultsData.summary?.average || null;
-  }, [termResults, resultsData.summary]);
+    
+    // Check if any subject has a missing grade (null or '-')
+    const hasMissingGrades = termResults.some(r => r.score === null || r.score === '-');
+    if (hasMissingGrades) {
+      return null; // Return null to display '-- / 20'
+    }
+
+    // 1. Group by domain
+    const domainMap: Record<string, typeof termResults> = {};
+    termResults.forEach(r => {
+      let domainId = 'General';
+      if (r.domain) {
+        domainId = r.domain;
+      } else {
+        domainId = getSubjectDomain(r.subject).id;
+      }
+      if (!domainMap[domainId]) domainMap[domainId] = [];
+      domainMap[domainId].push(r);
+    });
+
+    // 2. Calculate valid domain averages
+    const domainAverages: number[] = [];
+    Object.values(domainMap).forEach(domainScores => {
+      if (domainScores.length > 0) {
+        const sum = domainScores.reduce((acc, curr) => acc + (typeof curr.score === 'number' ? curr.score : 0), 0);
+        domainAverages.push(sum / domainScores.length);
+      }
+    });
+
+    // 3. General average
+    if (domainAverages.length === 0) return null;
+    const generalAverage = domainAverages.reduce((a, b) => a + b, 0) / domainAverages.length;
+    return parseFloat(generalAverage.toFixed(2));
+  }, [termResults]);
 
   // Calculate class average for current term
   const termClassAverage = useMemo(() => {
@@ -177,8 +209,8 @@ export const ResultsScreen = ({ navigation }: any) => {
     return parseFloat((sum / valid.length).toFixed(2));
   }, [termResults]);
 
-  const ratingLabel = termAverage >= 15 ? 'Excellent' : termAverage >= 12 ? 'Good' : termAverage >= 10 ? 'Satisfactory' : 'Needs Work';
-  const ratingColor = termAverage >= 12 ? '#10b981' : termAverage >= 10 ? '#f59e0b' : '#ef4444';
+  const ratingLabel = (termAverage ?? 0) >= 15 ? 'Excellent' : (termAverage ?? 0) >= 12 ? 'Good' : (termAverage ?? 0) >= 10 ? 'Satisfactory' : 'Needs Work';
+  const ratingColor = (termAverage ?? 0) >= 12 ? '#10b981' : (termAverage ?? 0) >= 10 ? '#f59e0b' : '#ef4444';
 
   if (loading && !refreshing) {
     return (
