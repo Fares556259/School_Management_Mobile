@@ -1,14 +1,14 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   ActivityIndicator, Alert, RefreshControl, StatusBar, Linking,
-  Modal, KeyboardAvoidingView, Platform
+  Modal, KeyboardAvoidingView, Platform, Image, Animated
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ChevronLeft, Plus, BookOpen, Link as LinkIcon, FileText,
   Paperclip, ChevronDown, X, Check, Layout, ExternalLink,
-  Calendar, Upload
+  Calendar, Upload, Image as ImageIcon, Trash2, Sparkles, CheckCircle2
 } from 'lucide-react-native';
 import { teacherService, API_BASE_URL, authStorage } from '../../services/api';
 import { Skeleton } from '../../components/Skeleton';
@@ -20,9 +20,9 @@ import * as ImagePicker from 'expo-image-picker';
 // ─── Resource Card ──────────────────────────────────────────────────────────
 const ResourceCard = ({ item }: any) => {
   const { t, getTranslatedSubject, isRTL } = useLanguage();
-  const isLink = item.url?.startsWith('http') && !item.url?.includes('upload');
   const ext = item.url?.split('.').pop()?.toLowerCase();
   const isPdf = ext === 'pdf';
+  const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext || '') || item.url?.includes('/images/') || item.url?.includes('/notices/resources/');
 
   const open = () => {
     if (item.url) Linking.openURL(item.url);
@@ -33,28 +33,44 @@ const ResourceCard = ({ item }: any) => {
       onPress={open}
       activeOpacity={0.85}
       style={{
-        backgroundColor: 'white', borderRadius: 20, padding: 18,
-        marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9',
-        flexDirection: 'row', alignItems: 'center'
+        backgroundColor: 'white', borderRadius: 22, padding: 16,
+        marginBottom: 12, borderWidth: 1.5, borderColor: '#f1f5f9',
+        flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center',
+        shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 1
       }}
     >
       <View style={{
-        width: 48, height: 48, borderRadius: 14,
-        backgroundColor: isPdf ? '#fff7ed' : '#eff6ff',
-        alignItems: 'center', justifyContent: 'center', marginRight: 16
+        width: 52, height: 52, borderRadius: 16,
+        backgroundColor: isPdf ? '#fef2f2' : isImage ? '#eff6ff' : '#f8fafc',
+        alignItems: 'center', justifyContent: 'center',
+        marginRight: isRTL ? 0 : 16, marginLeft: isRTL ? 16 : 0,
+        overflow: 'hidden', borderWidth: 1, borderColor: isPdf ? '#fecaca' : isImage ? '#bfdbfe' : '#e2e8f0'
       }}>
-        {isPdf ? <FileText size={24} color="#f59e0b" /> : <LinkIcon size={24} color="#0055d4" />}
+        {isImage && item.url ? (
+          <Image source={{ uri: item.url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+        ) : isPdf ? (
+          <FileText size={26} color="#ef4444" strokeWidth={2.2} />
+        ) : (
+          <LinkIcon size={24} color="#0055d4" strokeWidth={2.2} />
+        )}
       </View>
-      <View style={{ flex: 1, paddingRight: 8 }}>
-        <Text style={{ fontSize: 15, fontWeight: '800', color: '#1e293b' }} numberOfLines={1}>{item.title}</Text>
+      <View style={{ flex: 1, paddingRight: isRTL ? 0 : 8, paddingLeft: isRTL ? 8 : 0 }}>
+        <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>{item.title}</Text>
         {item.description ? (
-          <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '500', marginTop: 3, marginBottom: 2, lineHeight: 18 }} numberOfLines={2}>
+          <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '500', marginTop: 2, marginBottom: 2, lineHeight: 18, textAlign: isRTL ? 'right' : 'left' }} numberOfLines={2}>
             {item.description}
           </Text>
         ) : null}
-        <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '700', marginTop: item.description ? 4 : 2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          {getTranslatedSubject(item.subject)} · {new Date(item.createdAt).toLocaleDateString((t?.enus1 || 'en-US'), { month: 'short', day: 'numeric' })}
-        </Text>
+        <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+          <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, backgroundColor: isPdf ? '#fee2e2' : '#dbeafe' }}>
+            <Text style={{ fontSize: 10, fontWeight: '900', color: isPdf ? '#dc2626' : '#1d4ed8', textTransform: 'uppercase' }}>
+              {isPdf ? 'PDF' : isImage ? 'IMAGE' : 'DOC'}
+            </Text>
+          </View>
+          <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            {getTranslatedSubject(item.subject)} · {new Date(item.createdAt).toLocaleDateString((t?.enus1 || 'en-US'), { month: 'short', day: 'numeric' })}
+          </Text>
+        </View>
       </View>
       <View style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
         <ExternalLink size={18} color="#94a3b8" />
@@ -62,6 +78,13 @@ const ResourceCard = ({ item }: any) => {
     </TouchableOpacity>
   );
 };
+
+interface AttachedItem {
+  name: string;
+  uri: string;
+  type: 'IMAGE' | 'PDF';
+  size?: number;
+}
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 export const TeacherLessonsScreen = ({ navigation }: any) => {
@@ -77,12 +100,13 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
   const [showClassSwitcher, setShowClassSwitcher] = useState(false);
   const [showFilterSubjectSwitcher, setShowFilterSubjectSwitcher] = useState(false);
   const [selectedFilterSubject, setSelectedFilterSubject] = useState<string>('');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Form state
   const [formTitle, setFormTitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>('');
-  const [attachedFiles, setAttachedFiles] = useState<{ name: string; uri: string }[]>([]);
+  const [attachedFiles, setAttachedFiles] = useState<AttachedItem[]>([]);
   const [uploading, setUploading] = useState(false);
 
   // ── Load classes and subjects once
@@ -142,26 +166,87 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
 
   useEffect(() => { loadResources(); }, [loadResources]);
 
-  // ── Pick files (docs or images)
-  const pickFiles = async () => {
+  // ── Pick Images (Max 5, compressed)
+  const pickImages = async () => {
+    const currentImages = attachedFiles.filter(f => f.type === 'IMAGE');
+    const remaining = 5 - currentImages.length;
+    
+    if (remaining <= 0) {
+      showInAppToast(language === 'ar' ? 'الحد الأقصى 5 صور فقط' : language === 'fr' ? 'Maximum 5 images autorisées' : 'Maximum 5 images allowed', 'error');
+      return;
+    }
+
     try {
-      const result = await DocumentPicker.getDocumentAsync({ type: '*/*', multiple: true, copyToCacheDirectory: true });
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        selectionLimit: remaining,
+        quality: 0.75, // Compressed while keeping sharp readability
+      });
+
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const newFiles = result.assets.map(f => ({ name: f.name, uri: f.uri }));
-        setAttachedFiles(prev => [...prev, ...newFiles]);
-        if (!formTitle && newFiles.length === 1 && attachedFiles.length === 0) {
-          setFormTitle(newFiles[0].name.replace(/\.[^.]+$/, ''));
+        const picked = result.assets.slice(0, remaining).map((asset, idx) => ({
+          name: asset.fileName || `photo_${Date.now()}_${idx + 1}.jpg`,
+          uri: asset.uri,
+          type: 'IMAGE' as const,
+          size: asset.fileSize,
+        }));
+
+        setAttachedFiles(prev => {
+          const onlyImages = prev.filter(f => f.type === 'IMAGE');
+          const combined = [...onlyImages, ...picked].slice(0, 5);
+          if (!formTitle && combined.length > 0) {
+            setFormTitle(combined[0].name.replace(/\.[^.]+$/, ''));
+          }
+          return combined;
+        });
+      }
+    } catch (e: any) {
+      showInAppToast(language === 'ar' ? 'تعذر اختيار الصور' : 'Could not pick images', 'error');
+    }
+  };
+
+  // ── Pick PDF (Max 1)
+  const pickPdf = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        multiple: false,
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        setAttachedFiles([{
+          name: asset.name,
+          uri: asset.uri,
+          type: 'PDF' as const,
+          size: asset.size,
+        }]);
+        if (!formTitle) {
+          setFormTitle(asset.name.replace(/\.[^.]+$/, ''));
         }
       }
     } catch (e: any) {
-      Alert.alert('Error', 'Could not pick files');
+      showInAppToast(language === 'ar' ? 'تعذر اختيار ملف PDF' : 'Could not pick PDF', 'error');
     }
+  };
+
+  const showInAppToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
   };
 
   // ── Upload to server then save resource
   const handleUpload = async () => {
-    if (!formTitle.trim()) { Alert.alert('Required', 'Please enter a title.'); return; }
-    if (attachedFiles.length === 0) { Alert.alert('Required', 'Attach at least one file or image.'); return; }
+    if (!formTitle.trim()) {
+      showInAppToast(language === 'ar' ? 'يرجى إدخال عنوان للمادة' : 'Veuillez saisir un titre', 'error');
+      return;
+    }
+    if (attachedFiles.length === 0) {
+      showInAppToast(language === 'ar' ? 'يرجى إرفاق ملف PDF أو صور' : 'Veuillez joindre au moins un fichier', 'error');
+      return;
+    }
 
     try {
       setUploading(true);
@@ -174,7 +259,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
         const uploadPromises = attachedFiles.map(async (file) => {
           const form = new FormData();
           const ext = file.name.split('.').pop()?.toLowerCase();
-          const mimeType = ext === 'pdf' ? 'application/pdf' : ext === 'png' ? 'image/png' : 'image/jpeg';
+          const mimeType = file.type === 'PDF' || ext === 'pdf' ? 'application/pdf' : ext === 'png' ? 'image/png' : 'image/jpeg';
 
           form.append('file', {
             uri: file.uri,
@@ -209,24 +294,26 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
         url: finalUrl,
       });
 
-      if (saved && Array.isArray(saved)) {
-        setResources(prev => [...saved, ...prev]);
+      if (saved && (Array.isArray(saved) || saved.id)) {
+        const newlyCreated = Array.isArray(saved) ? saved : [saved];
+        setResources(prev => [...newlyCreated, ...prev]);
         // Reset form
-        setFormTitle(''); setFormDescription(''); setAttachedFiles([]);
+        setFormTitle('');
+        setFormDescription('');
+        setAttachedFiles([]);
         setShowAddForm(false);
-        const titleText = saved.length > 1 ? `${saved.length} files` : `"${saved[0].title}"`;
-        Alert.alert('✅ Uploaded', `${titleText} now visible to students.`);
-      } else if (saved && saved.id) {
-        setResources(prev => [saved, ...prev]);
-        // Reset form
-        setFormTitle(''); setFormDescription(''); setAttachedFiles([]);
-        setShowAddForm(false);
-        Alert.alert('✅ Uploaded', `"${saved.title}" is now visible to students.`);
+
+        const successMsg = language === 'ar'
+          ? 'تم نشر المحتوى بنجاح للأولياء والطلاب ✨'
+          : language === 'fr'
+          ? 'Document publié avec succès ! ✨'
+          : 'Material published successfully! ✨';
+        showInAppToast(successMsg, 'success');
       } else {
         throw new Error(saved?.error || 'Server error');
       }
     } catch (e: any) {
-      Alert.alert('Upload Failed', e.message || 'Unknown error');
+      showInAppToast(e.message || (language === 'ar' ? 'فشل الرفع' : 'Upload failed'), 'error');
     } finally {
       setUploading(false);
     }
@@ -236,6 +323,9 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
     setSelectedTeacherClass(cls);
     setShowClassSwitcher(false);
   };
+
+  const isImageMode = attachedFiles.some(f => f.type === 'IMAGE');
+  const isPdfMode = attachedFiles.some(f => f.type === 'PDF');
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }} edges={['top']}>
@@ -279,7 +369,12 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
           >
             <View style={{ backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24, maxHeight: '90%' }}>
               <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>{(t?.addMaterial || 'Add Material')}</Text>
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontSize: 19, fontWeight: '900', color: '#1e293b' }}>{(t?.addMaterial || 'Add Material')}</Text>
+                  <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4' }}>{selectedClass?.name}</Text>
+                  </View>
+                </View>
                 <TouchableOpacity onPress={() => { setShowAddForm(false); setAttachedFiles([]); setFormTitle(''); }}>
                   <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}>
                     <X size={20} color="#64748b" />
@@ -326,17 +421,10 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
                   </View>
                 </ScrollView>
 
-                {/* Target Class Info */}
-                <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{(t?.targetClass || 'Target Class')}</Text>
-                <View style={{ backgroundColor: '#eff6ff', padding: 14, borderRadius: 14, marginBottom: 20, borderWidth: 1, borderColor: '#dbeafe', flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
-                  <Layout size={18} color="#0055d4" />
-                  <Text style={{ marginLeft: isRTL ? 0 : 10, marginRight: isRTL ? 10 : 0, color: '#0055d4', fontWeight: '800' }}>{selectedClass?.name || 'Loading...'}</Text>
-                </View>
-
                 {/* Description */}
                 <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{(t?.descriptionOptional1 || 'Description (optional)')}</Text>
                 <TextInput
-                  style={{ backgroundColor: '#f8fafc', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#f1f5f9', fontSize: 15, color: '#1e293b', marginBottom: 16, minHeight: 70, textAlignVertical: 'top', textAlign: isRTL ? 'right' : 'left' }}
+                  style={{ backgroundColor: '#f8fafc', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#f1f5f9', fontSize: 15, color: '#1e293b', marginBottom: 16, minHeight: 60, textAlignVertical: 'top', textAlign: isRTL ? 'right' : 'left' }}
                   placeholder={(t?.briefDescriptionOfThisMaterial || 'Brief description of this material...')}
                   placeholderTextColor="#94a3b8"
                   value={formDescription}
@@ -344,41 +432,141 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
                   multiline
                 />
 
-                {/* Attached files list */}
-                {attachedFiles.length > 0 && (
-                  <View style={{ gap: 8, marginBottom: 12 }}>
-                    {attachedFiles.map((f, i) => (
-                      <View key={i} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#eff6ff', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#dbeafe' }}>
-                        <Paperclip size={16} color="#0055d4" />
-                        <Text style={{ flex: 1, marginLeft: 8, color: '#0055d4', fontWeight: '700', fontSize: 13 }} numberOfLines={1}>{f.name}</Text>
-                        <TouchableOpacity onPress={() => setAttachedFiles(prev => prev.filter((_, idx) => idx !== i))}>
-                          <X size={16} color="#94a3b8" />
+                {/* Attachments Picker Tabs / Buttons */}
+                <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>
+                  {language === 'ar' ? 'إرفاق ملفات أو صور *' : language === 'fr' ? 'Joindre des fichiers *' : 'Attach Files *'}
+                </Text>
+
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 10, marginBottom: 16 }}>
+                  {/* Photos Button */}
+                  <TouchableOpacity
+                    onPress={pickImages}
+                    activeOpacity={0.8}
+                    style={{
+                      flex: 1,
+                      backgroundColor: isImageMode ? '#eff6ff' : '#f8fafc',
+                      paddingVertical: 14,
+                      paddingHorizontal: 12,
+                      borderRadius: 16,
+                      borderWidth: 1.5,
+                      borderColor: isImageMode ? '#0055d4' : '#e2e8f0',
+                      alignItems: 'center',
+                      flexDirection: isRTL ? 'row-reverse' : 'row',
+                      justifyContent: 'center',
+                      gap: 8
+                    }}
+                  >
+                    <ImageIcon size={20} color={isImageMode ? '#0055d4' : '#64748b'} />
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: isImageMode ? '#0055d4' : '#1e293b' }}>
+                      {language === 'ar' ? 'صور (حتى 5)' : language === 'fr' ? 'Photos (max 5)' : 'Photos (max 5)'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* PDF Button */}
+                  <TouchableOpacity
+                    onPress={pickPdf}
+                    activeOpacity={0.8}
+                    style={{
+                      flex: 1,
+                      backgroundColor: isPdfMode ? '#fef2f2' : '#f8fafc',
+                      paddingVertical: 14,
+                      paddingHorizontal: 12,
+                      borderRadius: 16,
+                      borderWidth: 1.5,
+                      borderColor: isPdfMode ? '#ef4444' : '#e2e8f0',
+                      alignItems: 'center',
+                      flexDirection: isRTL ? 'row-reverse' : 'row',
+                      justifyContent: 'center',
+                      gap: 8
+                    }}
+                  >
+                    <FileText size={20} color={isPdfMode ? '#ef4444' : '#64748b'} />
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: isPdfMode ? '#ef4444' : '#1e293b' }}>
+                      {language === 'ar' ? 'ملف PDF (1)' : language === 'fr' ? 'Fichier PDF (1)' : 'PDF File (1)'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Rich Attachment Previews */}
+                {isImageMode && (
+                  <View style={{ marginBottom: 20 }}>
+                    <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: '#64748b' }}>
+                        {language === 'ar' ? `الصور المختارة (${attachedFiles.length}/5)` : `Photos sélectionnées (${attachedFiles.length}/5)`}
+                      </Text>
+                      {attachedFiles.length < 5 && (
+                        <TouchableOpacity onPress={pickImages}>
+                          <Text style={{ fontSize: 12, fontWeight: '800', color: '#0055d4' }}>
+                            {language === 'ar' ? '+ إضافة صورة' : '+ Ajouter'}
+                          </Text>
                         </TouchableOpacity>
+                      )}
+                    </View>
+
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
+                      <View style={{ flexDirection: 'row', gap: 10 }}>
+                        {attachedFiles.map((file, idx) => (
+                          <View key={idx} style={{ width: 80, height: 80, borderRadius: 16, overflow: 'hidden', borderWidth: 1.5, borderColor: '#dbeafe', position: 'relative', transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
+                            <Image source={{ uri: file.uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                            <TouchableOpacity
+                              onPress={() => setAttachedFiles(prev => prev.filter((_, i) => i !== idx))}
+                              style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(15,23,42,0.75)', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                              <X size={12} color="white" strokeWidth={3} />
+                            </TouchableOpacity>
+                            <View style={{ position: 'absolute', bottom: 4, left: 4, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 }}>
+                              <Text style={{ color: 'white', fontSize: 9, fontWeight: '900' }}>#{idx + 1}</Text>
+                            </View>
+                          </View>
+                        ))}
+
+                        {attachedFiles.length < 5 && (
+                          <TouchableOpacity
+                            onPress={pickImages}
+                            style={{ width: 80, height: 80, borderRadius: 16, borderWidth: 1.5, borderColor: '#cbd5e1', borderStyle: 'dashed', backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', transform: [{ scaleX: isRTL ? -1 : 1 }] }}
+                          >
+                            <Plus size={24} color="#94a3b8" />
+                            <Text style={{ fontSize: 10, fontWeight: '800', color: '#94a3b8', marginTop: 2 }}>{5 - attachedFiles.length}</Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
-                    ))}
+                    </ScrollView>
                   </View>
                 )}
 
-                {/* Attach files */}
-                <TouchableOpacity
-                  onPress={pickFiles}
-                  style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 16, borderRadius: 16, borderWidth: 2, borderColor: '#e2e8f0', borderStyle: 'dashed', marginBottom: 20, justifyContent: 'center' }}
-                >
-                  <Plus size={20} color="#94a3b8" />
-                  <Text style={{ marginLeft: isRTL ? 0 : 10, marginRight: isRTL ? 10 : 0, color: '#94a3b8', fontWeight: '800', fontSize: 14 }}>
-                    {(t?.attachFilesOrImages || 'Attach Files or Images')}
-                  </Text>
-                </TouchableOpacity>
+                {isPdfMode && attachedFiles[0] && (
+                  <View style={{ marginBottom: 20 }}>
+                    <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#fef2f2', padding: 14, borderRadius: 18, borderWidth: 1.5, borderColor: '#fecaca' }}>
+                      <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#fee2e2', alignItems: 'center', justifyContent: 'center' }}>
+                        <FileText size={24} color="#ef4444" strokeWidth={2.5} />
+                      </View>
+                      <View style={{ flex: 1, marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>
+                          {attachedFiles[0].name}
+                        </Text>
+                        <Text style={{ fontSize: 11, color: '#ef4444', fontWeight: '800', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>
+                          PDF Document {attachedFiles[0].size ? `• ${(attachedFiles[0].size / 1024 / 1024).toFixed(1)} MB` : ''}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => setAttachedFiles([])}
+                        style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#fee2e2', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <X size={16} color="#ef4444" strokeWidth={2.5} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
 
                 <TouchableOpacity
                   onPress={handleUpload}
                   disabled={uploading || !formTitle.trim() || attachedFiles.length === 0}
-                  style={{ backgroundColor: (!formTitle.trim() || attachedFiles.length === 0) ? '#94a3b8' : '#0055d4', paddingVertical: 16, borderRadius: 18, alignItems: 'center', flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'center', opacity: uploading ? 0.7 : 1 }}
+                  style={{ backgroundColor: (!formTitle.trim() || attachedFiles.length === 0) ? '#94a3b8' : '#0055d4', paddingVertical: 16, borderRadius: 18, alignItems: 'center', flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'center', opacity: uploading ? 0.7 : 1, shadowColor: '#0055d4', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 3 }}
                 >
                   {uploading ? <ActivityIndicator color="white" /> : (
                     <>
                       <Upload size={18} color="white" />
-                      <Text style={{ color: 'white', fontWeight: '900', fontSize: 15, marginLeft: isRTL ? 0 : 10, marginRight: isRTL ? 10 : 0 }}>
+                      <Text style={{ color: 'white', fontWeight: '900', fontSize: 16, marginLeft: isRTL ? 0 : 10, marginRight: isRTL ? 10 : 0 }}>
                         {(t?.uploadShare || 'Upload & Share')}
                       </Text>
                     </>
@@ -564,6 +752,43 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
           </View>
         </View>
       </Modal>
+
+      {/* In-App Toast Notification */}
+      {toast && (
+        <Animated.View style={{
+          position: 'absolute',
+          bottom: 36,
+          alignSelf: 'center',
+          backgroundColor: toast.type === 'success' ? '#059669' : '#dc2626',
+          paddingHorizontal: 22,
+          paddingVertical: 14,
+          borderRadius: 30,
+          flexDirection: isRTL ? 'row-reverse' : 'row',
+          alignItems: 'center',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.25,
+          shadowRadius: 12,
+          elevation: 10,
+          zIndex: 9999,
+          maxWidth: '90%'
+        }}>
+          {toast.type === 'success' ? (
+            <CheckCircle2 color="white" size={20} strokeWidth={2.5} />
+          ) : (
+            <X color="white" size={20} strokeWidth={2.5} />
+          )}
+          <Text style={{
+            color: 'white',
+            fontWeight: '900',
+            fontSize: 14,
+            marginLeft: isRTL ? 0 : 10,
+            marginRight: isRTL ? 10 : 0
+          }}>
+            {toast.message}
+          </Text>
+        </Animated.View>
+      )}
     </SafeAreaView>
   );
 };
