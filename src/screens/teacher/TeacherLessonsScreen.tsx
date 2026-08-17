@@ -1,14 +1,14 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  ActivityIndicator, Alert, RefreshControl, StatusBar, Linking,
-  Modal, KeyboardAvoidingView, Platform, Image, Animated
+  ActivityIndicator, RefreshControl, StatusBar,
+  Modal, KeyboardAvoidingView, Platform, Image, Animated, Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ChevronLeft, Plus, BookOpen, Link as LinkIcon, FileText,
-  Paperclip, ChevronDown, X, Check, Layout, ExternalLink,
-  Calendar, Upload, Image as ImageIcon, Trash2, Sparkles, CheckCircle2
+  ChevronDown, X, Check, Layout, ExternalLink,
+  Upload, Image as ImageIcon, CheckCircle2, Share2
 } from 'lucide-react-native';
 import { teacherService, API_BASE_URL, authStorage } from '../../services/api';
 import { Skeleton } from '../../components/Skeleton';
@@ -16,21 +16,22 @@ import { useAppStore } from '../../store/useAppStore';
 import { useLanguage } from '../../context/LanguageContext';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
+import * as WebBrowser from 'expo-web-browser';
+import * as Sharing from 'expo-sharing';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // ─── Resource Card ──────────────────────────────────────────────────────────
-const ResourceCard = ({ item }: any) => {
+const ResourceCard = ({ item, onOpenMedia }: { item: any; onOpenMedia: (item: any) => void }) => {
   const { t, getTranslatedSubject, isRTL } = useLanguage();
   const ext = item.url?.split('.').pop()?.toLowerCase();
   const isPdf = ext === 'pdf';
   const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext || '') || item.url?.includes('/images/') || item.url?.includes('/notices/resources/');
 
-  const open = () => {
-    if (item.url) Linking.openURL(item.url);
-  };
-
   return (
     <TouchableOpacity
-      onPress={open}
+      onPress={() => onOpenMedia(item)}
       activeOpacity={0.85}
       style={{
         backgroundColor: 'white', borderRadius: 22, padding: 16,
@@ -102,12 +103,16 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
   const [selectedFilterSubject, setSelectedFilterSubject] = useState<string>('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
+  // In-App Media Viewer
+  const [viewingMedia, setViewingMedia] = useState<{ url: string; title: string; subject?: string } | null>(null);
+
   // Form state
   const [formTitle, setFormTitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>('');
   const [attachedFiles, setAttachedFiles] = useState<AttachedItem[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgressText, setUploadProgressText] = useState('');
 
   // ── Load classes and subjects once
   useEffect(() => {
@@ -166,7 +171,22 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
 
   useEffect(() => { loadResources(); }, [loadResources]);
 
-  // ── Pick Images (Max 5, compressed)
+  // ── Fast High-Efficiency Image Compression Helper
+  const compressImage = async (uri: string): Promise<string> => {
+    try {
+      const result = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 1200 } }], // Resize large dimensions keeping aspect ratio
+        { compress: 0.70, format: ImageManipulator.SaveFormat.JPEG } // 70% quality reduces 8MB to ~150KB while keeping clear text
+      );
+      return result.uri;
+    } catch (err) {
+      console.warn('[Compression Fallback]', err);
+      return uri;
+    }
+  };
+
+  // ── Pick Images (Max 5, compressed instantly)
   const pickImages = async () => {
     const currentImages = attachedFiles.filter(f => f.type === 'IMAGE');
     const remaining = 5 - currentImages.length;
@@ -181,16 +201,22 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
         selectionLimit: remaining,
-        quality: 0.75, // Compressed while keeping sharp readability
+        quality: 0.8,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const picked = result.assets.slice(0, remaining).map((asset, idx) => ({
-          name: asset.fileName || `photo_${Date.now()}_${idx + 1}.jpg`,
-          uri: asset.uri,
-          type: 'IMAGE' as const,
-          size: asset.fileSize,
-        }));
+        // Compress images concurrently
+        const picked = await Promise.all(
+          result.assets.slice(0, remaining).map(async (asset, idx) => {
+            const compressedUri = await compressImage(asset.uri);
+            return {
+              name: asset.fileName || `photo_${Date.now()}_${idx + 1}.jpg`,
+              uri: compressedUri,
+              type: 'IMAGE' as const,
+              size: asset.fileSize,
+            };
+          })
+        );
 
         setAttachedFiles(prev => {
           const onlyImages = prev.filter(f => f.type === 'IMAGE');
@@ -237,6 +263,31 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
     setTimeout(() => setToast(null), 3500);
   };
 
+  // ── In-App Open Resource Handler (Never leaves app!)
+  const handleOpenMedia = async (item: any) => {
+    if (!item.url) return;
+    const ext = item.url.split('.').pop()?.toLowerCase();
+    const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext || '') || item.url.includes('/images/') || item.url.includes('/notices/resources/');
+
+    if (isImage) {
+      setViewingMedia(item);
+    } else {
+      // In-App browser modal sheet for PDF & documents
+      try {
+        await WebBrowser.openBrowserAsync(item.url, {
+          presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
+          toolbarColor: '#0055d4',
+          controlsColor: '#ffffff',
+          showTitle: true,
+          enableBarCollapsing: true,
+        });
+      } catch (e) {
+        // Fallback
+        setViewingMedia(item);
+      }
+    }
+  };
+
   // ── Upload to server then save resource
   const handleUpload = async () => {
     if (!formTitle.trim()) {
@@ -250,13 +301,14 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
 
     try {
       setUploading(true);
+      setUploadProgressText(language === 'ar' ? 'جاري الرفع السريع...' : 'Envoi en cours...');
       let finalUrl = '';
 
       if (attachedFiles.length > 0) {
         const schoolId = await authStorage.getSchoolId();
         const token = await authStorage.getToken();
 
-        const uploadPromises = attachedFiles.map(async (file) => {
+        const uploadPromises = attachedFiles.map(async (file, idx) => {
           const form = new FormData();
           const ext = file.name.split('.').pop()?.toLowerCase();
           const mimeType = file.type === 'PDF' || ext === 'pdf' ? 'application/pdf' : ext === 'png' ? 'image/png' : 'image/jpeg';
@@ -316,6 +368,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
       showInAppToast(e.message || (language === 'ar' ? 'فشل الرفع' : 'Upload failed'), 'error');
     } finally {
       setUploading(false);
+      setUploadProgressText('');
     }
   };
 
@@ -356,228 +409,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
         contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadResources(); }} tintColor="#0055d4" />}
       >
-        {/* Add Material Modal */}
-        <Modal
-          visible={showAddForm}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setShowAddForm(false)}
-        >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}
-          >
-            <View style={{ backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24, maxHeight: '90%' }}>
-              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontSize: 19, fontWeight: '900', color: '#1e293b' }}>{(t?.addMaterial || 'Add Material')}</Text>
-                  <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4' }}>{selectedClass?.name}</Text>
-                  </View>
-                </View>
-                <TouchableOpacity onPress={() => { setShowAddForm(false); setAttachedFiles([]); setFormTitle(''); }}>
-                  <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}>
-                    <X size={20} color="#64748b" />
-                  </View>
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-                {/* Title */}
-                <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{(t?.title || 'Title *')}</Text>
-                <TextInput
-                  style={{ backgroundColor: '#f8fafc', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#f1f5f9', fontSize: 15, color: '#1e293b', marginBottom: 16, textAlign: isRTL ? 'right' : 'left' }}
-                  placeholder={(t?.egChapter3Notes || 'e.g. Chapter 3 Notes')}
-                  placeholderTextColor="#94a3b8"
-                  value={formTitle}
-                  onChangeText={setFormTitle}
-                />
-
-                {/* Subject Picker (Inline list) */}
-                <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{(t?.subject || 'Subject *')}</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20, transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    {subjects.map(s => {
-                      const isActive = selectedSubjectId === s.id.toString();
-                      return (
-                        <TouchableOpacity
-                          key={s.id}
-                          onPress={() => setSelectedSubjectId(s.id.toString())}
-                          style={{
-                            paddingHorizontal: 16, paddingVertical: 12, borderRadius: 14,
-                            backgroundColor: isActive ? '#0055d4' : '#f8fafc',
-                            borderWidth: 1.5, borderColor: isActive ? '#0055d4' : '#f1f5f9',
-                            flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 8,
-                            transform: [{ scaleX: isRTL ? -1 : 1 }]
-                          }}
-                        >
-                          <BookOpen size={16} color={isActive ? 'white' : '#64748b'} />
-                          <Text style={{ fontSize: 14, fontWeight: '800', color: isActive ? 'white' : '#1e293b' }}>
-                            {getTranslatedSubject(s.name)}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </ScrollView>
-
-                {/* Description */}
-                <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{(t?.descriptionOptional1 || 'Description (optional)')}</Text>
-                <TextInput
-                  style={{ backgroundColor: '#f8fafc', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#f1f5f9', fontSize: 15, color: '#1e293b', marginBottom: 16, minHeight: 60, textAlignVertical: 'top', textAlign: isRTL ? 'right' : 'left' }}
-                  placeholder={(t?.briefDescriptionOfThisMaterial || 'Brief description of this material...')}
-                  placeholderTextColor="#94a3b8"
-                  value={formDescription}
-                  onChangeText={setFormDescription}
-                  multiline
-                />
-
-                {/* Attachments Picker Tabs / Buttons */}
-                <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>
-                  {language === 'ar' ? 'إرفاق ملفات أو صور *' : language === 'fr' ? 'Joindre des fichiers *' : 'Attach Files *'}
-                </Text>
-
-                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 10, marginBottom: 16 }}>
-                  {/* Photos Button */}
-                  <TouchableOpacity
-                    onPress={pickImages}
-                    activeOpacity={0.8}
-                    style={{
-                      flex: 1,
-                      backgroundColor: isImageMode ? '#eff6ff' : '#f8fafc',
-                      paddingVertical: 14,
-                      paddingHorizontal: 12,
-                      borderRadius: 16,
-                      borderWidth: 1.5,
-                      borderColor: isImageMode ? '#0055d4' : '#e2e8f0',
-                      alignItems: 'center',
-                      flexDirection: isRTL ? 'row-reverse' : 'row',
-                      justifyContent: 'center',
-                      gap: 8
-                    }}
-                  >
-                    <ImageIcon size={20} color={isImageMode ? '#0055d4' : '#64748b'} />
-                    <Text style={{ fontSize: 13, fontWeight: '800', color: isImageMode ? '#0055d4' : '#1e293b' }}>
-                      {language === 'ar' ? 'صور (حتى 5)' : language === 'fr' ? 'Photos (max 5)' : 'Photos (max 5)'}
-                    </Text>
-                  </TouchableOpacity>
-
-                  {/* PDF Button */}
-                  <TouchableOpacity
-                    onPress={pickPdf}
-                    activeOpacity={0.8}
-                    style={{
-                      flex: 1,
-                      backgroundColor: isPdfMode ? '#fef2f2' : '#f8fafc',
-                      paddingVertical: 14,
-                      paddingHorizontal: 12,
-                      borderRadius: 16,
-                      borderWidth: 1.5,
-                      borderColor: isPdfMode ? '#ef4444' : '#e2e8f0',
-                      alignItems: 'center',
-                      flexDirection: isRTL ? 'row-reverse' : 'row',
-                      justifyContent: 'center',
-                      gap: 8
-                    }}
-                  >
-                    <FileText size={20} color={isPdfMode ? '#ef4444' : '#64748b'} />
-                    <Text style={{ fontSize: 13, fontWeight: '800', color: isPdfMode ? '#ef4444' : '#1e293b' }}>
-                      {language === 'ar' ? 'ملف PDF (1)' : language === 'fr' ? 'Fichier PDF (1)' : 'PDF File (1)'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Rich Attachment Previews */}
-                {isImageMode && (
-                  <View style={{ marginBottom: 20 }}>
-                    <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                      <Text style={{ fontSize: 12, fontWeight: '800', color: '#64748b' }}>
-                        {language === 'ar' ? `الصور المختارة (${attachedFiles.length}/5)` : `Photos sélectionnées (${attachedFiles.length}/5)`}
-                      </Text>
-                      {attachedFiles.length < 5 && (
-                        <TouchableOpacity onPress={pickImages}>
-                          <Text style={{ fontSize: 12, fontWeight: '800', color: '#0055d4' }}>
-                            {language === 'ar' ? '+ إضافة صورة' : '+ Ajouter'}
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
-                      <View style={{ flexDirection: 'row', gap: 10 }}>
-                        {attachedFiles.map((file, idx) => (
-                          <View key={idx} style={{ width: 80, height: 80, borderRadius: 16, overflow: 'hidden', borderWidth: 1.5, borderColor: '#dbeafe', position: 'relative', transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
-                            <Image source={{ uri: file.uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                            <TouchableOpacity
-                              onPress={() => setAttachedFiles(prev => prev.filter((_, i) => i !== idx))}
-                              style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(15,23,42,0.75)', alignItems: 'center', justifyContent: 'center' }}
-                            >
-                              <X size={12} color="white" strokeWidth={3} />
-                            </TouchableOpacity>
-                            <View style={{ position: 'absolute', bottom: 4, left: 4, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 }}>
-                              <Text style={{ color: 'white', fontSize: 9, fontWeight: '900' }}>#{idx + 1}</Text>
-                            </View>
-                          </View>
-                        ))}
-
-                        {attachedFiles.length < 5 && (
-                          <TouchableOpacity
-                            onPress={pickImages}
-                            style={{ width: 80, height: 80, borderRadius: 16, borderWidth: 1.5, borderColor: '#cbd5e1', borderStyle: 'dashed', backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', transform: [{ scaleX: isRTL ? -1 : 1 }] }}
-                          >
-                            <Plus size={24} color="#94a3b8" />
-                            <Text style={{ fontSize: 10, fontWeight: '800', color: '#94a3b8', marginTop: 2 }}>{5 - attachedFiles.length}</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    </ScrollView>
-                  </View>
-                )}
-
-                {isPdfMode && attachedFiles[0] && (
-                  <View style={{ marginBottom: 20 }}>
-                    <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#fef2f2', padding: 14, borderRadius: 18, borderWidth: 1.5, borderColor: '#fecaca' }}>
-                      <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#fee2e2', alignItems: 'center', justifyContent: 'center' }}>
-                        <FileText size={24} color="#ef4444" strokeWidth={2.5} />
-                      </View>
-                      <View style={{ flex: 1, marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0 }}>
-                        <Text style={{ fontSize: 14, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>
-                          {attachedFiles[0].name}
-                        </Text>
-                        <Text style={{ fontSize: 11, color: '#ef4444', fontWeight: '800', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>
-                          PDF Document {attachedFiles[0].size ? `• ${(attachedFiles[0].size / 1024 / 1024).toFixed(1)} MB` : ''}
-                        </Text>
-                      </View>
-                      <TouchableOpacity
-                        onPress={() => setAttachedFiles([])}
-                        style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#fee2e2', alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        <X size={16} color="#ef4444" strokeWidth={2.5} />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                )}
-
-                <TouchableOpacity
-                  onPress={handleUpload}
-                  disabled={uploading || !formTitle.trim() || attachedFiles.length === 0}
-                  style={{ backgroundColor: (!formTitle.trim() || attachedFiles.length === 0) ? '#94a3b8' : '#0055d4', paddingVertical: 16, borderRadius: 18, alignItems: 'center', flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'center', opacity: uploading ? 0.7 : 1, shadowColor: '#0055d4', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 3 }}
-                >
-                  {uploading ? <ActivityIndicator color="white" /> : (
-                    <>
-                      <Upload size={18} color="white" />
-                      <Text style={{ color: 'white', fontWeight: '900', fontSize: 16, marginLeft: isRTL ? 0 : 10, marginRight: isRTL ? 10 : 0 }}>
-                        {(t?.uploadShare || 'Upload & Share')}
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </ScrollView>
-            </View>
-          </KeyboardAvoidingView>
-        </Modal>
-
-        {/* Resource List */}
+        {/* Resource List Skeleton */}
         {loading && !refreshing ? (
           <View style={{ gap: 16 }}>
             {[1, 2, 3].map((i) => (
@@ -598,7 +430,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
           </View>
         ) : (
           <View>
-            {/* Subject Filter Dropdown (Always visible if subjects exist) */}
+            {/* Subject Filter Dropdown */}
             {subjects.length > 0 && (
               <View style={{ marginBottom: 24 }}>
                 <TouchableOpacity 
@@ -622,7 +454,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
 
             {/* Filtered Content Area */}
             {(() => {
-              const filteredResources = resources.filter(r => getTranslatedSubject(r.subject) === selectedFilterSubject);
+              const filteredResources = resources.filter(r => !selectedFilterSubject || getTranslatedSubject(r.subject) === selectedFilterSubject);
               
               if (filteredResources.length === 0) {
                 return (
@@ -632,7 +464,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
                     </View>
                     <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b', textAlign: 'center' }}>{(t?.noMaterialsYet || 'No Materials Yet')}</Text>
                     <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '600', textAlign: 'center', marginTop: 10, paddingHorizontal: 40, lineHeight: 22 }}>
-                      {(t?.uploadPdfsNotesOrLinks || 'Upload PDFs, notes, or links for your students to access.')}
+                      {(t?.uploadPdfsNotesOrLinks || 'Upload PDFs, notes, or images for your students to access.')}
                     </Text>
                     <TouchableOpacity onPress={() => setShowAddForm(true)} style={{ marginTop: 32, backgroundColor: '#0055d4', paddingHorizontal: 32, paddingVertical: 16, borderRadius: 20 }}>
                       <Text style={{ color: 'white', fontWeight: '900', fontSize: 15 }}>{(t?.addMaterial1 || 'Add Material')}</Text>
@@ -644,9 +476,9 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
               return (
                 <View>
                   <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                    <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>{t.teacherLessons}</Text>
+                    <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>{t?.teacherLessons || 'Lessons & Materials'}</Text>
                     <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}>
-                      <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4' }}>{filteredResources.length} {t.teacherFiles}</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4' }}>{filteredResources.length} {t?.teacherFiles || 'files'}</Text>
                     </View>
                   </View>
 
@@ -665,15 +497,245 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
                           {items.length} {items.length === 1 ? ((t?.file || 'file')) : ((t?.files || 'files'))}
                         </Text>
                       </View>
-                      {items.map((r: any) => <ResourceCard key={r.id} item={r} />)}
+                      {items.map((r: any) => (
+                        <ResourceCard key={r.id} item={r} onOpenMedia={handleOpenMedia} />
+                      ))}
                     </View>
                   ))}
                 </View>
               );
             })()}
-        </View>
-      )}
-    </ScrollView>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Add Material Modal */}
+      <Modal
+        visible={showAddForm}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAddForm(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}
+        >
+          <View style={{ backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24, maxHeight: '90%' }}>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontSize: 19, fontWeight: '900', color: '#1e293b' }}>{(t?.addMaterial || 'Add Material')}</Text>
+                <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4' }}>{selectedClass?.name}</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => { setShowAddForm(false); setAttachedFiles([]); setFormTitle(''); }}>
+                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}>
+                  <X size={20} color="#64748b" />
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+              {/* Title */}
+              <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{(t?.title || 'Title *')}</Text>
+              <TextInput
+                style={{ backgroundColor: '#f8fafc', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#f1f5f9', fontSize: 15, color: '#1e293b', marginBottom: 16, textAlign: isRTL ? 'right' : 'left' }}
+                placeholder={(t?.egChapter3Notes || 'e.g. Chapter 3 Notes')}
+                placeholderTextColor="#94a3b8"
+                value={formTitle}
+                onChangeText={setFormTitle}
+              />
+
+              {/* Subject Picker (Inline list) */}
+              <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{(t?.subject || 'Subject *')}</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20, transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {subjects.map(s => {
+                    const isActive = selectedSubjectId === s.id.toString();
+                    return (
+                      <TouchableOpacity
+                        key={s.id}
+                        onPress={() => setSelectedSubjectId(s.id.toString())}
+                        style={{
+                          paddingHorizontal: 16, paddingVertical: 12, borderRadius: 14,
+                          backgroundColor: isActive ? '#0055d4' : '#f8fafc',
+                          borderWidth: 1.5, borderColor: isActive ? '#0055d4' : '#f1f5f9',
+                          flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 8,
+                          transform: [{ scaleX: isRTL ? -1 : 1 }]
+                        }}
+                      >
+                        <BookOpen size={16} color={isActive ? 'white' : '#64748b'} />
+                        <Text style={{ fontSize: 14, fontWeight: '800', color: isActive ? 'white' : '#1e293b' }}>
+                          {getTranslatedSubject(s.name)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+
+              {/* Description */}
+              <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{(t?.descriptionOptional1 || 'Description (optional)')}</Text>
+              <TextInput
+                style={{ backgroundColor: '#f8fafc', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#f1f5f9', fontSize: 15, color: '#1e293b', marginBottom: 16, minHeight: 60, textAlignVertical: 'top', textAlign: isRTL ? 'right' : 'left' }}
+                placeholder={(t?.briefDescriptionOfThisMaterial || 'Brief description of this material...')}
+                placeholderTextColor="#94a3b8"
+                value={formDescription}
+                onChangeText={setFormDescription}
+                multiline
+              />
+
+              {/* Attachments Picker Tabs / Buttons */}
+              <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>
+                {language === 'ar' ? 'إرفاق ملفات أو صور *' : language === 'fr' ? 'Joindre des fichiers *' : 'Attach Files *'}
+              </Text>
+
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 10, marginBottom: 16 }}>
+                {/* Photos Button */}
+                <TouchableOpacity
+                  onPress={pickImages}
+                  activeOpacity={0.8}
+                  style={{
+                    flex: 1,
+                    backgroundColor: isImageMode ? '#eff6ff' : '#f8fafc',
+                    paddingVertical: 14,
+                    paddingHorizontal: 12,
+                    borderRadius: 16,
+                    borderWidth: 1.5,
+                    borderColor: isImageMode ? '#0055d4' : '#e2e8f0',
+                    alignItems: 'center',
+                    flexDirection: isRTL ? 'row-reverse' : 'row',
+                    justifyContent: 'center',
+                    gap: 8
+                  }}
+                >
+                  <ImageIcon size={20} color={isImageMode ? '#0055d4' : '#64748b'} />
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: isImageMode ? '#0055d4' : '#1e293b' }}>
+                    {language === 'ar' ? 'صور (حتى 5)' : language === 'fr' ? 'Photos (max 5)' : 'Photos (max 5)'}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* PDF Button */}
+                <TouchableOpacity
+                  onPress={pickPdf}
+                  activeOpacity={0.8}
+                  style={{
+                    flex: 1,
+                    backgroundColor: isPdfMode ? '#fef2f2' : '#f8fafc',
+                    paddingVertical: 14,
+                    paddingHorizontal: 12,
+                    borderRadius: 16,
+                    borderWidth: 1.5,
+                    borderColor: isPdfMode ? '#ef4444' : '#e2e8f0',
+                    alignItems: 'center',
+                    flexDirection: isRTL ? 'row-reverse' : 'row',
+                    justifyContent: 'center',
+                    gap: 8
+                  }}
+                >
+                  <FileText size={20} color={isPdfMode ? '#ef4444' : '#64748b'} />
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: isPdfMode ? '#ef4444' : '#1e293b' }}>
+                    {language === 'ar' ? 'ملف PDF (1)' : language === 'fr' ? 'Fichier PDF (1)' : 'PDF File (1)'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Rich Attachment Previews */}
+              {isImageMode && (
+                <View style={{ marginBottom: 20 }}>
+                  <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '800', color: '#64748b' }}>
+                      {language === 'ar' ? `الصور المختارة (${attachedFiles.length}/5)` : `Photos sélectionnées (${attachedFiles.length}/5)`}
+                    </Text>
+                    {attachedFiles.length < 5 && (
+                      <TouchableOpacity onPress={pickImages}>
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: '#0055d4' }}>
+                          {language === 'ar' ? '+ إضافة صورة' : '+ Ajouter'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      {attachedFiles.map((file, idx) => (
+                        <View key={idx} style={{ width: 80, height: 80, borderRadius: 16, overflow: 'hidden', borderWidth: 1.5, borderColor: '#dbeafe', position: 'relative', transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
+                          <Image source={{ uri: file.uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                          <TouchableOpacity
+                            onPress={() => setAttachedFiles(prev => prev.filter((_, i) => i !== idx))}
+                            style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(15,23,42,0.75)', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <X size={12} color="white" strokeWidth={3} />
+                          </TouchableOpacity>
+                          <View style={{ position: 'absolute', bottom: 4, left: 4, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 }}>
+                            <Text style={{ color: 'white', fontSize: 9, fontWeight: '900' }}>#{idx + 1}</Text>
+                          </View>
+                        </View>
+                      ))}
+
+                      {attachedFiles.length < 5 && (
+                        <TouchableOpacity
+                          onPress={pickImages}
+                          style={{ width: 80, height: 80, borderRadius: 16, borderWidth: 1.5, borderColor: '#cbd5e1', borderStyle: 'dashed', backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', transform: [{ scaleX: isRTL ? -1 : 1 }] }}
+                        >
+                          <Plus size={24} color="#94a3b8" />
+                          <Text style={{ fontSize: 10, fontWeight: '800', color: '#94a3b8', marginTop: 2 }}>{5 - attachedFiles.length}</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </ScrollView>
+                </View>
+              )}
+
+              {isPdfMode && attachedFiles[0] && (
+                <View style={{ marginBottom: 20 }}>
+                  <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#fef2f2', padding: 14, borderRadius: 18, borderWidth: 1.5, borderColor: '#fecaca' }}>
+                    <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#fee2e2', alignItems: 'center', justifyContent: 'center' }}>
+                      <FileText size={24} color="#ef4444" strokeWidth={2.5} />
+                    </View>
+                    <View style={{ flex: 1, marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>
+                        {attachedFiles[0].name}
+                      </Text>
+                      <Text style={{ fontSize: 11, color: '#ef4444', fontWeight: '800', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>
+                        PDF Document {attachedFiles[0].size ? `• ${(attachedFiles[0].size / 1024 / 1024).toFixed(1)} MB` : ''}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => setAttachedFiles([])}
+                      style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#fee2e2', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      <X size={16} color="#ef4444" strokeWidth={2.5} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              <TouchableOpacity
+                onPress={handleUpload}
+                disabled={uploading || !formTitle.trim() || attachedFiles.length === 0}
+                style={{ backgroundColor: (!formTitle.trim() || attachedFiles.length === 0) ? '#94a3b8' : '#0055d4', paddingVertical: 16, borderRadius: 18, alignItems: 'center', flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'center', opacity: uploading ? 0.7 : 1, shadowColor: '#0055d4', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 3 }}
+              >
+                {uploading ? (
+                  <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 8 }}>
+                    <ActivityIndicator color="white" size="small" />
+                    <Text style={{ color: 'white', fontWeight: '900', fontSize: 15 }}>
+                      {uploadProgressText || (language === 'ar' ? 'جاري الرفع...' : 'Envoi en cours...')}
+                    </Text>
+                  </View>
+                ) : (
+                  <>
+                    <Upload size={18} color="white" />
+                    <Text style={{ color: 'white', fontWeight: '900', fontSize: 16, marginLeft: isRTL ? 0 : 10, marginRight: isRTL ? 10 : 0 }}>
+                      {(t?.uploadShare || 'Upload & Share')}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* Class Switcher Modal */}
       <Modal visible={showClassSwitcher} transparent animationType="slide" onRequestClose={() => setShowClassSwitcher(false)}>
@@ -752,6 +814,78 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
           </View>
         </View>
       </Modal>
+
+      {/* In-App Full-Screen Media / Image Lightbox Modal */}
+      {viewingMedia && (
+        <Modal
+          visible={!!viewingMedia}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setViewingMedia(null)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(11, 15, 25, 0.96)', justifyContent: 'space-between', paddingVertical: Platform.OS === 'ios' ? 50 : 30 }}>
+            {/* Top Bar */}
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 }}>
+              <View style={{ flex: 1, marginRight: isRTL ? 0 : 16, marginLeft: isRTL ? 16 : 0 }}>
+                <Text style={{ color: 'white', fontSize: 17, fontWeight: '900', textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>
+                  {viewingMedia.title}
+                </Text>
+                {viewingMedia.subject && (
+                  <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>
+                    {getTranslatedSubject(viewingMedia.subject)}
+                  </Text>
+                )}
+              </View>
+              <TouchableOpacity
+                onPress={() => setViewingMedia(null)}
+                style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X size={22} color="white" strokeWidth={2.5} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Main Image View */}
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10 }}>
+              <Image
+                source={{ uri: viewingMedia.url }}
+                style={{ width: SCREEN_WIDTH - 20, height: SCREEN_HEIGHT * 0.72 }}
+                resizeMode="contain"
+              />
+            </View>
+
+            {/* Bottom Actions Bar */}
+            <View style={{ paddingHorizontal: 20, flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'center', gap: 16 }}>
+              <TouchableOpacity
+                onPress={async () => {
+                  try {
+                    if (await Sharing.isAvailableAsync()) {
+                      await Sharing.shareAsync(viewingMedia.url);
+                    } else {
+                      await WebBrowser.openBrowserAsync(viewingMedia.url);
+                    }
+                  } catch (err) {
+                    console.warn(err);
+                  }
+                }}
+                style={{
+                  backgroundColor: '#0055d4',
+                  paddingHorizontal: 24,
+                  paddingVertical: 14,
+                  borderRadius: 20,
+                  flexDirection: isRTL ? 'row-reverse' : 'row',
+                  alignItems: 'center',
+                  gap: 8
+                }}
+              >
+                <Share2 size={18} color="white" />
+                <Text style={{ color: 'white', fontWeight: '900', fontSize: 14 }}>
+                  {language === 'ar' ? 'مشاركة أو حفظ' : 'Partager / Enregistrer'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
 
       {/* In-App Toast Notification */}
       {toast && (

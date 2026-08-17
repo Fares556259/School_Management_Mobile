@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Linking, Modal, Image, Dimensions, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   Calculator, Book, Languages, Globe, Palette, Microscope, Music, BookOpen, 
-  FileText, Download, ChevronRight, ChevronLeft, ChevronDown, ChevronUp 
+  FileText, Download, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, X, Share2, Eye
 } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
@@ -11,6 +11,10 @@ import { studentService } from '../services/api';
 import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GlobalHeader } from '../components/GlobalHeader';
+import * as WebBrowser from 'expo-web-browser';
+import * as Sharing from 'expo-sharing';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const SUBJECT_THEMES: Record<string, { icon: any }> = {
   'Mathematics': { icon: Calculator },
@@ -50,6 +54,8 @@ export const CoursesScreen = ({ navigation }: any) => {
   const [viewedResources, setViewedResources] = useState<string[]>([]);
   const [expandedCourses, setExpandedCourses] = useState<Record<string, boolean>>({});
   const child = children.find(c => c.id === selectedChildId);
+
+  const [viewingMedia, setViewingMedia] = useState<{ url: string; title: string; subject?: string } | null>(null);
 
   useEffect(() => {
     loadCourses();
@@ -93,9 +99,28 @@ export const CoursesScreen = ({ navigation }: any) => {
     }
   };
 
-  const handleDownload = (res: any) => {
+  const handleOpenResource = async (res: any, courseName?: string) => {
     markAsViewed(res.id);
-    if (res.url) Linking.openURL(res.url);
+    if (!res.url) return;
+
+    const ext = res.url.split('.').pop()?.toLowerCase();
+    const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext || '') || res.url.includes('/images/') || res.url.includes('/notices/resources/');
+
+    if (isImage) {
+      setViewingMedia({ url: res.url, title: res.title, subject: courseName });
+    } else {
+      try {
+        await WebBrowser.openBrowserAsync(res.url, {
+          presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
+          toolbarColor: '#0055d4',
+          controlsColor: '#ffffff',
+          showTitle: true,
+          enableBarCollapsing: true,
+        });
+      } catch (e) {
+        setViewingMedia({ url: res.url, title: res.title, subject: courseName });
+      }
+    }
   };
 
   const toggleCourse = (id: string) => {
@@ -208,28 +233,43 @@ export const CoursesScreen = ({ navigation }: any) => {
                           <View style={{ paddingTop: 0, paddingBottom: 16 }}>
                             {course.resources.map((res: any, idx: number) => {
                               const isNew = !viewedResources.includes(res.id.toString());
+                              const ext = res.url?.split('.').pop()?.toLowerCase();
+                              const isPdf = ext === 'pdf';
+                              const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext || '');
+
                               return (
                                 <TouchableOpacity
                                   key={res.id}
-                                  onPress={() => handleDownload(res)}
+                                  onPress={() => handleOpenResource(res, arabicName)}
                                   activeOpacity={0.85}
                                   style={{
                                     flexDirection: isRTL ? 'row-reverse' : 'row',
                                     alignItems: 'center',
-                                    borderRadius: 12,
+                                    borderRadius: 14,
                                     padding: 12,
                                     marginBottom: 8,
-                                    borderWidth: 2,
-                                    borderColor: isNew ? '#bfdbfe' : '#e2e8f0',
-                                    backgroundColor: isNew ? '#f8fafc' : '#fafafa',
+                                    borderWidth: 1.5,
+                                    borderColor: isNew ? '#bfdbfe' : '#f1f5f9',
+                                    backgroundColor: isNew ? '#eff6ff' : '#f8fafc',
                                   }}
                                 >
-                                  <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: isNew ? '#dbeafe' : '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }}>
-                                    <FileText color={isNew ? "#3b82f6" : "#64748b"} size={16} />
+                                  <View style={{
+                                    width: 40, height: 40, borderRadius: 10,
+                                    backgroundColor: isPdf ? '#fee2e2' : isImage ? '#dbeafe' : '#f1f5f9',
+                                    alignItems: 'center', justifyContent: 'center',
+                                    marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0
+                                  }}>
+                                    {isPdf ? (
+                                      <FileText color="#ef4444" size={18} />
+                                    ) : isImage ? (
+                                      <Eye color="#0055d4" size={18} />
+                                    ) : (
+                                      <FileText color={isNew ? "#3b82f6" : "#64748b"} size={18} />
+                                    )}
                                   </View>
                                   <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
-                                    <Text style={{ fontSize: 13, fontWeight: '800', color: '#1e293b' }} numberOfLines={1}>{res.title}</Text>
-                                    <Text style={{ fontSize: 10, color: '#64748b', fontWeight: '700', marginTop: 2 }}>{moment(res.createdAt).format('MMM D, YYYY')}</Text>
+                                    <Text style={{ fontSize: 14, fontWeight: '800', color: '#1e293b' }} numberOfLines={1}>{res.title}</Text>
+                                    <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '700', marginTop: 2 }}>{moment(res.createdAt).format('MMM D, YYYY')}</Text>
                                   </View>
                                   <View style={{ padding: 8, backgroundColor: 'white', borderRadius: 8, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 3, elevation: 1 }}>
                                     <Download color="#0055d4" size={16} />
@@ -253,6 +293,78 @@ export const CoursesScreen = ({ navigation }: any) => {
           </View>
         )}
       </ScrollView>
+
+      {/* In-App Media / Image Lightbox Modal */}
+      {viewingMedia && (
+        <Modal
+          visible={!!viewingMedia}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setViewingMedia(null)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(11, 15, 25, 0.96)', justifyContent: 'space-between', paddingVertical: Platform.OS === 'ios' ? 50 : 30 }}>
+            {/* Top Bar */}
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 }}>
+              <View style={{ flex: 1, marginRight: isRTL ? 0 : 16, marginLeft: isRTL ? 16 : 0 }}>
+                <Text style={{ color: 'white', fontSize: 17, fontWeight: '900', textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>
+                  {viewingMedia.title}
+                </Text>
+                {viewingMedia.subject && (
+                  <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>
+                    {getTranslatedSubject(viewingMedia.subject)}
+                  </Text>
+                )}
+              </View>
+              <TouchableOpacity
+                onPress={() => setViewingMedia(null)}
+                style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X size={22} color="white" strokeWidth={2.5} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Main Image View */}
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10 }}>
+              <Image
+                source={{ uri: viewingMedia.url }}
+                style={{ width: SCREEN_WIDTH - 20, height: SCREEN_HEIGHT * 0.72 }}
+                resizeMode="contain"
+              />
+            </View>
+
+            {/* Bottom Actions Bar */}
+            <View style={{ paddingHorizontal: 20, flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'center', gap: 16 }}>
+              <TouchableOpacity
+                onPress={async () => {
+                  try {
+                    if (await Sharing.isAvailableAsync()) {
+                      await Sharing.shareAsync(viewingMedia.url);
+                    } else {
+                      await WebBrowser.openBrowserAsync(viewingMedia.url);
+                    }
+                  } catch (err) {
+                    console.warn(err);
+                  }
+                }}
+                style={{
+                  backgroundColor: '#0055d4',
+                  paddingHorizontal: 24,
+                  paddingVertical: 14,
+                  borderRadius: 20,
+                  flexDirection: isRTL ? 'row-reverse' : 'row',
+                  alignItems: 'center',
+                  gap: 8
+                }}
+              >
+                <Share2 size={18} color="white" />
+                <Text style={{ color: 'white', fontWeight: '900', fontSize: 14 }}>
+                  {isRTL ? 'مشاركة أو حفظ' : 'Partager / Enregistrer'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 };
