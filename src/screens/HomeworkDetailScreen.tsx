@@ -92,7 +92,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: false,
         allowsMultipleSelection: true,
         quality: 0.3,

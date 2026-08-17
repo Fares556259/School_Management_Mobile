@@ -2,13 +2,13 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   ActivityIndicator, RefreshControl, StatusBar,
-  Modal, KeyboardAvoidingView, Platform, Image, Animated, Dimensions
+  Modal, KeyboardAvoidingView, Platform, Image, Animated, Dimensions, Share
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ChevronLeft, Plus, BookOpen, Link as LinkIcon, FileText,
   ChevronDown, X, Check, Layout, ExternalLink,
-  Upload, Image as ImageIcon, CheckCircle2, Share2
+  Upload, Image as ImageIcon, CheckCircle2, Share2, Download
 } from 'lucide-react-native';
 import { teacherService, API_BASE_URL, authStorage } from '../../services/api';
 import { Skeleton } from '../../components/Skeleton';
@@ -18,6 +18,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as WebBrowser from 'expo-web-browser';
+import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -105,6 +106,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
 
   // In-App Media Viewer
   const [viewingMedia, setViewingMedia] = useState<{ url: string; title: string; subject?: string } | null>(null);
+  const [sharingLoading, setSharingLoading] = useState(false);
 
   // Form state
   const [formTitle, setFormTitle] = useState('');
@@ -171,13 +173,13 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
 
   useEffect(() => { loadResources(); }, [loadResources]);
 
-  // ── Fast High-Efficiency Image Compression Helper
+  // ── Ultra-Fast High-Efficiency Image Compression Helper
   const compressImage = async (uri: string): Promise<string> => {
     try {
       const result = await ImageManipulator.manipulateAsync(
         uri,
-        [{ resize: { width: 1200 } }], // Resize large dimensions keeping aspect ratio
-        { compress: 0.70, format: ImageManipulator.SaveFormat.JPEG } // 70% quality reduces 8MB to ~150KB while keeping clear text
+        [{ resize: { width: 1000 } }], // Resize large dimension to 1000px max
+        { compress: 0.65, format: ImageManipulator.SaveFormat.JPEG } // Ultra-light ~80KB per image
       );
       return result.uri;
     } catch (err) {
@@ -186,7 +188,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
     }
   };
 
-  // ── Pick Images (Max 5, compressed instantly)
+  // ── Pick Images (Max 5, compressed in parallel)
   const pickImages = async () => {
     const currentImages = attachedFiles.filter(f => f.type === 'IMAGE');
     const remaining = 5 - currentImages.length;
@@ -198,10 +200,10 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
 
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsMultipleSelection: true,
         selectionLimit: remaining,
-        quality: 0.8,
+        quality: 0.7,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -282,13 +284,44 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
           enableBarCollapsing: true,
         });
       } catch (e) {
-        // Fallback
         setViewingMedia(item);
       }
     }
   };
 
-  // ── Upload to server then save resource
+  // ── Robust Native Share / Save / Download Handler
+  const handleShareOrDownload = async (url: string, title?: string) => {
+    if (!url) return;
+    try {
+      setSharingLoading(true);
+      const filename = url.split('/').pop()?.split('?')[0] || `snapschool_${Date.now()}.jpg`;
+      const localUri = `${FileSystem.cacheDirectory}${filename}`;
+
+      // Download file locally to cache first
+      const downloadResult = await FileSystem.downloadAsync(url, localUri);
+      
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(downloadResult.uri, {
+          mimeType: downloadResult.uri.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
+          dialogTitle: title || 'SnapSchool Document',
+          UTI: downloadResult.uri.endsWith('.pdf') ? 'com.adobe.pdf' : 'public.jpeg'
+        });
+      } else {
+        await Share.share({
+          title: title || 'SnapSchool Document',
+          url: downloadResult.uri
+        });
+      }
+    } catch (err) {
+      console.warn('[Share Error]', err);
+      // Fallback
+      Share.share({ message: `${title || 'SnapSchool'}: ${url}` });
+    } finally {
+      setSharingLoading(false);
+    }
+  };
+
+  // ── Single-Batch High-Speed Upload
   const handleUpload = async () => {
     if (!formTitle.trim()) {
       showInAppToast(language === 'ar' ? 'يرجى إدخال عنوان للمادة' : 'Veuillez saisir un titre', 'error');
@@ -301,41 +334,40 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
 
     try {
       setUploading(true);
-      setUploadProgressText(language === 'ar' ? 'جاري الرفع السريع...' : 'Envoi en cours...');
+      setUploadProgressText(language === 'ar' ? 'جاري الرفع السريع...' : 'Envoi rapide...');
       let finalUrl = '';
 
       if (attachedFiles.length > 0) {
         const schoolId = await authStorage.getSchoolId();
         const token = await authStorage.getToken();
 
-        const uploadPromises = attachedFiles.map(async (file, idx) => {
-          const form = new FormData();
+        const form = new FormData();
+        form.append('type', 'resource');
+        form.append('id', selectedSubjectId || 'general');
+
+        attachedFiles.forEach(file => {
           const ext = file.name.split('.').pop()?.toLowerCase();
           const mimeType = file.type === 'PDF' || ext === 'pdf' ? 'application/pdf' : ext === 'png' ? 'image/png' : 'image/jpeg';
-
-          form.append('file', {
+          
+          form.append('files', {
             uri: file.uri,
             name: file.name,
             type: mimeType
           } as any);
-          form.append('type', 'resource');
-          form.append('id', selectedSubjectId || 'general');
-
-          const uploadRes = await fetch(`${API_BASE_URL}/api/mobile/upload`, {
-            method: 'POST',
-            body: form,
-            headers: {
-              'x-school-id': schoolId || '',
-              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-            },
-          });
-          const uploadData = await uploadRes.json();
-          if (!uploadData?.url) throw new Error(uploadData?.error || `Upload failed for ${file.name}`);
-          return uploadData.url;
         });
 
-        const urls = await Promise.all(uploadPromises);
-        finalUrl = urls.join(',');
+        const uploadRes = await fetch(`${API_BASE_URL}/api/mobile/upload`, {
+          method: 'POST',
+          body: form,
+          headers: {
+            'x-school-id': schoolId || '',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+        });
+
+        const uploadData = await uploadRes.json();
+        if (!uploadData?.url) throw new Error(uploadData?.error || 'Upload failed');
+        finalUrl = uploadData.url;
       }
 
       const saved = await teacherService.uploadResource({
@@ -720,7 +752,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
                   <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 8 }}>
                     <ActivityIndicator color="white" size="small" />
                     <Text style={{ color: 'white', fontWeight: '900', fontSize: 15 }}>
-                      {uploadProgressText || (language === 'ar' ? 'جاري الرفع...' : 'Envoi en cours...')}
+                      {uploadProgressText || (language === 'ar' ? 'جاري الرفع السريع...' : 'Envoi en cours...')}
                     </Text>
                   </View>
                 ) : (
@@ -856,17 +888,8 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
             {/* Bottom Actions Bar */}
             <View style={{ paddingHorizontal: 20, flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'center', gap: 16 }}>
               <TouchableOpacity
-                onPress={async () => {
-                  try {
-                    if (await Sharing.isAvailableAsync()) {
-                      await Sharing.shareAsync(viewingMedia.url);
-                    } else {
-                      await WebBrowser.openBrowserAsync(viewingMedia.url);
-                    }
-                  } catch (err) {
-                    console.warn(err);
-                  }
-                }}
+                disabled={sharingLoading}
+                onPress={() => handleShareOrDownload(viewingMedia.url, viewingMedia.title)}
                 style={{
                   backgroundColor: '#0055d4',
                   paddingHorizontal: 24,
@@ -874,13 +897,20 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
                   borderRadius: 20,
                   flexDirection: isRTL ? 'row-reverse' : 'row',
                   alignItems: 'center',
-                  gap: 8
+                  gap: 8,
+                  opacity: sharingLoading ? 0.7 : 1
                 }}
               >
-                <Share2 size={18} color="white" />
-                <Text style={{ color: 'white', fontWeight: '900', fontSize: 14 }}>
-                  {language === 'ar' ? 'مشاركة أو حفظ' : 'Partager / Enregistrer'}
-                </Text>
+                {sharingLoading ? (
+                  <ActivityIndicator color="white" size="small" />
+                ) : (
+                  <>
+                    <Share2 size={18} color="white" />
+                    <Text style={{ color: 'white', fontWeight: '900', fontSize: 14 }}>
+                      {language === 'ar' ? 'مشاركة أو حفظ' : 'Partager / Enregistrer'}
+                    </Text>
+                  </>
+                )}
               </TouchableOpacity>
             </View>
           </View>

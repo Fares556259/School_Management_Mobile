@@ -116,7 +116,7 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsMultipleSelection: true,
       selectionLimit: 5 - attachments.length,
       quality: 0.3,

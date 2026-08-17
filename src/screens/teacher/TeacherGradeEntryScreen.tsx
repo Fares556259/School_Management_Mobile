@@ -125,7 +125,7 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
   const pickImage = async (useCamera = false) => {
     try {
       const options: ImagePicker.ImagePickerOptions = {
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         quality: 0.3,
       };

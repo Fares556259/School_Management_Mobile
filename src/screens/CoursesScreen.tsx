@@ -12,6 +12,7 @@ import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GlobalHeader } from '../components/GlobalHeader';
 import * as WebBrowser from 'expo-web-browser';
+import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -337,8 +338,15 @@ export const CoursesScreen = ({ navigation }: any) => {
               <TouchableOpacity
                 onPress={async () => {
                   try {
+                    const filename = viewingMedia.url.split('/').pop()?.split('?')[0] || `snapschool_${Date.now()}.jpg`;
+                    const localUri = `${FileSystem.cacheDirectory}${filename}`;
+                    const downloadResult = await FileSystem.downloadAsync(viewingMedia.url, localUri);
+
                     if (await Sharing.isAvailableAsync()) {
-                      await Sharing.shareAsync(viewingMedia.url);
+                      await Sharing.shareAsync(downloadResult.uri, {
+                        mimeType: downloadResult.uri.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
+                        dialogTitle: viewingMedia.title || 'SnapSchool Document',
+                      });
                     } else {
                       await WebBrowser.openBrowserAsync(viewingMedia.url);
                     }
