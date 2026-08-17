@@ -10,7 +10,7 @@ import {
   Paperclip, ChevronDown, X, Check, Layout, ExternalLink,
   Calendar, Upload
 } from 'lucide-react-native';
-import { teacherService, API_BASE_URL } from '../../services/api';
+import { teacherService, API_BASE_URL, authStorage } from '../../services/api';
 import { Skeleton } from '../../components/Skeleton';
 import { useAppStore } from '../../store/useAppStore';
 import { useLanguage } from '../../context/LanguageContext';
@@ -168,17 +168,32 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
       let finalUrl = '';
 
       if (attachedFiles.length > 0) {
+        const schoolId = await authStorage.getSchoolId();
+        const token = await authStorage.getToken();
+
         const uploadPromises = attachedFiles.map(async (file) => {
           const form = new FormData();
-          form.append('file', { uri: file.uri, name: file.name, type: 'application/octet-stream' } as any);
-          form.append('folder', 'resources');
+          const ext = file.name.split('.').pop()?.toLowerCase();
+          const mimeType = ext === 'pdf' ? 'application/pdf' : ext === 'png' ? 'image/png' : 'image/jpeg';
+
+          form.append('file', {
+            uri: file.uri,
+            name: file.name,
+            type: mimeType
+          } as any);
+          form.append('type', 'resource');
+          form.append('id', selectedSubjectId || 'general');
 
           const uploadRes = await fetch(`${API_BASE_URL}/api/mobile/upload`, {
             method: 'POST',
             body: form,
+            headers: {
+              'x-school-id': schoolId || '',
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
           });
           const uploadData = await uploadRes.json();
-          if (!uploadData?.url) throw new Error(`Upload failed for ${file.name}`);
+          if (!uploadData?.url) throw new Error(uploadData?.error || `Upload failed for ${file.name}`);
           return uploadData.url;
         });
 

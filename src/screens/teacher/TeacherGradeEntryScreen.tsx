@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StatusBar, Alert, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, ChevronRight, Check, BookOpen, Users, Layout, Camera, Image as ImageIcon, X, Award, Sparkles } from 'lucide-react-native';
-import { teacherService, API_BASE_URL } from '../../services/api';
+import { teacherService, API_BASE_URL, authStorage } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
 import * as ImagePicker from 'expo-image-picker';
 import { useLanguage } from '../../context/LanguageContext';
@@ -161,11 +161,19 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
         const form = new FormData();
         const filename = proofImage.uri.split('/').pop() || 'proof.jpg';
         form.append('file', { uri: proofImage.uri, name: filename, type: 'image/jpeg' } as any);
-        form.append('folder', 'grades');
+        form.append('type', 'grade');
+        form.append('id', selectedSubject.id.toString());
+
+        const schoolId = await authStorage.getSchoolId();
+        const token = await authStorage.getToken();
 
         const uploadRes = await fetch(`${API_BASE_URL}/api/mobile/upload`, {
           method: 'POST',
           body: form,
+          headers: {
+            'x-school-id': schoolId || '',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
         });
         const uploadData = await uploadRes.json();
         if (uploadData?.url) {
