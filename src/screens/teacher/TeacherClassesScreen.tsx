@@ -15,7 +15,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { useLanguage } from '../../context/LanguageContext';
 import { useQuery } from '@tanstack/react-query';
 
-const ClassCard = ({ item, navigation, setSelectedTeacherClass, t, language, isRTL }: any) => (
+const ClassCard = ({ item, navigation, setSelectedTeacherClass, t, language, isRTL, getTranslatedSubject }: any) => (
   <TouchableOpacity 
     activeOpacity={0.9}
     onPress={() => {
@@ -51,7 +51,7 @@ const ClassCard = ({ item, navigation, setSelectedTeacherClass, t, language, isR
       
       <View style={{ flex: 1, alignItems: language === 'ar' ? 'flex-end' : 'flex-start' }}>
         <Text style={{ fontSize: 16, fontWeight: '900', color: '#2b3437' }}>{item.name}</Text>
-        <Text style={{ fontSize: 12, color: '#737c7f', marginTop: 2 }}>{item.subject || ((t?.variousSubjects || 'Various subjects'))} · {item.students} {t.teacherStudents}</Text>
+        <Text style={{ fontSize: 12, color: '#737c7f', marginTop: 2 }}>{(item.subject ? getTranslatedSubject(item.subject) : null) || ((t?.variousSubjects || 'Various subjects'))} · {item.students} {t.teacherStudents}</Text>
       </View>
       
       <View style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
@@ -69,7 +69,7 @@ const ClassCard = ({ item, navigation, setSelectedTeacherClass, t, language, isR
 
 export const TeacherClassesScreen = ({ navigation }: any) => {
   const { selectedTeacherClass, setSelectedTeacherClass } = useAppStore();
-  const { t, language, isRTL } = useLanguage();
+  const { t, language, isRTL, getTranslatedSubject } = useLanguage();
   const [search, setSearch] = useState('');
 
   const { data: classes = [], isLoading: loading, refetch: onRefresh, isRefetching: refreshing } = useQuery({
@@ -149,6 +149,7 @@ export const TeacherClassesScreen = ({ navigation }: any) => {
             t={t} 
             language={language} 
             isRTL={isRTL} 
+            getTranslatedSubject={getTranslatedSubject}
           />
         )}
         contentContainerStyle={{ padding: 20, paddingBottom: 100 }}

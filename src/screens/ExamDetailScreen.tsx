@@ -3,8 +3,11 @@ import { View, Text, ScrollView, TouchableOpacity, StatusBar } from 'react-nativ
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, Calendar, Clock, MapPin, User, Info, CheckCircle2, AlertCircle } from 'lucide-react-native';
 
+import { useLanguage } from '../context/LanguageContext';
+
 export const ExamDetailScreen = ({ route, navigation }: any) => {
   const { exam } = route.params;
+  const { getTranslatedSubject } = useLanguage();
 
   // Mock details for the exam
   const examDetails = {
@@ -45,7 +48,7 @@ export const ExamDetailScreen = ({ route, navigation }: any) => {
               <exam.icon color={exam.accentColor} size={32} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 24, fontWeight: 'black', color: '#2b3437' }}>{exam.subject}</Text>
+              <Text style={{ fontSize: 24, fontWeight: 'black', color: '#2b3437' }}>{getTranslatedSubject(exam.subject)}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
                 <User size={14} color="#737c7f" />
                 <Text style={{ fontSize: 13, color: '#737c7f', marginLeft: 4 }}>{examDetails.teacher}</Text>

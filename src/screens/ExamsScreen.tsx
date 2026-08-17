@@ -89,22 +89,25 @@ const TermCard = ({ period, pdfUrl }: { period: number, pdfUrl?: string }) => {
   );
 };
 
-const UpcomingExamRow = ({ exam }: any) => (
-  <View style={{ 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    paddingVertical: 14, 
-    borderBottomWidth: 2, 
-    borderBottomColor: '#f1f5f9' 
-  }}>
-    <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#0072e6', marginRight: 16 }} />
-    <View style={{ flex: 1 }}>
-      <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>{exam.subject}</Text>
-      <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '700', marginTop: 2 }}>{new Date(exam.startTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} • {exam.time || 'TBD'}</Text>
+const UpcomingExamRow = ({ exam }: any) => {
+  const { getTranslatedSubject } = useLanguage();
+  return (
+    <View style={{ 
+      flexDirection: 'row', 
+      alignItems: 'center', 
+      paddingVertical: 14, 
+      borderBottomWidth: 2, 
+      borderBottomColor: '#f1f5f9' 
+    }}>
+      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#0072e6', marginRight: 16 }} />
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>{getTranslatedSubject(exam.subject)}</Text>
+        <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '700', marginTop: 2 }}>{new Date(exam.startTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} • {exam.time || 'TBD'}</Text>
+      </View>
+      <ChevronRight color="#cbd5e1" size={20} strokeWidth={3} />
     </View>
-    <ChevronRight color="#cbd5e1" size={20} strokeWidth={3} />
-  </View>
-);
+  );
+};
 
 export const ExamsScreen = ({ navigation }: any) => {
   const { selectedChildId } = useAppStore();

@@ -1198,6 +1198,178 @@ const LanguageContext = createContext<LanguageContextType>({
   getTranslatedSubject: () => '',
 });
 
+const SUBJECT_DICTIONARY: Record<string, { ar: string; fr: string; en: string }> = {
+  // Languages
+  'langue arabe': { ar: 'اللغة العربية', fr: 'Langue Arabe', en: 'Arabic Language' },
+  'arabe': { ar: 'اللغة العربية', fr: 'Arabe', en: 'Arabic' },
+  'arabic': { ar: 'اللغة العربية', fr: 'Arabe', en: 'Arabic' },
+  'اللغة العربية': { ar: 'اللغة العربية', fr: 'Langue Arabe', en: 'Arabic Language' },
+  'عربية': { ar: 'اللغة العربية', fr: 'Arabe', en: 'Arabic' },
+
+  'langue francaise': { ar: 'اللغة الفرنسية', fr: 'Langue Française', en: 'French Language' },
+  'langue française': { ar: 'اللغة الفرنسية', fr: 'Langue Française', en: 'French Language' },
+  'francais': { ar: 'اللغة الفرنسية', fr: 'Français', en: 'French' },
+  'français': { ar: 'اللغة الفرنسية', fr: 'Français', en: 'French' },
+  'french': { ar: 'اللغة الفرنسية', fr: 'Français', en: 'French' },
+  'اللغة الفرنسية': { ar: 'اللغة الفرنسية', fr: 'Langue Française', en: 'French Language' },
+  'فرنسية': { ar: 'اللغة الفرنسية', fr: 'Français', en: 'French' },
+
+  'langue anglaise': { ar: 'اللغة الإنجليزية', fr: 'Langue Anglaise', en: 'English Language' },
+  'anglais': { ar: 'اللغة الإنجليزية', fr: 'Anglais', en: 'English' },
+  'english': { ar: 'اللغة الإنجليزية', fr: 'Anglais', en: 'English' },
+  'اللغة الانجليزية': { ar: 'اللغة الإنجليزية', fr: 'Langue Anglaise', en: 'English Language' },
+  'اللغة الإنجليزية': { ar: 'اللغة الإنجليزية', fr: 'Langue Anglaise', en: 'English Language' },
+  'إنجليزية': { ar: 'اللغة الإنجليزية', fr: 'Anglais', en: 'English' },
+
+  // Math & Sciences
+  'mathematiques': { ar: 'الرياضيات', fr: 'Mathématiques', en: 'Mathematics' },
+  'mathématiques': { ar: 'الرياضيات', fr: 'Mathématiques', en: 'Mathematics' },
+  'maths': { ar: 'الرياضيات', fr: 'Maths', en: 'Math' },
+  'math': { ar: 'الرياضيات', fr: 'Maths', en: 'Math' },
+  'mathematics': { ar: 'الرياضيات', fr: 'Mathématiques', en: 'Mathematics' },
+  'الرياضيات': { ar: 'الرياضيات', fr: 'Mathématiques', en: 'Mathematics' },
+  'رياضيات': { ar: 'الرياضيات', fr: 'Mathématiques', en: 'Mathematics' },
+
+  'sciences': { ar: 'العلوم', fr: 'Sciences', en: 'Science' },
+  'science': { ar: 'العلوم', fr: 'Sciences', en: 'Science' },
+  'eveil scientifique': { ar: 'الإيقاظ العلمي', fr: 'Éveil Scientifique', en: 'Scientific Awakening' },
+  'éveil scientifique': { ar: 'الإيقاظ العلمي', fr: 'Éveil Scientifique', en: 'Scientific Awakening' },
+  'الإيقاظ العلمي': { ar: 'الإيقاظ العلمي', fr: 'Éveil Scientifique', en: 'Scientific Awakening' },
+  'ايقاظ علمي': { ar: 'الإيقاظ العلمي', fr: 'Éveil Scientifique', en: 'Scientific Awakening' },
+  'العلوم': { ar: 'العلوم', fr: 'Sciences', en: 'Science' },
+  'علوم': { ar: 'العلوم', fr: 'Sciences', en: 'Science' },
+
+  'physique': { ar: 'الفيزياء', fr: 'Physique', en: 'Physics' },
+  'chimie': { ar: 'الكيمياء', fr: 'Chimie', en: 'Chemistry' },
+  'physique chimie': { ar: 'الفيزياء والكيمياء', fr: 'Physique-Chimie', en: 'Physics & Chemistry' },
+  'physique-chimie': { ar: 'الفيزياء والكيمياء', fr: 'Physique-Chimie', en: 'Physics & Chemistry' },
+  'الفيزياء': { ar: 'الفيزياء', fr: 'Physique', en: 'Physics' },
+  'الكيمياء': { ar: 'الكيمياء', fr: 'Chimie', en: 'Chemistry' },
+  'svt': { ar: 'علوم الحياة والأرض', fr: 'SVT', en: 'Life & Earth Sciences' },
+
+  // Social & Humanities
+  'histoire': { ar: 'التاريخ', fr: 'Histoire', en: 'History' },
+  'geographie': { ar: 'الجغرافيا', fr: 'Géographie', en: 'Geography' },
+  'géographie': { ar: 'الجغرافيا', fr: 'Géographie', en: 'Geography' },
+  'histoire geographie': { ar: 'التاريخ والجغرافيا', fr: 'Histoire-Géographie', en: 'History & Geography' },
+  'histoire-géographie': { ar: 'التاريخ والجغرافيا', fr: 'Histoire-Géographie', en: 'History & Geography' },
+  'histoire-geo': { ar: 'التاريخ والجغرافيا', fr: 'Histoire-Géo', en: 'History & Geography' },
+  'التاريخ': { ar: 'التاريخ', fr: 'Histoire', en: 'History' },
+  'الجغرافيا': { ar: 'الجغرافيا', fr: 'Géographie', en: 'Geography' },
+  'التاريخ والجغرافيا': { ar: 'التاريخ والجغرافيا', fr: 'Histoire-Géographie', en: 'History & Geography' },
+  'تاريخ': { ar: 'التاريخ', fr: 'Histoire', en: 'History' },
+  'جغرافيا': { ar: 'الجغرافيا', fr: 'Géographie', en: 'Geography' },
+
+  'education islamique': { ar: 'التربية الإسلامية', fr: 'Éducation Islamique', en: 'Islamic Studies' },
+  'éducation islamique': { ar: 'التربية الإسلامية', fr: 'Éducation Islamique', en: 'Islamic Studies' },
+  'islamique': { ar: 'التربية الإسلامية', fr: 'Éducation Islamique', en: 'Islamic Studies' },
+  'التربية الإسلامية': { ar: 'التربية الإسلامية', fr: 'Éducation Islamique', en: 'Islamic Studies' },
+  'تربية إسلامية': { ar: 'التربية الإسلامية', fr: 'Éducation Islamique', en: 'Islamic Studies' },
+  'تربية اسلامية': { ar: 'التربية الإسلامية', fr: 'Éducation Islamique', en: 'Islamic Studies' },
+
+  'education civique': { ar: 'التربية المدنية', fr: 'Éducation Civique', en: 'Civic Education' },
+  'éducation civique': { ar: 'التربية المدنية', fr: 'Éducation Civique', en: 'Civic Education' },
+  'civique': { ar: 'التربية المدنية', fr: 'Éducation Civique', en: 'Civic Education' },
+  'التربية المدنية': { ar: 'التربية المدنية', fr: 'Éducation Civique', en: 'Civic Education' },
+  'تربية مدنية': { ar: 'التربية المدنية', fr: 'Éducation Civique', en: 'Civic Education' },
+
+  // Tech & Arts
+  'informatique': { ar: 'الإعلامية', fr: 'Informatique', en: 'Computer Science' },
+  'technologie': { ar: 'التكنولوجيا', fr: 'Technologie', en: 'Technology' },
+  'الإعلامية': { ar: 'الإعلامية', fr: 'Informatique', en: 'Computer Science' },
+  'إعلامية': { ar: 'الإعلامية', fr: 'Informatique', en: 'Computer Science' },
+
+  'education musicale': { ar: 'التربية الموسيقية', fr: 'Éducation Musicale', en: 'Music' },
+  'éducation musicale': { ar: 'التربية الموسيقية', fr: 'Éducation Musicale', en: 'Music' },
+  'musique': { ar: 'التربية الموسيقية', fr: 'Musique', en: 'Music' },
+  'التربية الموسيقية': { ar: 'التربية الموسيقية', fr: 'Éducation Musicale', en: 'Music' },
+  'تربية موسيقية': { ar: 'التربية الموسيقية', fr: 'Éducation Musicale', en: 'Music' },
+
+  'education plastique': { ar: 'التربية التشكيلية', fr: 'Éducation Plastique', en: 'Visual Arts' },
+  'éducation plastique': { ar: 'التربية التشكيلية', fr: 'Éducation Plastique', en: 'Visual Arts' },
+  'dessin': { ar: 'التربية التشكيلية', fr: 'Dessin', en: 'Drawing' },
+  'arts plastiques': { ar: 'التربية التشكيلية', fr: 'Arts Plastiques', en: 'Visual Arts' },
+  'التربية التشكيلية': { ar: 'التربية التشكيلية', fr: 'Éducation Plastique', en: 'Visual Arts' },
+  'تربية تشكيلية': { ar: 'التربية التشكيلية', fr: 'Éducation Plastique', en: 'Visual Arts' },
+
+  'education physique': { ar: 'التربية البدنية', fr: 'Éducation Physique', en: 'Physical Education' },
+  'éducation physique': { ar: 'التربية البدنية', fr: 'Éducation Physique', en: 'Physical Education' },
+  'sport': { ar: 'التربية البدنية', fr: 'Sport', en: 'Physical Education' },
+  'التربية البدنية': { ar: 'التربية البدنية', fr: 'Éducation Physique', en: 'Physical Education' },
+  'تربية بدنية': { ar: 'التربية البدنية', fr: 'Éducation Physique', en: 'Physical Education' },
+
+  // Sub-components / domains
+  'lecture': { ar: 'القراءة', fr: 'Lecture', en: 'Reading' },
+  'القراءة': { ar: 'القراءة', fr: 'Lecture', en: 'Reading' },
+  'قراءة': { ar: 'القراءة', fr: 'Lecture', en: 'Reading' },
+  'production ecrite': { ar: 'الإنتاج الكتابي', fr: 'Production Écrite', en: 'Written Production' },
+  'production écrite': { ar: 'الإنتاج الكتابي', fr: 'Production Écrite', en: 'Written Production' },
+  'الإنتاج الكتابي': { ar: 'الإنتاج الكتابي', fr: 'Production Écrite', en: 'Written Production' },
+  'انتاج كتابي': { ar: 'الإنتاج الكتابي', fr: 'Production Écrite', en: 'Written Production' },
+  'ecriture': { ar: 'الخط', fr: 'Écriture', en: 'Handwriting' },
+  'écriture': { ar: 'الخط', fr: 'Écriture', en: 'Handwriting' },
+  'graphisme': { ar: 'الخط', fr: 'Graphisme', en: 'Handwriting' },
+  'الخط': { ar: 'الخط', fr: 'Écriture', en: 'Handwriting' },
+  'خط': { ar: 'الخط', fr: 'Écriture', en: 'Handwriting' },
+  'communication orale': { ar: 'التواصل الشفوي', fr: 'Communication Orale', en: 'Oral Communication' },
+  'تواصل شفوي': { ar: 'التواصل الشفوي', fr: 'Communication Orale', en: 'Oral Communication' },
+  'التواصل الشفوي': { ar: 'التواصل الشفوي', fr: 'Communication Orale', en: 'Oral Communication' },
+  'calcul': { ar: 'الحساب', fr: 'Calcul', en: 'Calculus' },
+  'الحساب': { ar: 'الحساب', fr: 'Calcul', en: 'Calculus' },
+  'حساب': { ar: 'الحساب', fr: 'Calcul', en: 'Calculus' },
+  'geometrie': { ar: 'الهندسة', fr: 'Géométrie', en: 'Geometry' },
+  'géométrie': { ar: 'الهندسة', fr: 'Géométrie', en: 'Geometry' },
+  'الهندسة': { ar: 'الهندسة', fr: 'Géométrie', en: 'Geometry' },
+  'هندسة': { ar: 'الهندسة', fr: 'Géométrie', en: 'Geometry' },
+  'grammaire': { ar: 'قواعد اللغة', fr: 'Grammaire', en: 'Grammar' },
+  'قواعد اللغة': { ar: 'قواعد اللغة', fr: 'Grammaire', en: 'Grammar' },
+  'conjugaison': { ar: 'تصريف الأفعال', fr: 'Conjugaison', en: 'Conjugation' },
+  'تصريف الأفعال': { ar: 'تصريف الأفعال', fr: 'Conjugaison', en: 'Conjugation' },
+  'orthographe': { ar: 'الإملاء', fr: 'Orthographe', en: 'Spelling' },
+  'dictee': { ar: 'إملاء', fr: 'Dictée', en: 'Dictation' },
+  'dictée': { ar: 'إملاء', fr: 'Dictée', en: 'Dictation' },
+  'الإملاء': { ar: 'الإملاء', fr: 'Orthographe', en: 'Spelling' },
+  'إملاء': { ar: 'الإملاء', fr: 'Dictée', en: 'Dictation' },
+  'املاء': { ar: 'الإملاء', fr: 'Dictée', en: 'Dictation' },
+  'recitation': { ar: 'المحفوظات', fr: 'Récitation', en: 'Recitation' },
+  'récitation': { ar: 'المحفوظات', fr: 'Récitation', en: 'Recitation' },
+  'poesie': { ar: 'المحفوظات', fr: 'Poésie', en: 'Poetry' },
+  'المحفوظات': { ar: 'المحفوظات', fr: 'Récitation', en: 'Recitation' },
+  'محفوظات': { ar: 'المحفوظات', fr: 'Récitation', en: 'Recitation' },
+};
+
+export const formatSubjectName = (rawName: string | null | undefined, targetLang: Language = 'ar'): string => {
+  if (!rawName) return targetLang === 'ar' ? 'عام' : targetLang === 'fr' ? 'Général' : 'General';
+  const trimmed = rawName.trim();
+
+  // If pipe-separated, find the best matching segment
+  if (trimmed.includes('|')) {
+    const parts = trimmed.split('|').map(p => p.trim());
+    if (targetLang === 'ar') {
+      const arabicPart = parts.find(p => /[\u0600-\u06FF]/.test(p));
+      if (arabicPart) return arabicPart;
+    } else if (targetLang === 'fr') {
+      const nonArabic = parts.filter(p => !/[\u0600-\u06FF]/.test(p));
+      if (nonArabic.length > 0) return nonArabic[0];
+    } else if (targetLang === 'en') {
+      const nonArabic = parts.filter(p => !/[\u0600-\u06FF]/.test(p));
+      if (nonArabic.length > 1) return nonArabic[1];
+      if (nonArabic.length > 0) return nonArabic[0];
+    }
+  }
+
+  // Dictionary lookup
+  const cleanKey = trimmed.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (SUBJECT_DICTIONARY[cleanKey]) {
+    return SUBJECT_DICTIONARY[cleanKey][targetLang] || trimmed;
+  }
+  if (SUBJECT_DICTIONARY[trimmed.toLowerCase()]) {
+    return SUBJECT_DICTIONARY[trimmed.toLowerCase()][targetLang] || trimmed;
+  }
+
+  return trimmed;
+};
+
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLangState] = useState<Language>('ar');
 
@@ -1215,14 +1387,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const getTranslatedSubject = (rawName: string | null | undefined): string => {
-    if (!rawName) return '';
-    const parts = rawName.split('|').map((p) => p.trim());
-    if (parts.length >= 3) {
-      if (language === 'ar') return parts[0];
-      if (language === 'fr') return parts[1];
-      return parts[2];
-    }
-    return parts[0];
+    return formatSubjectName(rawName, language);
   };
 
   const t = translations[language] || translations.ar;

@@ -7,18 +7,9 @@ import { useAppStore } from '../../store/useAppStore';
 import * as ImagePicker from 'expo-image-picker';
 import { useLanguage } from '../../context/LanguageContext';
 
-/** Extract the French name from a pipe-separated trilingual string.
- *  e.g. "اللغة الفرنسية | Langue Française | French Language" → "Langue Française"
- */
-const parseFrenchName = (name: string): string => {
-  if (!name) return '';
-  const parts = name.split('|').map(p => p.trim());
-  // French is the 2nd segment; fallback to full name if only 1 segment
-  return parts.length >= 2 ? parts[1] : parts[0];
-};
 export const TeacherGradeEntryScreen = ({ navigation }: any) => {
   const userId = useAppStore(state => state.userId);
-  const { t, language, isRTL } = useLanguage();
+  const { t, language, isRTL, getTranslatedSubject } = useLanguage();
   
   // State for flow
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -331,7 +322,7 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
               <BookOpen size={26} color="#0055d4" />
             </View>
             <View style={{ marginLeft: isRTL ? 0 : 16, marginRight: isRTL ? 16 : 0, flex: 1 }}>
-              <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>{parseFrenchName(sub.name)}</Text>
+              <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>{getTranslatedSubject(sub.name)}</Text>
               <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '700', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>{sub.domain || 'General'}</Text>
             </View>
             {sub.isFullyGraded && (
@@ -363,7 +354,7 @@ export const TeacherGradeEntryScreen = ({ navigation }: any) => {
             </View>
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>{parseFrenchName(selectedSubject?.name)}</Text>
+            <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>{getTranslatedSubject(selectedSubject?.name)}</Text>
             <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '700', textAlign: isRTL ? 'right' : 'left' }}>{selectedClass?.name} • {language === 'ar' ? `الفصل ${selectedTerm}` : language === 'fr' ? `Trimestre ${selectedTerm}` : `Term ${selectedTerm}`}</Text>
           </View>
         </View>

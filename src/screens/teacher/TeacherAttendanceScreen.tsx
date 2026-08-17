@@ -153,21 +153,6 @@ const StudentRow = ({ student, status, onStatusChange, note, onNoteChange, score
   );
 };
 
-const getSubjectName = (name: string, lang: string) => {
-  if (!name) return lang === 'ar' ? 'عام' : lang === 'fr' ? 'Général' : 'General';
-  const parts = name.split('|');
-  if (parts.length === 3) {
-    if (lang === 'ar') return parts[1].trim();
-    if (lang === 'fr') return parts[2].trim();
-    return parts[0].trim();
-  }
-  if (parts.length === 2) {
-    if (lang === 'ar') return parts[1].trim();
-    return parts[0].trim();
-  }
-  return parts[0].trim();
-};
-
 const getLongDayName = (dateObj: any, lang: string) => {
   if (lang === 'ar') {
     const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -201,7 +186,7 @@ const getCalendarHeaderDays = (lang: string) => {
 
 export const TeacherAttendanceScreen = ({ navigation }: any) => {
   const { selectedTeacherClass, setSelectedTeacherClass } = useAppStore();
-  const { t, language, isRTL } = useLanguage();
+  const { t, language, isRTL, getTranslatedSubject } = useLanguage();
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -624,7 +609,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
                 }} activeOpacity={0.8} style={{ flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 24, backgroundColor: isActive ? '#eff6ff' : 'white', marginBottom: 12, borderWidth: 1.5, borderColor: isActive ? '#0055d4' : '#f1f5f9', shadowColor: isActive ? '#0055d4' : '#000', shadowOpacity: isActive ? 0.05 : 0.02, shadowRadius: 10, elevation: 1 }}>
                   <View style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: isActive ? '#0055d4' : '#f8fafc', alignItems: 'center', justifyContent: 'center' }}><Clock size={28} color={isActive ? 'white' : '#94a3b8'} /></View>
                   <View style={{ marginLeft: 20, flex: 1 }}>
-                    <Text style={{ fontSize: 18, fontWeight: '900', color: isActive ? '#0055d4' : '#1e293b' }}>{getSubjectName(session.subjectName, language)}</Text>
+                    <Text style={{ fontSize: 18, fontWeight: '900', color: isActive ? '#0055d4' : '#1e293b' }}>{getTranslatedSubject(session.subjectName)}</Text>
                     <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '700', marginTop: 2 }}>{session.startTime.substring(0, 5)} - {session.endTime.substring(0, 5)}</Text>
                   </View>
                   {isActive && <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#0055d4', alignItems: 'center', justifyContent: 'center' }}><Check size={16} color="white" strokeWidth={3} /></View>}

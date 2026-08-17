@@ -17,25 +17,9 @@ import { useLanguage } from '../../context/LanguageContext';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 
-// ─── Helper for Arabic Subject Name ───────────────────────────────────────────
-const getSubjectName = (name: string, lang: string) => {
-  if (!name) return lang === 'ar' ? 'عام' : lang === 'fr' ? 'Général' : 'General';
-  const parts = name.split('|');
-  if (parts.length === 3) {
-    if (lang === 'ar') return parts[1].trim();
-    if (lang === 'fr') return parts[2].trim();
-    return parts[0].trim();
-  }
-  if (parts.length === 2) {
-    if (lang === 'ar') return parts[1].trim();
-    return parts[0].trim();
-  }
-  return parts[0].trim();
-};
-
 // ─── Resource Card ──────────────────────────────────────────────────────────
 const ResourceCard = ({ item }: any) => {
-  const { t, language, isRTL } = useLanguage();
+  const { t, getTranslatedSubject, isRTL } = useLanguage();
   const isLink = item.url?.startsWith('http') && !item.url?.includes('upload');
   const ext = item.url?.split('.').pop()?.toLowerCase();
   const isPdf = ext === 'pdf';
@@ -69,7 +53,7 @@ const ResourceCard = ({ item }: any) => {
           </Text>
         ) : null}
         <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '700', marginTop: item.description ? 4 : 2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          {getSubjectName(item.subject, language)} · {new Date(item.createdAt).toLocaleDateString((t?.enus1 || 'en-US'), { month: 'short', day: 'numeric' })}
+          {getTranslatedSubject(item.subject)} · {new Date(item.createdAt).toLocaleDateString((t?.enus1 || 'en-US'), { month: 'short', day: 'numeric' })}
         </Text>
       </View>
       <View style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
@@ -82,7 +66,7 @@ const ResourceCard = ({ item }: any) => {
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 export const TeacherLessonsScreen = ({ navigation }: any) => {
   const { selectedTeacherClass, setSelectedTeacherClass } = useAppStore();
-  const { t, language, isRTL } = useLanguage();
+  const { t, language, isRTL, getTranslatedSubject } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [resources, setResources] = useState<any[]>([]);
@@ -142,7 +126,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
           setSubjects(res.classSubjects);
           if (res.classSubjects.length > 0) {
             setSelectedSubjectId(res.classSubjects[0].id.toString());
-            setSelectedFilterSubject(prev => prev || getSubjectName(res.classSubjects[0].name, language));
+            setSelectedFilterSubject(prev => prev || getTranslatedSubject(res.classSubjects[0].name));
           }
         }
       } else {
@@ -319,7 +303,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
                         >
                           <BookOpen size={16} color={isActive ? 'white' : '#64748b'} />
                           <Text style={{ fontSize: 14, fontWeight: '800', color: isActive ? 'white' : '#1e293b' }}>
-                            {getSubjectName(s.name, language)}
+                            {getTranslatedSubject(s.name)}
                           </Text>
                         </TouchableOpacity>
                       );
@@ -435,7 +419,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
 
             {/* Filtered Content Area */}
             {(() => {
-              const filteredResources = resources.filter(r => getSubjectName(r.subject, language) === selectedFilterSubject);
+              const filteredResources = resources.filter(r => getTranslatedSubject(r.subject) === selectedFilterSubject);
               
               if (filteredResources.length === 0) {
                 return (
@@ -465,7 +449,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
 
                   {Object.entries(
                     filteredResources.reduce((acc, r) => {
-                      const s = getSubjectName(r.subject, language);
+                      const s = getTranslatedSubject(r.subject);
                       if (!acc[s]) acc[s] = [];
                       acc[s].push(r);
                       return acc;
@@ -537,7 +521,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
-              {Array.from(new Set(subjects.map(s => getSubjectName(s.name, language)))).map(subjectName => {
+              {Array.from(new Set(subjects.map(s => getTranslatedSubject(s.name)))).map(subjectName => {
                 const isActive = selectedFilterSubject === subjectName;
                 return (
                   <TouchableOpacity

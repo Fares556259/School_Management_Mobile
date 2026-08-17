@@ -16,6 +16,7 @@ const STATUS_MAP = {
 };
 
 const AttendanceHistoryItem = ({ day, onJustify }: { day: AttendanceHistoryDay, onJustify: (sessionId: number) => void }) => {
+  const { getTranslatedSubject } = useLanguage();
   const [expanded, setExpanded] = useState(false);
   const statusConfig = STATUS_MAP[day.status] || STATUS_MAP.PRESENT;
   const Icon = statusConfig.icon;
@@ -102,7 +103,7 @@ const AttendanceHistoryItem = ({ day, onJustify }: { day: AttendanceHistoryDay, 
               }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 16, color: '#1e293b', fontWeight: '900' }}>{s.subject}</Text>
+                    <Text style={{ fontSize: 16, color: '#1e293b', fontWeight: '900' }}>{getTranslatedSubject(s.subject)}</Text>
                     <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: config.bg, borderWidth: 1.5, borderColor: config.border, alignSelf: 'flex-start', marginTop: 8 }}>
                       <Text style={{ color: config.color, fontSize: 10, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 }}>{config.label}</Text>
                     </View>

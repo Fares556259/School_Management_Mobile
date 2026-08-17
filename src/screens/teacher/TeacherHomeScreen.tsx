@@ -71,6 +71,7 @@ const SummaryCard = ({ value, label, color }: any) => (
 );
 
 const ClassCard = ({ subject, className, time, room, students, status }: any) => {
+  const { getTranslatedSubject } = useLanguage();
   let statusColor = '#0055d4';
   let bgColor = '#eff6ff';
   let barColor = '#0055d4';
@@ -113,7 +114,7 @@ const ClassCard = ({ subject, className, time, room, students, status }: any) =>
       
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ fontSize: 15, fontWeight: '900', color: status === 'Completed' ? '#64748b' : '#2b3437' }}>{subject} · {className}</Text>
+          <Text style={{ fontSize: 15, fontWeight: '900', color: status === 'Completed' ? '#64748b' : '#2b3437' }}>{getTranslatedSubject(subject)} · {className}</Text>
           <View style={{ 
             paddingHorizontal: 8, 
             paddingVertical: 4, 
