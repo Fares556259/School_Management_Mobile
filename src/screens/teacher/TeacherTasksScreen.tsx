@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
-import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, Alert, RefreshControl, Image, StatusBar, FlatList, ScrollView, Modal, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, Alert, RefreshControl, Image, StatusBar, FlatList, ScrollView, Modal, Platform, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   ChevronLeft, ChevronRight, Plus, Calendar, Clock, Type, FileText, Save, Trash2, CheckCircle2,
@@ -324,10 +324,88 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
 
   const renderHeader = () => (
     <>
+      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b', textTransform: 'uppercase', letterSpacing: 1 }}>{t.teacherTasks}</Text>
+        <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 }}>
+          <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4' }}>{filteredTasks.length} {(t?.tasks || 'tasks')}</Text>
+        </View>
+      </View>
+
+      {loading && filteredTasks.length === 0 && (
+        <View style={{ gap: 16 }}>
+          {[1, 2, 3].map((i) => (
+            <View key={i} style={{ backgroundColor: 'white', padding: 24, borderRadius: 32, marginBottom: 16, height: 160 }}>
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+                <Skeleton width="70%" height={20} borderRadius={4} />
+                <Skeleton width={40} height={20} borderRadius={10} />
+              </View>
+              <Skeleton width="100%" height={14} borderRadius={4} style={{ marginBottom: 8, alignSelf: isRTL ? 'flex-end' : 'flex-start' }} />
+              <Skeleton width="80%" height={14} borderRadius={4} style={{ marginBottom: 20, alignSelf: isRTL ? 'flex-end' : 'flex-start' }} />
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between' }}>
+                <Skeleton width={80} height={12} borderRadius={4} />
+                <Skeleton width={60} height={20} borderRadius={10} />
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+    </>
+  );
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }} edges={['top']}>
+      <StatusBar barStyle="dark-content" />
+      
+      {/* Premium Header */}
+      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingVertical: 16, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}>
+          <View style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
+            <ChevronLeft size={22} color="#1e293b" />
+          </View>
+        </TouchableOpacity>
+        
+        <TouchableOpacity onPress={() => setShowClassSwitcher(true)} style={{ flex: 1, marginHorizontal: 16, alignItems: 'center' }}>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
+            <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>{selectedTeacherClass?.name || ((t?.selectClass2 || 'Select Class'))}</Text>
+            <ChevronDown size={16} color="#0055d4" style={{ marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }} />
+          </View>
+          <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', marginTop: 2 }}>{(t?.tapToSwitch2 || 'Tap to switch')}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => setShowAddForm(!showAddForm)} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#dbeafe' }}>
+          <Plus size={24} color="#0055d4" />
+        </TouchableOpacity>
+      </View>
+
+      <FlatList
+        data={filteredTasks}
+        renderItem={renderTask}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={{ padding: 24, paddingBottom: 150 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        ListHeaderComponent={renderHeader()}
+        ListEmptyComponent={
+          !loading && filteredTasks.length === 0 ? (
+            <View style={{ alignItems: 'center', paddingVertical: 60 }}>
+              <CheckCircle2 size={48} color="#d1d5db" />
+              <Text style={{ color: '#737c7f', fontWeight: 'bold', marginTop: 16 }}>{(t?.noActiveTasksFound || 'No active tasks found')}</Text>
+            </View>
+          ) : null
+        }
+      />
+
       {showAddForm && (
-        <View style={{ backgroundColor: 'white', padding: 24, borderRadius: 28, marginBottom: 32, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 20, elevation: 5 }}>
-          <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b', marginBottom: 24, textAlign: isRTL ? 'right' : 'left' }}>{(t?.createNewTask || 'Create New Task')}</Text>
-          <View style={{ marginBottom: 20 }}>
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.5)', justifyContent: 'flex-end', zIndex: 999 }}>
+          <TouchableOpacity activeOpacity={1} onPress={() => setShowAddForm(false)} style={{ flex: 1 }} />
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ maxHeight: '90%' }}>
+            <View style={{ backgroundColor: 'white', borderTopLeftRadius: 40, borderTopRightRadius: 40, padding: 32, paddingBottom: Platform.OS === 'ios' ? 40 : 24, shadowColor: '#000', shadowOffset: { width: 0, height: -10 }, shadowOpacity: 0.1, shadowRadius: 30, elevation: 20, flexShrink: 1 }}>
+              <View style={{ width: 40, height: 5, backgroundColor: '#e2e8f0', borderRadius: 10, alignSelf: 'center', marginBottom: 24 }} />
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <Text style={{ fontSize: 24, fontWeight: '900', color: '#1e293b' }}>{(t?.createNewTask || 'Create New Task')}</Text>
+                <TouchableOpacity onPress={() => setShowAddForm(false)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}><X size={20} color="#64748b" /></TouchableOpacity>
+              </View>
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+                <View style={{ marginBottom: 20 }}>
             <Text style={{ fontSize: 12, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', textAlign: isRTL ? 'right' : 'left' }}>{(t?.title1 || 'Title')}</Text>
             <TextInput style={{ backgroundColor: '#f8fafc', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#f1f5f9', fontSize: 16, color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }} placeholder={(t?.egMathQuizHistoryEssay || 'e.g. Math Quiz, History Essay')} placeholderTextColor="#94a3b8" value={title} onChangeText={setTitle} />
           </View>
@@ -514,78 +592,12 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
             >
               <Text style={{ fontSize: 16, fontWeight: '900', color: 'white' }}>{(t?.assignATask || 'Assign Task')}</Text>
             </TouchableOpacity>
-        </View>
-      )}
-
-      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b', textTransform: 'uppercase', letterSpacing: 1 }}>{t.teacherTasks}</Text>
-        <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 }}>
-          <Text style={{ fontSize: 12, fontWeight: '900', color: '#0055d4' }}>{filteredTasks.length} {(t?.tasks || 'tasks')}</Text>
-        </View>
-      </View>
-
-      {loading && filteredTasks.length === 0 && (
-        <View style={{ gap: 16 }}>
-          {[1, 2, 3].map((i) => (
-            <View key={i} style={{ backgroundColor: 'white', padding: 24, borderRadius: 32, marginBottom: 16, height: 160 }}>
-              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', marginBottom: 16 }}>
-                <Skeleton width="70%" height={20} borderRadius={4} />
-                <Skeleton width={40} height={20} borderRadius={10} />
-              </View>
-              <Skeleton width="100%" height={14} borderRadius={4} style={{ marginBottom: 8, alignSelf: isRTL ? 'flex-end' : 'flex-start' }} />
-              <Skeleton width="80%" height={14} borderRadius={4} style={{ marginBottom: 20, alignSelf: isRTL ? 'flex-end' : 'flex-start' }} />
-              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between' }}>
-                <Skeleton width={80} height={12} borderRadius={4} />
-                <Skeleton width={60} height={20} borderRadius={10} />
-              </View>
-            </View>
-          ))}
-        </View>
-      )}
-    </>
-  );
-
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }} edges={['top']}>
-      <StatusBar barStyle="dark-content" />
-      
-      {/* Premium Header */}
-      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingVertical: 16, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}>
-          <View style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
-            <ChevronLeft size={22} color="#1e293b" />
-          </View>
-        </TouchableOpacity>
         
-        <TouchableOpacity onPress={() => setShowClassSwitcher(true)} style={{ flex: 1, marginHorizontal: 16, alignItems: 'center' }}>
-          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
-            <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b' }}>{selectedTeacherClass?.name || ((t?.selectClass2 || 'Select Class'))}</Text>
-            <ChevronDown size={16} color="#0055d4" style={{ marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }} />
-          </View>
-          <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', marginTop: 2 }}>{(t?.tapToSwitch2 || 'Tap to switch')}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => setShowAddForm(!showAddForm)} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#dbeafe' }}>
-          <Plus size={24} color="#0055d4" />
-        </TouchableOpacity>
-      </View>
-
-      <FlatList
-        data={filteredTasks}
-        renderItem={renderTask}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={{ padding: 24, paddingBottom: 150 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        ListHeaderComponent={renderHeader()}
-        ListEmptyComponent={
-          !loading && filteredTasks.length === 0 ? (
-            <View style={{ alignItems: 'center', paddingVertical: 60 }}>
-              <CheckCircle2 size={48} color="#d1d5db" />
-              <Text style={{ color: '#737c7f', fontWeight: 'bold', marginTop: 16 }}>{(t?.noActiveTasksFound || 'No active tasks found')}</Text>
+              </ScrollView>
             </View>
-          ) : null
-        }
-      />
+          </KeyboardAvoidingView>
+        </View>
+      )}
 
       {/* Class Switcher Modal */}
       {showClassSwitcher && (
