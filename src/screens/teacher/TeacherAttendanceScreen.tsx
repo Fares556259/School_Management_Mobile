@@ -212,9 +212,8 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(moment());
 
-  // weekDates now based on the currently selected date's week so it shifts when picking a new date
   const sliderDates = Array.from({ length: 7 }, (_, i) => selectedDate.clone().subtract(3, 'days').add(i, 'days'));
-  const hasChanges = JSON.stringify(attendance) !== JSON.stringify(initialAttendance) || JSON.stringify(notes) !== JSON.stringify(initialNotes) || JSON.stringify(scores) !== JSON.stringify(initialScores) || newTask.title.length > 0 || newTask.attachments.length > 0;
+  const hasChanges = JSON.stringify(attendance) !== JSON.stringify(initialAttendance) || JSON.stringify(notes) !== JSON.stringify(initialNotes) || JSON.stringify(scores) !== JSON.stringify(initialScores);
 
   const { data: classes = [], isLoading: loadingClasses } = useQuery({
     queryKey: ['teacherClasses'],
@@ -530,31 +529,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
           ) : !hasLesson ? <View style={{ alignItems: 'center', marginTop: 40, backgroundColor: 'white', padding: 40, borderRadius: 32, borderWidth: 1, borderColor: '#f1f5f9' }}><Clock size={48} color="#0055d4" strokeWidth={1.5} /><Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b', textAlign: 'center', marginTop: 20 }}>{t.teacherNoClassesToday}</Text><Text style={{ fontSize: 14, color: '#64748b', fontWeight: '600', textAlign: 'center', marginTop: 8, lineHeight: 20 }}>{language === 'ar' ? 'ليس لديك حصص مبرمجة في هذا اليوم لهذا القسم' : language === 'fr' ? 'Vous n\'avez aucune leçon programmée pour cette classe à cette date.' : 'You don\'t have any scheduled lessons for this class on this date.'}</Text></View> : (
             <View>
               {students.map(s => <StudentRow key={s.id} student={s} status={attendance[s.id]} onStatusChange={(status: string) => setAttendance(prev => ({ ...prev, [s.id]: status }))} note={notes[s.id]} onNoteChange={(text: string) => setNotes(prev => ({ ...prev, [s.id]: text }))} score={scores[s.id]} onScoreChange={(score: number) => setScores(prev => ({ ...prev, [s.id]: score }))} resetKey={saveCount} language={language} t={t} />)}
-              
-              <View style={{ marginTop: 24, gap: 16 }}>
-                <View style={{ backgroundColor: 'white', borderRadius: 28, padding: 20, borderWidth: 1, borderColor: '#f1f5f9' }}>
-                  <TouchableOpacity onPress={() => setNewTask(prev => ({ ...prev, show: !prev.show }))} style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
-                    <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#fff7ed', alignItems: 'center', justifyContent: 'center' }}><ClipboardList size={22} color="#f59e0b" /></View>
-                    <View style={{ flex: 1, marginLeft: isRTL ? 0 : 16, marginRight: isRTL ? 16 : 0, alignItems: isRTL ? 'flex-end' : 'flex-start' }}><Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>{(t?.assignATask || 'Assign a Task')}</Text><Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 2 }}>{(t?.forTheWholeClass || 'For the whole class')}</Text></View>
-                    <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}><Plus size={18} color="#64748b" /></View>
-                  </TouchableOpacity>
-                  {newTask.show && (
-                    <View style={{ marginTop: 20, gap: 12 }}>
-                      <TextInput placeholder={(t?.taskTitle || 'Task Title')} placeholderTextColor="#94a3b8" value={newTask.title} onChangeText={(t) => setNewTask(prev => ({ ...prev, title: t }))} style={{ backgroundColor: '#f8fafc', borderRadius: 16, padding: 16, fontSize: 14, fontWeight: '700', color: '#1e293b', borderWidth: 1, borderColor: '#f1f5f9', textAlign: isRTL ? 'right' : 'left' }} />
-                      <TextInput placeholder={(t?.descriptionOptional || 'Description (optional)')} placeholderTextColor="#94a3b8" multiline value={newTask.description} onChangeText={(t) => setNewTask(prev => ({ ...prev, description: t }))} style={{ backgroundColor: '#f8fafc', borderRadius: 16, padding: 16, fontSize: 14, fontWeight: '600', color: '#1e293b', borderWidth: 1, borderColor: '#f1f5f9', minHeight: 80, textAlignVertical: 'top', textAlign: isRTL ? 'right' : 'left' }} />
-                      <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginTop: 10, letterSpacing: 0.5, textAlign: isRTL ? 'right' : 'left' }}>{t.teacherAttachments}</Text>
-                      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 12 }}>
-                        <TouchableOpacity onPress={handlePickImage} style={{ flex: 1, height: 48, borderRadius: 14, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center', flexDirection: isRTL ? 'row-reverse' : 'row', gap: 8 }}><ImageIcon size={18} color="#8b5cf6" /><Text style={{ fontSize: 13, fontWeight: '800', color: '#8b5cf6' }}>{(t?.addImage || 'Add Image')}</Text></TouchableOpacity>
-                        <TouchableOpacity onPress={handlePickDocument} style={{ flex: 1, height: 48, borderRadius: 14, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', flexDirection: isRTL ? 'row-reverse' : 'row', gap: 8 }}><FileIcon size={18} color="#0055d4" /><Text style={{ fontSize: 13, fontWeight: '800', color: '#0055d4' }}>{(t?.addPdf || 'Add PDF')}</Text></TouchableOpacity>
-                      </View>
-                      {newTask.attachments.length > 0 && (
-                        <View style={{ marginTop: 12, gap: 8 }}>{newTask.attachments.map((file, idx) => (<View key={idx} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 12, borderRadius: 14, borderWidth: 1, borderColor: '#f1f5f9' }}>{file.type === 'IMAGE' ? <ImageIcon size={18} color="#8b5cf6" /> : <FileIcon size={18} color="#0055d4" />}<Text style={{ flex: 1, marginLeft: 12, fontSize: 13, fontWeight: '700', color: '#1e293b' }} numberOfLines={1}>{file.name}</Text><TouchableOpacity onPress={() => removeAttachment(idx)}><Trash2 size={18} color="#ef4444" /></TouchableOpacity></View>))}</View>
-                      )}
-                    </View>
-                  )}
-                </View>
-
-              </View>
+            </View>
             </View>
           )}
         </View>
