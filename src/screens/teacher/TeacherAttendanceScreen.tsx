@@ -191,7 +191,6 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
-  const [classes, setClasses] = useState<any[]>([]);
   const selectedClass = selectedTeacherClass;
   const [attendance, setAttendance] = useState<Record<string, string>>({});
   const [initialAttendance, setInitialAttendance] = useState<Record<string, string>>({});
@@ -217,21 +216,19 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
   const sliderDates = Array.from({ length: 7 }, (_, i) => selectedDate.clone().subtract(3, 'days').add(i, 'days'));
   const hasChanges = JSON.stringify(attendance) !== JSON.stringify(initialAttendance) || JSON.stringify(notes) !== JSON.stringify(initialNotes) || JSON.stringify(scores) !== JSON.stringify(initialScores) || newTask.title.length > 0 || newTask.attachments.length > 0;
 
-  const { data: classesData, isLoading: loadingClasses } = useQuery({
+  const { data: classes = [], isLoading: loadingClasses } = useQuery({
     queryKey: ['teacherClasses'],
     queryFn: async () => {
       const res = await teacherService.fetchClasses();
-      const safeRes = res || [];
-      setClasses(safeRes);
-      return safeRes;
+      return Array.isArray(res) ? res : [];
     }
   });
 
   useEffect(() => {
-    if (classesData && classesData.length > 0 && !selectedTeacherClass) {
-      setSelectedTeacherClass(classesData[0]);
+    if (classes && classes.length > 0 && !selectedTeacherClass) {
+      setSelectedTeacherClass(classes[0]);
     }
-  }, [classesData, selectedTeacherClass]);
+  }, [classes, selectedTeacherClass]);
 
   const { 
     data: lessonData, 
@@ -283,6 +280,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
   }, [lessonData]);
 
   const handleClassSelect = (cls: any) => {
+    setActiveSlotId(null);
     setSelectedTeacherClass(cls);
     setShowClassSwitcher(false);
   };
