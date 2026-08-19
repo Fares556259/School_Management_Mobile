@@ -336,16 +336,9 @@ export const TeacherHomeScreen = ({ navigation }: any) => {
 
         {/* Today's Classes */}
         <View style={{ marginTop: 32, paddingHorizontal: 20 }}>
-          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <Text style={{ fontSize: 16, fontWeight: '900', color: '#2b3437', textTransform: 'uppercase', letterSpacing: 1 }}>
-              {t.todaysSchedule}
-            </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Classes')}>
-              <Text style={{ fontSize: 13, color: '#0055d4', fontWeight: 'bold' }}>
-                {(t?.seeAll || 'See all')}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={{ fontSize: 16, fontWeight: '900', color: '#2b3437', marginBottom: 16, textTransform: 'uppercase', letterSpacing: 1, textAlign: isRTL ? 'right' : 'left' }}>
+            {t.todaysSchedule}
+          </Text>
 
           {(data?.todayClasses || []).map((c: any, i: number) => (
             <ClassCard 
