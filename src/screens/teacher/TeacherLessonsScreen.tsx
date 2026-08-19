@@ -136,6 +136,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
           setSubjects(profileRes.subjects);
           if (profileRes.subjects.length > 0) {
             setSelectedSubjectId(profileRes.subjects[0].id.toString());
+            setSelectedFilterSubject(getTranslatedSubject(profileRes.subjects[0].name));
           }
         }
       } catch (e) {
@@ -157,6 +158,9 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
           setSubjects(res.classSubjects);
           if (!selectedSubjectId) {
             setSelectedSubjectId(res.classSubjects[0].id.toString());
+          }
+          if (!selectedFilterSubject) {
+            setSelectedFilterSubject(getTranslatedSubject(res.classSubjects[0].name));
           }
         }
       } else {
@@ -475,7 +479,7 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
                   <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
                     <BookOpen size={18} color="#0055d4" style={{ marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }} />
                     <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e293b' }}>
-                      {selectedFilterSubject || ((t?.allSubjects || 'All Subjects'))}
+                      {selectedFilterSubject || (subjects[0] ? getTranslatedSubject(subjects[0].name) : '')}
                     </Text>
                   </View>
                   <ChevronDown size={20} color="#64748b" />
@@ -817,28 +821,6 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
-              {/* All Subjects option */}
-              <TouchableOpacity
-                onPress={() => {
-                  setSelectedFilterSubject('');
-                  setShowFilterSubjectSwitcher(false);
-                }}
-                activeOpacity={0.8}
-                style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', padding: 18, borderRadius: 20, backgroundColor: selectedFilterSubject === '' ? '#eff6ff' : 'white', marginBottom: 10, borderWidth: 1.5, borderColor: selectedFilterSubject === '' ? '#0055d4' : '#f1f5f9' }}
-              >
-                <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: selectedFilterSubject === '' ? '#0055d4' : '#f8fafc', alignItems: 'center', justifyContent: 'center' }}>
-                  <Layout size={24} color={selectedFilterSubject === '' ? 'white' : '#94a3b8'} />
-                </View>
-                <Text style={{ marginLeft: isRTL ? 0 : 18, marginRight: isRTL ? 18 : 0, fontSize: 17, fontWeight: '900', color: selectedFilterSubject === '' ? '#0055d4' : '#1e293b', flex: 1, textAlign: isRTL ? 'right' : 'left' }}>
-                  {t?.allSubjects || (language === 'ar' ? 'جميع المواد' : language === 'fr' ? 'Toutes les matières' : 'All Subjects')}
-                </Text>
-                {selectedFilterSubject === '' && (
-                  <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: '#0055d4', alignItems: 'center', justifyContent: 'center' }}>
-                    <Check size={14} color="white" strokeWidth={3} />
-                  </View>
-                )}
-              </TouchableOpacity>
-
               {Array.from(new Set(subjects.map(s => getTranslatedSubject(s.name)))).map(subjectName => {
                 const isActive = selectedFilterSubject === subjectName;
                 return (
