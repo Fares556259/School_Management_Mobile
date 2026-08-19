@@ -530,7 +530,6 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
             <View>
               {students.map(s => <StudentRow key={s.id} student={s} status={attendance[s.id]} onStatusChange={(status: string) => setAttendance(prev => ({ ...prev, [s.id]: status }))} note={notes[s.id]} onNoteChange={(text: string) => setNotes(prev => ({ ...prev, [s.id]: text }))} score={scores[s.id]} onScoreChange={(score: number) => setScores(prev => ({ ...prev, [s.id]: score }))} resetKey={saveCount} language={language} t={t} />)}
             </View>
-            </View>
           )}
         </View>
       </ScrollView>

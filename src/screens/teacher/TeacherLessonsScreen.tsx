@@ -153,12 +153,10 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
       const res = await teacherService.fetchResources(selectedClass.id.toString());
       if (res && res.resources) {
         setResources(res.resources);
-        if (res.classSubjects && Array.isArray(res.classSubjects)) {
+        if (res.classSubjects && Array.isArray(res.classSubjects) && res.classSubjects.length > 0) {
           setSubjects(res.classSubjects);
-          if (res.classSubjects.length > 0) {
-            setSelectedSubjectId(res.classSubjects[0].id.toString());
-            setSelectedFilterSubject(prev => prev || getTranslatedSubject(res.classSubjects[0].name));
-          }
+          setSelectedSubjectId(res.classSubjects[0].id.toString());
+          setSelectedFilterSubject(prev => prev || getTranslatedSubject(res.classSubjects[0].name));
         }
       } else {
         setResources(Array.isArray(res) ? res : []);
