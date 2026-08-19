@@ -554,23 +554,6 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
                   )}
                 </View>
 
-                {assignments.length > 0 && (
-                  <View style={{ marginTop: 8 }}>
-                    <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16, textAlign: isRTL ? 'right' : 'left' }}>{(t?.assignedTasks || 'Assigned Tasks')}</Text>
-                    {assignments.map((task: any) => (
-                      <View key={task.id} style={{ backgroundColor: 'white', borderRadius: 24, padding: 16, borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 12 }}>
-                        <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginBottom: 10 }}>
-                          <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#fff7ed', alignItems: 'center', justifyContent: 'center' }}><ClipboardList size={18} color="#f59e0b" /></View>
-                          <Text style={{ flex: 1, marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0, fontSize: 16, fontWeight: '800', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>{task.title}</Text>
-                          {task.attachments?.length > 0 && (
-                            <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}><Text style={{ fontSize: 10, fontWeight: '900', color: '#0055d4' }}>{task.attachments.length} {t.teacherFiles}</Text></View>
-                          )}
-                        </View>
-                        {task.description && (<Text style={{ fontSize: 14, color: '#64748b', fontWeight: '600', marginLeft: isRTL ? 0 : 48, marginRight: isRTL ? 48 : 0, textAlign: isRTL ? 'right' : 'left' }}>{task.description}</Text>)}
-                      </View>
-                    ))}
-                  </View>
-                )}
               </View>
             </View>
           )}
