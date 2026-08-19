@@ -496,7 +496,7 @@ export const TeacherAttendanceScreen = ({ navigation }: any) => {
                   <Clock size={18} color="#0055d4" style={{ marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }} />
                   <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e293b' }}>
                     {sessions.find(s => s.slotId === activeSlotId) 
-                      ? `${getSubjectName(sessions.find(s => s.slotId === activeSlotId).subjectName, language)} • ${sessions.find(s => s.slotId === activeSlotId).startTime.substring(0, 5)}`
+                      ? `${getTranslatedSubject(sessions.find(s => s.slotId === activeSlotId)?.subjectName)} • ${sessions.find(s => s.slotId === activeSlotId)?.startTime?.substring(0, 5) || ''}`
                       : ((t?.selectSession || 'Select Session'))}
                   </Text>
                 </View>
