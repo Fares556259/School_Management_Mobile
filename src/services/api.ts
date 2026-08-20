@@ -357,7 +357,9 @@ export const studentService = {
         iconName: 'Book',
         color: '#0055d4',
       })),
-      notes: (home.teacherRemarks || []).map((r: any) => {
+      notes: (home.teacherRemarks || [])
+        .filter((r: any) => r && r.note && !r.note.includes("AUTO_SYNCED") && !r.note.includes("INITIALIZED_BULK"))
+        .map((r: any) => {
         let timeString = r.time || '';
         if (!timeString && r.date) {
            const d = new Date(r.date);

@@ -444,8 +444,8 @@ export const HomeScreen = ({ navigation, route }: any) => {
              </View>
           ) : (
             <View style={{ gap: 12 }}>
-              {dayData.notes?.filter((n: any) => n.text !== 'INITIALIZED_BULK').length > 0 ? (
-                dayData.notes.filter((n: any) => n.text !== 'INITIALIZED_BULK').map((note: any, index: number) => (
+              {dayData.notes?.filter((n: any) => n.text && !n.text.includes('INITIALIZED_BULK') && !n.text.includes('AUTO_SYNCED')).length > 0 ? (
+                dayData.notes.filter((n: any) => n.text && !n.text.includes('INITIALIZED_BULK') && !n.text.includes('AUTO_SYNCED')).map((note: any, index: number) => (
                     <Reanimated.View key={note.id} entering={FadeInDown.duration(400).delay(index * 100)}>
                   <TouchableOpacity
                     key={note.id}
