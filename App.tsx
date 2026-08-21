@@ -31,7 +31,7 @@ import { CoursesScreen } from './src/screens/CoursesScreen';
 import { Home as HomeIcon, FileText, CreditCard, User, Megaphone, Calendar, BarChart3, ClipboardList, BookOpen, Users, ClipboardCheck, GraduationCap } from 'lucide-react-native';
 import { View, ActivityIndicator, Alert } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from './src/store/useAppStore';
 import { parentService, authService, authStorage, studentService, API_BASE_URL, teacherService } from './src/services/api';
 import { notificationService } from './src/services/notificationService';
@@ -57,6 +57,7 @@ const Stack = createNativeStackNavigator();
 const navigationRef = createNavigationContainerRef();
 
 function BottomTabsContent({ onSignOut }: { onSignOut: () => void }) {
+  const insets = useSafeAreaInsets();
   const { userRole } = useAppStore();
   const { t, isRTL } = useLanguage();
   const isTeacher = userRole === 'teacher';
@@ -98,8 +99,8 @@ function BottomTabsContent({ onSignOut }: { onSignOut: () => void }) {
           backgroundColor: '#ffffff',
           borderTopWidth: 1,
           borderTopColor: '#e2e8f0',
-          height: 72,
-          paddingBottom: 10,
+          height: 60 + insets.bottom,
+          paddingBottom: 10 + insets.bottom,
           paddingTop: 8,
           elevation: 0,
           shadowOpacity: 0,
