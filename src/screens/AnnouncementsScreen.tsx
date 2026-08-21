@@ -111,7 +111,7 @@ export const AnnouncementsScreen = ({ navigation }: any) => {
       <GlobalHeader navigation={navigation} />
 
       {/* Header */}
-      <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+      <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16, width: '100%' }}>
         <Text style={{ fontSize: 30, fontWeight: '900', color: '#1e293b', letterSpacing: -0.5, marginBottom: 4, textAlign: isRTL ? 'right' : 'left' }}>
           {t.announcementsTitle}
         </Text>

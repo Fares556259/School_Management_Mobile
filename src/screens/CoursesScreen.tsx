@@ -159,7 +159,7 @@ export const CoursesScreen = ({ navigation }: any) => {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={{ marginBottom: 28, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+        <View style={{ marginBottom: 28, width: '100%' }}>
           <Text style={{ fontSize: 13, fontWeight: '900', color: '#0055d4', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 6, textAlign: isRTL ? 'right' : 'left' }}>
             {(t as any).academicPortal || 'ACADEMIC PORTAL'}
           </Text>

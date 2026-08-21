@@ -283,9 +283,9 @@ export const HomeScreen = ({ navigation, route }: any) => {
         <View style={styles.content}>
 
           {/* Date Slider */}
-          <View style={styles.sectionHeaderRow}>
+          <View style={[styles.sectionHeaderRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
             <Text style={styles.sectionTitle}>{t.todaysSchedule}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 16 }}>
               {selectedDate.toDateString() !== new Date().toDateString() && (
                 <TouchableOpacity 
                   onPress={() => setSelectedDate(new Date())}
