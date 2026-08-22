@@ -836,15 +836,8 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
 
               <View>
                 <Text className="text-[13px] font-jakarta font-semibold text-text-primary mb-2 ml-1">Phone Number</Text>
-                <View className="bg-white rounded-2xl px-5 py-4 shadow-sm shadow-black/5 border border-surface-low/50">
-                  <TextInput 
-                    className="text-[15px] text-text-primary font-manrope font-semibold p-0"
-                    value={editData.phone}
-                    onChangeText={(t) => setEditData({...editData, phone: t})}
-                    keyboardType="phone-pad"
-                    placeholder="Enter phone number"
-                    placeholderTextColor="#9ca3af"
-                  />
+                <View className="bg-gray-100 rounded-2xl px-5 py-4 border border-surface-low/50">
+                  <Text className="text-[15px] text-gray-400 font-manrope font-semibold">{editData.phone || '—'}</Text>
                 </View>
               </View>
 

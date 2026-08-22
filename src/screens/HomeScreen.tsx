@@ -51,7 +51,7 @@ const DateItem = ({ day, date, active, isToday, onPress }: any) => {
         style={[styles.dateCard, active && styles.activeDateCard]}
       >
         <Text style={[styles.dateDay, active && styles.activeDateText]}>{day}</Text>
-        <Text style={[styles.dateNum, active && styles.activeDateText]}>{date}</Text>
+        <Text style={[styles.dateNum, active && styles.activeDateText]}>{String(date)}</Text>
         {isToday && (
           <View style={[styles.todayDot, active && { backgroundColor: 'rgba(255,255,255,0.7)' }]} />
         )}

@@ -1370,6 +1370,11 @@ export const formatSubjectName = (rawName: string | null | undefined, targetLang
   return trimmed;
 };
 
+// Force Western (French) numerals — converts Arabic-Indic digits ٠١٢٣٤٥٦٧٨٩ to 0123456789
+export const toWestern = (value: any): string => {
+  return String(value).replace(/[٠-٩]/g, (d: string) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
+};
+
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLangState] = useState<Language>('ar');
 
@@ -1394,7 +1399,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const isRTL = language === 'ar';
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, isRTL, getTranslatedSubject }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, isRTL, getTranslatedSubject, toWestern }}>
       {children}
     </LanguageContext.Provider>
   );
