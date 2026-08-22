@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, Alert, RefreshControl, Image, StatusBar, FlatList, ScrollView, Modal, Platform, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,7 +15,7 @@ import moment from 'moment';
 
 export const TeacherTasksScreen = ({ navigation }: any) => {
   const { selectedTeacherClass, setSelectedTeacherClass } = useAppStore();
-  const { t, language, isRTL } = useLanguage();
+  const { t, language, isRTL, getTranslatedSubject } = useLanguage();
   const queryClient = useQueryClient();
   
   const [showAddForm, setShowAddForm] = useState(false);
@@ -25,10 +25,38 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedClassId, setSelectedClassId] = useState('');
+  const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [loadingSubjects, setLoadingSubjects] = useState(false);
   const [dueDate, setDueDate] = useState<Date | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(moment());
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [attachments, setAttachments] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      if (selectedClassId) {
+        setLoadingSubjects(true);
+        try {
+          const userId = await authStorage.getUserId();
+          if (userId) {
+            const data = await teacherService.fetchSubjectsForClass(userId, parseInt(selectedClassId));
+            setSubjects(data);
+            if (data.length > 0) {
+              setSelectedSubjectId(data[0].id);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to fetch subjects:", error);
+        } finally {
+          setLoadingSubjects(false);
+        }
+      } else {
+        setSubjects([]);
+      }
+    };
+    fetchSubjects();
+  }, [selectedClassId]);
 
   // Calendar Calculation for pure JS Picker
   const startOfMonth = calendarMonth.clone().startOf('month');
@@ -139,6 +167,7 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
     const currentTitle = title;
     const currentDescription = description;
     const currentClassId = selectedClassId;
+    const currentSubjectId = selectedSubjectId;
     const currentDueDate = dueDate ? dueDate.toISOString() : null;
     const currentAttachments = [...attachments];
 
@@ -147,6 +176,7 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
     setDescription('');
     setDueDate(null);
     setAttachments([]);
+    setSelectedSubjectId(null);
 
     const selectedClass = classes.find(c => c.id === currentClassId);
     const optimisticTask = {
@@ -200,6 +230,7 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
         title: currentTitle,
         description: currentDescription,
         classId: currentClassId,
+        subjectId: currentSubjectId,
         dueDate: currentDueDate,
         attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined
       });
@@ -422,6 +453,26 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
                 </TouchableOpacity>
               ))}
             </ScrollView>
+          </View>
+
+          <View style={{ marginBottom: 24 }}>
+            <Text style={{ fontSize: 12, fontWeight: '900', color: '#94a3b8', marginBottom: 12, textTransform: 'uppercase', textAlign: isRTL ? 'right' : 'left' }}>{(t?.subject || 'Subject')}</Text>
+            {loadingSubjects ? (
+              <ActivityIndicator size="small" color="#0055d4" style={{ alignSelf: isRTL ? 'flex-end' : 'flex-start' }} />
+            ) : subjects.length > 0 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
+                {subjects.map((sub: any) => {
+                  const subjectName = getTranslatedSubject ? getTranslatedSubject(sub.name) : sub.name.split('|')[0].trim();
+                  return (
+                    <TouchableOpacity key={sub.id} onPress={() => setSelectedSubjectId(sub.id)} style={{ paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, backgroundColor: selectedSubjectId === sub.id ? '#0055d4' : '#f8fafc', borderWidth: 1, borderColor: selectedSubjectId === sub.id ? '#0055d4' : '#f1f5f9', transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
+                      <Text style={{ color: selectedSubjectId === sub.id ? 'white' : '#64748b', fontWeight: '800' }}>{subjectName}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            ) : (
+              <Text style={{ fontSize: 14, color: '#94a3b8', textAlign: isRTL ? 'right' : 'left' }}>{(t?.noSubjectsFound || 'No subjects found')}</Text>
+            )}
           </View>
 
           {/* Due Date (Optional) */}

@@ -751,7 +751,7 @@ export const teacherService = {
     });
   },
 
-  createTask: async (data: { title: string; description?: string; classId: string; attachments?: any[]; dueDate?: string | null }) => {
+  createTask: async (data: { title: string; description?: string; classId: string; subjectId?: number | null; attachments?: any[]; dueDate?: string | null }) => {
     const teacherId = await authStorage.getUserId();
     return apiFetch('/api/mobile/teacher/tasks', {
       method: 'POST',
