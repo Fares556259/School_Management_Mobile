@@ -14,7 +14,7 @@ const ICON_CONFIG: Record<string, { icon: any, color: string, bgColor: string }>
 
 export const NotificationDetailScreen = ({ route, navigation }: any) => {
   const { notification } = route.params;
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, language, formatNotification } = useLanguage();
   const config = ICON_CONFIG[notification.type] || ICON_CONFIG.DEFAULT;
   const Icon = config.icon;
 
@@ -128,16 +128,18 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
         ) : (
           <View style={styles.announcementContainer}>
             <View style={styles.messageBubble}>
-              <View style={styles.bubbleHeader}>
+              <View style={[styles.bubbleHeader, isRTL && { flexDirection: 'row-reverse' }]}>
                 <MessageCircle size={20} color="#0055d4" />
-                <Text style={styles.bubbleTitle}>{notification.title || t.officialMessage}</Text>
+                <Text style={[styles.bubbleTitle, isRTL ? { marginRight: 10, marginLeft: 0 } : { marginLeft: 10 }]}>{formatNotification(notification.title) || t.officialMessage}</Text>
               </View>
-              <Text style={styles.announcementMessage}>{notification.message}</Text>
+              <Text style={[styles.announcementMessage, { textAlign: isRTL ? 'right' : 'left', lineHeight: 24 }]}>
+                {formatNotification(notification.message)}
+              </Text>
             </View>
             
-            <View style={styles.infoCard}>
+            <View style={[styles.infoCard, isRTL && { flexDirection: 'row-reverse' }]}>
               <Info size={18} color="#64748b" />
-              <Text style={styles.infoText}>{t.announcementInfo}</Text>
+              <Text style={[styles.infoText, { textAlign: isRTL ? 'right' : 'left', marginLeft: isRTL ? 0 : 10, marginRight: isRTL ? 10 : 0 }]}>{t.announcementInfo}</Text>
             </View>
 
             {notification.message?.toLowerCase().includes('task') && (

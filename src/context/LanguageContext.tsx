@@ -1375,6 +1375,47 @@ export const toWestern = (value: any): string => {
   return String(value).replace(/[٠-٩]/g, (d: string) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
 };
 
+export const formatNotificationText = (text: string | null | undefined, targetLang: Language = 'ar'): string => {
+  if (!text) return '';
+  let result = text;
+
+  // 1. Clean any pipe-separated subjects embedded inside the string
+  result = result.replace(/([^.\n\r,:!?()]+(?:\s*\|\s*[^.\n\r,:!?()]+)+)/g, (match) => {
+    return formatSubjectName(match, targetLang);
+  });
+
+  // 2. Dynamic template translation for Homework/Assignment notifications
+  const hwMatchAr = result.match(/تم تعيين مهمة جديدة في (.*?) لـ (.*?)\.?$/);
+  if (hwMatchAr) {
+    const subj = formatSubjectName(hwMatchAr[1], targetLang);
+    const stud = hwMatchAr[2].trim();
+    if (targetLang === 'fr') return `Nouveau devoir en ${subj} pour ${stud}.`;
+    if (targetLang === 'en') return `New assignment in ${subj} for ${stud}.`;
+    return `تم تعيين مهمة جديدة في ${subj} لـ ${stud}.`;
+  }
+
+  const hwMatchFr = result.match(/Nouveau devoir (?:en|de) (.*?) pour (.*?)\.?$/i);
+  if (hwMatchFr) {
+    const subj = formatSubjectName(hwMatchFr[1], targetLang);
+    const stud = hwMatchFr[2].trim();
+    if (targetLang === 'fr') return `Nouveau devoir en ${subj} pour ${stud}.`;
+    if (targetLang === 'en') return `New assignment in ${subj} for ${stud}.`;
+    return `تم تعيين مهمة جديدة في ${subj} لـ ${stud}.`;
+  }
+
+  // 3. Payment reminders
+  const payMatch = result.match(/Payment for (.*?) for (.*?) is pending/i);
+  if (payMatch) {
+    const stud = payMatch[1];
+    const month = payMatch[2];
+    if (targetLang === 'fr') return `Le paiement pour ${stud} (${month}) est en attente.`;
+    if (targetLang === 'ar') return `دفع الرسوم لـ ${stud} (${month}) قيد الانتظار.`;
+    return `Payment for ${stud} for ${month} is pending.`;
+  }
+
+  return result;
+};
+
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLangState] = useState<Language>('ar');
 
@@ -1395,11 +1436,15 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return formatSubjectName(rawName, language);
   };
 
+  const formatNotification = (text: string | null | undefined): string => {
+    return formatNotificationText(text, language);
+  };
+
   const t = translations[language] || translations.ar;
   const isRTL = language === 'ar';
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, isRTL, getTranslatedSubject, toWestern }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, isRTL, getTranslatedSubject, formatNotification, toWestern }}>
       {children}
     </LanguageContext.Provider>
   );

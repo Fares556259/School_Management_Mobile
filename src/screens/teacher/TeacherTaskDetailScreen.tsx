@@ -223,9 +223,9 @@ export const TeacherTaskDetailScreen = ({ route, navigation }: any) => {
           {data?.pending?.map((student: any) => (
             <View key={student.id} style={{ backgroundColor: 'white', borderRadius: 20, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: '#fef3c7', flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
               <Avatar name={student.name} img={student.avatar} />
-              <Text style={{ fontSize: 15, fontWeight: '800', color: '#1e293b', marginLeft: isRTL ? 0 : 14, marginRight: isRTL ? 14 : 0, flex: 1, textAlign: isRTL ? 'right' : 'left' }}>{student.name}</Text>
-              <View style={{ backgroundColor: '#fff7ed', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, borderWidth: 1, borderColor: '#fed7aa' }}>
-                <Text style={{ fontSize: 11, fontWeight: '900', color: '#ea580c' }}>⏳ {(t?.pending || 'Pending')}</Text>
+              <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: '800', color: '#1e293b', marginLeft: isRTL ? 0 : 14, marginRight: isRTL ? 14 : 0, flex: 1, textAlign: isRTL ? 'right' : 'left' }}>{student.name}</Text>
+              <View style={{ backgroundColor: '#fff7ed', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: '#fed7aa', flexShrink: 0 }}>
+                <Text numberOfLines={1} style={{ fontSize: 11, fontWeight: '900', color: '#ea580c' }}>⏳ {(t?.pending || 'Pending')}</Text>
               </View>
             </View>
           ))}

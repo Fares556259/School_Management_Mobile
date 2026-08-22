@@ -25,7 +25,7 @@ const ICON_CONFIG: Record<string, { icon: any, color: string, bgColor: string, a
 };
 
 const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onPress: (n: Notification) => void, onDelete: (id: number) => void }) => {
-  const { t, isRTL, getTranslatedSubject } = useLanguage();
+  const { t, isRTL, getTranslatedSubject, formatNotification } = useLanguage();
   const absenceCount = item.message.match(/(\d+) absences/)?.[1] || item.message.match(/missed (\d+) sessions/)?.[1];
   
   let dynamicType = item.type;
@@ -51,12 +51,15 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
     }
   } else if (item.type === 'PAYMENT') {
     dynamicTitle = t.notifPaymentAlert || 'Payment Alert';
-  } else if (item.message.toLowerCase().includes('assignment') || item.message.toLowerCase().includes('task')) {
+  } else if (item.message.toLowerCase().includes('assignment') || item.message.toLowerCase().includes('task') || item.message.includes('مهمة جديدة')) {
     dynamicType = 'ASSIGNMENT';
     dynamicTitle = t.notifNewAssignment || 'New Assignment';
   } else if (item.studentName === 'SCHOOL' || item.message.toLowerCase().includes('exam schedule')) {
     dynamicTitle = t.notifSchoolAnnouncement || 'School Announcement';
   }
+
+  displayMessage = formatNotification(displayMessage);
+  dynamicTitle = formatNotification(dynamicTitle);
 
   const extendedConfig = {
     ...ICON_CONFIG,
