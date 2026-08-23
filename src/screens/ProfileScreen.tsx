@@ -212,7 +212,7 @@ const SectionTitle = ({ title }: { title: string }) => {
 };
 
 export const ProfileScreen = ({ navigation, onSignOut }: any) => {
-  const { children, setSelectedChildId, setChildren, userName, setUserName, setUserAvatarUrl, userRole, userId } = useAppStore();
+  const { children, setSelectedChildId, setChildren, userName, setUserName, setUserAvatarUrl, userAvatarUrl, userRole, userId } = useAppStore();
   const { t, language, setLanguage, isRTL } = useLanguage();
   const [profile, setProfile] = useState<any>(null);
   const [schoolInfo, setSchoolInfo] = useState<any>(null);
@@ -615,18 +615,22 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
             marginRight: isRTL ? 0 : 16,
             marginLeft: isRTL ? 16 : 0,
           }}>
-            {profile?.img ? (
+            {(profile?.img || userAvatarUrl) ? (
               <Image 
-                source={{ uri: profile.img }} 
+                source={{ uri: profile?.img || userAvatarUrl! }} 
                 style={{ width: '100%', height: '100%', borderRadius: 999 }} 
                 contentFit="cover" 
               />
             ) : (
-              <Text style={{ fontSize: 24, fontWeight: '900', color: '#0072e6' }}>{profile?.name?.charAt(0)}</Text>
+              <Text style={{ fontSize: 24, fontWeight: '900', color: '#0072e6' }}>
+                {(profile?.name || userName)?.charAt(0)?.toUpperCase() || '?'}
+              </Text>
             )}
           </View>
           <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
-            <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>{profile?.name} {profile?.surname}</Text>
+            <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>
+              {profile?.name && profile?.surname ? `${profile.name} ${profile.surname}` : userName || '...'}
+            </Text>
             <Text style={{ fontSize: 13, fontWeight: '600', color: '#64748b', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>
               {profile?.phone || (userRole === 'teacher' ? 'حساب مدرس' : `${children.length} أبناء مسجلين`)}
             </Text>
