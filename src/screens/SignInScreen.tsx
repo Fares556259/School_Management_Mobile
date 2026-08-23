@@ -72,10 +72,11 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
           setIsLoading(false);
           return;
         }
+        // Keep spinner ON — navigate immediately, screen unmounts naturally
         setUserName(tempParent?.name || 'User');
         setUserAvatarUrl(tempParent?.img || null);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setTimeout(() => onSignIn(), 600);
+        onSignIn();
       } else {
         const errorMessage = result.error || 'Authentication failed.';
         if (errorMessage.toLowerCase().includes('password not set')) {
@@ -87,10 +88,10 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
         }
         setError(errorMessage);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        setIsLoading(false);
       }
     } catch (e) {
       setError(t?.authenticationFailedPleaseCheckYour || 'Authentication failed. Please check your connection.');
-    } finally {
       setIsLoading(false);
     }
   };
