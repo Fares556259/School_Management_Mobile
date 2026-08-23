@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   ScrollView,
   ActivityIndicator,
   StatusBar,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GraduationCap, Phone, Lock, ChevronLeft, ArrowRight, Globe, Check } from 'lucide-react-native';
@@ -26,8 +27,31 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
   const [password, setPassword] = useState('');
   const [tempParent, setTempParent] = useState<{ name: string; img: string | null } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState('');
   const [hint, setHint] = useState('');
+
+  // Animated dots for loading overlay
+  const dot1 = useRef(new Animated.Value(0)).current;
+  const dot2 = useRef(new Animated.Value(0)).current;
+  const dot3 = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!isLoading) return;
+    const animateDot = (dot: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(dot, { toValue: -8, duration: 300, useNativeDriver: true }),
+          Animated.timing(dot, { toValue: 0, duration: 300, useNativeDriver: true }),
+          Animated.delay(600 - delay),
+        ])
+      ).start();
+    animateDot(dot1, 0);
+    animateDot(dot2, 150);
+    animateDot(dot3, 300);
+    return () => { dot1.stopAnimation(); dot2.stopAnimation(); dot3.stopAnimation(); };
+  }, [isLoading]);
 
   const handleCheckStatus = async () => {
     if (!phone.trim()) { 
@@ -35,6 +59,7 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
       return; 
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setLoadingMessage(language === 'ar' ? 'جاري التحقق...' : language === 'fr' ? 'Vérification...' : 'Checking your account...');
     setIsLoading(true);
     setError('');
     try {
@@ -59,6 +84,11 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
       return; 
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setLoadingMessage(
+      step === 'NEEDS_SETUP'
+        ? (language === 'ar' ? 'جاري إنشاء كلمة المرور...' : language === 'fr' ? 'Création du mot de passe...' : 'Setting up your password...')
+        : (language === 'ar' ? 'جاري تسجيل الدخول...' : language === 'fr' ? 'Connexion en cours...' : 'Signing you in...')
+    );
     setIsLoading(true);
     setError('');
     try {
@@ -127,6 +157,45 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
   return (
     <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+
+      {/* Full-screen loading overlay */}
+      {isLoading && (
+        <View style={{
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(255,255,255,0.97)',
+          alignItems: 'center', justifyContent: 'center',
+          zIndex: 999,
+        }}>
+          <View style={{
+            width: 80, height: 80, borderRadius: 24,
+            backgroundColor: '#0055d4',
+            alignItems: 'center', justifyContent: 'center',
+            marginBottom: 24,
+            shadowColor: '#0055d4',
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.25,
+            shadowRadius: 20,
+            elevation: 10,
+          }}>
+            <GraduationCap size={40} color="white" />
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 20 }}>
+            {[dot1, dot2, dot3].map((dot, i) => (
+              <Animated.View key={i} style={{
+                width: 10, height: 10, borderRadius: 5,
+                backgroundColor: '#0055d4',
+                transform: [{ translateY: dot }],
+              }} />
+            ))}
+          </View>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: '#2b3437', textAlign: 'center' }}>
+            {loadingMessage}
+          </Text>
+          <Text style={{ fontSize: 13, color: '#94a3b8', marginTop: 6 }}>
+            {language === 'ar' ? 'الرجاء الانتظار' : language === 'fr' ? 'Veuillez patienter' : 'Please wait...'}
+          </Text>
+        </View>
+      )}
 
       <SafeAreaView style={{ flex: 1 }}>
         <KeyboardAvoidingView
