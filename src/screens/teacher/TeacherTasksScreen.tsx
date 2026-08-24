@@ -159,8 +159,8 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
   };
 
   const handleCreateTask = async () => {
-    if (!title || !selectedClassId) {
-      Alert.alert('Error', 'Please fill in required fields');
+    if (!title || !selectedClassId || !selectedSubjectId) {
+      Alert.alert('Error', 'Please fill in required fields including subject');
       return;
     }
 
