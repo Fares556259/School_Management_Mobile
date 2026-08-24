@@ -42,13 +42,21 @@ import "./src/styles/global.css";
 import { LanguageProvider, useLanguage } from './src/context/LanguageContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      gcTime: 1000 * 60 * 60 * 24, // 24 hours in garbage collection
       staleTime: 1000 * 60 * 5, // 5 minutes
       retry: 2,
     },
   },
+});
+
+const asyncStoragePersister = createAsyncStoragePersister({
+  storage: AsyncStorage,
 });
 
 
@@ -393,10 +401,13 @@ export default function App() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider 
+      client={queryClient}
+      persistOptions={{ persister: asyncStoragePersister }}
+    >
       <LanguageProvider>
-        <GestureHandlerRootView style={{ flex: 1 }}>
-          <SafeAreaProvider>
+        <SafeAreaProvider>
+          <GestureHandlerRootView style={{ flex: 1 }}>
             <NavigationContainer ref={navigationRef}>
               {authState === 'landing' ? (
                 <LandingScreen onSelectRole={onSelectRole} />
@@ -430,9 +441,9 @@ export default function App() {
                 </Stack.Navigator>
               )}
             </NavigationContainer>
-          </SafeAreaProvider>
-        </GestureHandlerRootView>
+          </GestureHandlerRootView>
+        </SafeAreaProvider>
       </LanguageProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }
