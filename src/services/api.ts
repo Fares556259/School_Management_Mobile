@@ -693,7 +693,11 @@ export const teacherService = {
   fetchProfile: async () => {
     const id = await authStorage.getUserId();
     if (!id) return null;
-    return apiFetch(`/api/mobile/teacher?id=${id}`);
+    const data = await apiFetch(`/api/mobile/teacher?id=${id}`);
+    if (data && data.img) {
+      data.img = getFullImageUrl(data.img);
+    }
+    return data;
   },
 
   updateProfile: async (data: { name?: string; surname?: string; phone?: string; img?: string }) => {
@@ -722,7 +726,14 @@ export const teacherService = {
     let url = `/api/mobile/teacher/students?classId=${classId}&teacherId=${teacherId}`;
     if (date) url += `&date=${date}`;
     if (slotId) url += `&slotId=${slotId}`;
-    return apiFetch(url);
+    const data = await apiFetch(url);
+    if (data?.students) {
+      data.students = data.students.map((s: any) => ({
+        ...s,
+        img: getFullImageUrl(s.img)
+      }));
+    }
+    return data;
   },
 
   saveAttendance: async (data: { 
