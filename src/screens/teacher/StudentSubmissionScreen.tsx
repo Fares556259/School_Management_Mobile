@@ -7,6 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ChevronLeft, CheckCircle2, Calendar, Camera, Maximize2, FileText, Download, X } from 'lucide-react-native';
 import { downloadAndPreviewPDF } from '../../utils/fileUtils';
 import { useLanguage } from '../../context/LanguageContext';
+import { getFullImageUrl } from '../../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -144,12 +145,6 @@ export const StudentSubmissionScreen = ({ route, navigation }: any) => {
       })
     : null;
 
-  const initials = student.name
-    .split(' ')
-    .map((n: string) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }} edges={['top']}>
@@ -179,13 +174,14 @@ export const StudentSubmissionScreen = ({ route, navigation }: any) => {
 
         {/* Student Card */}
         <View style={{ backgroundColor: 'white', borderRadius: 28, padding: 24, marginBottom: 20, borderWidth: 1, borderColor: '#f1f5f9', alignItems: 'center' }}>
-          {student.avatar ? (
-            <Image source={{ uri: student.avatar }} style={{ width: 80, height: 80, borderRadius: 40, marginBottom: 14 }} />
-          ) : (
-            <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
-              <Text style={{ fontSize: 28, fontWeight: '900', color: '#0055d4' }}>{initials}</Text>
-            </View>
-          )}
+          <Image 
+            source={
+              (student.avatar || student.img) 
+                ? { uri: getFullImageUrl(student.avatar || student.img)! } 
+                : require('../../../assets/noavatar.png')
+            } 
+            style={{ width: 80, height: 80, borderRadius: 40, marginBottom: 14, backgroundColor: '#f1f5f9' }} 
+          />
           <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b', textAlign: 'center' }}>{student.name}</Text>
           <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '700', marginTop: 4 }}>{task?.className}</Text>
         </View>

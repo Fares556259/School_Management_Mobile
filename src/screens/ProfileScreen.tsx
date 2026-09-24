@@ -13,6 +13,7 @@ import { notificationService } from '../services/notificationService';
 import * as Haptics from 'expo-haptics';
 
 import { GlobalHeader } from '../components/GlobalHeader';
+import { StatusToast, ToastConfig, ToastType } from '../components/StatusToast';
 import { Image } from 'expo-image';
 import { useQuery } from '@tanstack/react-query';
 import { SkeletonBlock } from '../components/SkeletonView';
@@ -230,6 +231,18 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
   const [editChildData, setEditChildData] = useState({ id: '', name: '', surname: '' });
   const [updatingChild, setUpdatingChild] = useState(false);
 
+  // Status Toast State
+  const [toast, setToast] = useState<ToastConfig>({
+    visible: false,
+    type: 'info',
+    title: '',
+    message: '',
+  });
+
+  const showToast = (type: ToastType, title: string, message?: string) => {
+    setToast({ visible: true, type, title, message });
+  };
+
   useEffect(() => {
     const loadNotificationPreference = async () => {
       try {
@@ -254,10 +267,10 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
         // Request OS permission
         const granted = await notificationService.requestPermissions();
         if (!granted) {
-          Alert.alert(
-            (t?.permissionsRequired || 'Permissions Required'),
-            (t?.pleaseEnablePushNotificationPermissions || 'Please enable push notification permissions in system settings to receive alerts.'),
-            [{ text: (t?.ok || 'OK') }]
+          showToast(
+            'warning',
+            t?.permissionsRequired || 'Permissions Required',
+            t?.pleaseEnablePushNotificationPermissions || 'Please enable push notification permissions in system settings to receive alerts.'
           );
           setNotificationsEnabled(false);
           await AsyncStorage.setItem('notificationsEnabled', 'false');
@@ -270,12 +283,11 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
           await authService.registerPushToken(userId, pushToken);
         }
         await AsyncStorage.setItem('notificationsEnabled', 'true');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         
-        Alert.alert(
-          (t?.notificationsEnabled || 'Notifications Enabled 🔔'),
-          (t?.youWillNowReceiveInstant || 'You will now receive instant push alerts for homework, grades, and school news.'),
-          [{ text: (t?.ok1 || 'OK') }]
+        showToast(
+          'info',
+          t?.notificationsEnabled || 'Notifications Enabled 🔔',
+          t?.youWillNowReceiveInstant || 'You will now receive instant push alerts for homework, grades, and school news.'
         );
       } else {
         // Unregister push token on backend and cancel local scheduled alerts
@@ -284,12 +296,11 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
         }
         await notificationService.cancelAll();
         await AsyncStorage.setItem('notificationsEnabled', 'false');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
 
-        Alert.alert(
-          (t?.notificationsDisabled || 'Notifications Disabled'),
-          (t?.pushNotificationsHaveBeenDisabled || 'Push notifications have been disabled.'),
-          [{ text: (t?.ok2 || 'OK') }]
+        showToast(
+          'warning',
+          t?.notificationsDisabled || 'Notifications Disabled',
+          t?.pushNotificationsHaveBeenDisabled || 'Push notifications have been disabled.'
         );
       }
     } catch (e) {
@@ -315,8 +326,9 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
       const updatedChildren = children.map(c => c.id === editChildData.id ? { ...c, name: `${editChildData.name} ${editChildData.surname}`.trim() } : c);
       setChildren(updatedChildren);
       setEditChildModalVisible(false);
+      showToast('success', t?.profileUpdatedSuccess || 'Profile updated successfully');
     } catch (e) {
-      Alert.alert('Error', 'Failed to update child profile');
+      showToast('error', t?.error || 'Error', t?.failedToUpdateProfile || 'Failed to update child profile');
     } finally {
       setUpdatingChild(false);
     }
@@ -442,10 +454,10 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
           setEditChildrenDataBulk(prev => prev.map(c => c.id === id ? { ...c, avatarUrl: url } : c));
         }
       }
-      Alert.alert('Success', 'Profile picture updated successfully');
+      showToast('success', t?.profilePhotoUpdatedSuccess || 'Profile picture updated successfully');
     } catch (error) {
       console.error('Upload error:', error);
-      Alert.alert('Error', 'Failed to upload image. Please try again.');
+      showToast('error', t?.error || 'Error', t?.saveError || 'Failed to upload image. Please try again.');
     } finally {
       setUpdating(false);
     }
@@ -480,12 +492,12 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
           setChildren(updatedChildrenStore);
         }
         setEditModalVisible(false);
-        Alert.alert('Success', 'Profile updated successfully');
+        showToast('success', t?.profileUpdatedSuccess || 'Profile updated successfully');
       } else {
         setEditModalVisible(false); // No changes
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to update profile');
+      showToast('error', t?.error || 'Error', t?.failedToUpdateProfile || 'Failed to update profile');
     } finally {
       setUpdating(false);
     }
@@ -778,7 +790,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
               onPress={() => setLangModalVisible(false)}
               style={{ marginTop: 10, paddingVertical: 12, alignItems: 'center' }}
             >
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#94a3b8' }}>Annuller</Text>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#94a3b8' }}>{t?.cancel || 'Cancel'}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -791,7 +803,9 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
             <TouchableOpacity onPress={() => setEditModalVisible(false)} className="p-2 -ml-2" hitSlop={{top: 15, bottom: 15, left: 15, right: 15}}>
               <ChevronDown size={24} color="#2b3437" />
             </TouchableOpacity>
-            <Text className="flex-1 text-center text-[13px] font-jakarta font-bold text-text-primary tracking-widest uppercase mr-6">Edit Profile</Text>
+            <Text className="flex-1 text-center text-[13px] font-jakarta font-bold text-text-primary tracking-widest uppercase mr-6">
+              {t?.editProfileItem || 'Edit Profile'}
+            </Text>
           </View>
           
           <ScrollView className="flex-1 px-6">
@@ -814,42 +828,52 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
 
             <View className="gap-5">
               <View>
-                <Text className="text-[13px] font-jakarta font-semibold text-text-primary mb-2 ml-1">Name</Text>
+                <Text className="text-[13px] font-jakarta font-semibold text-text-primary mb-2 ml-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t?.nameLabel || 'Name'}
+                </Text>
                 <View className="bg-white rounded-2xl px-5 py-4 shadow-sm shadow-black/5 border border-surface-low/50">
                   <TextInput 
                     className="text-[15px] text-text-primary font-manrope font-semibold p-0"
                     value={editData.name}
                     onChangeText={(t) => setEditData({...editData, name: t})}
-                    placeholder="Enter name"
                     placeholderTextColor="#9ca3af"
+                    style={{ textAlign: isRTL ? 'right' : 'left' }}
                   />
                 </View>
               </View>
 
               <View>
-                <Text className="text-[13px] font-jakarta font-semibold text-text-primary mb-2 ml-1">Surname</Text>
+                <Text className="text-[13px] font-jakarta font-semibold text-text-primary mb-2 ml-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t?.surnameLabel || 'Surname'}
+                </Text>
                 <View className="bg-white rounded-2xl px-5 py-4 shadow-sm shadow-black/5 border border-surface-low/50">
                   <TextInput 
                     className="text-[15px] text-text-primary font-manrope font-semibold p-0"
                     value={editData.surname}
                     onChangeText={(t) => setEditData({...editData, surname: t})}
-                    placeholder="Enter surname"
                     placeholderTextColor="#9ca3af"
+                    style={{ textAlign: isRTL ? 'right' : 'left' }}
                   />
                 </View>
               </View>
 
               <View>
-                <Text className="text-[13px] font-jakarta font-semibold text-text-primary mb-2 ml-1">Phone Number</Text>
+                <Text className="text-[13px] font-jakarta font-semibold text-text-primary mb-2 ml-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t?.phoneLabel || 'Phone Number'}
+                </Text>
                 <View className="bg-gray-100 rounded-2xl px-5 py-4 border border-surface-low/50">
-                  <Text className="text-[15px] text-gray-400 font-manrope font-semibold">{editData.phone || '—'}</Text>
+                  <Text className="text-[15px] text-gray-400 font-manrope font-semibold" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+                    {editData.phone || '—'}
+                  </Text>
                 </View>
               </View>
 
               {/* Children Profile Fields */}
               {editChildrenDataBulk.length > 0 && (
                 <View className="mt-4">
-                  <Text className="text-[13px] font-jakarta font-semibold text-text-primary mb-4 ml-1">Children</Text>
+                  <Text className="text-[13px] font-jakarta font-semibold text-text-primary mb-4 ml-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+                    {t?.myChildren || 'Children'}
+                  </Text>
                   {editChildrenDataBulk.map((childData, index) => (
                     <View key={childData.id} className="mb-6 bg-white rounded-3xl p-5 border border-surface-low/50 shadow-sm shadow-black/5">
                       <View className="flex-row items-center mb-4">
@@ -881,7 +905,9 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
                       
                       <View className="gap-4">
                         <View>
-                          <Text className="text-xs font-jakarta font-medium text-text-tertiary mb-2 ml-1">Name</Text>
+                          <Text className="text-xs font-jakarta font-medium text-text-tertiary mb-2 ml-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+                            {t?.nameLabel || 'Name'}
+                          </Text>
                           <View className="bg-surface-low/30 rounded-2xl px-4 py-3">
                             <TextInput 
                               className="text-sm text-text-primary font-manrope font-semibold p-0"
@@ -891,14 +917,16 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
                                 newData[index].name = t;
                                 setEditChildrenDataBulk(newData);
                               }}
-                              placeholder="Child Name"
                               placeholderTextColor="#9ca3af"
+                              style={{ textAlign: isRTL ? 'right' : 'left' }}
                             />
                           </View>
                         </View>
 
                         <View>
-                          <Text className="text-xs font-jakarta font-medium text-text-tertiary mb-2 ml-1">Surname</Text>
+                          <Text className="text-xs font-jakarta font-medium text-text-tertiary mb-2 ml-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+                            {t?.surnameLabel || 'Surname'}
+                          </Text>
                           <View className="bg-surface-low/30 rounded-2xl px-4 py-3">
                             <TextInput 
                               className="text-sm text-text-primary font-manrope font-semibold p-0"
@@ -908,8 +936,8 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
                                 newData[index].surname = t;
                                 setEditChildrenDataBulk(newData);
                               }}
-                              placeholder="Child Surname"
                               placeholderTextColor="#9ca3af"
+                              style={{ textAlign: isRTL ? 'right' : 'left' }}
                             />
                           </View>
                         </View>
@@ -927,39 +955,124 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
                 disabled={updating || !isDirty}
                 className={`py-4 rounded-full items-center shadow-md ${updating || !isDirty ? 'bg-surface-low shadow-none border border-black/5' : 'bg-brand-primary shadow-brand-primary/20'}`}
               >
-                {updating ? <ActivityIndicator color="white" /> : <Text className={`${updating || !isDirty ? 'text-text-muted' : 'text-white'} font-jakarta font-bold text-lg`}>Save Changes</Text>}
+                {updating ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className={`${updating || !isDirty ? 'text-text-muted' : 'text-white'} font-jakarta font-bold text-lg`}>
+                    {t?.saveChanges || 'Save Changes'}
+                  </Text>
+                )}
               </TouchableOpacity>
           </View>
 
-      {/* Photo Selection Action Sheet (Nested inside Edit Modal for iOS compatibility) */}
-          <Modal visible={photoModalVisible} transparent animationType="fade">
+          {/* Photo Selection Action Sheet (Nested inside Edit Modal for iOS compatibility) */}
+          <Modal visible={photoModalVisible} transparent animationType="fade" onRequestClose={() => setPhotoModalVisible(false)}>
             <TouchableOpacity 
               activeOpacity={1} 
               onPress={() => setPhotoModalVisible(false)}
-              className="flex-1 bg-black/40 justify-center p-6"
+              style={{
+                flex: 1,
+                backgroundColor: 'rgba(15, 23, 42, 0.55)',
+                justifyContent: 'center',
+                paddingHorizontal: 20,
+              }}
             >
-              <TouchableOpacity activeOpacity={1} className="bg-white rounded-[32px] p-6 mb-4">
-                <View className="items-center mb-8">
-                  <Text className="text-xl font-jakarta font-black text-text-primary">Update profile photo</Text>
-                  <Text className="text-text-muted font-manrope font-bold text-xs mt-1">Choose how you'd like to add your photo</Text>
+              <TouchableOpacity 
+                activeOpacity={1} 
+                style={{
+                  backgroundColor: '#ffffff',
+                  borderRadius: 28,
+                  padding: 24,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 12 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 24,
+                  elevation: 12,
+                  borderWidth: 1,
+                  borderColor: '#f1f5f9',
+                }}
+              >
+                {/* Header with Title and Close X */}
+                <View style={{
+                  flexDirection: isRTL ? 'row-reverse' : 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 6,
+                }}>
+                  <Text style={{
+                    fontSize: 18,
+                    fontWeight: '800',
+                    color: '#0f172a',
+                    textAlign: isRTL ? 'right' : 'left',
+                    flex: 1,
+                  }}>
+                    {t?.updateProfilePhoto || 'Update profile photo'}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setPhotoModalVisible(false)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 16,
+                      backgroundColor: '#f1f5f9',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <X size={18} color="#64748b" />
+                  </TouchableOpacity>
                 </View>
 
-                <View className="gap-3">
+                <Text style={{
+                  fontSize: 13,
+                  fontWeight: '500',
+                  color: '#64748b',
+                  marginBottom: 20,
+                  textAlign: isRTL ? 'right' : 'left',
+                }}>
+                  {t?.chooseHowToAddPhoto || "Choose how you'd like to add your photo"}
+                </Text>
+
+                {/* Selection Options */}
+                <View style={{ gap: 12 }}>
                   <TouchableOpacity 
                     onPress={() => {
                       setPhotoModalVisible(false);
                       if (photoTarget) pickImage(photoTarget.type, photoTarget.id);
                     }}
-                    className="flex-row items-center bg-white p-4 rounded-2xl border border-surface-low"
+                    activeOpacity={0.7}
+                    style={{
+                      flexDirection: isRTL ? 'row-reverse' : 'row',
+                      alignItems: 'center',
+                      backgroundColor: '#f8fafc',
+                      padding: 14,
+                      borderRadius: 18,
+                      borderWidth: 1,
+                      borderColor: '#e2e8f0',
+                    }}
                   >
-                    <View className="w-12 h-12 bg-blue-50 rounded-2xl items-center justify-center">
-                      <ImageIcon size={22} color="#2563eb" />
+                    <View style={{
+                      width: 46,
+                      height: 46,
+                      borderRadius: 14,
+                      backgroundColor: '#eff6ff',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: isRTL ? 0 : 14,
+                      marginLeft: isRTL ? 14 : 0,
+                    }}>
+                      <ImageIcon size={22} color="#0055d4" />
                     </View>
-                    <View className="ml-4 flex-1">
-                      <Text className="text-base font-jakarta font-bold text-text-primary">Choose from library</Text>
-                      <Text className="text-text-muted text-[10px] font-manrope font-bold">Pick from your photo gallery</Text>
+                    <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                      <Text style={{ fontSize: 15, fontWeight: '700', color: '#1e293b' }}>
+                        {t?.chooseFromLibrary || 'Choose from library'}
+                      </Text>
+                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#64748b', marginTop: 2 }}>
+                        {t?.pickFromGallery || 'Pick from your photo gallery'}
+                      </Text>
                     </View>
-                    <ChevronRight size={18} color="#d1d5db" />
+                    <ChevronRight size={18} color="#94a3b8" style={{ transform: [{ rotate: isRTL ? '180deg' : '0deg' }] }} />
                   </TouchableOpacity>
 
                   <TouchableOpacity 
@@ -967,25 +1080,60 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
                       setPhotoModalVisible(false);
                       if (photoTarget) takePhoto(photoTarget.type, photoTarget.id);
                     }}
-                    className="flex-row items-center bg-white p-4 rounded-2xl border border-surface-low"
+                    activeOpacity={0.7}
+                    style={{
+                      flexDirection: isRTL ? 'row-reverse' : 'row',
+                      alignItems: 'center',
+                      backgroundColor: '#f8fafc',
+                      padding: 14,
+                      borderRadius: 18,
+                      borderWidth: 1,
+                      borderColor: '#e2e8f0',
+                    }}
                   >
-                    <View className="w-12 h-12 bg-purple-50 rounded-2xl items-center justify-center">
-                      <Camera size={22} color="#8b5cf6" />
+                    <View style={{
+                      width: 46,
+                      height: 46,
+                      borderRadius: 14,
+                      backgroundColor: '#f5f3ff',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: isRTL ? 0 : 14,
+                      marginLeft: isRTL ? 14 : 0,
+                    }}>
+                      <Camera size={22} color="#7c3aed" />
                     </View>
-                    <View className="ml-4 flex-1">
-                      <Text className="text-base font-jakarta font-bold text-text-primary">Take a photo</Text>
-                      <Text className="text-text-muted text-[10px] font-manrope font-bold">Use your camera right now</Text>
+                    <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                      <Text style={{ fontSize: 15, fontWeight: '700', color: '#1e293b' }}>
+                        {t?.takePhoto || 'Take a photo'}
+                      </Text>
+                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#64748b', marginTop: 2 }}>
+                        {t?.useCameraNow || 'Use your camera right now'}
+                      </Text>
                     </View>
-                    <ChevronRight size={18} color="#d1d5db" />
+                    <ChevronRight size={18} color="#94a3b8" style={{ transform: [{ rotate: isRTL ? '180deg' : '0deg' }] }} />
                   </TouchableOpacity>
                 </View>
-              </TouchableOpacity>
 
-              <TouchableOpacity 
-                onPress={() => setPhotoModalVisible(false)}
-                className="bg-[#334155]/20 py-4 rounded-2xl items-center"
-              >
-                <Text className="text-text-primary font-jakarta font-black text-lg">Cancel</Text>
+                {/* Cancel Button Inside Box */}
+                <TouchableOpacity 
+                  onPress={() => setPhotoModalVisible(false)}
+                  activeOpacity={0.8}
+                  style={{
+                    marginTop: 18,
+                    paddingVertical: 14,
+                    borderRadius: 16,
+                    backgroundColor: '#f1f5f9',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 1,
+                    borderColor: '#e2e8f0',
+                  }}
+                >
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: '#475569' }}>
+                    {t?.cancel || 'Cancel'}
+                  </Text>
+                </TouchableOpacity>
               </TouchableOpacity>
             </TouchableOpacity>
           </Modal>
@@ -1001,7 +1149,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
             </TouchableOpacity>
             <View className="flex-1 items-center mr-6">
               <Text className="text-[#2b3437] font-semibold text-xs tracking-widest uppercase">
-                Edit Child Profile
+                {t?.editChildProfile || 'Edit Child Profile'}
               </Text>
             </View>
           </View>
@@ -1017,22 +1165,28 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
 
             <View className="space-y-6 mb-12">
               <View>
-                <Text className="text-[#64748b] text-sm font-medium mb-2 pl-1">Name</Text>
+                <Text className="text-[#64748b] text-sm font-medium mb-2 pl-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t?.nameLabel || 'Name'}
+                </Text>
                 <TextInput
                   value={editChildData.name}
                   onChangeText={(t) => setEditChildData({ ...editChildData, name: t })}
                   className="bg-white px-5 py-4 rounded-[16px] text-[#2b3437] font-medium border border-surface-low/50 shadow-sm shadow-black/5"
                   placeholderTextColor="#94a3b8"
+                  style={{ textAlign: isRTL ? 'right' : 'left' }}
                 />
               </View>
 
               <View>
-                <Text className="text-[#64748b] text-sm font-medium mb-2 pl-1">Surname</Text>
+                <Text className="text-[#64748b] text-sm font-medium mb-2 pl-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t?.surnameLabel || 'Surname'}
+                </Text>
                 <TextInput
                   value={editChildData.surname}
                   onChangeText={(t) => setEditChildData({ ...editChildData, surname: t })}
                   className="bg-white px-5 py-4 rounded-[16px] text-[#2b3437] font-medium border border-surface-low/50 shadow-sm shadow-black/5"
                   placeholderTextColor="#94a3b8"
+                  style={{ textAlign: isRTL ? 'right' : 'left' }}
                 />
               </View>
             </View>
@@ -1046,7 +1200,9 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
                 {updatingChild ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text className="text-white font-semibold text-base">Save Changes</Text>
+                  <Text className="text-white font-semibold text-base">
+                    {t?.saveChanges || 'Save Changes'}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -1054,6 +1210,14 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
         </View>
       </Modal>
 
+      {/* Global Status Toast */}
+      <StatusToast
+        visible={toast.visible}
+        type={toast.type}
+        title={toast.title}
+        message={toast.message}
+        onDismiss={() => setToast(prev => ({ ...prev, visible: false }))}
+      />
     </SafeAreaView>
   );
 };

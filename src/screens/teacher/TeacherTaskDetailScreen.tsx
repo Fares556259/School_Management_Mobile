@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, CheckCircle2, Clock, Users, Image as ImageIcon, FileText as FileIcon, Paperclip, CalendarDays, Download, X } from 'lucide-react-native';
-import { teacherService } from '../../services/api';
+import { teacherService, getFullImageUrl } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import { downloadAndPreviewPDF } from '../../utils/fileUtils';
 import moment from 'moment';
@@ -13,14 +13,12 @@ import moment from 'moment';
 const { width } = Dimensions.get('window');
 
 const Avatar = ({ name, img, size = 44 }: any) => {
-  const initials = name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
-  if (img) {
-    return <Image source={{ uri: img }} style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: '#e2e8f0' }} />;
-  }
+  const avatarUri = img ? getFullImageUrl(img) : null;
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ fontSize: size * 0.33, fontWeight: '900', color: '#0055d4' }}>{initials}</Text>
-    </View>
+    <Image 
+      source={avatarUri ? { uri: avatarUri } : require('../../../assets/noavatar.png')} 
+      style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: '#f1f5f9' }} 
+    />
   );
 };
 

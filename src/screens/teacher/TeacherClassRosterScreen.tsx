@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StatusBar, RefreshControl, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, User, Search, Mail, Phone, Calendar } from 'lucide-react-native';
-import { teacherService } from '../../services/api';
+import { teacherService, getFullImageUrl } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 
 const StudentRow = ({ student, language }: any) => {
-  const initials = student.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+  const avatarUri = student.img ? getFullImageUrl(student.img) : null;
   
   return (
     <View style={{ 
@@ -19,13 +19,10 @@ const StudentRow = ({ student, language }: any) => {
       borderWidth: 1,
       borderColor: '#f1f5f9'
     }}>
-      {student.img ? (
-        <Image source={{ uri: student.img }} style={{ width: 48, height: 48, borderRadius: 16 }} />
-      ) : (
-        <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 16, fontWeight: '900', color: '#0055d4' }}>{initials}</Text>
-        </View>
-      )}
+      <Image 
+        source={avatarUri ? { uri: avatarUri } : require('../../../assets/noavatar.png')} 
+        style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: '#f1f5f9' }} 
+      />
       
       <View style={{ flex: 1, marginLeft: language === 'ar' ? 0 : 16, marginRight: language === 'ar' ? 16 : 0, alignItems: language === 'ar' ? 'flex-end' : 'flex-start' }}>
         <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e293b' }}>{student.name} {student.surname}</Text>
