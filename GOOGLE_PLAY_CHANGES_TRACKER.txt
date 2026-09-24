@@ -1,0 +1,134 @@
+================================================================================
+          SNAPSCHOOL MOBILE - GOOGLE PLAY CLOSED TESTING CHANGELOG TRACKER
+================================================================================
+File Purpose:
+This document tracks all changes, bug fixes, UI/UX polish, and feature additions
+implemented during the Google Play 14-day Closed Testing phase (20 testers).
+Use this document to easily answer Google's review questions at the end of the
+14-day testing period.
+================================================================================
+
+--------------------------------------------------------------------------------
+1. READY-TO-USE ANSWERS FOR GOOGLE PLAY CONSOLE QUESTIONS (AFTER 14 DAYS)
+--------------------------------------------------------------------------------
+
+QUESTION: "Describe the changes that you made to your app based on what you learned during your closed test."
+--------------------------------------------------------------------------------
+ANSWER TEMPLATE:
+"During the 14-day closed testing with teachers, school administrators, and parents:
+
+1. UI/UX Polish & Accessibility:
+   - Redesigned the photo picker action sheet so the Cancel button is neatly contained inside the card container.
+   - Replaced abrupt system Alert popups with smooth, non-intrusive animated status toasts (StatusToast) with haptic feedback.
+   - Fixed student avatar consistency in class rosters and task details: students without custom photos now display a clean, uniform silhouette avatar rather than confusing initial letters.
+   - Implemented full Right-to-Left (RTL) mirroring and complete translations in Arabic, French, and English across all modals and alert states.
+
+2. Push Notification Reliability:
+   - Fixed push notification registration for Android 13+ devices, ensuring high-importance notification channels (sound, vibration, heads-up display) are properly initialized.
+   - Cleaned up app startup logic by eliminating redundant diagnostic popups.
+
+3. Performance & Offline Stability:
+   - Added React Query persistence with AsyncStorage to allow smooth offline navigation and prevent unnecessary data reloading on poor connections.
+   - Improved sign-in and profile update responsiveness with refined loading indicators."
+
+--------------------------------------------------------------------------------
+QUESTION: "How did you collect feedback from your testers?"
+--------------------------------------------------------------------------------
+ANSWER TEMPLATE:
+"Feedback was gathered directly from our test group of teachers and parents through:
+- In-person and messaging check-ins (collecting screenshots, usability notes, and feedback on daily tasks like marking attendance and viewing grades).
+- Google Play Console internal feedback and crash reports.
+- Real-world testing across different Android device models (Samsung, Xiaomi, Google Pixel) and OS versions (Android 11 through Android 15)."
+
+--------------------------------------------------------------------------------
+QUESTION: "What changes did you make to the app to improve user engagement?"
+--------------------------------------------------------------------------------
+ANSWER TEMPLATE:
+"We made notifications more reliable with clear opt-in controls and immediate visual feedback when toggling alerts. We also improved navigation speed between class rosters, task submissions, and student profiles, and provided high-quality localized UI in Arabic, French, and English to match tester preferences."
+
+================================================================================
+2. DETAILED CHRONOLOGICAL LOG OF ALL CHANGES
+================================================================================
+
+--------------------------------------------------------------------------------
+[Date: September 24, 2026] - Version 1.0.2 (Build 3)
+Focus: UI/UX Redesign, Student Avatars, Animated Toasts, Localization
+--------------------------------------------------------------------------------
+• Student Avatar Display in Class Roster & Teacher Views:
+  - Eliminated initial-based placeholder boxes ("S", "T") in TeacherClassRosterScreen, StudentSubmissionScreen, and TeacherTaskDetailScreen.
+  - Implemented universal default silhouette avatar (assets/noavatar.png) matching parent views.
+  - Integrated getFullImageUrl normalization so newly uploaded profile pictures display dynamically for teachers.
+
+• Animated Status Toast (StatusToast.tsx):
+  - Created a custom floating status toast component built with react-native-reanimated and expo-haptics.
+  - Replaced native system Alert.alert dialogs for notification toggle and profile photo upload.
+  - Designed color-coded states: Success (emerald check), Info (blue bell), Warning (amber bell-off), Error (rose alert).
+  - Added auto-dismiss (3.5s) and manual dismiss.
+
+• Photo Picker Modal Redesign:
+  - Fixed detached "Cancel" button: moved the cancel action inside the white card container.
+  - Added clean "X" close button in the modal header.
+  - Added full multilingual translations (updateProfilePhoto, chooseHowToAddPhoto, chooseFromLibrary, pickFromGallery, takePhoto, useCameraNow, cancel).
+  - Added full RTL layout mirroring and rotated chevron icons for Arabic.
+
+• Localization & Form Polish:
+  - Translated ProfileScreen edit forms (Name, Surname, Phone, Children) into Arabic, French, and English.
+  - Fixed hardcoded "Save Changes", "Annuller", and "Edit Child Profile" strings.
+  - Resolved TypeScript duplicate key warnings in LanguageContext.tsx.
+
+--------------------------------------------------------------------------------
+[Date: September 23, 2026] - Version 1.0.2 (Build 2)
+Focus: Startup UX & Notification Channels
+--------------------------------------------------------------------------------
+• Startup Cleanup:
+  - Removed obsolete diagnostic test alerts that appeared when opening the app.
+
+• Notification Channel Setup:
+  - Configured Android MAX importance notification channel with custom sound and vibration.
+  - Added EAS projectId fallback to ensure push tokens generate reliably on both emulator and physical builds.
+  - Bumped version to 1.0.2.
+
+--------------------------------------------------------------------------------
+[Date: September 21-22, 2026] - Version 1.0.1
+Focus: Media URLs & Academic Workflow
+--------------------------------------------------------------------------------
+• Media & Images:
+  - Normalized relative avatar and attachment URLs with getFullImageUrl to ensure images load from API base url.
+
+• Teacher Task Creation:
+  - Added subject selector to task creation flow to prevent tasks from defaulting to fallback lessons.
+  - Enforced subject validation before publishing homework or assignments.
+
+• Offline Caching & Performance:
+  - Added AsyncStorage persister for @tanstack/react-query to preserve fetched queries across app restarts.
+  - Reduced cold start load times for dashboard schedules and student records.
+
+--------------------------------------------------------------------------------
+[Date: September 19-20, 2026] - Version 1.0.0 -> 1.0.1
+Focus: Sign-In UX & Task Detail UI
+--------------------------------------------------------------------------------
+• Sign-In Flow:
+  - Enhanced loading feedback during authentication: spinner remains active until navigation completes.
+  - Added loading overlay to prevent double-tap on submit.
+
+• UI Polish:
+  - Fixed pending badge text wrapping on smaller screen widths in task details.
+  - Cleaned multi-language pipe characters ("|") in notification payloads.
+  - Set phone number input in profile as read-only (managed by school admin).
+
+================================================================================
+3. SUMMARY OF VERSIONS & BUILDS
+================================================================================
+• Version 1.0.0 (Initial Closed Testing Build):
+  - Base parent & teacher portals, timetable, attendance, homework, exams, fees.
+
+• Version 1.0.1 (Usability & Persistence Update):
+  - React Query offline cache, sign-in UX improvements, task creation subject picker.
+
+• Version 1.0.2 (Notifications & UI/UX Polish):
+  - Push notifications channel configuration, unified student avatars, StatusToast,
+    redesigned photo picker modal, Arabic/French/English localization audit.
+
+================================================================================
+Keep this file updated whenever new changes are made during the 14-day test.
+================================================================================
