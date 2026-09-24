@@ -250,6 +250,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
       setNotificationsEnabled(newValue);
 
       if (newValue) {
+        await notificationService.initChannels();
         // Request OS permission
         const granted = await notificationService.requestPermissions();
         if (!granted) {

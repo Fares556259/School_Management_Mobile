@@ -211,12 +211,13 @@ export default function App() {
           console.log("[DEBUG-PUSH] Notifications disabled by user preference");
           return;
         }
+        await notificationService.initChannels();
         const hasPermission = await notificationService.requestPermissions();
         if (hasPermission) {
           const token = await notificationService.getPushToken();
           if (token) {
             await authService.registerPushToken(uid, token);
-            console.log("[DEBUG-PUSH] Token registered successfully");
+            console.log("[DEBUG-PUSH] Token registered successfully:", token);
           }
         }
       } catch (err) {
@@ -361,10 +362,14 @@ export default function App() {
 
     // Register Push Token on Login
     try {
+      await notificationService.initChannels();
       const hasPermission = await notificationService.requestPermissions();
       if (uid && hasPermission) {
         const token = await notificationService.getPushToken();
-        if (token) await authService.registerPushToken(uid, token);
+        if (token) {
+          await authService.registerPushToken(uid, token);
+          console.log("[DEBUG-PUSH] Token registered on login:", token);
+        }
       }
     } catch (err) {
       console.warn("[PUSH-LOGIN-FAIL]", err);

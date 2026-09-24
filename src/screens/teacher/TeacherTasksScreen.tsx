@@ -471,7 +471,7 @@ export const TeacherTasksScreen = ({ navigation }: any) => {
                 })}
               </ScrollView>
             ) : (
-              <Text style={{ fontSize: 14, color: '#94a3b8', textAlign: isRTL ? 'right' : 'left' }}>{(t?.noSubjectsFound || 'No subjects found')}</Text>
+              <Text style={{ fontSize: 14, color: '#94a3b8', textAlign: isRTL ? 'right' : 'left' }}>{((t as any)?.noSubjectsFound || 'No subjects found')}</Text>
             )}
           </View>
 

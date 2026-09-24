@@ -3,7 +3,7 @@
     "name": "SnapSchool",
     "slug": "SnapSchool_App",
     "scheme": "snapschool-app",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -25,14 +25,29 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.fares01.SnapSchool_App",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-web-browser",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#0055d4",
+          "sounds": [
+            "./assets/sounds/notification.m4a",
+            "./assets/sounds/alert.m4a"
+          ]
+        }
+      ],
       "expo-image-picker",
       [
         "expo-asset",

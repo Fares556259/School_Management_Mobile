@@ -339,7 +339,8 @@ export const CoursesScreen = ({ navigation }: any) => {
                 onPress={async () => {
                   try {
                     const filename = viewingMedia.url.split('/').pop()?.split('?')[0] || `snapschool_${Date.now()}.jpg`;
-                    const localUri = `${FileSystem.cacheDirectory}${filename}`;
+                    const cacheDir = (FileSystem as any).cacheDirectory || (FileSystem as any).documentDirectory || '';
+                    const localUri = `${cacheDir}${filename}`;
                     const downloadResult = await FileSystem.downloadAsync(viewingMedia.url, localUri);
 
                     if (await Sharing.isAvailableAsync()) {

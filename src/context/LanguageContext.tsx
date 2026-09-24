@@ -1188,6 +1188,8 @@ interface LanguageContextType {
   t: typeof translations['ar'];
   isRTL: boolean;
   getTranslatedSubject: (rawName: string | null | undefined) => string;
+  formatNotification: (text: string | null | undefined) => string;
+  toWestern: (num: any) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType>({
@@ -1196,6 +1198,8 @@ const LanguageContext = createContext<LanguageContextType>({
   t: translations.ar,
   isRTL: true,
   getTranslatedSubject: () => '',
+  formatNotification: (text) => text || '',
+  toWestern: (num) => String(num ?? ''),
 });
 
 const SUBJECT_DICTIONARY: Record<string, { ar: string; fr: string; en: string }> = {

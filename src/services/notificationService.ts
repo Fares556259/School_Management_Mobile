@@ -6,6 +6,37 @@ import { HomeworkItem, Exam } from '../types';
 // Detect if we are in Expo Go
 const isExpoGo = Constants.appOwnership === 'expo';
 
+// Configure Android Channels with MAX importance for heads-up banners
+export const initNotificationChannels = async () => {
+  if (isExpoGo || Platform.OS !== 'android') return;
+  try {
+    // 1. Standard Channel with MAX importance
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'SnapSchool Alerts',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#0055d4',
+      sound: 'notification.m4a',
+      enableVibrate: true,
+      showBadge: true,
+    });
+
+    // 2. Emergency/Important Channel
+    await Notifications.setNotificationChannelAsync('emergency', {
+      name: 'SnapSchool Emergency',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 500, 200, 500],
+      lightColor: '#ff0000',
+      sound: 'alert.m4a',
+      enableVibrate: true,
+      showBadge: true,
+    });
+    console.log('[NOTIF] Android Notification Channels initialized (MAX importance)');
+  } catch (error) {
+    console.warn('[NOTIF] Failed to configure Android channels:', error);
+  }
+};
+
 // Function to safe-initialize notification handler
 const setupHandler = () => {
   // Guard: Expo Go has strict limitations on native modules (SDK 53+)
@@ -25,24 +56,7 @@ const setupHandler = () => {
       }),
     });
 
-    // Configure Android Channels
-    if (Platform.OS === 'android') {
-      // 1. Standard Channel
-      Notifications.setNotificationChannelAsync('default', {
-        name: 'SnapSchool Alerts',
-        importance: Notifications.AndroidImportance.DEFAULT,
-        sound: 'notification.m4a',
-      });
-
-      // 2. Emergency/Important Channel
-      Notifications.setNotificationChannelAsync('emergency', {
-        name: 'SnapSchool Emergency',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 500, 200, 500],
-        lightColor: '#ff0000',
-        sound: 'alert.m4a',
-      });
-    }
+    initNotificationChannels();
   } catch (error) {
     console.warn("Notifications: Failed to set handler (likely Expo Go limitation):", error);
   }
@@ -51,6 +65,8 @@ const setupHandler = () => {
 setupHandler();
 
 export const notificationService = {
+  initChannels: initNotificationChannels,
+
   /**
    * Request permissions from the user
    */
@@ -83,15 +99,22 @@ export const notificationService = {
     
     try {
       const { status } = await Notifications.getPermissionsAsync();
-      if (status !== 'granted') return null;
+      if (status !== 'granted') {
+        console.log("[NOTIF-TOKEN] Permission not granted:", status);
+        return null;
+      }
 
-      // Project ID is required for standalone apps (EAS)
-      const projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
+      // Project ID is required for standalone apps (EAS) - ensure robust fallback
+      const projectId = 
+        Constants.expoConfig?.extra?.eas?.projectId || 
+        Constants.easConfig?.projectId || 
+        'ea2d0e56-8dca-4913-84e5-37322118c6be';
       
       const token = (await Notifications.getExpoPushTokenAsync({
         projectId
       })).data;
       
+      console.log("[NOTIF-TOKEN] Got push token successfully:", token);
       return token;
     } catch (error) {
       console.error("[NOTIF-TOKEN-FAIL]", error);

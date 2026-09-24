@@ -298,7 +298,8 @@ export const TeacherLessonsScreen = ({ navigation }: any) => {
     try {
       setSharingLoading(true);
       const filename = url.split('/').pop()?.split('?')[0] || `snapschool_${Date.now()}.jpg`;
-      const localUri = `${FileSystem.cacheDirectory}${filename}`;
+      const cacheDir = (FileSystem as any).cacheDirectory || (FileSystem as any).documentDirectory || '';
+      const localUri = `${cacheDir}${filename}`;
 
       // Download file locally to cache first
       const downloadResult = await FileSystem.downloadAsync(url, localUri);
