@@ -189,20 +189,6 @@ export default function App() {
 
   // Check stored auth on launch
   useEffect(() => {
-    // Diagnostic Alert for APK debugging
-    const showDiagnostics = () => {
-      const isNewArch = Constants.expoConfig?.newArchEnabled;
-      Alert.alert(
-        "SnapSchool Diagnostic",
-        `API URL: ${API_BASE_URL}\nNew Arch: ${isNewArch ? 'Enabled' : 'Disabled'}\nVersion: ${Constants.expoConfig?.version}`,
-        [{ text: "Continue", style: "default" }]
-      );
-    };
-    
-    // Only show alert in non-development mode (APK/Build)
-    if (Constants.appOwnership !== 'expo') {
-      showDiagnostics();
-    }
 
     const registerPush = async (uid: string) => {
       try {
