@@ -10,7 +10,6 @@ import { useLanguage, Language } from '../context/LanguageContext';
 import { authService, parentService, studentService, uiService, teacherService } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { notificationService } from '../services/notificationService';
-import * as Haptics from 'expo-haptics';
 
 import { GlobalHeader } from '../components/GlobalHeader';
 import { StatusToast, ToastConfig, ToastType } from '../components/StatusToast';

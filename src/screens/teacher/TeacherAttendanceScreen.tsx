@@ -31,7 +31,6 @@ import { TextInput } from 'react-native-gesture-handler';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
-import * as Haptics from 'expo-haptics';
 
 const Skeleton = ({ width, height, borderRadius = 8, style }: any) => {
   const anim = useState(new Animated.Value(0.3))[0];
@@ -47,7 +46,6 @@ const Skeleton = ({ width, height, borderRadius = 8, style }: any) => {
 const DateItem = ({ day, date, active, isToday, onPress }: any) => {
   const scale = React.useRef(new Animated.Value(1)).current;
   const handlePress = () => {
-    Haptics.selectionAsync();
     Animated.sequence([
       Animated.spring(scale, { toValue: 0.93, useNativeDriver: true, speed: 60 }),
       Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 40 }),

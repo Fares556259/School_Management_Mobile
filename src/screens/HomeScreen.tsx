@@ -17,7 +17,6 @@ import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
 import { cacheManager } from '../utils/cacheManager';
 import Reanimated, { FadeInDown } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import { FlingGestureHandler, Directions, State } from 'react-native-gesture-handler';
 import { studentService } from '../services/api';
 import { StudentDayData } from '../types';
@@ -36,7 +35,6 @@ const ICON_MAP: Record<string, any> = {
 const DateItem = ({ day, date, active, isToday, onPress }: any) => {
   const scale = React.useRef(new Animated.Value(1)).current;
   const handlePress = () => {
-    Haptics.selectionAsync();
     Animated.sequence([
       Animated.spring(scale, { toValue: 0.93, useNativeDriver: true, speed: 60 }),
       Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 40 }),
@@ -233,7 +231,6 @@ export const HomeScreen = ({ navigation, route }: any) => {
     }, [selectedChildId, selectedDate])
   );
   const onRefresh = React.useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setRefreshing(true);
     fetchHome();
   }, [selectedChildId, selectedDate]);
@@ -252,7 +249,6 @@ export const HomeScreen = ({ navigation, route }: any) => {
   const daysArr = [t.sunday, t.monday, t.tuesday, t.wednesday, t.thursday, t.friday, t.saturday];
 
   const changeDate = (days: number) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const newDate = new Date(selectedDate);
     newDate.setDate(newDate.getDate() + days);
     setSelectedDate(newDate);
@@ -312,7 +308,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
                   date={d.getDate()}
                   active={d.toDateString() === selectedDate.toDateString()}
                   isToday={d.toDateString() === new Date().toDateString()}
-                  onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setSelectedDate(d); }}
+                  onPress={() => { setSelectedDate(d); }}
                 />
               ))}
             </ScrollView>
@@ -450,7 +446,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
                   <TouchableOpacity
                     key={note.id}
                     activeOpacity={0.8}
-                    onPress={() => { Haptics.selectionAsync(); setSelectedRemark(note); }}
+                    onPress={() => { setSelectedRemark(note); }}
                     style={styles.remarkCard}
                   >
                     <View style={styles.remarkIconWrapper}>

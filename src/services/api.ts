@@ -172,7 +172,21 @@ export const authService = {
     };
   },
 
-  authenticate: async (phone: string, password: string, action: 'setup' | 'signin', role: string, otpCode?: string): Promise<{ success: boolean; error?: string }> => {
+  authenticate: async (
+    phone: string,
+    password: string,
+    action: 'setup' | 'signin',
+    role: string,
+    otpCode?: string
+  ): Promise<{
+    success: boolean;
+    error?: string;
+    userId?: string;
+    userType?: string;
+    name?: string;
+    img?: string | null;
+    students?: any[];
+  }> => {
     const response = await apiFetch('/api/mobile/auth', {
       method: 'POST',
       body: JSON.stringify({ phone: phone.trim(), password, action, role, otpCode }),
@@ -186,16 +200,25 @@ export const authService = {
       return { success: false, error: response.error || 'Authentication aborted.' };
     }
 
-    if (response.token) await authStorage.saveToken(response.token);
-    if (response.userId) await authStorage.saveUserId(response.userId);
-    if (response.userType) await authStorage.saveUserRole(response.userType);
-    if (response.schoolId) await authStorage.saveSchoolId(response.schoolId);
-    
-    if (response.students) {
-      await AsyncStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify(response.students));
-    }
-    
-    return { success: true };
+    // Save tokens and session in parallel for speed
+    await Promise.all([
+      response.token ? authStorage.saveToken(response.token) : Promise.resolve(),
+      response.userId ? authStorage.saveUserId(response.userId) : Promise.resolve(),
+      response.userType ? authStorage.saveUserRole(response.userType) : Promise.resolve(),
+      response.schoolId ? authStorage.saveSchoolId(response.schoolId) : Promise.resolve(),
+      response.students
+        ? AsyncStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify(response.students))
+        : Promise.resolve(),
+    ]);
+
+    return {
+      success: true,
+      userId: response.userId,
+      userType: response.userType,
+      name: response.name,
+      img: response.img || null,
+      students: response.students,
+    };
   },
 
   sendOTP: async (phone: string, role: string): Promise<{ success: boolean; error?: string; demoCode?: string }> => {

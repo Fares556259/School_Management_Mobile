@@ -3,7 +3,6 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInUp, FadeOutUp } from 'react-native-reanimated';
 import { CheckCircle2, Bell, BellOff, AlertCircle, X } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
 import { useLanguage } from '../context/LanguageContext';
 
 export type ToastType = 'success' | 'info' | 'warning' | 'error';
@@ -30,28 +29,24 @@ const TYPE_CONFIG = {
     color: '#10b981',
     bgColor: '#ecfdf5',
     borderColor: '#a7f3d0',
-    haptic: Haptics.NotificationFeedbackType.Success,
   },
   info: {
     icon: Bell,
     color: '#0055d4',
     bgColor: '#eff6ff',
     borderColor: '#bfdbfe',
-    haptic: Haptics.NotificationFeedbackType.Success,
   },
   warning: {
     icon: BellOff,
     color: '#f59e0b',
     bgColor: '#fffbeb',
     borderColor: '#fde68a',
-    haptic: Haptics.NotificationFeedbackType.Warning,
   },
   error: {
     icon: AlertCircle,
     color: '#ef4444',
     bgColor: '#fef2f2',
     borderColor: '#fecaca',
-    haptic: Haptics.NotificationFeedbackType.Error,
   },
 };
 
@@ -68,13 +63,6 @@ export const StatusToast = ({
 
   useEffect(() => {
     if (visible) {
-      const config = TYPE_CONFIG[type];
-      try {
-        Haptics.notificationAsync(config.haptic);
-      } catch (e) {
-        // Ignore haptic errors on unsupported devices
-      }
-
       const timer = setTimeout(() => {
         onDismiss();
       }, duration);

@@ -5,7 +5,6 @@ import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
 import { authStorage, studentService } from '../services/api';
 import { Image } from 'expo-image';
-import * as Haptics from 'expo-haptics';
 
 interface GlobalHeaderProps {
   navigation: any;
@@ -48,14 +47,12 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
   }, [selectedChildId, userId]);
 
   const handleSwitchChild = (id: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSelectedChildId(id);
     setShowSwitcher(false);
   };
 
   const toggleSwitcher = () => {
     if (userRole === 'teacher') return;
-    Haptics.selectionAsync();
     setShowSwitcher(!showSwitcher);
   };
 
@@ -66,7 +63,6 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
           {showBack ? (
             <TouchableOpacity 
               onPress={() => {
-                Haptics.selectionAsync();
                 navigation.goBack();
               }}
               style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#e2e8f0', marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }}
@@ -76,7 +72,6 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
           ) : (
             <TouchableOpacity 
               onPress={() => {
-                Haptics.selectionAsync();
                 navigation.navigate('Profile');
               }}
               activeOpacity={0.8}
@@ -129,7 +124,6 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
 
         <TouchableOpacity
           onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             setUnreadNotificationsCount(0);
             navigation.navigate('Notifications');
           }}

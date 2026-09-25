@@ -9,7 +9,6 @@ import { useLanguage } from '../context/LanguageContext';
 import { GlobalHeader } from '../components/GlobalHeader';
 import { Image } from 'expo-image';
 import { SkeletonBlock } from '../components/SkeletonView';
-import * as Haptics from 'expo-haptics';
 import moment from 'moment';
 
 // ─── Announcement Card ────────────────────────────────────────────────────────
@@ -18,7 +17,7 @@ const AnnouncementCard = ({ item, onPress }: any) => {
   const isUrgent = item.category === 'URGENT';
   return (
     <TouchableOpacity
-      onPress={() => { Haptics.selectionAsync(); onPress(); }}
+      onPress={() => { onPress(); }}
       activeOpacity={0.88}
       style={{
         backgroundColor: 'white',

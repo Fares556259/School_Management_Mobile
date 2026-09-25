@@ -15,10 +15,9 @@ import { GraduationCap, Phone, Lock, ChevronLeft, ArrowRight } from 'lucide-reac
 import { authService } from '../services/api';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage, Language } from '../context/LanguageContext';
-import * as Haptics from 'expo-haptics';
 
 export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'teacher', onSignIn: () => void, onBack: () => void }) => {
-  const { setUserName, setUserAvatarUrl } = useAppStore();
+  const { setUserName, setUserAvatarUrl, setChildren, setSelectedChildId, setUserId, setUserRole } = useAppStore();
   const { language, setLanguage, t, isRTL } = useLanguage();
 
   const [step, setStep] = useState<'PHONE' | 'NEEDS_PASSWORD' | 'NEEDS_SETUP'>('PHONE');
@@ -34,7 +33,6 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
       setError((t?.pleaseEnterYourPhoneNumber || 'Please enter your phone number.'));
       return;
     }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsLoading(true);
     setError('');
     try {
@@ -44,7 +42,6 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
         setStep(result.status);
       } else {
         setError(result.error || (t?.accountNotFoundPleaseContact || 'Account not found. Please contact support.'));
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     } catch (e) {
       setError(t?.networkErrorPleaseTryAgain || 'Network error. Please try again.');
@@ -58,7 +55,6 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
       setError(t?.pleaseEnterYourPassword || 'Please enter your password.');
       return;
     }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsLoading(true);
     setError('');
     try {
@@ -72,10 +68,17 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
           setIsLoading(false);
           return;
         }
-        // Keep spinner ON — navigate immediately, screen unmounts naturally
-        setUserName(tempParent?.name || 'User');
-        setUserAvatarUrl(tempParent?.img || null);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        // Immediately hydrate store for instant transition
+        if (result.name) setUserName(result.name);
+        else if (tempParent?.name) setUserName(tempParent.name);
+        if (result.img) setUserAvatarUrl(result.img);
+        else if (tempParent?.img) setUserAvatarUrl(tempParent.img);
+        if (result.userId) setUserId(result.userId);
+        if (result.userType) setUserRole(result.userType as any);
+        if (result.students && Array.isArray(result.students) && result.students.length > 0) {
+          setChildren(result.students);
+          setSelectedChildId(result.students[0].id);
+        }
         onSignIn();
       } else {
         const errorMessage = result.error || 'Authentication failed.';
@@ -87,7 +90,6 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
           return;
         }
         setError(errorMessage);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         setIsLoading(false);
       }
     } catch (e) {

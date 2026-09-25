@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronRight, ChevronLeft, Globe, Check, GraduationCap, Bell, Users } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
 import { useLanguage, Language } from '../context/LanguageContext';
 
 const { width, height } = Dimensions.get('window');
@@ -123,7 +122,6 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
   const scrollX = useRef(new Animated.Value(0)).current;
 
   const handleNext = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (currentIndex < ONBOARDING_SLIDES.length - 1) {
       const nextIndex = currentIndex + 1;
       flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
@@ -134,7 +132,6 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
   };
 
   const handlePrevious = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (currentIndex > 0) {
       const prevIndex = currentIndex - 1;
       flatListRef.current?.scrollToIndex({ index: prevIndex, animated: true });
@@ -143,7 +140,6 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
   };
 
   const handleFinish = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onComplete();
   };
 

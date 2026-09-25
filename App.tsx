@@ -37,7 +37,6 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { useAppStore } from './src/store/useAppStore';
 import { parentService, authService, authStorage, studentService, API_BASE_URL, teacherService } from './src/services/api';
 import { notificationService } from './src/services/notificationService';
-import * as Haptics from 'expo-haptics';
 import Constants from 'expo-constants';
 import "./src/styles/global.css";
 
@@ -98,11 +97,6 @@ function BottomTabsContent({ onSignOut }: { onSignOut: () => void }) {
   return (
     <Tab.Navigator
       initialRouteName="Home"
-      screenListeners={{
-        tabPress: () => {
-          Haptics.selectionAsync();
-        },
-      }}
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
@@ -347,40 +341,56 @@ export default function App() {
     const uid = await authStorage.getUserId();
     const role = await authStorage.getUserRole();
     
-    setUserId(uid);
-    setUserRole(role as any);
+    if (uid) setUserId(uid);
+    if (role) setUserRole(role as any);
 
-    let profile: any = null;
-    if (role === 'parent') {
-      profile = await parentService.fetchParentProfile();
-      const data = await parentService.fetchChildren();
-      if (Array.isArray(data)) {
-        setChildren(data);
-        if (data.length > 0) setSelectedChildId(data[0].id);
-      }
-    } else {
-      profile = await teacherService.fetchProfile();
-    }
-
-    if (profile?.name) setUserName(`${profile.name} ${profile.surname}`);
-    if (profile?.img) setUserAvatarUrl(profile.img);
-
-    // Register Push Token on Login
-    try {
-      await notificationService.initChannels();
-      const hasPermission = await notificationService.requestPermissions();
-      if (uid && hasPermission) {
-        const token = await notificationService.getPushToken();
-        if (token) {
-          await authService.registerPushToken(uid, token);
-          console.log("[DEBUG-PUSH] Token registered on login:", token);
-        }
-      }
-    } catch (err) {
-      console.warn("[PUSH-LOGIN-FAIL]", err);
-    }
-    
+    // 1. Immediately transition to signedIn state for instant feedback
     setAuthState('signedIn');
+
+    // 2. Hydrate children and profile concurrently in background
+    (async () => {
+      try {
+        if (role === 'parent') {
+          // Parallel fetch for profile and children
+          const [profile, data] = await Promise.all([
+            parentService.fetchParentProfile(),
+            parentService.fetchChildren(),
+          ]);
+
+          if (Array.isArray(data) && data.length > 0) {
+            setChildren(data);
+            setSelectedChildId(data[0].id);
+          }
+          if (profile?.name) setUserName(`${profile.name} ${profile.surname}`);
+          if (profile?.img) setUserAvatarUrl(profile.img);
+        } else {
+          const profile = await teacherService.fetchProfile();
+          if (profile?.name) setUserName(`${profile.name} ${profile.surname}`);
+          if (profile?.img) setUserAvatarUrl(profile.img);
+        }
+      } catch (err) {
+        console.warn("[HYDRATE-FAIL]", err);
+      }
+    })();
+
+    // 3. Register push token in background asynchronously without blocking UI
+    if (uid) {
+      (async () => {
+        try {
+          await notificationService.initChannels();
+          const hasPermission = await notificationService.requestPermissions();
+          if (hasPermission) {
+            const token = await notificationService.getPushToken();
+            if (token) {
+              await authService.registerPushToken(uid, token);
+              console.log("[DEBUG-PUSH] Token registered in background on login:", token);
+            }
+          }
+        } catch (err) {
+          console.warn("[PUSH-LOGIN-FAIL]", err);
+        }
+      })();
+    }
   };
 
   const handleSignOut = React.useCallback(async () => {
