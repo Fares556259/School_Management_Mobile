@@ -8,9 +8,9 @@ import {
   StyleSheet,
   Easing,
 } from 'react-native';
-import { GraduationCap, Sparkles } from 'lucide-react-native';
+import { GraduationCap } from 'lucide-react-native';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 interface AppLaunchScreenProps {
   onFinish?: () => void;
@@ -19,78 +19,76 @@ interface AppLaunchScreenProps {
 
 export const AppLaunchScreen: React.FC<AppLaunchScreenProps> = ({
   onFinish,
-  minDurationMs = 1300,
+  minDurationMs = 1400,
 }) => {
-  const logoScale = useRef(new Animated.Value(0.75)).current;
+  const logoScale = useRef(new Animated.Value(0.8)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const contentFade = useRef(new Animated.Value(0)).current;
   const glowScale = useRef(new Animated.Value(1)).current;
-  const glowOpacity = useRef(new Animated.Value(0.4)).current;
-  const progressAnim = useRef(new Animated.Value(0)).current;
+  const glowOpacity = useRef(new Animated.Value(0.35)).current;
   const exitFade = useRef(new Animated.Value(1)).current;
+
+  // Wave dots animation
+  const dot1Anim = useRef(new Animated.Value(0)).current;
+  const dot2Anim = useRef(new Animated.Value(0)).current;
+  const dot3Anim = useRef(new Animated.Value(0)).current;
 
   const [loadingTextIndex, setLoadingTextIndex] = useState(0);
 
   const statusMessages = [
-    'Initialisation de SnapSchool...',
+    'Chargement de votre espace...',
     'Synchronisation sécurisée...',
-    'Préparation de votre espace...',
+    'Bienvenue sur SnapSchool',
   ];
 
   useEffect(() => {
-    // 1. Entrance animation
+    // 1. Entrance animation (gentle spring)
     Animated.parallel([
       Animated.spring(logoScale, {
         toValue: 1,
-        tension: 50,
-        friction: 6,
+        tension: 45,
+        friction: 6.5,
         useNativeDriver: true,
       }),
       Animated.timing(logoOpacity, {
         toValue: 1,
-        duration: 400,
+        duration: 380,
         useNativeDriver: true,
       }),
       Animated.timing(contentFade, {
         toValue: 1,
-        duration: 500,
-        delay: 200,
+        duration: 450,
+        delay: 150,
         useNativeDriver: true,
-      }),
-      Animated.timing(progressAnim, {
-        toValue: 1,
-        duration: minDurationMs - 150,
-        easing: Easing.bezier(0.2, 0.8, 0.2, 1),
-        useNativeDriver: false,
       }),
     ]).start();
 
-    // 2. Continuous breathing glow loop
+    // 2. Continuous breathing halo behind logo
     const glowLoop = Animated.loop(
       Animated.sequence([
         Animated.parallel([
           Animated.timing(glowScale, {
-            toValue: 1.25,
-            duration: 900,
+            toValue: 1.28,
+            duration: 1000,
             easing: Easing.inOut(Easing.ease),
             useNativeDriver: true,
           }),
           Animated.timing(glowOpacity, {
-            toValue: 0.15,
-            duration: 900,
+            toValue: 0.12,
+            duration: 1000,
             useNativeDriver: true,
           }),
         ]),
         Animated.parallel([
           Animated.timing(glowScale, {
             toValue: 1,
-            duration: 900,
+            duration: 1000,
             easing: Easing.inOut(Easing.ease),
             useNativeDriver: true,
           }),
           Animated.timing(glowOpacity, {
-            toValue: 0.45,
-            duration: 900,
+            toValue: 0.35,
+            duration: 1000,
             useNativeDriver: true,
           }),
         ]),
@@ -98,12 +96,42 @@ export const AppLaunchScreen: React.FC<AppLaunchScreenProps> = ({
     );
     glowLoop.start();
 
-    // 3. Cycle micro-status captions
+    // 3. Elegant bouncing dots wave loop
+    const createDotLoop = (anim: Animated.Value, delay: number) => {
+      return Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(anim, {
+            toValue: -6,
+            duration: 320,
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(anim, {
+            toValue: 0,
+            duration: 320,
+            easing: Easing.in(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.delay(400 - delay),
+        ])
+      );
+    };
+
+    const dot1Loop = createDotLoop(dot1Anim, 0);
+    const dot2Loop = createDotLoop(dot2Anim, 120);
+    const dot3Loop = createDotLoop(dot3Anim, 240);
+
+    dot1Loop.start();
+    dot2Loop.start();
+    dot3Loop.start();
+
+    // 4. Subtle status text cycle
     const textInterval = setInterval(() => {
       setLoadingTextIndex((prev) => (prev + 1) % statusMessages.length);
     }, 450);
 
-    // 4. Graceful exit
+    // 5. Clean exit
     const timer = setTimeout(() => {
       Animated.timing(exitFade, {
         toValue: 0,
@@ -112,6 +140,9 @@ export const AppLaunchScreen: React.FC<AppLaunchScreenProps> = ({
       }).start(() => {
         clearInterval(textInterval);
         glowLoop.stop();
+        dot1Loop.stop();
+        dot2Loop.stop();
+        dot3Loop.stop();
         if (onFinish) onFinish();
       });
     }, minDurationMs);
@@ -120,25 +151,23 @@ export const AppLaunchScreen: React.FC<AppLaunchScreenProps> = ({
       clearTimeout(timer);
       clearInterval(textInterval);
       glowLoop.stop();
+      dot1Loop.stop();
+      dot2Loop.stop();
+      dot3Loop.stop();
     };
   }, []);
 
-  const progressWidth = progressAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['10%', '100%'],
-  });
-
   return (
     <Animated.View style={[styles.container, { opacity: exitFade }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#060e1a" translucent />
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" translucent />
 
-      {/* Decorative ambient background glows */}
+      {/* Subtle, luxurious ambient background gradients */}
       <View style={styles.topOrb} />
       <View style={styles.bottomOrb} />
 
       {/* Center Hero Logo + Branding */}
       <View style={styles.centerContent}>
-        {/* Pulsing Aura */}
+        {/* Breathing Halo behind the logo */}
         <Animated.View
           style={[
             styles.glowRing,
@@ -149,7 +178,7 @@ export const AppLaunchScreen: React.FC<AppLaunchScreenProps> = ({
           ]}
         />
 
-        {/* Main Logo Card */}
+        {/* Premium Logo Card */}
         <Animated.View
           style={[
             styles.logoContainer,
@@ -159,7 +188,7 @@ export const AppLaunchScreen: React.FC<AppLaunchScreenProps> = ({
             },
           ]}
         >
-          <GraduationCap color="#ffffff" size={44} strokeWidth={2.4} />
+          <GraduationCap color="#ffffff" size={48} strokeWidth={2.4} />
         </Animated.View>
 
         {/* Brand Name */}
@@ -169,16 +198,17 @@ export const AppLaunchScreen: React.FC<AppLaunchScreenProps> = ({
           </Text>
 
           <View style={styles.taglineBadge}>
-            <Sparkles size={12} color="#60a5fa" />
             <Text style={styles.taglineText}>L'Éducation Connectée</Text>
           </View>
         </Animated.View>
       </View>
 
-      {/* Modern Sleek Loading Bar + Status Message */}
+      {/* Refined Minimalist Dot Loader + Status Message */}
       <Animated.View style={[styles.footerContent, { opacity: contentFade }]}>
-        <View style={styles.progressTrack}>
-          <Animated.View style={[styles.progressBar, { width: progressWidth }]} />
+        <View style={styles.dotsRow}>
+          <Animated.View style={[styles.dot, { transform: [{ translateY: dot1Anim }] }]} />
+          <Animated.View style={[styles.dot, { transform: [{ translateY: dot2Anim }] }]} />
+          <Animated.View style={[styles.dot, { transform: [{ translateY: dot3Anim }] }]} />
         </View>
 
         <Text style={styles.statusText}>{statusMessages[loadingTextIndex]}</Text>
@@ -190,28 +220,28 @@ export const AppLaunchScreen: React.FC<AppLaunchScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#060e1a',
+    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
   },
   topOrb: {
     position: 'absolute',
-    top: -100,
-    right: -80,
-    width: 320,
-    height: 320,
-    borderRadius: 160,
-    backgroundColor: '#0055d420',
-  },
-  bottomOrb: {
-    position: 'absolute',
-    bottom: -120,
-    left: -100,
+    top: -120,
+    right: -100,
     width: 360,
     height: 360,
     borderRadius: 180,
-    backgroundColor: '#0284c715',
+    backgroundColor: '#0055d40a',
+  },
+  bottomOrb: {
+    position: 'absolute',
+    bottom: -140,
+    left: -120,
+    width: 380,
+    height: 380,
+    borderRadius: 190,
+    backgroundColor: '#0284c708',
   },
   centerContent: {
     alignItems: 'center',
@@ -219,82 +249,78 @@ const styles = StyleSheet.create({
   },
   glowRing: {
     position: 'absolute',
-    width: 140,
-    height: 140,
-    borderRadius: 44,
-    backgroundColor: '#0055d4',
+    width: 150,
+    height: 150,
+    borderRadius: 48,
+    backgroundColor: '#0055d420',
   },
   logoContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 30,
+    width: 104,
+    height: 104,
+    borderRadius: 32,
     backgroundColor: '#0055d4',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#0055d4',
     shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.45,
-    shadowRadius: 20,
-    elevation: 12,
+    shadowOpacity: 0.35,
+    shadowRadius: 22,
+    elevation: 10,
     borderWidth: 1.5,
-    borderColor: '#ffffff30',
+    borderColor: '#ffffff50',
   },
   brandWrapper: {
     alignItems: 'center',
     marginTop: 22,
   },
   brandTitle: {
-    fontSize: 34,
+    fontSize: 36,
     fontWeight: '900',
-    color: '#ffffff',
-    letterSpacing: -0.8,
+    color: '#0f172a',
+    letterSpacing: -0.9,
     fontFamily: 'PlusJakartaSans-ExtraBold',
   },
   brandAccent: {
-    color: '#38bdf8',
+    color: '#0055d4',
   },
   taglineBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0f2445',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 16,
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 18,
     marginTop: 10,
-    gap: 6,
     borderWidth: 1,
-    borderColor: '#1e3a8a60',
+    borderColor: '#dbeafe',
   },
   taglineText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#93c5fd',
+    color: '#0055d4',
     letterSpacing: 0.3,
   },
   footerContent: {
     position: 'absolute',
-    bottom: 50,
+    bottom: 54,
     width: '100%',
     alignItems: 'center',
-    paddingHorizontal: 20,
   },
-  progressTrack: {
-    width: Math.min(width * 0.55, 220),
-    height: 4,
-    borderRadius: 4,
-    backgroundColor: '#1e293b',
-    overflow: 'hidden',
+  dotsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginBottom: 14,
+    height: 18,
   },
-  progressBar: {
-    height: '100%',
-    backgroundColor: '#38bdf8',
-    borderRadius: 4,
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#0055d4',
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#64748b',
+    color: '#94a3b8',
     letterSpacing: 0.2,
   },
 });

@@ -12,7 +12,7 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronRight, ArrowLeft, Sparkles, Globe, Check } from 'lucide-react-native';
+import { ChevronRight, ArrowLeft, Globe, Check, GraduationCap, Bell, Users } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useLanguage, Language } from '../context/LanguageContext';
 
@@ -20,6 +20,7 @@ const { width, height } = Dimensions.get('window');
 
 interface OnboardingSlide {
   id: string;
+  icon: any;
   badge: { fr: string; ar: string; en: string };
   title: { fr: string; ar: string; en: string };
   highlight: { fr: string; ar: string; en: string };
@@ -31,10 +32,11 @@ interface OnboardingSlide {
 const ONBOARDING_SLIDES: OnboardingSlide[] = [
   {
     id: 'grades_and_homework',
+    icon: GraduationCap,
     badge: {
-      fr: '🎓 SUIVI SCOLAIRE EN DIRECT',
-      ar: '🎓 متابعة دراسية مباشرة',
-      en: '🎓 REAL-TIME SCHOOL TRACKING',
+      fr: 'SUIVI SCOLAIRE EN DIRECT',
+      ar: 'متابعة دراسية مباشرة',
+      en: 'REAL-TIME SCHOOL TRACKING',
     },
     title: {
       fr: 'Votre École en Direct, ',
@@ -56,10 +58,11 @@ const ONBOARDING_SLIDES: OnboardingSlide[] = [
   },
   {
     id: 'push_notifications',
+    icon: Bell,
     badge: {
-      fr: '⚡ NOTIFICATIONS & ALERTES',
-      ar: '⚡ تنبيهات وإشعارات فورية',
-      en: '⚡ INSTANT NOTIFICATIONS',
+      fr: 'NOTIFICATIONS & ALERTES',
+      ar: 'تنبيهات وإشعارات فورية',
+      en: 'INSTANT NOTIFICATIONS',
     },
     title: {
       fr: 'Ne Manquez Plus Aucune ',
@@ -77,14 +80,15 @@ const ONBOARDING_SLIDES: OnboardingSlide[] = [
       en: 'Get instant push alerts for unexpected schedule changes, attendance status, and priority school circulars.',
     },
     image: require('../../assets/onboarding/onboard_alerts.jpg'),
-    accentColor: '#f59e0b',
+    accentColor: '#d97706',
   },
   {
     id: 'community_collaboration',
+    icon: Users,
     badge: {
-      fr: '👩‍🏫 ENSEIGNANTS & PARENTS',
-      ar: '👩‍🏫 الأساتذة والأولياء معاً',
-      en: '👩‍🏫 TEACHERS & PARENTS',
+      fr: 'ENSEIGNANTS & PARENTS',
+      ar: 'الأساتذة والأولياء معاً',
+      en: 'TEACHERS & PARENTS',
     },
     title: {
       fr: 'Une Plateforme Unifiée pour la ',
@@ -97,12 +101,12 @@ const ONBOARDING_SLIDES: OnboardingSlide[] = [
       en: 'Student Success.',
     },
     description: {
-      fr: 'Suivi transparent des paiements de scolarité, gestion d\'appel pour les profs et relation fluide pour l\'épanouissement des élèves.',
+      fr: "Suivi transparent des paiements de scolarité, gestion d'appel pour les profs et relation fluide pour l'épanouissement des élèves.",
       ar: 'متابعة شفافة لرسوم الدراسة، إدارة سلسة للحصص للمعلمين، وتواصل بنّاء لدعم مسيرة التلميذ.',
       en: 'Streamlined tuition tracking, effortless teacher attendance logs, and frictionless communication.',
     },
     image: require('../../assets/onboarding/onboard_teacher.jpg'),
-    accentColor: '#10b981',
+    accentColor: '#059669',
   },
 ];
 
@@ -144,6 +148,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
   };
 
   const currentSlide = ONBOARDING_SLIDES[currentIndex];
+  const CurrentIcon = currentSlide.icon;
 
   const getLangBadge = () => {
     if (language === 'ar') return 'العربية 🇹🇳';
@@ -153,9 +158,9 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
 
   const skipLabel = language === 'ar' ? 'تخطي ←' : language === 'fr' ? 'Passer →' : 'Skip →';
   const prevLabel = language === 'ar' ? 'السابق' : language === 'fr' ? 'Précédent' : 'Previous';
-  const nextLabel = language === 'ar' ? 'التالي' : language === 'fr' ? 'Suivant' : 'Next';
+  const nextLabel = language === 'ar' ? 'Suivant' : language === 'fr' ? 'Suivant' : 'Next';
   const getStartedLabel =
-    language === 'ar' ? 'ابدأ الآن 🚀' : language === 'fr' ? "Commencer l'expérience 🚀" : "Let's Get Started 🚀";
+    language === 'ar' ? 'ابدأ الآن 🚀' : language === 'fr' ? 'Commencer 🚀' : 'Get Started 🚀';
 
   return (
     <View style={styles.container}>
@@ -198,13 +203,23 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
             showsHorizontalScrollIndicator={false}
             bounces={false}
             keyExtractor={(item) => item.id}
+            getItemLayout={(_, index) => ({
+              length: width,
+              offset: width * index,
+              index,
+            })}
+            onScrollToIndexFailed={(info) => {
+              setTimeout(() => {
+                flatListRef.current?.scrollToIndex({ index: info.index, animated: true });
+              }, 100);
+            }}
             onScroll={Animated.event(
               [{ nativeEvent: { contentOffset: { x: scrollX } } }],
               { useNativeDriver: false }
             )}
             onMomentumScrollEnd={(e) => {
               const newIndex = Math.round(e.nativeEvent.contentOffset.x / width);
-              setCurrentIndex(newIndex);
+              setCurrentIndex(Math.min(Math.max(newIndex, 0), ONBOARDING_SLIDES.length - 1));
             }}
             renderItem={({ item }) => (
               <View style={styles.slideItem}>
@@ -234,16 +249,26 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
             })}
           </View>
 
-          {/* Badge */}
-          <View style={styles.badgeWrapper}>
-            <Sparkles size={13} color="#0055d4" />
-            <Text style={styles.badgeText}>{currentSlide.badge[language] || currentSlide.badge.fr}</Text>
+          {/* Clean Badge (No AI Sparkles, proper semantic icon) */}
+          <View
+            style={[
+              styles.badgeWrapper,
+              {
+                backgroundColor: `${currentSlide.accentColor}12`,
+                borderColor: `${currentSlide.accentColor}30`,
+              },
+            ]}
+          >
+            <CurrentIcon size={14} color={currentSlide.accentColor} strokeWidth={2.4} />
+            <Text style={[styles.badgeText, { color: currentSlide.accentColor }]}>
+              {currentSlide.badge[language] || currentSlide.badge.fr}
+            </Text>
           </View>
 
           {/* Title & Highlight */}
           <Text style={[styles.mainTitle, isRTL && { textAlign: 'right' }]}>
             {currentSlide.title[language] || currentSlide.title.fr}
-            <Text style={styles.highlightText}>
+            <Text style={[styles.highlightText, { color: currentSlide.accentColor }]}>
               {currentSlide.highlight[language] || currentSlide.highlight.fr}
             </Text>
           </Text>
@@ -270,7 +295,10 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
               <TouchableOpacity
                 onPress={handleNext}
                 activeOpacity={0.85}
-                style={[styles.nextButton, { flex: currentIndex > 0 ? 1 : undefined, width: currentIndex === 0 ? '100%' : undefined }]}
+                style={[
+                  styles.nextButton,
+                  { flex: currentIndex > 0 ? 1 : undefined, width: currentIndex === 0 ? '100%' : undefined },
+                ]}
               >
                 <Text style={styles.nextButtonText}>{nextLabel}</Text>
                 <ChevronRight size={20} color="#ffffff" strokeWidth={2.5} />
@@ -279,9 +307,14 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
               <TouchableOpacity
                 onPress={handleFinish}
                 activeOpacity={0.85}
-                style={styles.finishButton}
+                style={[
+                  styles.finishButton,
+                  { flex: currentIndex > 0 ? 1 : undefined, width: currentIndex === 0 ? '100%' : undefined },
+                ]}
               >
-                <Text style={styles.finishButtonText}>{getStartedLabel}</Text>
+                <Text style={styles.finishButtonText} numberOfLines={1}>
+                  {getStartedLabel}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -310,8 +343,8 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
             </Text>
 
             {[
-              { id: 'fr', name: 'Français', flag: '🇫🇷' },
               { id: 'ar', name: 'العربية', flag: '🇹🇳' },
+              { id: 'fr', name: 'Français', flag: '🇫🇷' },
               { id: 'en', name: 'English', flag: '🇬🇧' },
             ].map((item) => (
               <TouchableOpacity
@@ -322,11 +355,11 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                 }}
                 style={[
                   styles.langOption,
-                  language === item.id && styles.langOptionActive,
+                  language === item.id && styles.langOptionSelected,
                 ]}
               >
                 <Text style={styles.langOptionText}>
-                  {item.flag}  {item.name}
+                  {item.flag} {item.name}
                 </Text>
                 {language === item.id && <Check size={20} color="#0055d4" strokeWidth={3} />}
               </TouchableOpacity>
@@ -401,7 +434,7 @@ const styles = StyleSheet.create({
     color: '#64748b',
   },
   carouselContainer: {
-    height: height * 0.44,
+    height: height * 0.42,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -412,15 +445,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   imageCard: {
-    width: Math.min(width * 0.8, 320),
-    height: Math.min(width * 0.8, 320),
-    borderRadius: 36,
+    width: Math.min(width * 0.78, 300),
+    height: Math.min(width * 0.78, 300),
+    borderRadius: 32,
     overflow: 'hidden',
     backgroundColor: '#ffffff',
     shadowColor: '#0055d4',
-    shadowOffset: { width: 0, height: 14 },
+    shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.12,
-    shadowRadius: 24,
+    shadowRadius: 20,
     elevation: 8,
     borderWidth: 1.5,
     borderColor: '#e8f0fe',
@@ -451,7 +484,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   indicatorDot: {
     height: 6,
@@ -469,20 +502,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'center',
-    backgroundColor: '#eff6ff',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 14,
-    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 16,
+    gap: 7,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#dbeafe',
   },
   badgeText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#0055d4',
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
   },
   mainTitle: {
     fontSize: 22,
@@ -495,7 +525,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   highlightText: {
-    color: '#0055d4',
+    fontWeight: '900',
   },
   descriptionText: {
     fontSize: 13,
@@ -504,7 +534,7 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     fontWeight: '500',
     paddingHorizontal: 8,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -534,6 +564,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#0055d4',
     paddingVertical: 14,
+    paddingHorizontal: 16,
     borderRadius: 20,
     gap: 6,
     shadowColor: '#0055d4',
@@ -548,23 +579,23 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   finishButton: {
-    width: '100%',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#0055d4',
-    paddingVertical: 15,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     borderRadius: 20,
     shadowColor: '#0055d4',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 4,
   },
   finishButtonText: {
-    fontSize: 16,
-    fontWeight: '900',
+    fontSize: 15,
+    fontWeight: '800',
     color: '#ffffff',
-    letterSpacing: 0.2,
   },
   modalOverlay: {
     flex: 1,
@@ -581,7 +612,7 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   modalTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '900',
     color: '#1e293b',
     marginBottom: 16,
@@ -591,20 +622,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 18,
     backgroundColor: '#f8fafc',
     marginBottom: 10,
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
-  langOptionActive: {
+  langOptionSelected: {
     backgroundColor: '#eff6ff',
     borderColor: '#0055d4',
   },
   langOptionText: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
     color: '#1e293b',
   },

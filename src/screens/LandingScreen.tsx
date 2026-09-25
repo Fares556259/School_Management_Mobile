@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, StatusBar, Alert, Dimensions, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GraduationCap, ArrowRight, ChevronRight, Globe, Check, Sparkles } from 'lucide-react-native';
+import { GraduationCap, ArrowRight, ChevronRight, Globe, Check } from 'lucide-react-native';
 import { useLanguage, Language } from '../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
@@ -221,41 +221,7 @@ export const LandingScreen = ({
             </TouchableOpacity>
           </Modal>
 
-          {/* Tour / Onboarding Replay Button */}
-          {onViewOnboarding && (
-            <TouchableOpacity
-              onPress={onViewOnboarding}
-              activeOpacity={0.8}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#ffffff',
-                paddingVertical: 12,
-                paddingHorizontal: 20,
-                borderRadius: 22,
-                alignSelf: 'center',
-                marginTop: 10,
-                gap: 8,
-                borderWidth: 1,
-                borderColor: '#e2e8f0',
-                shadowColor: '#0055d4',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.05,
-                shadowRadius: 6,
-                elevation: 2,
-              }}
-            >
-              <Sparkles size={16} color="#0055d4" />
-              <Text style={{ fontSize: 13, fontWeight: '800', color: '#0055d4' }}>
-                {language === 'ar'
-                  ? 'اكتشف مزايا التطبيق ✨'
-                  : language === 'fr'
-                  ? 'Découvrir SnapSchool ✨'
-                  : 'Explore SnapSchool ✨'}
-              </Text>
-            </TouchableOpacity>
-          )}
+
 
           {/* Footer Info */}
           <View style={{ marginTop: 24, alignItems: 'center' }}>

@@ -190,7 +190,8 @@ export default function App() {
   const [selectedRole, setSelectedRole] = useState<'parent' | 'teacher'>('parent');
   const [isBootstrapDone, setIsBootstrapDone] = useState(false);
   const [isLaunchMinTimeDone, setIsLaunchMinTimeDone] = useState(false);
-  const targetAuthStateRef = React.useRef<'onboarding' | 'landing' | 'signedIn'>('landing');
+  const targetAuthStateRef = React.useRef<'onboarding' | 'landing' | 'signedIn'>('onboarding');
+  const postOnboardingStateRef = React.useRef<'signedIn' | 'landing'>('landing');
 
   // Transition smoothly from launch screen once bootstrap and minimum animation time have elapsed
   useEffect(() => {
@@ -224,10 +225,9 @@ export default function App() {
     };
 
     const bootstrap = async () => {
-      let nextState: 'onboarding' | 'landing' | 'signedIn' = 'landing';
+      let nextPostOnboarding: 'signedIn' | 'landing' = 'landing';
       try {
         const loggedIn = await authStorage.isLoggedIn();
-        const seenOnboarding = await AsyncStorage.getItem('@has_seen_onboarding');
 
         if (loggedIn) {
           const uid = await authStorage.getUserId();
@@ -257,25 +257,22 @@ export default function App() {
             setUserName(`${profile.name} ${profile.surname}`);
             setUserAvatarUrl(profile.img || null);
           }
-          nextState = 'signedIn';
-        } else if (seenOnboarding !== 'true') {
-          nextState = 'onboarding';
+          nextPostOnboarding = 'signedIn';
         } else {
-          nextState = 'landing';
+          nextPostOnboarding = 'landing';
         }
       } catch (error) {
         console.error("[BOOTSTRAP-ERROR]", error);
         const uid = await authStorage.getUserId();
-        const seenOnboarding = await AsyncStorage.getItem('@has_seen_onboarding');
         if (uid) {
-          nextState = 'signedIn';
-        } else if (seenOnboarding !== 'true') {
-          nextState = 'onboarding';
+          nextPostOnboarding = 'signedIn';
         } else {
-          nextState = 'landing';
+          nextPostOnboarding = 'landing';
         }
       } finally {
-        targetAuthStateRef.current = nextState;
+        postOnboardingStateRef.current = nextPostOnboarding;
+        // In testing: always show onboarding after launch animation
+        targetAuthStateRef.current = 'onboarding';
         setIsBootstrapDone(true);
       }
     };
@@ -392,6 +389,7 @@ export default function App() {
     setUserName("User");
     setUserRole(null);
     setUserId(null);
+    postOnboardingStateRef.current = 'landing';
     setAuthState('landing');
   }, [setChildren, setUserName, setUserRole, setUserId]);
 
@@ -422,13 +420,12 @@ export default function App() {
                 <OnboardingScreen
                   onComplete={async () => {
                     await AsyncStorage.setItem('@has_seen_onboarding', 'true');
-                    setAuthState('landing');
+                    setAuthState(postOnboardingStateRef.current);
                   }}
                 />
               ) : authState === 'landing' ? (
                 <LandingScreen 
                   onSelectRole={onSelectRole}
-                  onViewOnboarding={() => setAuthState('onboarding')}
                 />
               ) : authState === 'signedOut' ? (
                 <SignInScreen role={selectedRole} onSignIn={handleSignIn} onBack={() => setAuthState('landing')} />
