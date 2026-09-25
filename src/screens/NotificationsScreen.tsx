@@ -32,7 +32,9 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
   let dynamicTitle = item.title || t.notifDefaultTitle;
   let displayMessage = item.message;
   
-  if (item.message.includes('A remark was left')) {
+  if (item.title && item.title.trim().length > 0 && item.title !== 'Notification') {
+    dynamicTitle = item.title;
+  } else if (item.message.includes('A remark was left')) {
     dynamicType = 'REMARK';
     dynamicTitle = t.notifTeacherRemark || 'Teacher Remark';
     displayMessage = item.message.replace(/A remark was left for [^:]+:\s*"/, '"');
@@ -51,6 +53,8 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
     }
   } else if (item.type === 'PAYMENT') {
     dynamicTitle = t.notifPaymentAlert || 'Payment Alert';
+  } else if (item.type === 'MESSAGE') {
+    dynamicTitle = item.title || (isRTL ? 'إشعار من الإدارة' : 'Message administratif');
   } else if (item.message.toLowerCase().includes('assignment') || item.message.toLowerCase().includes('task') || item.message.includes('مهمة جديدة')) {
     dynamicType = 'ASSIGNMENT';
     dynamicTitle = t.notifNewAssignment || 'New Assignment';
@@ -63,6 +67,7 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
 
   const extendedConfig = {
     ...ICON_CONFIG,
+    MESSAGE: { icon: Bell, color: '#0055d4', bgColor: '#eff6ff', accentColor: '#0055d4' },
     REMARK: { icon: MessageCircle, color: '#8b5cf6', bgColor: '#f5f3ff', accentColor: '#8b5cf6' },
     ASSIGNMENT: { icon: FileText, color: '#10b981', bgColor: '#d1fae5', accentColor: '#10b981' }
   };
@@ -118,6 +123,10 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
                 <Text style={styles.pillText}>{absenceCount} {t.notifAbsences || 'absences'}</Text>
               </View>
             )}
+          </View>
+
+          <View style={{ justifyContent: 'center', alignItems: 'center', paddingLeft: isRTL ? 0 : 8, paddingRight: isRTL ? 8 : 0, alignSelf: 'center' }}>
+            {isRTL ? <ChevronLeft size={16} color="#cbd5e1" strokeWidth={2.5} /> : <ChevronRight size={16} color="#cbd5e1" strokeWidth={2.5} />}
           </View>
         </TouchableOpacity>
       </Animated.View>
@@ -175,10 +184,10 @@ export const NotificationsScreen = ({ navigation }: any) => {
       }
     }
 
-    if (item.type === 'ATTENDANCE' || item.type === 'ANNOUNCEMENT' || item.message.includes('URGENT')) {
-      navigation.navigate('NotificationDetail', { notification: item });
-    } else if (item.type === 'PAYMENT') {
+    if (item.type === 'PAYMENT') {
       navigation.navigate('MainTabs', { screen: 'Payments' });
+    } else {
+      navigation.navigate('NotificationDetail', { notification: item });
     }
   };
 

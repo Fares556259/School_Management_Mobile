@@ -2,13 +2,15 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLanguage } from '../context/LanguageContext';
-import { ChevronLeft, AlertTriangle, Calendar, Bell, Info, MessageCircle } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, AlertTriangle, Calendar, Bell, Info, MessageCircle } from 'lucide-react-native';
 
 const ICON_CONFIG: Record<string, { icon: any, color: string, bgColor: string }> = {
   URGENT: { icon: AlertTriangle, color: '#ef4444', bgColor: '#fee2e2' },
   ANNOUNCEMENT: { icon: Info, color: '#0055d4', bgColor: '#eff6ff' },
   ATTENDANCE: { icon: AlertTriangle, color: '#ef4444', bgColor: '#fee2e2' },
   PAYMENT: { icon: Calendar, color: '#f59e0b', bgColor: '#fef3c7' },
+  MESSAGE: { icon: Bell, color: '#0055d4', bgColor: '#eff6ff' },
+  REMARK: { icon: MessageCircle, color: '#8b5cf6', bgColor: '#f5f3ff' },
   DEFAULT: { icon: Bell, color: '#64748b', bgColor: '#f1f5f9' },
 };
 
@@ -41,9 +43,9 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
       <StatusBar barStyle="dark-content" />
       
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, isRTL && { flexDirection: 'row-reverse' }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <ChevronLeft size={20} color="#0f172a" strokeWidth={3} />
+          {isRTL ? <ChevronRight size={20} color="#0f172a" strokeWidth={3} /> : <ChevronLeft size={20} color="#0f172a" strokeWidth={3} />}
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t.details}</Text>
         <View style={{ width: 40 }} />
@@ -56,12 +58,16 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
             <Icon size={32} color={config.color} strokeWidth={2.5} />
           </View>
           <Text style={styles.typeLabel}>
-            {notification.type === 'ANNOUNCEMENT' ? (isRTL ? 'إعلان' : 'ANNONCE') 
+            {notification.type === 'ANNOUNCEMENT' ? (isRTL ? 'إعلان من المدرسة' : 'ANNONCE DE L\'ÉTABLISSEMENT') 
             : notification.type === 'ATTENDANCE' ? (isRTL ? 'تنبيه حضور' : 'PRÉSENCE')
             : notification.type === 'HOMEWORK' ? (isRTL ? 'واجب مدرسي' : 'DEVOIR')
-            : notification.type} {t.alertWord}
+            : notification.type === 'MESSAGE' ? (isRTL ? 'إشعار من الإدارة' : 'MESSAGE ADMINISTRATIF')
+            : notification.type === 'REMARK' ? (isRTL ? 'ملاحظة تربوية' : 'REMARQUE')
+            : (notification.type || 'NOTIFICATION')}
           </Text>
-          <Text style={styles.studentName}>{notification.studentName}</Text>
+          {Boolean(notification.studentName && notification.studentName !== 'SCHOOL') && (
+            <Text style={styles.studentName}>{notification.studentName}</Text>
+          )}
           <Text style={styles.timeLabel}>{notification.time || t.ago1d}</Text>
         </View>
 

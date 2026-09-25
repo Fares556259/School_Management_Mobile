@@ -31,7 +31,7 @@ import { TeacherClassRosterScreen } from './src/screens/teacher/TeacherClassRost
 import { TeacherGradeEntryScreen } from './src/screens/teacher/TeacherGradeEntryScreen';
 import { CoursesScreen } from './src/screens/CoursesScreen';
 import { Home as HomeIcon, FileText, CreditCard, User, Megaphone, Calendar, BarChart3, ClipboardList, BookOpen, Users, ClipboardCheck, GraduationCap } from 'lucide-react-native';
-import { View, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, Alert, StyleSheet, AppState } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from './src/store/useAppStore';
@@ -202,11 +202,6 @@ export default function App() {
 
     const registerPush = async (uid: string) => {
       try {
-        const pref = await AsyncStorage.getItem('notificationsEnabled');
-        if (pref === 'false') {
-          console.log("[DEBUG-PUSH] Notifications disabled by user preference");
-          return;
-        }
         await notificationService.initChannels();
         const hasPermission = await notificationService.requestPermissions();
         if (hasPermission) {
@@ -287,8 +282,17 @@ export default function App() {
       });
     });
 
+    const appStateSub = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        authStorage.getUserId().then((storedUid) => {
+          if (storedUid) registerPush(storedUid);
+        });
+      }
+    });
+
     return () => {
       authSubscription.remove();
+      appStateSub.remove();
     };
   }, []);
 
