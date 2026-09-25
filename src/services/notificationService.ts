@@ -6,32 +6,58 @@ import { HomeworkItem, Exam } from '../types';
 // Detect if we are in Expo Go
 const isExpoGo = Constants.appOwnership === 'expo';
 
-// Configure Android Channels with MAX importance for heads-up banners
+// Configure Android Channels with MAX importance for audible heads-up banners
 export const initNotificationChannels = async () => {
   if (isExpoGo || Platform.OS !== 'android') return;
   try {
-    // 1. Standard Channel with MAX importance
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'SnapSchool Alerts',
+    // 1. Clean up legacy channels if their sound setting was locked to silence by Android
+    try {
+      await Notifications.deleteNotificationChannelAsync('default');
+      await Notifications.deleteNotificationChannelAsync('emergency');
+    } catch (_) {}
+
+    // 2. Primary Standard Channel - uses system default ringtone (sound: null) + MAX importance
+    await Notifications.setNotificationChannelAsync('snapschool_alerts_v1', {
+      name: 'SnapSchool Notifications',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#0055d4',
-      sound: 'notification.m4a',
       enableVibrate: true,
       showBadge: true,
+      sound: null, // null instructs Android to play the device's default notification sound
+      audioAttributes: {
+        usage: Notifications.AndroidAudioUsage.NOTIFICATION,
+        contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+      },
     });
 
-    // 2. Emergency/Important Channel
-    await Notifications.setNotificationChannelAsync('emergency', {
-      name: 'SnapSchool Emergency',
+    // 3. Primary Emergency Channel - MAX importance + urgent vibration
+    await Notifications.setNotificationChannelAsync('snapschool_emergency_v1', {
+      name: 'SnapSchool Urgences',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 500, 200, 500],
       lightColor: '#ff0000',
-      sound: 'alert.m4a',
       enableVibrate: true,
       showBadge: true,
+      sound: null,
+      audioAttributes: {
+        usage: Notifications.AndroidAudioUsage.NOTIFICATION,
+        contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+      },
     });
-    console.log('[NOTIF] Android Notification Channels initialized (MAX importance)');
+
+    // 4. Fallback 'default' channel with system sound
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'SnapSchool Standard',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#0055d4',
+      enableVibrate: true,
+      showBadge: true,
+      sound: null,
+    });
+
+    console.log('[NOTIF] Android Notification Channels configured with System Sound & MAX importance');
   } catch (error) {
     console.warn('[NOTIF] Failed to configure Android channels:', error);
   }
@@ -201,8 +227,8 @@ export const notificationService = {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: "🚨 SIREN TEST: Emergency",
-        body: "This is a test of the emergency siren sound.",
-        sound: 'alert.m4a',
+        body: "This is a test of the emergency alert sound.",
+        sound: true,
       },
       trigger: null,
     });
@@ -213,7 +239,7 @@ export const notificationService = {
       content: {
         title: "📢 TEST: Standard Notification",
         body: "This is a test of the standard notification sound.",
-        sound: 'notification.m4a',
+        sound: true,
       },
       trigger: null,
     });
