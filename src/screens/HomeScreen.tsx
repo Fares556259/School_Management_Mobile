@@ -15,7 +15,6 @@ import {
 } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
-import { cacheManager } from '../utils/cacheManager';
 import Reanimated, { FadeInDown } from 'react-native-reanimated';
 import { FlingGestureHandler, Directions, State } from 'react-native-gesture-handler';
 import { studentService } from '../services/api';
@@ -23,6 +22,7 @@ import { StudentDayData } from '../types';
 import { GlobalHeader } from '../components/GlobalHeader';
 import { SkeletonBlock } from '../components/SkeletonView';
 import { useFocusEffect } from '@react-navigation/native';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 
 const Monitor = (props: any) => <Layout {...props} />;
 
@@ -149,15 +149,16 @@ const SectionHeader = ({ title, action, onAction }: any) => {
 };
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
+const EMPTY_DAY: StudentDayData = { sessions: [], notes: [], files: [], homeworkDue: [], homeworkGiven: [], exams: [] };
+
 export const HomeScreen = ({ navigation, route }: any) => {
-  const { selectedChildId, setStudentStatus } = useAppStore();
+  const selectedChildId = useAppStore(s => s.selectedChildId);
+  const setStudentStatus = useAppStore(s => s.setStudentStatus);
   const { t, isRTL, getTranslatedSubject } = useLanguage();
-  const [loading, setLoading] = React.useState(false);
-  const [refreshing, setRefreshing] = React.useState(false);
-  const [dayData, setDayData] = React.useState<StudentDayData>({ sessions: [], notes: [], files: [], homeworkDue: [], homeworkGiven: [], exams: [] });
-    const [selectedDate, setSelectedDate] = React.useState(new Date());
+  const [selectedDate, setSelectedDate] = React.useState(new Date());
   const [showDatePicker, setShowDatePicker] = React.useState(false);
   const [selectedRemark, setSelectedRemark] = React.useState<any>(null);
+  const queryClient = useQueryClient();
 
   const scrollViewRef = React.useRef<ScrollView>(null);
   const [tasksYPosition, setTasksYPosition] = React.useState<number>(0);
@@ -169,6 +170,39 @@ export const HomeScreen = ({ navigation, route }: any) => {
     }
   }, [route?.params?.targetDate]);
 
+  const dateStr = React.useMemo(() => selectedDate.toISOString().split('T')[0], [selectedDate]);
+
+  // ─── React Query: stale-while-revalidate with persistent cache ──────────
+  const { data: dayData = EMPTY_DAY, isLoading: loading, isFetching, refetch } = useQuery({
+    queryKey: ['studentDay', selectedChildId, dateStr],
+    queryFn: () => studentService.fetchDayData(selectedChildId!, dateStr),
+    enabled: !!selectedChildId,
+    staleTime: 30_000,        // 30s: tab switches within 30s show cache, no network
+    gcTime: 5 * 60_000,       // 5min: keep old data in memory for quick revisits
+    placeholderData: keepPreviousData,  // Keep previous date's data visible while loading next
+    retry: 1,
+  });
+
+  // Sync attendance status to global store whenever data changes
+  React.useEffect(() => {
+    if (dayData && selectedChildId && dayData.sessions?.length > 0) {
+      const hasAbsent = dayData.sessions.some((s: any) =>
+        s.attendance?.toUpperCase() === 'ABSENT' || s.attendance?.toUpperCase() === 'ABS'
+      );
+      setStudentStatus(selectedChildId, hasAbsent ? 'Absent' : 'Present');
+    }
+  }, [dayData, selectedChildId]);
+
+  // Revalidate on screen focus — only if data is stale (>30s)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!selectedChildId) return;
+      const state = queryClient.getQueryState(['studentDay', selectedChildId, dateStr]);
+      const isStale = !state?.dataUpdatedAt || Date.now() - state.dataUpdatedAt > 30_000;
+      if (isStale) refetch();
+    }, [selectedChildId, dateStr])
+  );
+
   React.useEffect(() => {
     if (route?.params?.scrollTo === 'tasks' && !loading && tasksYPosition > 0) {
       setTimeout(() => {
@@ -178,73 +212,29 @@ export const HomeScreen = ({ navigation, route }: any) => {
     }
   }, [route?.params?.scrollTo, loading, tasksYPosition]);
 
-  const requestRef = React.useRef(0);
-
-  const fetchHome = async (isRefresh = false) => {
-    if (!selectedChildId) return;
-    
-    // Increment request ID to track the latest request
-    const currentReq = ++requestRef.current;
-    
-    const dateStr = selectedDate.toISOString().split('T')[0];
-    const cacheKey = `HOME_DAY_CACHE_${selectedChildId}_${dateStr}`;
-
-    if (!isRefresh) {
-      setLoading(true);
-      setDayData({ sessions: [], notes: [], files: [], homeworkDue: [], homeworkGiven: [], exams: [] });
-    }
-
-    const cachedData = await cacheManager.get<StudentDayData>(cacheKey);
-    
-    // If a newer request was triggered, abort this one
-    if (requestRef.current !== currentReq) return;
-
-    if (!isRefresh && cachedData) {
-      setDayData(cachedData);
-      setLoading(false);
-    }
-
-    try {
-      const data = await studentService.fetchDayData(selectedChildId, dateStr);
-      
-      // If a newer request was triggered while fetching from network, abort this one
-      if (requestRef.current !== currentReq) return;
-
-      setDayData(data);
-      await cacheManager.set(cacheKey, data);
-      
-      const hasAbsent = data.sessions?.some((s: any) => s.attendance?.toUpperCase() === 'ABSENT' || s.attendance?.toUpperCase() === 'ABS');
-      setStudentStatus(selectedChildId, hasAbsent ? 'Absent' : 'Present');
-    } catch (e) {
-      console.error(e);
-    } finally {
-      if (requestRef.current === currentReq) {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    }
-  };
-
-  useFocusEffect(
-    React.useCallback(() => {
-      fetchHome();
-    }, [selectedChildId, selectedDate])
-  );
-  const onRefresh = React.useCallback(() => {
+  // Pull-to-refresh
+  const [refreshing, setRefreshing] = React.useState(false);
+  const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    fetchHome();
-  }, [selectedChildId, selectedDate]);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
 
-  const sliderDates = Array.from({ length: 7 }).map((_, i) => {
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() - 3 + i);
-    return d;
-  });
+  // ─── Memoized computed values (prevent re-creation every render) ──────────
+  const sliderDates = React.useMemo(() =>
+    Array.from({ length: 7 }).map((_, i) => {
+      const d = new Date(selectedDate);
+      d.setDate(d.getDate() - 3 + i);
+      return d;
+    }),
+    [selectedDate]
+  );
 
-  const allTasks = Array.from(
-    new Map(
-      (dayData.homeworkGiven || []).map((t: any) => [t.id, t])
-    ).values()
+  const allTasks = React.useMemo(() =>
+    Array.from(
+      new Map((dayData.homeworkGiven || []).map((t: any) => [t.id, t])).values()
+    ),
+    [dayData.homeworkGiven]
   );
   const daysArr = [t.sunday, t.monday, t.tuesday, t.wednesday, t.thursday, t.friday, t.saturday];
 

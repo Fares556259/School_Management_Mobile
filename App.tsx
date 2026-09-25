@@ -37,6 +37,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { useAppStore } from './src/store/useAppStore';
 import { parentService, authService, authStorage, studentService, API_BASE_URL, teacherService } from './src/services/api';
 import { notificationService } from './src/services/notificationService';
+import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import "./src/styles/global.css";
 
@@ -309,6 +310,22 @@ export default function App() {
       });
     }
   };
+
+  // Foreground notification listener — instant data refresh when push arrives
+  // When teacher marks kid absent, this fires and triggers React Query refetch
+  useEffect(() => {
+    const subscription = Notifications.addNotificationReceivedListener(notification => {
+      const data = notification.request.content.data;
+      console.log("[PUSH-FOREGROUND]", data?.type);
+      // Invalidate relevant caches for instant UI update
+      if (data?.type === 'ATTENDANCE' || data?.type === 'REMARK' || data?.type === 'GRADE') {
+        queryClient.invalidateQueries({ queryKey: ['studentDay'] });
+      }
+      // Always refresh notification count
+      queryClient.invalidateQueries({ queryKey: ['notifCount'] });
+    });
+    return () => subscription.remove();
+  }, []);
 
   // Notification Response Listener
   useEffect(() => {

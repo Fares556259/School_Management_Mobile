@@ -24,49 +24,26 @@ import { useLanguage } from '../context/LanguageContext';
 import { studentService } from '../services/api';
 import { PaymentRecord } from '../types';
 import { GlobalHeader } from '../components/GlobalHeader';
-import { cacheManager } from '../utils/cacheManager';
 import { SkeletonBlock } from '../components/SkeletonView';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 
 const { width } = Dimensions.get('window');
 
 export const PaymentsScreen = ({ navigation }: any) => {
   const { selectedChildId } = useAppStore();
   const { t, isRTL } = useLanguage();
-  const [history, setHistory] = useState<PaymentRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'Due' | 'Paid'>('Due');
 
-  const loadData = useCallback(async (id: string, isRefreshing = false) => {
-    if (!isRefreshing) setLoading(true);
-    const cacheKey = `PAYMENTS_CACHE_${id}`;
-    
-    const cachedData = await cacheManager.get<PaymentRecord[]>(cacheKey);
-    if (!isRefreshing && cachedData) {
-      setHistory(cachedData);
-      setLoading(false);
-    }
-    
-    const data = await studentService.fetchPayments(id, isRefreshing);
-    setHistory(data);
-    await cacheManager.set(cacheKey, data);
-    setLoading(false);
-    setRefreshing(false);
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (selectedChildId) {
-        loadData(selectedChildId);
-      }
-    }, [selectedChildId, loadData])
-  );
+  const { data: history = [], isLoading: loading, isRefetching: refreshing, refetch } = useQuery({
+    queryKey: ['payments', selectedChildId],
+    queryFn: () => studentService.fetchPayments(selectedChildId!, false),
+    enabled: !!selectedChildId,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
 
   const onRefresh = () => {
-    if (selectedChildId) {
-      setRefreshing(true);
-      loadData(selectedChildId, true);
-    }
+    refetch();
   };
 
   // Sorting & Filtering Logic: Ignore "Locked" entirely.

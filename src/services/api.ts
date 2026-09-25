@@ -36,24 +36,34 @@ export const getFullImageUrl = (url: string | null): string | null => {
   return fullUrl;
 };
 
+// ─── In-Memory Credential Cache ──────────────────────────────────────────────
+// Avoids 2x AsyncStorage disk reads on EVERY API call (~100ms saved per request)
+let _memToken: string | null = null;
+let _memSchoolId: string | null = null;
+let _memUserId: string | null = null;
+let _memUserRole: string | null = null;
+
 // ─── Auth Storage ────────────────────────────────────────────────────────────
 export const authStorage = {
-  saveUserId: (id: string) => AsyncStorage.setItem(USER_ID_KEY, id),
-  getUserId: () => AsyncStorage.getItem(USER_ID_KEY),
-  saveUserRole: (role: string) => AsyncStorage.setItem(USER_ROLE_KEY, role),
-  getUserRole: () => AsyncStorage.getItem(USER_ROLE_KEY),
-  saveSchoolId: (id: string) => AsyncStorage.setItem(SCHOOL_ID_KEY, id),
-  getSchoolId: () => AsyncStorage.getItem(SCHOOL_ID_KEY),
-  saveToken: (token: string) => AsyncStorage.setItem(JWT_TOKEN_KEY, token),
-  getToken: () => AsyncStorage.getItem(JWT_TOKEN_KEY),
-  clear: () => AsyncStorage.multiRemove([USER_ID_KEY, USER_ROLE_KEY, SCHOOL_ID_KEY, JWT_TOKEN_KEY, STUDENTS_CACHE_KEY]),
+  saveUserId: async (id: string) => { _memUserId = id; return AsyncStorage.setItem(USER_ID_KEY, id); },
+  getUserId: async () => { if (_memUserId) return _memUserId; _memUserId = await AsyncStorage.getItem(USER_ID_KEY); return _memUserId; },
+  saveUserRole: async (role: string) => { _memUserRole = role; return AsyncStorage.setItem(USER_ROLE_KEY, role); },
+  getUserRole: async () => { if (_memUserRole) return _memUserRole; _memUserRole = await AsyncStorage.getItem(USER_ROLE_KEY); return _memUserRole; },
+  saveSchoolId: async (id: string) => { _memSchoolId = id; return AsyncStorage.setItem(SCHOOL_ID_KEY, id); },
+  getSchoolId: async () => { if (_memSchoolId) return _memSchoolId; _memSchoolId = await AsyncStorage.getItem(SCHOOL_ID_KEY); return _memSchoolId; },
+  saveToken: async (token: string) => { _memToken = token; return AsyncStorage.setItem(JWT_TOKEN_KEY, token); },
+  getToken: async () => { if (_memToken) return _memToken; _memToken = await AsyncStorage.getItem(JWT_TOKEN_KEY); return _memToken; },
+  clear: async () => {
+    _memToken = null; _memSchoolId = null; _memUserId = null; _memUserRole = null;
+    return AsyncStorage.multiRemove([USER_ID_KEY, USER_ROLE_KEY, SCHOOL_ID_KEY, JWT_TOKEN_KEY, STUDENTS_CACHE_KEY]);
+  },
   isLoggedIn: async () => {
-    const id = await AsyncStorage.getItem(USER_ID_KEY);
-    const token = await AsyncStorage.getItem(JWT_TOKEN_KEY);
+    const id = await authStorage.getUserId();
+    const token = await authStorage.getToken();
     return !!id && !!token;
   },
   // Legacy compatibility wrappers
-  getParentId: () => AsyncStorage.getItem(USER_ID_KEY),
+  getParentId: () => authStorage.getUserId(),
 };
 
 // ─── Helper for Fetching with Deduplication ──────────────────────────────────

@@ -9,6 +9,7 @@ import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
 import { studentService } from '../services/api';
 import { GlobalHeader } from '../components/GlobalHeader';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 
 const SUBJECT_THEMES: Record<string, { icon: any }> = {
   'Mathematics': { icon: Calculator },
@@ -77,41 +78,30 @@ const getArabicName = (subjectName: string) => {
 export const ResultsScreen = ({ navigation }: any) => {
   const { selectedChildId, children } = useAppStore();
   const { t, language, isRTL } = useLanguage();
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [resultsData, setResultsData] = useState<{ results: any[]; summary: any }>({ results: [], summary: { average: 0, totalSubjects: 0 } });
   const [selectedTerm, setSelectedTerm] = useState<number>(1);
 
   const activeChild = useMemo(() => children.find(c => c.id === selectedChildId), [children, selectedChildId]);
 
-  const loadData = useCallback(async (childId: string, isRefreshing = false) => {
-    if (!isRefreshing) setLoading(true);
-    try {
-      const data = await studentService.fetchResults(childId);
-      setResultsData(data);
-      if (data.summary?.latestTerm) {
-        setSelectedTerm(data.summary.latestTerm);
-      }
-    } catch (error) {
-      console.error('[RESULTS-SCREEN-ERROR]', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+  const { data: resultsData = { results: [], summary: { average: 0, totalSubjects: 0 } }, isLoading: loading, isRefetching: refreshing, refetch } = useQuery({
+    queryKey: ['results', selectedChildId],
+    queryFn: async () => {
+      const data = await studentService.fetchResults(selectedChildId!);
+      return data;
+    },
+    enabled: !!selectedChildId,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
 
   useEffect(() => {
-    if (selectedChildId) {
-      loadData(selectedChildId);
+    if (resultsData.summary?.latestTerm) {
+      setSelectedTerm(resultsData.summary.latestTerm);
     }
-  }, [selectedChildId, loadData]);
+  }, [resultsData.summary?.latestTerm]);
 
   const onRefresh = useCallback(() => {
-    if (selectedChildId) {
-      setRefreshing(true);
-      loadData(selectedChildId, true);
-    }
-  }, [selectedChildId, loadData]);
+    refetch();
+  }, [refetch]);
 
   // Group terms available in results
   const availableTerms = useMemo(() => {

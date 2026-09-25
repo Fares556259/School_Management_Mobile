@@ -11,6 +11,7 @@ import { studentService } from '../services/api';
 import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GlobalHeader } from '../components/GlobalHeader';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import * as WebBrowser from 'expo-web-browser';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -50,16 +51,21 @@ const getSubjectDomain = (subjectName: string) => {
 export const CoursesScreen = ({ navigation }: any) => {
   const { selectedChildId, children } = useAppStore();
   const { t, isRTL, getTranslatedSubject } = useLanguage();
-  const [loading, setLoading] = useState(true);
-  const [courses, setCourses] = useState<any[]>([]);
   const [viewedResources, setViewedResources] = useState<string[]>([]);
   const [expandedCourses, setExpandedCourses] = useState<Record<string, boolean>>({});
   const child = children.find(c => c.id === selectedChildId);
 
   const [viewingMedia, setViewingMedia] = useState<{ url: string; title: string; subject?: string } | null>(null);
 
+  const { data: courses = [], isLoading: loading } = useQuery({
+    queryKey: ['courses', selectedChildId],
+    queryFn: () => studentService.fetchCourses(selectedChildId!),
+    enabled: !!selectedChildId,
+    staleTime: 120_000,
+    placeholderData: keepPreviousData,
+  });
+
   useEffect(() => {
-    loadCourses();
     loadViewedResources();
   }, [selectedChildId]);
 
@@ -84,19 +90,6 @@ export const CoursesScreen = ({ navigation }: any) => {
       } catch (e) {
         console.error('Failed to save viewed resources', e);
       }
-    }
-  };
-
-  const loadCourses = async () => {
-    if (!selectedChildId) return;
-    setLoading(true);
-    try {
-      const data = await studentService.fetchCourses(selectedChildId);
-      setCourses(data);
-    } catch (err) {
-      console.error("[COURSES-LOAD-ERROR]", err);
-    } finally {
-      setLoading(false);
     }
   };
 

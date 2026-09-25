@@ -8,6 +8,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { studentService, uiService } from '../services/api';
 import { AttendanceHistoryDay } from '../types';
 import { GlobalHeader } from '../components/GlobalHeader';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 
 const STATUS_MAP = {
   PRESENT: { label: 'Present', color: '#16a34a', bg: '#dcfce7', border: '#86efac', icon: CheckCircle2 },
@@ -160,27 +161,19 @@ const AttendanceHistoryItem = ({ day, onJustify }: { day: AttendanceHistoryDay, 
 
 export const AttendanceScreen = ({ navigation }: any) => {
   const { selectedChildId } = useAppStore();
-  const [history, setHistory] = useState<AttendanceHistoryDay[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const loadHistory = async () => {
-    if (!selectedChildId) return;
-    setLoading(true);
-    const data = await studentService.fetchAttendanceHistory(selectedChildId);
-    setHistory(data);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    loadHistory();
-  }, [selectedChildId]);
+  const { data: history = [], isLoading: loading, isRefetching: refreshing, refetch } = useQuery({
+    queryKey: ['attendanceHistory', selectedChildId],
+    queryFn: () => studentService.fetchAttendanceHistory(selectedChildId!),
+    enabled: !!selectedChildId,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
 
   const onRefresh = async () => {
-    setRefreshing(true);
-    await loadHistory();
-    setRefreshing(false);
+    refetch();
   };
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleJustify = async (sessionId: number) => {
     try {
@@ -193,17 +186,17 @@ export const AttendanceScreen = ({ navigation }: any) => {
       if (result.canceled || !result.assets[0].uri) return;
 
       const uri = result.assets[0].uri;
-      setLoading(true);
+      setIsSubmitting(true);
 
       const uploadRes = (await uiService.uploadImage(uri, 'student', selectedChildId!)) as any;
       await studentService.justifyAttendance(sessionId, uploadRes.url, "Parent uploaded medical certificate via mobile app.");
-      await loadHistory();
+      await refetch();
       alert("Success! Your justification has been submitted for review.");
     } catch (error) {
       console.error("Justification error:", error);
       alert("Failed to submit justification. Please try again.");
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -273,7 +266,7 @@ export const AttendanceScreen = ({ navigation }: any) => {
           Recent Activity
         </Text>
 
-        {loading ? (
+        {loading || isSubmitting ? (
           <View style={{ gap: 12 }}>
              {[1,2,3,4].map(i => (
                 <View key={i} style={{ height: 80, borderRadius: 24, backgroundColor: '#f1f5f9', borderWidth: 2, borderColor: '#e2e8f0' }} />

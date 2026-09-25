@@ -7,6 +7,7 @@ import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
 import { studentService } from '../services/api';
 import { downloadAndPreviewPDF } from '../utils/fileUtils';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 
 const TermCard = ({ period, pdfUrl }: { period: number, pdfUrl?: string }) => {
   const { t, isRTL } = useLanguage();
@@ -111,38 +112,39 @@ const UpcomingExamRow = ({ exam }: any) => {
 
 export const ExamsScreen = ({ navigation }: any) => {
   const { selectedChildId } = useAppStore();
-  const [examPeriods, setExamPeriods] = React.useState<any[]>([]);
-  const [upcomingExams, setUpcomingExams] = React.useState<any[]>([]);
-  const [refreshing, setRefreshing] = React.useState(false);
 
-  const loadData = React.useCallback(async (childId: string) => {
-    const today = new Date().toISOString().split('T')[0];
-    const data = await studentService.fetchHomeData(childId, today);
-    if (data.examPeriods) {
-      // deduplicate
-      const map = new Map();
-      data.examPeriods.forEach((p: any) => {
-        if (!map.has(p.period) || p.pdfUrl) {
-          map.set(p.period, p);
-        }
-      });
-      setExamPeriods(Array.from(map.values()).sort((a,b) => a.period - b.period));
-    }
-    if (data.upcomingExams) {
-      setUpcomingExams(data.upcomingExams.slice(0, 5)); // Just show next 5
-    }
-  }, []);
+  const { data = { examPeriods: [], upcomingExams: [] }, isLoading: loading, isRefetching: refreshing, refetch } = useQuery({
+    queryKey: ['exams', selectedChildId],
+    queryFn: async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const data = await studentService.fetchHomeData(selectedChildId!, today);
+      let periods: any[] = [];
+      let upcoming: any[] = [];
 
-  React.useEffect(() => {
-    if (selectedChildId) loadData(selectedChildId);
-  }, [selectedChildId]);
+      if (data.examPeriods) {
+        const map = new Map();
+        data.examPeriods.forEach((p: any) => {
+          if (!map.has(p.period) || p.pdfUrl) {
+            map.set(p.period, p);
+          }
+        });
+        periods = Array.from(map.values()).sort((a,b) => a.period - b.period);
+      }
+      if (data.upcomingExams) {
+        upcoming = data.upcomingExams.slice(0, 5);
+      }
+      return { examPeriods: periods, upcomingExams: upcoming };
+    },
+    enabled: !!selectedChildId,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+
+  const { examPeriods, upcomingExams } = data;
 
   const onRefresh = React.useCallback(async () => {
-    if (!selectedChildId) return;
-    setRefreshing(true);
-    await loadData(selectedChildId);
-    setRefreshing(false);
-  }, [selectedChildId]);
+    refetch();
+  }, [refetch]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }} edges={['top']}>

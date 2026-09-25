@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Megaphone, ChevronRight } from 'lucide-react-native';
 import { studentService } from '../services/api';
 import { Announcement } from '../types';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
 import { GlobalHeader } from '../components/GlobalHeader';
@@ -85,22 +86,19 @@ const AnnouncementCard = ({ item, onPress }: any) => {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export const AnnouncementsScreen = ({ navigation }: any) => {
   const { t, isRTL } = useLanguage();
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [loading, setLoading] = useState(true);
   const { getSelectedChild, selectedChildId } = useAppStore();
 
-  useEffect(() => {
-    const fetchWithClass = async () => {
-      setLoading(true);
-      const child = getSelectedChild() as any;
-      const classId = child?.raw?.classId;
-      const studentId = child?.id;
-      const data = await studentService.fetchAnnouncements(classId, studentId);
-      setAnnouncements(data);
-      setLoading(false);
-    };
-    fetchWithClass();
-  }, [selectedChildId]);
+  const child = getSelectedChild() as any;
+  const classId = child?.raw?.classId;
+  const studentId = child?.id;
+
+  const { data: announcements = [], isLoading: loading } = useQuery({
+    queryKey: ['announcements', classId, studentId],
+    queryFn: () => studentService.fetchAnnouncements(classId, studentId),
+    enabled: !!classId && !!studentId,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
 
   const filtered = announcements;
 

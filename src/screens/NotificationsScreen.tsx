@@ -9,8 +9,8 @@ import { Notification } from '../types';
 import { RectButton, Swipeable } from 'react-native-gesture-handler';
 import Animated, { FadeInUp, Layout } from 'react-native-reanimated';
 import { Image } from 'expo-image';
-import { cacheManager } from '../utils/cacheManager';
 import { SkeletonBlock } from '../components/SkeletonView';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 
 const { width } = Dimensions.get('window');
 
@@ -128,64 +128,50 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
 export const NotificationsScreen = ({ navigation }: any) => {
   const { userId, selectedChildId, setUnreadNotificationsCount } = useAppStore();
   const { t, isRTL } = useLanguage();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<FilterType>('All');
 
-  const fetchNotifications = async (isRefresh = false) => {
-    if (!userId) return;
-    const cacheKey = `NOTIFICATIONS_CACHE_${userId}_${selectedChildId}`;
-    
-    const cachedData = await cacheManager.get<Notification[]>(cacheKey);
-    if (!isRefresh && cachedData) {
-      setNotifications(cachedData);
-      setUnreadNotificationsCount(cachedData.filter(n => n.isNew).length);
-      setLoading(false);
-    } else {
-      if (!isRefresh) setLoading(true);
-    }
-
-    try {
+  const { data: notifications = [], isLoading: loading, isRefetching: refreshing, refetch } = useQuery({
+    queryKey: ['notifications', userId, selectedChildId],
+    queryFn: async () => {
+      if (!userId) return [];
       const data = await studentService.fetchNotifications(userId, selectedChildId);
-      setNotifications(data);
       setUnreadNotificationsCount(data.filter(n => n.isNew).length);
-      await cacheManager.set(cacheKey, data);
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchNotifications();
-  }, [userId, selectedChildId]);
+      return data;
+    },
+    enabled: !!userId && !!selectedChildId,
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
+  });
 
   const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchNotifications(true);
-  }, [userId, selectedChildId]);
+    refetch();
+  }, [refetch]);
 
   const handleDelete = async (id: number) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
+    queryClient.setQueryData(['notifications', userId, selectedChildId], (old: Notification[] | undefined) => 
+      old ? old.filter(n => n.id !== id) : []
+    );
     try {
       await studentService.deleteNotification(id);
     } catch (error) {
       console.error('Failed to delete notification:', error);
+      refetch(); // Refetch on error to sync state
     }
   };
 
   const handleMarkAsRead = async (item: Notification) => {
     if (item.isNew) {
-      setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, isNew: false } : n));
+      queryClient.setQueryData(['notifications', userId, selectedChildId], (old: Notification[] | undefined) => 
+        old ? old.map(n => n.id === item.id ? { ...n, isNew: false } : n) : []
+      );
       try {
         await studentService.markNotificationsAsRead([item.id]);
         const currentUnread = notifications.filter(n => n.isNew && n.id !== item.id).length;
         setUnreadNotificationsCount(currentUnread);
       } catch (error) {
         console.error('Failed to mark notification as read:', error);
+        refetch();
       }
     }
 
@@ -200,12 +186,15 @@ export const NotificationsScreen = ({ navigation }: any) => {
     const unreadIds = notifications.filter(n => n.isNew).map(n => n.id);
     if (unreadIds.length === 0) return;
 
-    setNotifications(prev => prev.map(n => ({ ...n, isNew: false })));
+    queryClient.setQueryData(['notifications', userId, selectedChildId], (old: Notification[] | undefined) => 
+      old ? old.map(n => ({ ...n, isNew: false })) : []
+    );
     setUnreadNotificationsCount(0);
     try {
       await studentService.markNotificationsAsRead(unreadIds);
     } catch (error) {
       console.error('Failed to mark all as read:', error);
+      refetch();
     }
   };
 

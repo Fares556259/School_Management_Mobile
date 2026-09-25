@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, StatusBar } from 'react-native';
 import { Bell, ChevronDown, Check, X, User, ChevronRight, ChevronLeft } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
 import { authStorage, studentService } from '../services/api';
 import { Image } from 'expo-image';
+import { useQuery } from '@tanstack/react-query';
 
 interface GlobalHeaderProps {
   navigation: any;
@@ -30,21 +31,21 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
   const selectedChild = children.find((c: any) => c.id === selectedChildId);
   const status = selectedChildId ? studentStatuses[selectedChildId] || 'Present' : 'Present';
 
-  // Only load Notifications count in the header, profile should be in the store
-  useEffect(() => {
-    const loadUnreadCount = async () => {
+  // Use React Query for notification count — cached 60s across all screens
+  useQuery({
+    queryKey: ['notifCount', userId, selectedChildId],
+    queryFn: async () => {
       const uid = userId || await authStorage.getUserId();
-      if (uid) {
-        try {
-          const notes = await studentService.fetchNotifications(uid, selectedChildId);
-          setUnreadNotificationsCount(notes.filter(n => n.isNew).length);
-        } catch (e) {
-          console.log("[NOTIF-LOAD-ERROR] Silent skip");
-        }
-      }
-    };
-    loadUnreadCount();
-  }, [selectedChildId, userId]);
+      if (!uid) return 0;
+      const notes = await studentService.fetchNotifications(uid, selectedChildId);
+      const count = notes.filter(n => n.isNew).length;
+      setUnreadNotificationsCount(count);
+      return count;
+    },
+    enabled: !!(userId || selectedChildId),
+    staleTime: 60_000,   // 60s — don't refetch across screen switches
+    gcTime: 5 * 60_000,
+  });
 
   const handleSwitchChild = (id: string) => {
     setSelectedChildId(id);
