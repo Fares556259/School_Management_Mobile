@@ -307,6 +307,32 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     }
   };
 
+  const handleTestPushNotification = async () => {
+    try {
+      showToast('info', 'Synchronisation...', 'Vérification de la connexion push en cours...');
+      await notificationService.initChannels();
+      const pushToken = await notificationService.getPushToken();
+      if (!pushToken) {
+        Alert.alert(
+          t?.permissionsRequired || 'Permissions requises',
+          t?.pleaseEnablePushNotificationPermissions || 'Veuillez autoriser les notifications dans les Paramètres de votre téléphone pour recevoir les alertes.'
+        );
+        return;
+      }
+      if (userId) {
+        await authService.registerPushToken(userId, pushToken);
+      }
+      await notificationService.testStandardNotification();
+      
+      Alert.alert(
+        '✅ Notifications actives !',
+        `Votre smartphone est correctement synchronisé avec l'établissement.\n\nToken: ${pushToken.slice(0, 22)}...`
+      );
+    } catch (e: any) {
+      Alert.alert('Erreur', e?.message || 'Échec du test de notification.');
+    }
+  };
+
   const openEditChildModal = (child: any) => {
     const nameParts = (child.name || '').split(' ');
     setEditChildData({ 
@@ -724,6 +750,13 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
               label={t.notificationsItem} 
               subtitle={t.notificationsSub}
               rightElement={<Switch value={notificationsEnabled} onValueChange={toggleNotifications} trackColor={{ false: '#e2e8f0', true: '#0055d4' }} style={{ transform: [{ scale: 0.8 }] }} />}
+            />
+            <SettingItemV3 
+              icon={Bell} 
+              color="#0055d4" iconBg="bg-blue-50"
+              label={language === 'ar' ? 'اختبار ومزامنة الإشعارات' : language === 'fr' ? 'Tester & Synchroniser les notifications' : 'Test & Sync Push Notifications'}
+              subtitle={language === 'ar' ? 'إرسال تنبيه تجريبي لتأكيد وصول الإشعارات' : language === 'fr' ? 'Envoyer une alerte test pour vérifier cet appareil' : 'Send a test push to confirm this device'}
+              onPress={handleTestPushNotification}
             />
             <SettingItemV3 
               icon={Info} 

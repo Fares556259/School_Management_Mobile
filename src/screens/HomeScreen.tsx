@@ -17,7 +17,8 @@ import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
 import Reanimated, { FadeInDown } from 'react-native-reanimated';
 import { FlingGestureHandler, Directions, State } from 'react-native-gesture-handler';
-import { studentService } from '../services/api';
+import { studentService, authStorage, authService } from '../services/api';
+import { notificationService } from '../services/notificationService';
 import { StudentDayData } from '../types';
 import { GlobalHeader } from '../components/GlobalHeader';
 import { SkeletonBlock } from '../components/SkeletonView';
@@ -171,6 +172,23 @@ export const HomeScreen = ({ navigation, route }: any) => {
   }, [route?.params?.targetDate]);
 
   const dateStr = React.useMemo(() => selectedDate.toISOString().split('T')[0], [selectedDate]);
+
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const uid = await authStorage.getUserId();
+        if (uid) {
+          await notificationService.initChannels();
+          const token = await notificationService.getPushToken();
+          if (token) {
+            await authService.registerPushToken(uid, token);
+          }
+        }
+      } catch (e) {
+        console.warn('[HOME-PUSH-SYNC-FAIL]', e);
+      }
+    })();
+  }, []);
 
   // ─── React Query: stale-while-revalidate with persistent cache ──────────
   const { data: dayData = EMPTY_DAY, isLoading: loading, isFetching, refetch } = useQuery({

@@ -130,10 +130,14 @@ export const notificationService = {
     if (isExpoGo) return null;
     
     try {
-      const { status } = await Notifications.getPermissionsAsync();
-      if (status !== 'granted') {
-        console.log("[NOTIF-TOKEN] Permission not granted:", status);
-        return null;
+      // Proactively request permissions if not yet granted
+      try {
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        if (existingStatus !== 'granted') {
+          await Notifications.requestPermissionsAsync();
+        }
+      } catch (permErr) {
+        console.warn("[NOTIF-PERM-REQ-WARN]", permErr);
       }
 
       // Project ID is required for standalone apps (EAS) - ensure robust fallback

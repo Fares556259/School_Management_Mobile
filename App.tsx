@@ -203,13 +203,14 @@ export default function App() {
     const registerPush = async (uid: string) => {
       try {
         await notificationService.initChannels();
-        const hasPermission = await notificationService.requestPermissions();
-        if (hasPermission) {
-          const token = await notificationService.getPushToken();
-          if (token) {
-            await authService.registerPushToken(uid, token);
-            console.log("[DEBUG-PUSH] Token registered successfully:", token);
-          }
+        let token = await notificationService.getPushToken();
+        if (!token) {
+          await new Promise(r => setTimeout(r, 2000));
+          token = await notificationService.getPushToken();
+        }
+        if (token) {
+          await authService.registerPushToken(uid, token);
+          console.log("[DEBUG-PUSH] Token registered successfully:", token);
         }
       } catch (err) {
         console.warn("[PUSH-REG-FAIL]", err);
@@ -401,13 +402,14 @@ export default function App() {
       (async () => {
         try {
           await notificationService.initChannels();
-          const hasPermission = await notificationService.requestPermissions();
-          if (hasPermission) {
-            const token = await notificationService.getPushToken();
-            if (token) {
-              await authService.registerPushToken(uid, token);
-              console.log("[DEBUG-PUSH] Token registered in background on login:", token);
-            }
+          let token = await notificationService.getPushToken();
+          if (!token) {
+            await new Promise(r => setTimeout(r, 2000));
+            token = await notificationService.getPushToken();
+          }
+          if (token) {
+            await authService.registerPushToken(uid, token);
+            console.log("[DEBUG-PUSH] Token registered in background on login:", token);
           }
         } catch (err) {
           console.warn("[PUSH-LOGIN-FAIL]", err);
