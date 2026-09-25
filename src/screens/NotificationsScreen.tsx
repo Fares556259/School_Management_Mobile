@@ -89,8 +89,7 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
         layout={Layout.springify()}
         style={[styles.card, item.isNew && styles.unreadCardWrapper]}
       >
-        <TouchableOpacity 
-          activeOpacity={0.7}
+        <RectButton 
           onPress={() => onPress(item)}
           style={[styles.cardContent, item.isNew && styles.unreadCard, isRTL && { flexDirection: 'row-reverse' }]}
         >
@@ -128,7 +127,7 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
           <View style={{ justifyContent: 'center', alignItems: 'center', paddingLeft: isRTL ? 0 : 8, paddingRight: isRTL ? 8 : 0, alignSelf: 'center' }}>
             {isRTL ? <ChevronLeft size={16} color="#cbd5e1" strokeWidth={2.5} /> : <ChevronRight size={16} color="#cbd5e1" strokeWidth={2.5} />}
           </View>
-        </TouchableOpacity>
+        </RectButton>
       </Animated.View>
     </Swipeable>
   );

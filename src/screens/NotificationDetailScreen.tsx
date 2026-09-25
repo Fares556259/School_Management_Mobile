@@ -15,12 +15,19 @@ const ICON_CONFIG: Record<string, { icon: any, color: string, bgColor: string }>
 };
 
 export const NotificationDetailScreen = ({ route, navigation }: any) => {
-  const { notification } = route.params;
+  const notification = route?.params?.notification || {
+    id: 0,
+    type: 'MESSAGE',
+    title: 'Notification',
+    message: '',
+    studentName: 'SnapSchool',
+    time: 'À l\'instant',
+  };
   const { t, isRTL, language, formatNotification } = useLanguage();
   const config = ICON_CONFIG[notification.type] || ICON_CONFIG.DEFAULT;
   const Icon = config.icon;
 
-  const isAttendance = notification.type === 'ATTENDANCE' || notification.message.includes('missed');
+  const isAttendance = notification.type === 'ATTENDANCE' || (notification.message || '').includes('missed');
 
   // Attendance Logic
   const message = notification.message || "";

@@ -298,6 +298,12 @@ export default function App() {
   }, []);
 
   const navigateToNotification = (data: any) => {
+    if (!data) {
+      if ((navigationRef as any)?.isReady?.()) {
+        (navigationRef as any).navigate('Notifications');
+      }
+      return;
+    }
     if (data.type === 'HOMEWORK' && data.homeworkId) {
       (navigationRef as any).navigate('HomeworkDetail', { 
         homework: { id: data.homeworkId },
@@ -305,14 +311,20 @@ export default function App() {
       });
     } else if (data.type === 'RESOURCE' && data.resourceId) {
       (navigationRef as any).navigate('Courses');
-    } else if (data.type === 'ANNOUNCEMENT' || data.type === 'ATTENDANCE') {
+    } else if (data.type === 'PAYMENT') {
+      (navigationRef as any).navigate('MainTabs', { screen: 'Payments' });
+    } else {
       (navigationRef as any).navigate('NotificationDetail', { 
         notification: { 
-          ...data, 
-          type: data.type, 
+          id: data.id || Date.now(),
+          type: data.type || 'MESSAGE', 
+          title: data.title || 'Notification',
           message: data.message || data.body || "Detailed message unavailable.",
-          studentName: data.studentName || "Student Update",
-          time: "Just now" 
+          studentName: data.studentName || "SnapSchool",
+          time: data.time || "À l'instant",
+          isNew: false,
+          createdAt: data.createdAt || new Date().toISOString(),
+          ...data,
         } 
       });
     }
