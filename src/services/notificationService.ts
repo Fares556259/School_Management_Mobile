@@ -10,43 +10,35 @@ const isExpoGo = Constants.appOwnership === 'expo';
 export const initNotificationChannels = async () => {
   if (isExpoGo || Platform.OS !== 'android') return;
   try {
-    // 1. Clean up legacy channels if their sound setting was locked to silence by Android
-    try {
-      await Notifications.deleteNotificationChannelAsync('default');
-      await Notifications.deleteNotificationChannelAsync('emergency');
-    } catch (_) {}
-
-    // 2. Primary Standard Channel - uses system default ringtone (sound: null) + MAX importance
-    await Notifications.setNotificationChannelAsync('snapschool_alerts_v1', {
+    // 1. Primary Standard Channel v2 - uses device system ringtone & MAX importance
+    await Notifications.setNotificationChannelAsync('snapschool_alerts_v2', {
       name: 'SnapSchool Notifications',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#0055d4',
       enableVibrate: true,
       showBadge: true,
-      sound: null, // null instructs Android to play the device's default notification sound
       audioAttributes: {
         usage: Notifications.AndroidAudioUsage.NOTIFICATION,
         contentType: Notifications.AndroidAudioContentType.SONIFICATION,
       },
     });
 
-    // 3. Primary Emergency Channel - MAX importance + urgent vibration
-    await Notifications.setNotificationChannelAsync('snapschool_emergency_v1', {
+    // 2. Primary Emergency Channel v2 - MAX importance + urgent vibration
+    await Notifications.setNotificationChannelAsync('snapschool_emergency_v2', {
       name: 'SnapSchool Urgences',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 500, 200, 500],
       lightColor: '#ff0000',
       enableVibrate: true,
       showBadge: true,
-      sound: null,
       audioAttributes: {
         usage: Notifications.AndroidAudioUsage.NOTIFICATION,
         contentType: Notifications.AndroidAudioContentType.SONIFICATION,
       },
     });
 
-    // 4. Fallback 'default' channel with system sound
+    // 3. Fallback 'default' channel with MAX importance (never delete, required as safe fallback)
     await Notifications.setNotificationChannelAsync('default', {
       name: 'SnapSchool Standard',
       importance: Notifications.AndroidImportance.MAX,
@@ -54,10 +46,23 @@ export const initNotificationChannels = async () => {
       lightColor: '#0055d4',
       enableVibrate: true,
       showBadge: true,
-      sound: null,
+      audioAttributes: {
+        usage: Notifications.AndroidAudioUsage.NOTIFICATION,
+        contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+      },
     });
 
-    console.log('[NOTIF] Android Notification Channels configured with System Sound & MAX importance');
+    // 4. Overwrite legacy snapschool_alerts_v1 without sound: null
+    await Notifications.setNotificationChannelAsync('snapschool_alerts_v1', {
+      name: 'SnapSchool Notifications (v1)',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#0055d4',
+      enableVibrate: true,
+      showBadge: true,
+    });
+
+    console.log('[NOTIF] Android Notification Channels v2 configured with MAX importance & System Sound');
   } catch (error) {
     console.warn('[NOTIF] Failed to configure Android channels:', error);
   }
@@ -79,6 +84,7 @@ const setupHandler = () => {
         shouldSetBadge: true,
         shouldShowBanner: true,
         shouldShowList: true,
+        priority: Notifications.AndroidNotificationPriority.MAX,
       }),
     });
 
