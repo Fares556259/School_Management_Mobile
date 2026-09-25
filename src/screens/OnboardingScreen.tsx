@@ -12,7 +12,7 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronRight, ArrowLeft, Globe, Check, GraduationCap, Bell, Users } from 'lucide-react-native';
+import { ChevronRight, ChevronLeft, Globe, Check, GraduationCap, Bell, Users } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useLanguage, Language } from '../context/LanguageContext';
 
@@ -158,7 +158,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
 
   const skipLabel = language === 'ar' ? 'تخطي ←' : language === 'fr' ? 'Passer →' : 'Skip →';
   const prevLabel = language === 'ar' ? 'السابق' : language === 'fr' ? 'Précédent' : 'Previous';
-  const nextLabel = language === 'ar' ? 'Suivant' : language === 'fr' ? 'Suivant' : 'Next';
+  const nextLabel = language === 'ar' ? 'التالي' : language === 'fr' ? 'Suivant' : 'Next';
   const getStartedLabel =
     language === 'ar' ? 'ابدأ الآن 🚀' : language === 'fr' ? 'Commencer 🚀' : 'Get Started 🚀';
 
@@ -286,8 +286,17 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                 activeOpacity={0.8}
                 style={styles.prevButton}
               >
-                <ArrowLeft size={18} color="#64748b" />
-                <Text style={styles.prevButtonText}>{prevLabel}</Text>
+                {isRTL ? (
+                  <>
+                    <Text style={styles.prevButtonText}>{prevLabel}</Text>
+                    <ChevronRight size={18} color="#64748b" strokeWidth={2.4} />
+                  </>
+                ) : (
+                  <>
+                    <ChevronLeft size={18} color="#64748b" strokeWidth={2.4} />
+                    <Text style={styles.prevButtonText}>{prevLabel}</Text>
+                  </>
+                )}
               </TouchableOpacity>
             ) : null}
 
@@ -295,22 +304,25 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
               <TouchableOpacity
                 onPress={handleNext}
                 activeOpacity={0.85}
-                style={[
-                  styles.nextButton,
-                  { flex: currentIndex > 0 ? 1 : undefined, width: currentIndex === 0 ? '100%' : undefined },
-                ]}
+                style={styles.nextButton}
               >
-                <Text style={styles.nextButtonText}>{nextLabel}</Text>
-                <ChevronRight size={20} color="#ffffff" strokeWidth={2.5} />
+                {isRTL ? (
+                  <>
+                    <ChevronLeft size={20} color="#ffffff" strokeWidth={2.5} />
+                    <Text style={styles.nextButtonText}>{nextLabel}</Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.nextButtonText}>{nextLabel}</Text>
+                    <ChevronRight size={20} color="#ffffff" strokeWidth={2.5} />
+                  </>
+                )}
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
                 onPress={handleFinish}
                 activeOpacity={0.85}
-                style={[
-                  styles.finishButton,
-                  { flex: currentIndex > 0 ? 1 : undefined, width: currentIndex === 0 ? '100%' : undefined },
-                ]}
+                style={styles.finishButton}
               >
                 <Text style={styles.finishButtonText} numberOfLines={1}>
                   {getStartedLabel}
@@ -559,6 +571,7 @@ const styles = StyleSheet.create({
     color: '#475569',
   },
   nextButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -566,7 +579,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 20,
-    gap: 6,
+    gap: 8,
     shadowColor: '#0055d4',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
@@ -579,6 +592,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   finishButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -586,6 +600,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 20,
+    gap: 8,
     shadowColor: '#0055d4',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
