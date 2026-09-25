@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput, ActivityIndicator, StatusBar, Dimensions, Switch, Linking } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bell, Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, ChevronLeft, User, Pencil, FileText, Info, PhoneCall, MapPin, Image as ImageIcon, Award, Globe } from 'lucide-react-native';
+import { Bell, Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, ChevronLeft, User, Pencil, FileText, Info, PhoneCall, MapPin, Image as ImageIcon, Award, Globe, Sparkles } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Svg, Circle } from 'react-native-svg';
 import { useAppStore } from '../store/useAppStore';
@@ -732,6 +732,13 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
               label={t.schoolSupportItem} 
               subtitle={schoolInfo?.schoolName || t.schoolSupportSub}
               onPress={() => schoolInfo?.phone && Linking.openURL(`tel:${schoolInfo.phone}`)}
+            />
+            <SettingItemV3 
+              icon={Sparkles} 
+              color="#8b5cf6" iconBg="bg-purple-50"
+              label={language === 'ar' ? 'دليل ومزايا التطبيق' : language === 'fr' ? "Découvrir l'application" : 'App Guide & Tour'} 
+              subtitle={language === 'ar' ? 'عرض الجولة التعريفية والميزات' : language === 'fr' ? 'Revoir la présentation et les fonctionnalités' : 'Replay interactive onboarding guide'}
+              onPress={() => navigation.navigate('Onboarding')}
             />
             <SettingItemV3 
               icon={LogOut} 

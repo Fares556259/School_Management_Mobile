@@ -15,6 +15,8 @@ import { SignInScreen } from './src/screens/SignInScreen';
 import { LinkChildScreen } from './src/screens/LinkChildScreen';
 import { AnnouncementDetailScreen } from './src/screens/AnnouncementDetailScreen';
 import { LandingScreen } from './src/screens/LandingScreen';
+import { AppLaunchScreen } from './src/screens/AppLaunchScreen';
+import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { ExamsScreen } from './src/screens/ExamsScreen';
 import { ResultsScreen } from './src/screens/ResultsScreen';
 import { TeacherClassesScreen } from './src/screens/teacher/TeacherClassesScreen';
@@ -184,8 +186,18 @@ export default function App() {
     userRole,
     userId
   } = useAppStore();
-  const [authState, setAuthState] = useState<'loading' | 'landing' | 'signedIn' | 'signedOut'>('loading');
+  const [authState, setAuthState] = useState<'loading' | 'onboarding' | 'landing' | 'signedIn' | 'signedOut'>('loading');
   const [selectedRole, setSelectedRole] = useState<'parent' | 'teacher'>('parent');
+  const [isBootstrapDone, setIsBootstrapDone] = useState(false);
+  const [isLaunchMinTimeDone, setIsLaunchMinTimeDone] = useState(false);
+  const targetAuthStateRef = React.useRef<'onboarding' | 'landing' | 'signedIn'>('landing');
+
+  // Transition smoothly from launch screen once bootstrap and minimum animation time have elapsed
+  useEffect(() => {
+    if (isBootstrapDone && isLaunchMinTimeDone) {
+      setAuthState(targetAuthStateRef.current);
+    }
+  }, [isBootstrapDone, isLaunchMinTimeDone]);
 
   // Check stored auth on launch
   useEffect(() => {
@@ -212,8 +224,11 @@ export default function App() {
     };
 
     const bootstrap = async () => {
+      let nextState: 'onboarding' | 'landing' | 'signedIn' = 'landing';
       try {
         const loggedIn = await authStorage.isLoggedIn();
+        const seenOnboarding = await AsyncStorage.getItem('@has_seen_onboarding');
+
         if (loggedIn) {
           const uid = await authStorage.getUserId();
           const role = await authStorage.getUserRole();
@@ -242,19 +257,26 @@ export default function App() {
             setUserName(`${profile.name} ${profile.surname}`);
             setUserAvatarUrl(profile.img || null);
           }
-          setAuthState('signedIn'); // Don't logout just because profile fetch failed
+          nextState = 'signedIn';
+        } else if (seenOnboarding !== 'true') {
+          nextState = 'onboarding';
         } else {
-          setAuthState('landing');
+          nextState = 'landing';
         }
       } catch (error) {
         console.error("[BOOTSTRAP-ERROR]", error);
-        // Don't log out on network errors — user may have valid cached session
         const uid = await authStorage.getUserId();
+        const seenOnboarding = await AsyncStorage.getItem('@has_seen_onboarding');
         if (uid) {
-          setAuthState('signedIn'); // Let user retry from within the app
+          nextState = 'signedIn';
+        } else if (seenOnboarding !== 'true') {
+          nextState = 'onboarding';
         } else {
-          setAuthState('landing');
+          nextState = 'landing';
         }
+      } finally {
+        targetAuthStateRef.current = nextState;
+        setIsBootstrapDone(true);
       }
     };
     bootstrap();
@@ -384,11 +406,7 @@ export default function App() {
   };
 
   if (authState === 'loading') {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a1628' }}>
-        <ActivityIndicator size="large" color="#ffffff" />
-      </View>
-    );
+    return <AppLaunchScreen onFinish={() => setIsLaunchMinTimeDone(true)} minDurationMs={1200} />;
   }
 
   return (
@@ -400,8 +418,18 @@ export default function App() {
         <SafeAreaProvider>
           <GestureHandlerRootView style={{ flex: 1 }}>
             <NavigationContainer ref={navigationRef}>
-              {authState === 'landing' ? (
-                <LandingScreen onSelectRole={onSelectRole} />
+              {authState === 'onboarding' ? (
+                <OnboardingScreen
+                  onComplete={async () => {
+                    await AsyncStorage.setItem('@has_seen_onboarding', 'true');
+                    setAuthState('landing');
+                  }}
+                />
+              ) : authState === 'landing' ? (
+                <LandingScreen 
+                  onSelectRole={onSelectRole}
+                  onViewOnboarding={() => setAuthState('onboarding')}
+                />
               ) : authState === 'signedOut' ? (
                 <SignInScreen role={selectedRole} onSignIn={handleSignIn} onBack={() => setAuthState('landing')} />
               ) : (
@@ -428,6 +456,19 @@ export default function App() {
                   <Stack.Screen name="TeacherGrades" component={TeacherGradeEntryScreen} />
                   <Stack.Screen name="TeacherProfile">
                     {(props) => <ProfileScreen {...props} onSignOut={handleSignOut} />}
+                  </Stack.Screen>
+                  <Stack.Screen name="Onboarding">
+                    {(props) => (
+                      <OnboardingScreen
+                        onComplete={() => {
+                          if (props.navigation.canGoBack()) {
+                            props.navigation.goBack();
+                          } else {
+                            setAuthState('landing');
+                          }
+                        }}
+                      />
+                    )}
                   </Stack.Screen>
                 </Stack.Navigator>
               )}
