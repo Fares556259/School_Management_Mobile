@@ -31,7 +31,7 @@ import { TeacherClassRosterScreen } from './src/screens/teacher/TeacherClassRost
 import { TeacherGradeEntryScreen } from './src/screens/teacher/TeacherGradeEntryScreen';
 import { CoursesScreen } from './src/screens/CoursesScreen';
 import { Home as HomeIcon, FileText, CreditCard, User, Megaphone, Calendar, BarChart3, ClipboardList, BookOpen, Users, ClipboardCheck, GraduationCap } from 'lucide-react-native';
-import { View, ActivityIndicator, Alert } from 'react-native';
+import { View, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from './src/store/useAppStore';
@@ -181,7 +181,8 @@ export default function App() {
     userRole,
     userId
   } = useAppStore();
-  const [authState, setAuthState] = useState<'loading' | 'onboarding' | 'landing' | 'signedIn' | 'signedOut'>('loading');
+  const [authState, setAuthState] = useState<'loading' | 'onboarding' | 'landing' | 'signedIn' | 'signedOut'>('onboarding');
+  const [isLaunchScreenVisible, setIsLaunchScreenVisible] = useState(true);
   const [selectedRole, setSelectedRole] = useState<'parent' | 'teacher'>('parent');
   const [isBootstrapDone, setIsBootstrapDone] = useState(false);
   const [isLaunchMinTimeDone, setIsLaunchMinTimeDone] = useState(false);
@@ -191,6 +192,7 @@ export default function App() {
   // Transition smoothly from launch screen once bootstrap and minimum animation time have elapsed
   useEffect(() => {
     if (isBootstrapDone && isLaunchMinTimeDone) {
+      setIsLaunchScreenVisible(false);
       setAuthState(targetAuthStateRef.current);
     }
   }, [isBootstrapDone, isLaunchMinTimeDone]);
@@ -430,10 +432,6 @@ export default function App() {
     setAuthState('signedOut');
   };
 
-  if (authState === 'loading') {
-    return <AppLaunchScreen onFinish={() => setIsLaunchMinTimeDone(true)} minDurationMs={1200} />;
-  }
-
   return (
     <PersistQueryClientProvider 
       client={queryClient}
@@ -442,61 +440,73 @@ export default function App() {
       <LanguageProvider>
         <SafeAreaProvider>
           <GestureHandlerRootView style={{ flex: 1 }}>
-            <NavigationContainer ref={navigationRef}>
-              {authState === 'onboarding' ? (
-                <OnboardingScreen
-                  onComplete={async () => {
-                    await AsyncStorage.setItem('@has_seen_onboarding', 'true');
-                    setAuthState(postOnboardingStateRef.current);
-                  }}
-                />
-              ) : authState === 'landing' ? (
-                <LandingScreen 
-                  onSelectRole={onSelectRole}
-                />
-              ) : authState === 'signedOut' ? (
-                <SignInScreen role={selectedRole} onSignIn={handleSignIn} onBack={() => setAuthState('landing')} />
-              ) : (
-                <Stack.Navigator screenOptions={{ headerShown: false }}>
-                  <Stack.Screen
-                    name="MainTabs"
-                    children={MainTabsScreen}
+            <View style={{ flex: 1, backgroundColor: '#f8fbff' }}>
+              <NavigationContainer ref={navigationRef}>
+                {authState === 'onboarding' || authState === 'loading' ? (
+                  <OnboardingScreen
+                    onComplete={async () => {
+                      await AsyncStorage.setItem('@has_seen_onboarding', 'true');
+                      setAuthState(postOnboardingStateRef.current);
+                    }}
                   />
-                  <Stack.Screen name="Attendance" component={AttendanceScreen} />
-                  <Stack.Screen name="Notifications" component={NotificationsScreen} />
-                  <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
-                  <Stack.Screen name="HomeworkDetail" component={HomeworkDetailScreen} />
-                  <Stack.Screen name="ExamDetail" component={ExamDetailScreen} />
-                  <Stack.Screen name="AnnouncementDetail" component={AnnouncementDetailScreen} />
-                  <Stack.Screen name="LinkChild" component={LinkChildScreen} />
-                  <Stack.Screen name="Exams" component={ExamsScreen} />
-                  <Stack.Screen name="Results" component={ResultsScreen} />
-                  <Stack.Screen name="TeacherTaskDetail" component={TeacherTaskDetailScreen} />
-                  <Stack.Screen name="StudentSubmission" component={StudentSubmissionScreen} />
-                  <Stack.Screen name="TeacherClassRoster" component={TeacherClassRosterScreen} />
-                  <Stack.Screen name="TeacherAttendance" component={TeacherAttendanceScreen} />
-                  <Stack.Screen name="TeacherLessons" component={TeacherLessonsScreen} />
-                  <Stack.Screen name="TeacherTasks" component={TeacherTasksScreen} />
-                  <Stack.Screen name="TeacherGrades" component={TeacherGradeEntryScreen} />
-                  <Stack.Screen name="TeacherProfile">
-                    {(props) => <ProfileScreen {...props} onSignOut={handleSignOut} />}
-                  </Stack.Screen>
-                  <Stack.Screen name="Onboarding">
-                    {(props) => (
-                      <OnboardingScreen
-                        onComplete={() => {
-                          if (props.navigation.canGoBack()) {
-                            props.navigation.goBack();
-                          } else {
-                            setAuthState('landing');
-                          }
-                        }}
-                      />
-                    )}
-                  </Stack.Screen>
-                </Stack.Navigator>
+                ) : authState === 'landing' ? (
+                  <LandingScreen 
+                    onSelectRole={onSelectRole}
+                  />
+                ) : authState === 'signedOut' ? (
+                  <SignInScreen role={selectedRole} onSignIn={handleSignIn} onBack={() => setAuthState('landing')} />
+                ) : (
+                  <Stack.Navigator screenOptions={{ headerShown: false }}>
+                    <Stack.Screen
+                      name="MainTabs"
+                      children={MainTabsScreen}
+                    />
+                    <Stack.Screen name="Attendance" component={AttendanceScreen} />
+                    <Stack.Screen name="Notifications" component={NotificationsScreen} />
+                    <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
+                    <Stack.Screen name="HomeworkDetail" component={HomeworkDetailScreen} />
+                    <Stack.Screen name="ExamDetail" component={ExamDetailScreen} />
+                    <Stack.Screen name="AnnouncementDetail" component={AnnouncementDetailScreen} />
+                    <Stack.Screen name="LinkChild" component={LinkChildScreen} />
+                    <Stack.Screen name="Exams" component={ExamsScreen} />
+                    <Stack.Screen name="Results" component={ResultsScreen} />
+                    <Stack.Screen name="TeacherTaskDetail" component={TeacherTaskDetailScreen} />
+                    <Stack.Screen name="StudentSubmission" component={StudentSubmissionScreen} />
+                    <Stack.Screen name="TeacherClassRoster" component={TeacherClassRosterScreen} />
+                    <Stack.Screen name="TeacherAttendance" component={TeacherAttendanceScreen} />
+                    <Stack.Screen name="TeacherLessons" component={TeacherLessonsScreen} />
+                    <Stack.Screen name="TeacherTasks" component={TeacherTasksScreen} />
+                    <Stack.Screen name="TeacherGrades" component={TeacherGradeEntryScreen} />
+                    <Stack.Screen name="TeacherProfile">
+                      {(props) => <ProfileScreen {...props} onSignOut={handleSignOut} />}
+                    </Stack.Screen>
+                    <Stack.Screen name="Onboarding">
+                      {(props) => (
+                        <OnboardingScreen
+                          onComplete={() => {
+                            if (props.navigation.canGoBack()) {
+                              props.navigation.goBack();
+                            } else {
+                              setAuthState('landing');
+                            }
+                          }}
+                        />
+                      )}
+                    </Stack.Screen>
+                  </Stack.Navigator>
+                )}
+              </NavigationContainer>
+
+              {/* Seamless Full-Screen Launch Overlay: rendered on top until ready */}
+              {isLaunchScreenVisible && (
+                <View style={[StyleSheet.absoluteFill, { zIndex: 999999 }]} pointerEvents="auto">
+                  <AppLaunchScreen 
+                    onFinish={() => setIsLaunchMinTimeDone(true)} 
+                    minDurationMs={1100} 
+                  />
+                </View>
               )}
-            </NavigationContainer>
+            </View>
           </GestureHandlerRootView>
         </SafeAreaProvider>
       </LanguageProvider>

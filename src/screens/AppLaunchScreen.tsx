@@ -131,20 +131,14 @@ export const AppLaunchScreen: React.FC<AppLaunchScreenProps> = ({
       setLoadingTextIndex((prev) => (prev + 1) % statusMessages.length);
     }, 450);
 
-    // 5. Clean exit
+    // 5. Clean instant exit — immediate transition, zero fade-to-white
     const timer = setTimeout(() => {
-      Animated.timing(exitFade, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }).start(() => {
-        clearInterval(textInterval);
-        glowLoop.stop();
-        dot1Loop.stop();
-        dot2Loop.stop();
-        dot3Loop.stop();
-        if (onFinish) onFinish();
-      });
+      clearInterval(textInterval);
+      glowLoop.stop();
+      dot1Loop.stop();
+      dot2Loop.stop();
+      dot3Loop.stop();
+      if (onFinish) onFinish();
     }, minDurationMs);
 
     return () => {
