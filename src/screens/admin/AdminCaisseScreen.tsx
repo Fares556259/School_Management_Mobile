@@ -7,36 +7,30 @@ import {
   TextInput,
   ActivityIndicator,
   RefreshControl,
-  Modal,
   Platform,
   StatusBar,
   Linking,
   Alert,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import {
   Wallet,
   ArrowDownLeft,
   ArrowUpRight,
-  HandCoins,
-  Receipt,
   Search,
   Phone,
   MessageCircle,
-  Plus,
   X,
   CheckCircle2,
   Clock,
-  User,
-  Calendar,
-  Filter,
-  Check,
-  Building,
   RefreshCw,
+  Sparkles,
+  Bot,
+  ArrowRight,
+  TrendingUp,
 } from 'lucide-react-native';
 import { adminService } from '../../services/api';
-import { StatusToast, ToastConfig } from '../../components/StatusToast';
 
 interface Transaction {
   id: string;
@@ -71,6 +65,7 @@ interface CaisseSummary {
 
 export default function AdminCaisseScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<any>();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 0);
 
   // Core state
@@ -95,31 +90,6 @@ export default function AdminCaisseScreen() {
   // Filter in unpaid tab
   const [unpaidSearch, setUnpaidSearch] = useState('');
 
-  // Toast
-  const [toast, setToast] = useState<ToastConfig>({
-    visible: false,
-    type: 'success',
-    title: '',
-    message: '',
-  });
-
-  // ── QUICK PAY MODAL STATE ──────────────────────────────────────────────────
-  const [payModalVisible, setPayModalVisible] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<UnpaidStudent | null>(null);
-  const [searchStudentQuery, setSearchStudentQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [searchingStudents, setSearchingStudents] = useState(false);
-  const [payAmount, setPayAmount] = useState('');
-  const [payMethod, setPayMethod] = useState<'Espèces' | 'Chèque' | 'Virement'>('Espèces');
-  const [submittingPay, setSubmittingPay] = useState(false);
-
-  // ── QUICK EXPENSE MODAL STATE ──────────────────────────────────────────────
-  const [expenseModalVisible, setExpenseModalVisible] = useState(false);
-  const [expenseTitle, setExpenseTitle] = useState('');
-  const [expenseAmount, setExpenseAmount] = useState('');
-  const [expenseCategory, setExpenseCategory] = useState('Divers');
-  const [submittingExpense, setSubmittingExpense] = useState(false);
-
   // ── DATA FETCHING ──────────────────────────────────────────────────────────
   const loadCaisseData = useCallback(async (isRefresh = false) => {
     if (!isRefresh) setLoading(true);
@@ -133,12 +103,6 @@ export default function AdminCaisseScreen() {
       }
     } catch (err: any) {
       console.error('Failed to load caisse data:', err);
-      setToast({
-        visible: true,
-        type: 'error',
-        title: 'Erreur réseau',
-        message: 'Impossible de synchroniser la caisse.',
-      });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -166,124 +130,10 @@ export default function AdminCaisseScreen() {
     );
   }, [unpaidStudents, unpaidSearch]);
 
-  // ── SEARCH STUDENTS FOR QUICK PAY ──────────────────────────────────────────
-  useEffect(() => {
-    if (!searchStudentQuery || searchStudentQuery.trim().length < 2) {
-      setSearchResults([]);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      setSearchingStudents(true);
-      try {
-        const res = await adminService.searchStudentsForCaisse(searchStudentQuery.trim());
-        if (res?.success) {
-          setSearchResults(res.students || []);
-        }
-      } catch (err) {
-        console.error('Student search error:', err);
-      } finally {
-        setSearchingStudents(false);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchStudentQuery]);
-
-  // ── OPEN QUICK PAY FOR A SPECIFIC STUDENT ──────────────────────────────────
-  const handleOpenPayForStudent = (student: UnpaidStudent) => {
-    setSelectedStudent(student);
-    setPayAmount(student.dueAmount.toString());
-    setPayMethod('Espèces');
-    setPayModalVisible(true);
-  };
-
-  // ── SUBMIT QUICK PAY ───────────────────────────────────────────────────────
-  const handleConfirmPayment = async () => {
-    const student = selectedStudent;
-    if (!student) {
-      Alert.alert('Attention', 'Veuillez sélectionner un élève.');
-      return;
-    }
-    const amountNum = parseFloat(payAmount);
-    if (isNaN(amountNum) || amountNum <= 0) {
-      Alert.alert('Montant invalide', 'Veuillez saisir un montant positif.');
-      return;
-    }
-
-    setSubmittingPay(true);
-    try {
-      const res = await adminService.collectStudentPayment({
-        studentId: student.id,
-        amount: amountNum,
-        paymentMethod: payMethod,
-      });
-
-      if (res?.success) {
-        setPayModalVisible(false);
-        setSelectedStudent(null);
-        setPayAmount('');
-        setToast({
-          visible: true,
-          type: 'success',
-          title: 'Encaissement validé !',
-          message: `${amountNum} DT enregistrés pour ${student.name}`,
-        });
-        loadCaisseData(true);
-      } else {
-        Alert.alert('Erreur', res?.error || "Échec de l'encaissement.");
-      }
-    } catch (err: any) {
-      Alert.alert('Erreur', err?.message || 'Erreur de connexion.');
-    } finally {
-      setSubmittingPay(false);
-    }
-  };
-
-  // ── SUBMIT QUICK EXPENSE ───────────────────────────────────────────────────
-  const handleConfirmExpense = async () => {
-    if (!expenseTitle.trim()) {
-      Alert.alert('Attention', 'Veuillez indiquer le libellé de la dépense.');
-      return;
-    }
-    const amountNum = parseFloat(expenseAmount);
-    if (isNaN(amountNum) || amountNum <= 0) {
-      Alert.alert('Montant invalide', 'Veuillez indiquer un montant positif.');
-      return;
-    }
-
-    setSubmittingExpense(true);
-    try {
-      const res = await adminService.recordExpense({
-        title: expenseTitle.trim(),
-        amount: amountNum,
-        category: expenseCategory,
-      });
-
-      if (res?.success) {
-        setExpenseModalVisible(false);
-        setExpenseTitle('');
-        setExpenseAmount('');
-        setToast({
-          visible: true,
-          type: 'success',
-          title: 'Dépense enregistrée',
-          message: `-${amountNum} DT sortis de caisse (${expenseCategory}).`,
-        });
-        loadCaisseData(true);
-      } else {
-        Alert.alert('Erreur', res?.error || 'Échec de la dépense.');
-      }
-    } catch (err: any) {
-      Alert.alert('Erreur', err?.message || 'Erreur de connexion.');
-    } finally {
-      setSubmittingExpense(false);
-    }
-  };
-
   // ── WHATSAPP & PHONE SHORTCUTS ─────────────────────────────────────────────
   const handleCallParent = (phone: string, studentName: string) => {
     if (!phone) {
-      Alert.alert('Numéro manquant', `Aucun numéro de téléphone pour ${studentName}.`);
+      Alert.alert('Numéro manquant', `Aucun numéro de téléphone enregistré pour ${studentName}.`);
       return;
     }
     Linking.openURL(`tel:${phone}`);
@@ -291,12 +141,10 @@ export default function AdminCaisseScreen() {
 
   const handleWhatsAppParent = (phone: string, studentName: string, dueAmount: number) => {
     if (!phone) {
-      Alert.alert('Numéro manquant', `Aucun numéro de téléphone pour ${studentName}.`);
+      Alert.alert('Numéro manquant', `Aucun numéro de téléphone enregistré pour ${studentName}.`);
       return;
     }
-    // Clean phone number: remove non-digits
     let cleanPhone = phone.replace(/[^0-9]/g, '');
-    // If Tunisian 8 digits without country code, add 216
     if (cleanPhone.length === 8) {
       cleanPhone = `216${cleanPhone}`;
     }
@@ -328,7 +176,7 @@ export default function AdminCaisseScreen() {
       <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <View>
           <Text style={{ fontSize: 26, fontWeight: '800', color: '#0f172a' }}>💰 Caisse & Finances</Text>
-          <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '500', marginTop: 2 }}>{monthLabel} • Suivi en direct</Text>
+          <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '500', marginTop: 2 }}>{monthLabel} • Radar financier</Text>
         </View>
         <TouchableOpacity
           onPress={onRefresh}
@@ -344,7 +192,7 @@ export default function AdminCaisseScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0055d4']} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── 1. HERO CASH BALANCE CARD ────────────────────────────────────── */}
+        {/* ── 1. HERO CASH BALANCE CARD (INFORMATIVE) ───────────────────────── */}
         <View
           style={{
             marginTop: 12,
@@ -404,68 +252,35 @@ export default function AdminCaisseScreen() {
           </View>
         </View>
 
-        {/* ── 2. FAST ACTION BUTTONS ────────────────────────────────────────── */}
-        <View style={{ flexDirection: 'row', gap: 12, marginTop: 14 }}>
-          {/* Quick Pay */}
-          <TouchableOpacity
-            onPress={() => {
-              setSelectedStudent(null);
-              setSearchStudentQuery('');
-              setPayAmount('');
-              setPayMethod('Espèces');
-              setPayModalVisible(true);
-            }}
-            style={{
-              flex: 1,
-              backgroundColor: '#0055d4',
-              borderRadius: 16,
-              paddingVertical: 14,
-              paddingHorizontal: 16,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              shadowColor: '#0055d4',
-              shadowOpacity: 0.25,
-              shadowRadius: 8,
-              shadowOffset: { width: 0, height: 4 },
-              elevation: 3,
-            }}
-          >
-            <HandCoins size={20} color="#fff" />
-            <Text style={{ fontSize: 15, fontWeight: '700', color: '#fff' }}>Encaisser</Text>
-          </TouchableOpacity>
-
-          {/* Quick Expense */}
-          <TouchableOpacity
-            onPress={() => {
-              setExpenseTitle('');
-              setExpenseAmount('');
-              setExpenseCategory('Divers');
-              setExpenseModalVisible(true);
-            }}
-            style={{
-              flex: 1,
-              backgroundColor: '#fff',
-              borderWidth: 1.5,
-              borderColor: '#fecaca',
-              borderRadius: 16,
-              paddingVertical: 14,
-              paddingHorizontal: 16,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              shadowColor: '#000',
-              shadowOpacity: 0.04,
-              shadowRadius: 4,
-              elevation: 1,
-            }}
-          >
-            <Receipt size={20} color="#ef4444" />
-            <Text style={{ fontSize: 15, fontWeight: '700', color: '#ef4444' }}>Dépense</Text>
-          </TouchableOpacity>
-        </View>
+        {/* ── 2. HNIA ACTION BANNER (CO-PILOT ENTRY) ────────────────────────── */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Hnia')}
+          activeOpacity={0.88}
+          style={{
+            marginTop: 14,
+            backgroundColor: '#eff6ff',
+            borderWidth: 1.5,
+            borderColor: '#bfdbfe',
+            borderRadius: 16,
+            padding: 16,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, paddingRight: 10 }}>
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#0055d4', alignItems: 'center', justifyContent: 'center' }}>
+              <Bot size={22} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '800', color: '#1e3a8a' }}>Actionner la caisse avec Hnia</Text>
+              <Text style={{ fontSize: 12, color: '#475569', marginTop: 2 }} numberOfLines={1}>
+                "Hnia, note 150 DT pour Youssef" ou "Dépense 30 DT"
+              </Text>
+            </View>
+          </View>
+          <ArrowRight size={18} color="#0055d4" />
+        </TouchableOpacity>
 
         {/* ── 3. SEGMENTED TABS ────────────────────────────────────────────── */}
         <View
@@ -474,7 +289,7 @@ export default function AdminCaisseScreen() {
             backgroundColor: '#e2e8f0',
             borderRadius: 12,
             padding: 4,
-            marginTop: 22,
+            marginTop: 20,
           }}
         >
           <TouchableOpacity
@@ -498,7 +313,7 @@ export default function AdminCaisseScreen() {
                 color: activeTab === 'movements' ? '#0f172a' : '#64748b',
               }}
             >
-              Mouvements ({transactions.length})
+              Flux du jour ({transactions.length})
             </Text>
           </TouchableOpacity>
 
@@ -556,9 +371,9 @@ export default function AdminCaisseScreen() {
                 <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
                   <Clock size={28} color="#94a3b8" />
                 </View>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: '#1e293b' }}>Aucun mouvement aujourd'hui</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#1e293b' }}>Aucun flux aujourd'hui</Text>
                 <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center', marginTop: 6, lineHeight: 18 }}>
-                  Utilisez les boutons "Encaisser" ou "Dépense" ci-dessus pour enregistrer vos premiers flux du jour.
+                  Toutes les transactions encaissées ou dépensées aujourd'hui apparaîtront ici en temps réel.
                 </Text>
               </View>
             ) : (
@@ -730,8 +545,8 @@ export default function AdminCaisseScreen() {
                         </View>
                       </View>
 
-                      {/* Action Row: Call, WhatsApp, Quick Pay */}
-                      <View style={{ flexDirection: 'row', gap: 8, marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f1f5f9' }}>
+                      {/* Action Row: Direct Contact Shortcuts */}
+                      <View style={{ flexDirection: 'row', gap: 10, marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f1f5f9' }}>
                         {/* Call Button */}
                         <TouchableOpacity
                           onPress={() => handleCallParent(student.parentPhone, student.name)}
@@ -739,7 +554,7 @@ export default function AdminCaisseScreen() {
                             flex: 1,
                             backgroundColor: '#f1f5f9',
                             borderRadius: 10,
-                            paddingVertical: 9,
+                            paddingVertical: 10,
                             flexDirection: 'row',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -747,7 +562,7 @@ export default function AdminCaisseScreen() {
                           }}
                         >
                           <Phone size={15} color="#334155" />
-                          <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155' }}>Appeler</Text>
+                          <Text style={{ fontSize: 13, fontWeight: '700', color: '#334155' }}>Appeler</Text>
                         </TouchableOpacity>
 
                         {/* WhatsApp Button */}
@@ -757,7 +572,7 @@ export default function AdminCaisseScreen() {
                             flex: 1,
                             backgroundColor: '#ecfdf5',
                             borderRadius: 10,
-                            paddingVertical: 9,
+                            paddingVertical: 10,
                             flexDirection: 'row',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -765,25 +580,7 @@ export default function AdminCaisseScreen() {
                           }}
                         >
                           <MessageCircle size={15} color="#10b981" />
-                          <Text style={{ fontSize: 12, fontWeight: '700', color: '#047857' }}>WhatsApp</Text>
-                        </TouchableOpacity>
-
-                        {/* Instant Collect Button */}
-                        <TouchableOpacity
-                          onPress={() => handleOpenPayForStudent(student)}
-                          style={{
-                            flex: 1.2,
-                            backgroundColor: '#0055d4',
-                            borderRadius: 10,
-                            paddingVertical: 9,
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 5,
-                          }}
-                        >
-                          <HandCoins size={15} color="#fff" />
-                          <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff' }}>Encaisser</Text>
+                          <Text style={{ fontSize: 13, fontWeight: '700', color: '#047857' }}>WhatsApp</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -794,314 +591,6 @@ export default function AdminCaisseScreen() {
           </View>
         )}
       </ScrollView>
-
-      {/* ── MODAL 1: ENCAISSEMENT EXPRESS (QUICK PAY) ────────────────────────── */}
-      <Modal visible={payModalVisible} animationType="slide" transparent>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
-        >
-          <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 22, maxHeight: '85%' }}>
-            {/* Header */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' }}>
-                  <HandCoins size={20} color="#0055d4" />
-                </View>
-                <Text style={{ fontSize: 18, fontWeight: '800', color: '#0f172a' }}>Encaissement Express</Text>
-              </View>
-              <TouchableOpacity onPress={() => setPayModalVisible(false)} style={{ padding: 4 }}>
-                <X size={22} color="#64748b" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {/* If no student pre-selected: search bar */}
-              {!selectedStudent ? (
-                <View style={{ marginBottom: 16 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#475569', marginBottom: 6 }}>Sélectionner un élève</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 }}>
-                    <Search size={18} color="#94a3b8" />
-                    <TextInput
-                      value={searchStudentQuery}
-                      onChangeText={setSearchStudentQuery}
-                      placeholder="Tapez le nom de l'élève..."
-                      placeholderTextColor="#94a3b8"
-                      style={{ flex: 1, marginLeft: 8, fontSize: 14, color: '#0f172a' }}
-                    />
-                  </View>
-
-                  {searchingStudents && <ActivityIndicator size="small" color="#0055d4" style={{ marginTop: 8 }} />}
-
-                  {/* Search results list */}
-                  {searchResults.length > 0 && (
-                    <View style={{ backgroundColor: '#f8fafc', borderRadius: 12, marginTop: 8, borderWidth: 1, borderColor: '#e2e8f0', maxHeight: 180 }}>
-                      <ScrollView nestedScrollEnabled>
-                        {searchResults.map((s) => (
-                          <TouchableOpacity
-                            key={s.id}
-                            onPress={() => {
-                              setSelectedStudent(s);
-                              setPayAmount(s.dueAmount.toString());
-                              setSearchResults([]);
-                              setSearchStudentQuery('');
-                            }}
-                            style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
-                          >
-                            <View>
-                              <Text style={{ fontSize: 14, fontWeight: '700', color: '#1e293b' }}>{s.name}</Text>
-                              <Text style={{ fontSize: 12, color: '#64748b' }}>{s.className} • Dû : {s.dueAmount} DT</Text>
-                            </View>
-                            <View style={{ backgroundColor: '#0055d4', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
-                              <Text style={{ fontSize: 11, fontWeight: '700', color: '#fff' }}>Choisir</Text>
-                            </View>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    </View>
-                  )}
-                </View>
-              ) : (
-                /* Selected Student Card */
-                <View style={{ backgroundColor: '#eff6ff', borderRadius: 14, padding: 14, marginBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#bfdbfe' }}>
-                  <View>
-                    <Text style={{ fontSize: 16, fontWeight: '800', color: '#0055d4' }}>{selectedStudent.name}</Text>
-                    <Text style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>{selectedStudent.className} • Reste dû : {selectedStudent.dueAmount} DT</Text>
-                  </View>
-                  <TouchableOpacity onPress={() => setSelectedStudent(null)} style={{ backgroundColor: '#fff', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#dc2626' }}>Changer</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {/* Amount Input */}
-              <View style={{ marginBottom: 16 }}>
-                <Text style={{ fontSize: 13, fontWeight: '600', color: '#475569', marginBottom: 6 }}>Montant à encaisser (DT)</Text>
-                <TextInput
-                  value={payAmount}
-                  onChangeText={setPayAmount}
-                  placeholder="Ex: 250"
-                  keyboardType="numeric"
-                  style={{
-                    backgroundColor: '#f8fafc',
-                    borderWidth: 1.5,
-                    borderColor: '#cbd5e1',
-                    borderRadius: 14,
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                    fontSize: 22,
-                    fontWeight: '800',
-                    color: '#0f172a',
-                  }}
-                />
-
-                {/* Quick amount chips */}
-                {selectedStudent && (
-                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
-                    {[50, 100, 150].map((amt) => (
-                      <TouchableOpacity
-                        key={amt}
-                        onPress={() => setPayAmount(amt.toString())}
-                        style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}
-                      >
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155' }}>+{amt} DT</Text>
-                      </TouchableOpacity>
-                    ))}
-                    <TouchableOpacity
-                      onPress={() => setPayAmount(selectedStudent.dueAmount.toString())}
-                      style={{ backgroundColor: '#ecfdf5', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#a7f3d0' }}
-                    >
-                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#059669' }}>Totalité ({selectedStudent.dueAmount} DT)</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-
-              {/* Payment Method Selector */}
-              <View style={{ marginBottom: 20 }}>
-                <Text style={{ fontSize: 13, fontWeight: '600', color: '#475569', marginBottom: 8 }}>Mode de règlement</Text>
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                  {(['Espèces', 'Chèque', 'Virement'] as const).map((method) => {
-                    const isSelected = payMethod === method;
-                    return (
-                      <TouchableOpacity
-                        key={method}
-                        onPress={() => setPayMethod(method)}
-                        style={{
-                          flex: 1,
-                          paddingVertical: 10,
-                          borderRadius: 10,
-                          alignItems: 'center',
-                          backgroundColor: isSelected ? '#0055d4' : '#f1f5f9',
-                        }}
-                      >
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: isSelected ? '#fff' : '#475569' }}>
-                          {method}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-
-              {/* Confirm CTA */}
-              <TouchableOpacity
-                onPress={handleConfirmPayment}
-                disabled={submittingPay || !selectedStudent || !payAmount}
-                style={{
-                  backgroundColor: submittingPay || !selectedStudent || !payAmount ? '#94a3b8' : '#10b981',
-                  borderRadius: 16,
-                  paddingVertical: 16,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexDirection: 'row',
-                  gap: 8,
-                  marginBottom: 10,
-                  shadowColor: '#10b981',
-                  shadowOpacity: 0.2,
-                  shadowRadius: 8,
-                  elevation: 2,
-                }}
-              >
-                {submittingPay ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <>
-                    <CheckCircle2 size={20} color="#fff" />
-                    <Text style={{ fontSize: 16, fontWeight: '800', color: '#fff' }}>
-                      Valider l'encaissement ({payAmount ? `${payAmount} DT` : ''})
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* ── MODAL 2: NOUVELLE DÉPENSE (QUICK EXPENSE) ────────────────────────── */}
-      <Modal visible={expenseModalVisible} animationType="slide" transparent>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
-        >
-          <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 22 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#fef2f2', alignItems: 'center', justifyContent: 'center' }}>
-                  <Receipt size={20} color="#ef4444" />
-                </View>
-                <Text style={{ fontSize: 18, fontWeight: '800', color: '#0f172a' }}>Nouvelle Dépense</Text>
-              </View>
-              <TouchableOpacity onPress={() => setExpenseModalVisible(false)} style={{ padding: 4 }}>
-                <X size={22} color="#64748b" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Title */}
-            <View style={{ marginBottom: 14 }}>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: '#475569', marginBottom: 6 }}>Motif / Libellé</Text>
-              <TextInput
-                value={expenseTitle}
-                onChangeText={setExpenseTitle}
-                placeholder="Ex: Fournitures bureau, Plombier, Carburant..."
-                placeholderTextColor="#94a3b8"
-                style={{
-                  backgroundColor: '#f8fafc',
-                  borderWidth: 1,
-                  borderColor: '#cbd5e1',
-                  borderRadius: 12,
-                  paddingHorizontal: 14,
-                  paddingVertical: 10,
-                  fontSize: 14,
-                  color: '#0f172a',
-                }}
-              />
-            </View>
-
-            {/* Amount */}
-            <View style={{ marginBottom: 14 }}>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: '#475569', marginBottom: 6 }}>Montant sorti (DT)</Text>
-              <TextInput
-                value={expenseAmount}
-                onChangeText={setExpenseAmount}
-                placeholder="Ex: 45"
-                keyboardType="numeric"
-                style={{
-                  backgroundColor: '#f8fafc',
-                  borderWidth: 1.5,
-                  borderColor: '#cbd5e1',
-                  borderRadius: 12,
-                  paddingHorizontal: 14,
-                  paddingVertical: 10,
-                  fontSize: 20,
-                  fontWeight: '800',
-                  color: '#ef4444',
-                }}
-              />
-            </View>
-
-            {/* Category Chips */}
-            <View style={{ marginBottom: 20 }}>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: '#475569', marginBottom: 8 }}>Catégorie</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {['Fournitures', 'Maintenance', 'Transport', 'Avance', 'Divers'].map((cat) => {
-                  const isSelected = expenseCategory === cat;
-                  return (
-                    <TouchableOpacity
-                      key={cat}
-                      onPress={() => setExpenseCategory(cat)}
-                      style={{
-                        paddingHorizontal: 14,
-                        paddingVertical: 7,
-                        borderRadius: 10,
-                        backgroundColor: isSelected ? '#ef4444' : '#f1f5f9',
-                      }}
-                    >
-                      <Text style={{ fontSize: 12, fontWeight: '700', color: isSelected ? '#fff' : '#475569' }}>
-                        {cat}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* Confirm Expense CTA */}
-            <TouchableOpacity
-              onPress={handleConfirmExpense}
-              disabled={submittingExpense || !expenseTitle || !expenseAmount}
-              style={{
-                backgroundColor: submittingExpense || !expenseTitle || !expenseAmount ? '#94a3b8' : '#ef4444',
-                borderRadius: 16,
-                paddingVertical: 15,
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'row',
-                gap: 8,
-              }}
-            >
-              {submittingExpense ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <Check size={18} color="#fff" />
-                  <Text style={{ fontSize: 15, fontWeight: '800', color: '#fff' }}>Valider la dépense</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* Toast Notification */}
-      <StatusToast
-        visible={toast.visible}
-        type={toast.type}
-        title={toast.title}
-        message={toast.message}
-        onDismiss={() => setToast((prev) => ({ ...prev, visible: false }))}
-      />
     </View>
   );
 }
