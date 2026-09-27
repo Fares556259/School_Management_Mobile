@@ -667,13 +667,16 @@ export default function HniaChatScreen() {
         setMessages((prev) => [...prev, botMsg]);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
-        if (audioPayload) {
+        const isVocal = Boolean(audioPayload || directAudioBase64);
+        if (isVocal) {
           setVocalError(res?.message || 'Erreur : message vocal non compris');
         }
         const errorMsg: ChatMessage = {
           id: `bot_${Date.now()}`,
           role: 'assistant',
-          content: res?.message || res?.error || 'Désolée, une erreur est survenue lors de la communication.',
+          content: isVocal
+            ? (res?.message || '🎙️ Je n’ai pas bien compris la note vocale. Veuillez réessayer de parler un peu plus distinctement.')
+            : (res?.message || res?.error || 'Désolée, une erreur est survenue lors de la communication.'),
           createdAt: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, errorMsg]);
@@ -684,13 +687,16 @@ export default function HniaChatScreen() {
         return;
       }
       console.error('[HniaChat] Send error:', err);
-      if (audioPayload) {
+      const isVocal = Boolean(audioPayload || directAudioBase64);
+      if (isVocal) {
         setVocalError('Erreur : message vocal non compris');
       }
       const errorMsg: ChatMessage = {
         id: `bot_${Date.now()}`,
         role: 'assistant',
-        content: '⚠️ Connexion interrompue. Vérifiez votre réseau et réessayez.',
+        content: isVocal
+          ? '🎙️ Je n’ai pas pu traiter votre message vocal. Vérifiez votre connexion et réessayez.'
+          : '⚠️ Connexion interrompue. Vérifiez votre réseau et réessayez.',
         createdAt: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorMsg]);
@@ -1190,8 +1196,8 @@ export default function HniaChatScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 25}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <View style={{ flex: 1 }}>
           {/* Main Content */}
@@ -1312,6 +1318,9 @@ export default function HniaChatScreen() {
           <View
             style={[
               styles.bottomBarContainer,
+              Platform.OS === 'android' && keyboardHeight > 0 && {
+                marginBottom: keyboardHeight,
+              },
               {
                 paddingBottom:
                   keyboardHeight > 0
