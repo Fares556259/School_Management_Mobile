@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   View,
   Text,
@@ -67,6 +68,7 @@ interface ChatMessage {
 }
 
 export default function HniaChatScreen() {
+  const insets = useSafeAreaInsets();
   const userName = useAppStore((s) => s.userName) || 'Directeur';
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -245,7 +247,7 @@ export default function HniaChatScreen() {
         const errorMsg: ChatMessage = {
           id: `bot_${Date.now()}`,
           role: 'assistant',
-          content: res?.message || 'Désolée, une erreur est survenue lors de la communication.',
+          content: res?.message || res?.error || 'Désolée, une erreur est survenue lors de la communication.',
           createdAt: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, errorMsg]);
@@ -613,8 +615,8 @@ export default function HniaChatScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.screen}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+    <View style={[styles.screen, { paddingTop: Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 0) }]}>
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" translucent={Platform.OS === 'android'} />
 
       {/* Top Header */}
       <View style={styles.header}>
@@ -740,7 +742,8 @@ export default function HniaChatScreen() {
         )}
 
         {/* Bottom Floating Input Bar (Screenshots 1, 2, 3, 5) */}
-        <View style={styles.bottomBarContainer}>
+        {/* Bottom Floating Input Bar (Screenshots 1, 2, 3, 5) */}
+        <View style={[styles.bottomBarContainer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
           <View style={styles.inputPillContainer}>
             {/* Paperclip attachment button */}
             <TouchableOpacity
@@ -819,7 +822,7 @@ export default function HniaChatScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 

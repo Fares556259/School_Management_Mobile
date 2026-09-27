@@ -1,14 +1,18 @@
 import React from 'react';
-import { View, Text, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Platform, StatusBar } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Settings, LogOut, User, HelpCircle } from 'lucide-react-native';
 import { useAppStore } from '../../store/useAppStore';
 
 export default function AdminMoreScreen({ onSignOut }: { onSignOut?: () => void }) {
   const userName = useAppStore((s) => s.userName);
+  const insets = useSafeAreaInsets();
+  const topPadding = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 0);
   
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
-      <View style={{ paddingHorizontal: 20, paddingTop: 20 }}>
+    <View style={{ flex: 1, backgroundColor: '#f8fafc', paddingTop: topPadding }}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" translucent={Platform.OS === 'android'} />
+      <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
         <Text style={{ fontSize: 28, fontWeight: '800', color: '#1a1a2e' }}>⚙️ Plus</Text>
         <Text style={{ fontSize: 15, color: '#6b7280', marginTop: 4 }}>{userName}</Text>
       </View>
@@ -26,6 +30,6 @@ export default function AdminMoreScreen({ onSignOut }: { onSignOut?: () => void 
           </TouchableOpacity>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
