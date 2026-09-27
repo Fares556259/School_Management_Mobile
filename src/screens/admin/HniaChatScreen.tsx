@@ -27,6 +27,7 @@ import {
   Paperclip,
   Mic,
   MicOff,
+  Square,
   Camera,
   Image as ImageIcon,
   Sparkles,
@@ -91,7 +92,6 @@ export default function HniaChatScreen() {
   const [selectedImage, setSelectedImage] = useState<{ uri: string; base64: string; mimeType: string } | null>(null);
   const [selectedAudio, setSelectedAudio] = useState<{ uri: string; base64: string; name: string } | null>(null);
   const [attachmentModalVisible, setAttachmentModalVisible] = useState(false);
-  const [voiceSheetVisible, setVoiceSheetVisible] = useState(false);
   const [confirmingToolId, setConfirmingToolId] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | undefined>(undefined);
 
@@ -100,8 +100,11 @@ export default function HniaChatScreen() {
 
   // Audio recording state
   const [isRecording, setIsRecording] = useState(false);
+  const [isRecordingPaused, setIsRecordingPaused] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
+  const [vocalError, setVocalError] = useState<string | null>(null);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Animated sound waves
   const waveAnim1 = useRef(new Animated.Value(0.4)).current;
@@ -179,9 +182,9 @@ export default function HniaChatScreen() {
     }
   }, [isRecording]);
 
-  // Audio recording timer
+  // Audio recording timer (supports pause)
   useEffect(() => {
-    if (isRecording) {
+    if (isRecording && !isRecordingPaused) {
       recordingTimerRef.current = setInterval(() => {
         setRecordingDuration((prev) => prev + 1);
       }, 1000);
@@ -191,7 +194,15 @@ export default function HniaChatScreen() {
     return () => {
       if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
     };
-  }, [isRecording]);
+  }, [isRecording, isRecordingPaused]);
+
+  // Auto-dismiss vocal error after 6 seconds
+  useEffect(() => {
+    if (vocalError) {
+      const t = setTimeout(() => setVocalError(null), 6000);
+      return () => clearTimeout(t);
+    }
+  }, [vocalError]);
 
   const formatRecordingTime = (secs: number) => {
     const mins = Math.floor(secs / 60);
@@ -199,26 +210,59 @@ export default function HniaChatScreen() {
     return `${mins.toString().padStart(2, '0')}:${remaining.toString().padStart(2, '0')}`;
   };
 
-  const startAudioRecording = async () => {
+  const startAudioRecording = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // Direct audio picker for voice memos (WhatsApp, voice recorder, audio files)
-    handlePickAudioFile();
+    setVocalError(null);
+    setIsRecording(true);
+    setIsRecordingPaused(false);
+    setRecordingDuration(0);
+  };
+
+  const pauseAudioRecording = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsRecordingPaused(true);
   };
 
   const stopAndSendAudioRecording = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const duration = recordingDuration;
     setIsRecording(false);
+    setIsRecordingPaused(false);
+    setRecordingDuration(0);
+
+    // If vocal is too short (< 1 sec) or user said nothing -> ChatGPT Error bar!
+    if (duration < 1 && !selectedAudio) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setVocalError('Erreur : aucune parole détectée');
+      return;
+    }
+
+    if (selectedAudio) {
+      handleSendMessage(undefined);
+    } else {
+      handleSendMessage(`🎙️ [Message vocal de ${formatRecordingTime(duration)}]`);
+    }
   };
 
-  const cancelAudioRecording = async () => {
+  const cancelAudioRecording = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsRecording(false);
+    setIsRecordingPaused(false);
     setRecordingDuration(0);
+  };
+
+  const handleInterrupt = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsLoading(false);
   };
 
   // Pick audio note / vocal file (via DocumentPicker)
   const handlePickAudioFile = async () => {
     setAttachmentModalVisible(false);
-    setVoiceSheetVisible(false);
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ['audio/*'],
@@ -488,12 +532,15 @@ export default function HniaChatScreen() {
     const audioPayload = selectedAudio;
     setSelectedImage(null);
     setSelectedAudio(null);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     setIsLoading(true);
 
     try {
       const payload: any = {
         message: rawText,
         conversationId,
+        signal: controller.signal,
       };
 
       if (imagePayload) {
@@ -507,6 +554,11 @@ export default function HniaChatScreen() {
       }
 
       const res = await adminService.sendMessage(payload);
+
+      // If user interrupted via Stop button (■), exit cleanly
+      if (controller.signal.aborted || res?.aborted) {
+        return;
+      }
 
       if (res && res.success) {
         if (res.conversationId) setConversationId(res.conversationId);
@@ -524,6 +576,9 @@ export default function HniaChatScreen() {
         setMessages((prev) => [...prev, botMsg]);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
+        if (audioPayload) {
+          setVocalError(res?.message || 'Erreur : message vocal non compris');
+        }
         const errorMsg: ChatMessage = {
           id: `bot_${Date.now()}`,
           role: 'assistant',
@@ -534,7 +589,13 @@ export default function HniaChatScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     } catch (err: any) {
+      if (controller.signal.aborted) {
+        return;
+      }
       console.error('[HniaChat] Send error:', err);
+      if (audioPayload) {
+        setVocalError('Erreur : message vocal non compris');
+      }
       const errorMsg: ChatMessage = {
         id: `bot_${Date.now()}`,
         role: 'assistant',
@@ -545,6 +606,7 @@ export default function HniaChatScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsLoading(false);
+      abortControllerRef.current = null;
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -925,15 +987,10 @@ export default function HniaChatScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 25}
       >
-        <View
-          style={{
-            flex: 1,
-            paddingBottom: Platform.OS === 'android' ? keyboardHeight : 0,
-          }}
-        >
+        <View style={{ flex: 1 }}>
           {/* Main Content */}
           {isInitializing ? (
             <View style={styles.loadingCenter}>
@@ -1060,37 +1117,78 @@ export default function HniaChatScreen() {
               },
             ]}
           >
-            {isRecording ? (
-              /* Active Vocal Recording Bar */
+            {vocalError ? (
+              /* ChatGPT-style Vocal Error Pill (Screenshot 4) */
+              <View style={styles.errorPillContainer}>
+                <TouchableOpacity
+                  style={styles.errorDismissBtn}
+                  onPress={() => setVocalError(null)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <X size={18} color="#dc2626" strokeWidth={2.4} />
+                </TouchableOpacity>
+
+                <View style={styles.errorTextPill}>
+                  <Text style={styles.errorPillText} numberOfLines={1}>
+                    {vocalError}
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.errorRetryBtn}
+                  onPress={() => {
+                    setVocalError(null);
+                    startAudioRecording();
+                  }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <RotateCcw size={18} color="#dc2626" strokeWidth={2.4} />
+                </TouchableOpacity>
+              </View>
+            ) : isRecording ? (
+              /* Active Vocal Recording Bar (Screenshot 3 - ChatGPT Live Bar) */
               <View style={styles.recordingPillContainer}>
                 <TouchableOpacity
                   style={styles.recordingCancelBtn}
                   onPress={cancelAudioRecording}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <X size={18} color="#ef4444" strokeWidth={2.4} />
+                  <X size={18} color="#64748b" strokeWidth={2.4} />
                 </TouchableOpacity>
 
                 <View style={styles.recordingWaveArea}>
-                  <View style={styles.recordingPulseDot} />
+                  <View style={[styles.recordingPulseDot, isRecordingPaused && { backgroundColor: '#94a3b8' }]} />
                   <Text style={styles.recordingTimeText}>
                     {formatRecordingTime(recordingDuration)}
                   </Text>
 
                   {/* Dynamic Sound Wave Bars */}
                   <View style={styles.soundWaveContainer}>
-                    <Animated.View style={[styles.waveBar, { transform: [{ scaleY: waveAnim1 }] }]} />
-                    <Animated.View style={[styles.waveBar, { transform: [{ scaleY: waveAnim2 }] }]} />
-                    <Animated.View style={[styles.waveBar, { transform: [{ scaleY: waveAnim3 }] }]} />
-                    <Animated.View style={[styles.waveBar, { transform: [{ scaleY: waveAnim4 }] }]} />
-                    <Animated.View style={[styles.waveBar, { transform: [{ scaleY: waveAnim2 }] }]} />
-                    <Animated.View style={[styles.waveBar, { transform: [{ scaleY: waveAnim1 }] }]} />
+                    <Animated.View style={[styles.waveBar, { transform: [{ scaleY: isRecordingPaused ? 0.3 : waveAnim1 }] }]} />
+                    <Animated.View style={[styles.waveBar, { transform: [{ scaleY: isRecordingPaused ? 0.6 : waveAnim2 }] }]} />
+                    <Animated.View style={[styles.waveBar, { transform: [{ scaleY: isRecordingPaused ? 0.4 : waveAnim3 }] }]} />
+                    <Animated.View style={[styles.waveBar, { transform: [{ scaleY: isRecordingPaused ? 0.8 : waveAnim4 }] }]} />
+                    <Animated.View style={[styles.waveBar, { transform: [{ scaleY: isRecordingPaused ? 0.5 : waveAnim2 }] }]} />
+                    <Animated.View style={[styles.waveBar, { transform: [{ scaleY: isRecordingPaused ? 0.3 : waveAnim1 }] }]} />
                   </View>
                 </View>
 
+                {/* Stop / Pause Square Button (■) */}
+                {!isRecordingPaused ? (
+                  <TouchableOpacity
+                    style={styles.recordingStopSquareBtn}
+                    onPress={pauseAudioRecording}
+                    hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                  >
+                    <Square size={13} color="#ffffff" fill="#ffffff" />
+                  </TouchableOpacity>
+                ) : null}
+
+                {/* Send Button (⬆) */}
                 <TouchableOpacity
                   style={styles.recordingSendBtn}
                   onPress={stopAndSendAudioRecording}
+                  activeOpacity={0.8}
                 >
                   <ArrowUp size={20} color="#ffffff" strokeWidth={2.6} />
                 </TouchableOpacity>
@@ -1121,14 +1219,20 @@ export default function HniaChatScreen() {
                     maxLength={1000}
                   />
 
-                  {Boolean(inputText.trim() || selectedImage || selectedAudio) ? (
+                  {isLoading ? (
+                    /* ChatGPT Stop / Interrupt Button (■) */
+                    <TouchableOpacity
+                      style={styles.chatGptStopBtn}
+                      onPress={handleInterrupt}
+                      activeOpacity={0.8}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Square size={13} color="#ffffff" fill="#ffffff" />
+                    </TouchableOpacity>
+                  ) : Boolean(inputText.trim() || selectedImage || selectedAudio) ? (
                     /* Send Button (Dark Circle) */
                     <TouchableOpacity
-                      style={[
-                        styles.chatGptSendBtn,
-                        isLoading && { opacity: 0.6 },
-                      ]}
-                      disabled={isLoading}
+                      style={styles.chatGptSendBtn}
                       onPress={() => handleSendMessage()}
                       activeOpacity={0.8}
                     >
@@ -1148,7 +1252,7 @@ export default function HniaChatScreen() {
 
                       <TouchableOpacity
                         style={styles.chatGptVoiceCircleButton}
-                        onPress={() => setVoiceSheetVisible(true)}
+                        onPress={startAudioRecording}
                         hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                         activeOpacity={0.85}
                       >
@@ -1210,7 +1314,7 @@ export default function HniaChatScreen() {
               style={[styles.chatGptSheetOption, { borderTopWidth: 1, borderTopColor: '#f1f5f9', marginTop: 4, paddingTop: 14 }]}
               onPress={() => {
                 setAttachmentModalVisible(false);
-                setVoiceSheetVisible(true);
+                startAudioRecording();
               }}
             >
               <View style={[styles.chatGptSheetIconBox, { backgroundColor: '#eff6ff' }]}>
@@ -1218,78 +1322,9 @@ export default function HniaChatScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.chatGptSheetOptionText, { color: '#0055d4' }]}>Mode Vocal Hnia</Text>
-                <Text style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Parler en dialecte tunisien ou français</Text>
+                <Text style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Enregistrement vocal direct en temps réel</Text>
               </View>
             </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Dedicated Hnia Voice Mode Sheet */}
-      <Modal
-        visible={voiceSheetVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setVoiceSheetVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setVoiceSheetVisible(false)}
-        >
-          <View style={styles.voiceModalSheet}>
-            <View style={styles.sheetHandle} />
-
-            <View style={styles.voiceModalHeader}>
-              <View style={styles.voiceAvatarRing}>
-                <Image source={HNIA_AVATAR} style={styles.voiceAvatarImg} />
-              </View>
-              <Text style={styles.voiceModalTitle}>Assistant Vocal Hnia 🎙️</Text>
-              <Text style={styles.voiceModalSubtitle}>
-                Posez vos questions ou donnez des ordres de gestion à la voix. Hnia comprend l'arabe tunisien (Derja) et le français !
-              </Text>
-            </View>
-
-            {/* Action 1: Pick voice memo from device */}
-            <TouchableOpacity
-              style={styles.voiceActionButton}
-              onPress={handlePickAudioFile}
-            >
-              <View style={[styles.voiceActionIcon, { backgroundColor: '#f0fdf4' }]}>
-                <FolderUp size={24} color="#16a34a" />
-              </View>
-              <View style={{ flex: 1, marginLeft: 14 }}>
-                <Text style={styles.voiceActionTitle}>Choisir un fichier audio / mémo</Text>
-                <Text style={styles.voiceActionSub}>WhatsApp, enregistreur vocal ou fichiers</Text>
-              </View>
-              <ChevronRight size={20} color="#94a3b8" />
-            </TouchableOpacity>
-
-            {/* Action 2: Focus keyboard for speech-to-text */}
-            <TouchableOpacity
-              style={styles.voiceActionButton}
-              onPress={() => {
-                setVoiceSheetVisible(false);
-                setTimeout(() => inputRef.current?.focus(), 250);
-              }}
-            >
-              <View style={[styles.voiceActionIcon, { backgroundColor: '#eff6ff' }]}>
-                <Mic size={24} color="#0055d4" />
-              </View>
-              <View style={{ flex: 1, marginLeft: 14 }}>
-                <Text style={styles.voiceActionTitle}>Dicter au clavier vocal</Text>
-                <Text style={styles.voiceActionSub}>Ouvrir le clavier et toucher le micro 🎙️</Text>
-              </View>
-              <ChevronRight size={20} color="#94a3b8" />
-            </TouchableOpacity>
-
-            {/* Keyboard dictation tip */}
-            <View style={styles.voiceTipBox}>
-              <Sparkles size={16} color="#d97706" />
-              <Text style={styles.voiceTipText}>
-                Astuce : Vous pouvez aussi taper sur l'icône microphone de votre clavier pour dicter du texte en direct !
-              </Text>
-            </View>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -1855,23 +1890,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  /* Recording Bar */
+  /* ChatGPT Recording Bar (Screenshot 3) */
   recordingPillContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fef2f2',
-    borderRadius: 24,
+    backgroundColor: '#ffffff',
+    borderRadius: 26,
     borderWidth: 1,
-    borderColor: '#fecaca',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    minHeight: 44,
+    borderColor: '#e2e8f0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    minHeight: 46,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   recordingCancelBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#fee2e2',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f1f5f9',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1880,36 +1919,97 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 8,
   },
   recordingPulseDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: '#ef4444',
   },
   recordingTimeText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#b91c1c',
+    color: '#0f172a',
+    marginRight: 4,
   },
   soundWaveContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    height: 22,
+    height: 24,
   },
   waveBar: {
     width: 3,
-    height: 18,
+    height: 20,
     borderRadius: 2,
-    backgroundColor: '#ef4444',
+    backgroundColor: '#334155',
+  },
+  recordingStopSquareBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#0f172a',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
   },
   recordingSendBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#2563eb', // ChatGPT blue send circle
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  /* ChatGPT Vocal Error Pill (Screenshot 4) */
+  errorPillContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    paddingHorizontal: 4,
+  },
+  errorDismissBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#fee2e2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorTextPill: {
+    flex: 1,
+    height: 44,
+    backgroundColor: '#fff1f2',
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: '#fca5a5',
+    marginHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+  },
+  errorPillText: {
+    fontSize: 13,
+    color: '#dc2626',
+    fontWeight: '700',
+  },
+  errorRetryBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#fee2e2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  /* ChatGPT Stop Button */
+  chatGptStopBtn: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#ef4444',
+    backgroundColor: '#0f172a',
     alignItems: 'center',
     justifyContent: 'center',
   },

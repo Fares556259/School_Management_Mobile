@@ -101,6 +101,12 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
         ...(options.headers as any),
       };
 
+      if (options.signal) {
+        options.signal.addEventListener('abort', () => {
+          controller?.abort();
+        });
+      }
+
       const response = await fetch(url, {
         ...options,
         signal: controller.signal,
@@ -137,6 +143,9 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
       if (timeoutId) clearTimeout(timeoutId);
       const duration = Date.now() - startTime;
       if (error.name === 'AbortError') {
+        if (options.signal?.aborted) {
+          return { aborted: true };
+        }
         console.error(`Network Error (Timeout) [${duration}ms]: The request to ${endpoint} took too long.`);
       } else {
         console.error(`Network Error [${duration}ms] for ${endpoint}:`, error);
@@ -867,10 +876,13 @@ export const adminService = {
     audioMimeType?: string;
     imageBase64?: string;
     imageMimeType?: string;
+    signal?: AbortSignal;
   }) => {
+    const { signal, ...payload } = data;
     return apiFetch('/api/mobile/agent/chat', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
+      signal,
     });
   },
   
