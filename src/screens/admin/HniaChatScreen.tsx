@@ -53,7 +53,6 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
-import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
 import { adminService } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
@@ -102,7 +101,6 @@ export default function HniaChatScreen() {
   // Audio recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
-  const [recordingInstance, setRecordingInstance] = useState<Audio.Recording | null>(null);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Animated sound waves
@@ -201,89 +199,18 @@ export default function HniaChatScreen() {
     return `${mins.toString().padStart(2, '0')}:${remaining.toString().padStart(2, '0')}`;
   };
 
-  // Safe check if native audio module is available in this binary
-  const isNativeAudioAvailable = () => {
-    try {
-      const { NativeModules } = require('react-native');
-      return !!(NativeModules.ExponentAV || NativeModules.ExpoAudio);
-    } catch {
-      return false;
-    }
-  };
-
   const startAudioRecording = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    // If native module is not linked in this runtime, open the voice sheet
-    if (!isNativeAudioAvailable()) {
-      setVoiceSheetVisible(true);
-      return;
-    }
-
-    try {
-      const perm = await Audio.requestPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert(
-          'Microphone requis',
-          'Veuillez autoriser l’accès au microphone pour envoyer des messages vocaux à Hnia.'
-        );
-        return;
-      }
-
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
-
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-
-      setRecordingInstance(recording);
-      setIsRecording(true);
-      setRecordingDuration(0);
-    } catch (err: any) {
-      console.warn('[HniaVoice] Error starting recording:', err);
-      // Fallback to voice action sheet
-      setVoiceSheetVisible(true);
-    }
+    // Direct audio picker for voice memos (WhatsApp, voice recorder, audio files)
+    handlePickAudioFile();
   };
 
   const stopAndSendAudioRecording = async () => {
-    if (!recordingInstance) {
-      setIsRecording(false);
-      return;
-    }
-
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    try {
-      setIsRecording(false);
-      await recordingInstance.stopAndUnloadAsync();
-      const uri = recordingInstance.getURI();
-      setRecordingInstance(null);
-
-      if (uri) {
-        const base64 = await FileSystem.readAsStringAsync(uri, {
-          encoding: 'base64',
-        });
-        if (base64) {
-          await handleSendAudioMessage(base64, 'audio/mp4', '🎙️ Message vocal');
-        }
-      }
-    } catch (err: any) {
-      console.error('[HniaVoice] Error stopping recording:', err);
-      Alert.alert('Erreur', "Impossible de finaliser l'enregistrement vocal.");
-    }
+    setIsRecording(false);
   };
 
   const cancelAudioRecording = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (recordingInstance) {
-      try {
-        await recordingInstance.stopAndUnloadAsync();
-      } catch {}
-      setRecordingInstance(null);
-    }
     setIsRecording(false);
     setRecordingDuration(0);
   };
@@ -1323,25 +1250,7 @@ export default function HniaChatScreen() {
               </Text>
             </View>
 
-            {/* Action 1: Direct recording if available */}
-            <TouchableOpacity
-              style={styles.voiceActionButton}
-              onPress={() => {
-                setVoiceSheetVisible(false);
-                startAudioRecording();
-              }}
-            >
-              <View style={[styles.voiceActionIcon, { backgroundColor: '#eff6ff' }]}>
-                <Mic size={24} color="#0055d4" />
-              </View>
-              <View style={{ flex: 1, marginLeft: 14 }}>
-                <Text style={styles.voiceActionTitle}>Enregistrer une note vocale</Text>
-                <Text style={styles.voiceActionSub}>Parler directement au micro</Text>
-              </View>
-              <ChevronRight size={20} color="#94a3b8" />
-            </TouchableOpacity>
-
-            {/* Action 2: Pick voice memo from device */}
+            {/* Action 1: Pick voice memo from device */}
             <TouchableOpacity
               style={styles.voiceActionButton}
               onPress={handlePickAudioFile}
@@ -1350,8 +1259,26 @@ export default function HniaChatScreen() {
                 <FolderUp size={24} color="#16a34a" />
               </View>
               <View style={{ flex: 1, marginLeft: 14 }}>
-                <Text style={styles.voiceActionTitle}>Choisir un fichier audio</Text>
+                <Text style={styles.voiceActionTitle}>Choisir un fichier audio / mémo</Text>
                 <Text style={styles.voiceActionSub}>WhatsApp, enregistreur vocal ou fichiers</Text>
+              </View>
+              <ChevronRight size={20} color="#94a3b8" />
+            </TouchableOpacity>
+
+            {/* Action 2: Focus keyboard for speech-to-text */}
+            <TouchableOpacity
+              style={styles.voiceActionButton}
+              onPress={() => {
+                setVoiceSheetVisible(false);
+                setTimeout(() => inputRef.current?.focus(), 250);
+              }}
+            >
+              <View style={[styles.voiceActionIcon, { backgroundColor: '#eff6ff' }]}>
+                <Mic size={24} color="#0055d4" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text style={styles.voiceActionTitle}>Dicter au clavier vocal</Text>
+                <Text style={styles.voiceActionSub}>Ouvrir le clavier et toucher le micro 🎙️</Text>
               </View>
               <ChevronRight size={20} color="#94a3b8" />
             </TouchableOpacity>

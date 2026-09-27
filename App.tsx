@@ -396,23 +396,21 @@ export default function App() {
     return () => subscription.remove();
   }, []);
 
-  // Automatic OTA update detection & background reload
+  // Safe background OTA update pre-fetching
   useEffect(() => {
-    async function checkAndApplyUpdates() {
+    async function prefetchUpdates() {
       if (__DEV__) return;
       try {
         const update = await Updates.checkForUpdateAsync();
         if (update.isAvailable) {
-          console.log('[UPDATES] New OTA update found, downloading...');
+          console.log('[UPDATES] Prefetching update in background...');
           await Updates.fetchUpdateAsync();
-          console.log('[UPDATES] Update downloaded, reloading app...');
-          await Updates.reloadAsync();
         }
       } catch (err) {
-        console.log('[UPDATES-CHECK-FAIL]', err);
+        console.log('[UPDATES-PREFETCH-SILENT]', err);
       }
     }
-    checkAndApplyUpdates();
+    prefetchUpdates();
   }, []);
 
   // Notification Response Listener

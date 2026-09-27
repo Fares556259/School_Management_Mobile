@@ -1,6 +1,6 @@
 {
   "name": "snapschool_app",
-  "version": "1.0.2",
+  "version": "1.0.1",
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
@@ -22,7 +22,6 @@
     "expo": "~54.0.33",
     "expo-asset": "~12.0.12",
     "expo-auth-session": "~7.0.10",
-    "expo-av": "~16.0.8",
     "expo-constants": "~18.0.13",
     "expo-dev-client": "~6.0.20",
     "expo-device": "~8.0.10",
