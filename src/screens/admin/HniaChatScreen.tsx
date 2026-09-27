@@ -55,8 +55,19 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 import { adminService } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
+
+function getNativeAudio(): any {
+  try {
+    const hasAV = requireOptionalNativeModule('ExponentAV');
+    if (!hasAV) return null;
+    return require('expo-av').Audio;
+  } catch {
+    return null;
+  }
+}
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -103,7 +114,9 @@ export default function HniaChatScreen() {
   const [isRecordingPaused, setIsRecordingPaused] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [vocalError, setVocalError] = useState<string | null>(null);
+  const [apkUpdateModalVisible, setApkUpdateModalVisible] = useState(false);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingRef = useRef<any>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Animated sound waves
@@ -210,42 +223,53 @@ export default function HniaChatScreen() {
     return `${mins.toString().padStart(2, '0')}:${remaining.toString().padStart(2, '0')}`;
   };
 
-  const handleVocalPress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert(
-      'Dictée vocale & Audio 🎙️',
-      'Comment souhaitez-vous vous exprimer ?',
-      [
-        {
-          text: 'Dicter au micro du clavier ⌨️',
-          onPress: () => {
-            inputRef.current?.focus();
-            setVocalError('Appuyez sur le micro 🎙️ de votre clavier pour dicter');
-          },
-        },
-        {
-          text: 'Joindre une note vocale 📁',
-          onPress: () => handlePickAudioFile(),
-        },
-        {
-          text: 'Annuler',
-          style: 'cancel',
-        },
-      ]
-    );
-  };
-
-  const startAudioRecording = () => {
+  const startAudioRecording = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setVocalError(null);
-    setIsRecording(true);
-    setIsRecordingPaused(false);
-    setRecordingDuration(0);
+
+    const Audio = getNativeAudio();
+    if (!Audio) {
+      setApkUpdateModalVisible(true);
+      return;
+    }
+
+    try {
+      const permission = await Audio.requestPermissionsAsync();
+      if (!permission.granted) {
+        setVocalError('Permission microphone requise');
+        return;
+      }
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const recording = new Audio.Recording();
+      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await recording.startAsync();
+      recordingRef.current = recording;
+
+      setIsRecording(true);
+      setIsRecordingPaused(false);
+      setRecordingDuration(0);
+    } catch (err: any) {
+      console.warn('[HniaChat] Audio recording start error:', err);
+      setVocalError('Erreur micro : ' + (err.message || 'Impossible de démarrer'));
+    }
   };
 
-  const pauseAudioRecording = () => {
+  const pauseAudioRecording = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsRecordingPaused(true);
+    const recording = recordingRef.current;
+    if (recording) {
+      try {
+        await recording.pauseAsync();
+      } catch (err) {
+        console.warn('[HniaChat] Pause error:', err);
+      }
+    }
   };
 
   const stopAndSendAudioRecording = async () => {
@@ -255,20 +279,52 @@ export default function HniaChatScreen() {
     setIsRecordingPaused(false);
     setRecordingDuration(0);
 
+    const recording = recordingRef.current;
+    recordingRef.current = null;
+
+    if (recording) {
+      try {
+        await recording.stopAndUnloadAsync();
+        const uri = recording.getURI();
+        if (uri && duration >= 1) {
+          const base64 = await FileSystem.readAsStringAsync(uri, {
+            encoding: 'base64',
+          });
+          if (base64) {
+            handleSendMessage(undefined, base64, 'audio/mp4');
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('[HniaChat] Stop recording error:', err);
+      }
+    }
+
     if (selectedAudio) {
       handleSendMessage(undefined);
-    } else {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      setVocalError('Pour dicter, utilisez le micro de votre clavier ⌨️ ou joignez une note (+)');
-      inputRef.current?.focus();
+      return;
+    }
+
+    if (duration < 1) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setVocalError('Erreur : aucune parole détectée');
     }
   };
 
-  const cancelAudioRecording = () => {
+  const cancelAudioRecording = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsRecording(false);
     setIsRecordingPaused(false);
     setRecordingDuration(0);
+    const recording = recordingRef.current;
+    recordingRef.current = null;
+    if (recording) {
+      try {
+        await recording.stopAndUnloadAsync();
+      } catch (err) {
+        console.warn('[HniaChat] Cancel error:', err);
+      }
+    }
   };
 
   const handleInterrupt = () => {
@@ -530,9 +586,13 @@ export default function HniaChatScreen() {
   };
 
   // Send message to Hnia
-  const handleSendMessage = async (textToSend?: string) => {
+  const handleSendMessage = async (
+    textToSend?: string,
+    directAudioBase64?: string,
+    directAudioMime?: string
+  ) => {
     const rawText = (textToSend ?? inputText).trim();
-    if (!rawText && !selectedImage && !selectedAudio) return;
+    if (!rawText && !selectedImage && !selectedAudio && !directAudioBase64) return;
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -540,9 +600,17 @@ export default function HniaChatScreen() {
     const userMsg: ChatMessage = {
       id: userMsgId,
       role: 'user',
-      content: rawText || (selectedAudio ? `🎙️ ${selectedAudio.name}` : (selectedImage ? '📷 Document envoyé' : '')),
+      content:
+        rawText ||
+        (directAudioBase64
+          ? '🎙️ Note vocale enregistrée'
+          : selectedAudio
+          ? `🎙️ ${selectedAudio.name}`
+          : selectedImage
+          ? '📷 Document envoyé'
+          : ''),
       imageUri: selectedImage?.uri,
-      isVoice: !!selectedAudio,
+      isVoice: !!selectedAudio || !!directAudioBase64,
       createdAt: new Date().toISOString(),
     };
 
@@ -568,7 +636,10 @@ export default function HniaChatScreen() {
         payload.imageMimeType = imagePayload.mimeType;
       }
 
-      if (audioPayload) {
+      if (directAudioBase64) {
+        payload.audioBase64 = directAudioBase64;
+        payload.audioMimeType = directAudioMime || 'audio/mp4';
+      } else if (audioPayload) {
         payload.audioBase64 = audioPayload.base64;
         payload.audioMimeType = 'audio/mp4';
       }
@@ -1375,7 +1446,7 @@ export default function HniaChatScreen() {
                     <View style={styles.chatGptVoiceButtonsRow}>
                       <TouchableOpacity
                         style={styles.chatGptMicButton}
-                        onPress={handleVocalPress}
+                        onPress={startAudioRecording}
                         hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                         activeOpacity={0.7}
                       >
@@ -1384,7 +1455,7 @@ export default function HniaChatScreen() {
 
                       <TouchableOpacity
                         style={styles.chatGptVoiceCircleButton}
-                        onPress={handleVocalPress}
+                        onPress={startAudioRecording}
                         hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                         activeOpacity={0.85}
                       >
@@ -1456,6 +1527,83 @@ export default function HniaChatScreen() {
                 <Text style={[styles.chatGptSheetOptionText, { color: '#0055d4' }]}>Mode Vocal Hnia</Text>
                 <Text style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Enregistrement vocal direct en temps réel</Text>
               </View>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Voice Mode / Legacy APK Guide Modal */}
+      <Modal
+        visible={apkUpdateModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setApkUpdateModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setApkUpdateModalVisible(false)}
+        >
+          <View style={styles.chatGptSheet}>
+            <View style={styles.sheetHandle} />
+
+            <View style={{ alignItems: 'center', paddingVertical: 10 }}>
+              <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+                <Mic size={28} color="#0055d4" strokeWidth={2.2} />
+              </View>
+              <Text style={{ fontSize: 18, fontWeight: '800', color: '#0f172a', textAlign: 'center' }}>
+                Dictée Vocale Hnia 🎙️
+              </Text>
+              <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center', marginTop: 6, lineHeight: 19, paddingHorizontal: 16 }}>
+                Le nouvel APK avec micro direct est en cours de compilation. En attendant, vous pouvez utiliser votre voix facilement :
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.chatGptSheetOption}
+              onPress={() => {
+                setApkUpdateModalVisible(false);
+                inputRef.current?.focus();
+              }}
+            >
+              <View style={[styles.chatGptSheetIconBox, { backgroundColor: '#eff6ff' }]}>
+                <Sparkles size={22} color="#0055d4" strokeWidth={2} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#0f172a' }}>
+                  Dicter avec le clavier ⌨️
+                </Text>
+                <Text style={{ fontSize: 12, color: '#64748b', marginTop: 1 }}>
+                  Appuyez sur le micro du clavier pour dicter à voix haute
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.chatGptSheetOption}
+              onPress={() => {
+                setApkUpdateModalVisible(false);
+                handlePickAudioFile();
+              }}
+            >
+              <View style={[styles.chatGptSheetIconBox, { backgroundColor: '#f0fdf4' }]}>
+                <FolderUp size={22} color="#16a34a" strokeWidth={2} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#0f172a' }}>
+                  Joindre une note vocale 📁
+                </Text>
+                <Text style={{ fontSize: 12, color: '#64748b', marginTop: 1 }}>
+                  Fichier audio WhatsApp ou enregistreur (.m4a, .mp3)
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ paddingVertical: 14, alignItems: 'center', marginTop: 8 }}
+              onPress={() => setApkUpdateModalVisible(false)}
+            >
+              <Text style={{ fontSize: 15, fontWeight: '600', color: '#64748b' }}>Fermer</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
