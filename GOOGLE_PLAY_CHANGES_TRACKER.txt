@@ -129,6 +129,12 @@ Focus: Sign-In UX & Task Detail UI
   - Push notifications channel configuration, unified student avatars, StatusToast,
     redesigned photo picker modal, Arabic/French/English localization audit.
 
+• Version 1.0.3 (AI Assistant Voice & UI Polish):
+  - Integrated native microphone support with `expo-av` for voice notes to AI Assistant (Hnia).
+  - Fixed Android `edgeToEdge` keyboard overlapping the chat input field.
+  - Implemented polite voice error handling when microphone input is silent or transcription fails.
+  - Replaced raw HTML rendering with RichText formatting for cleaner message display.
+
 ================================================================================
 Keep this file updated whenever new changes are made during the 14-day test.
 ================================================================================

@@ -3,7 +3,7 @@
     "name": "SnapSchool",
     "slug": "SnapSchool_App",
     "scheme": "snapschool-app",
-    "version": "1.0.1",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,7 +15,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.fares01.SnapSchool-App"
+      "bundleIdentifier": "com.fares01.SnapSchool-App",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "SnapSchool a besoin d'accéder à votre microphone pour les notes vocales et les commandes avec l'assistante Hnia."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -29,7 +32,8 @@
       "permissions": [
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "RECORD_AUDIO"
       ]
     },
     "web": {
@@ -37,6 +41,12 @@
     },
     "plugins": [
       "expo-web-browser",
+      [
+        "expo-av",
+        {
+          "microphonePermission": "SnapSchool a besoin d'accéder à votre microphone pour les notes vocales et les commandes avec l'assistante Hnia."
+        }
+      ],
       [
         "expo-notifications",
         {
