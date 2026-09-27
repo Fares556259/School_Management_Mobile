@@ -210,6 +210,31 @@ export default function HniaChatScreen() {
     return `${mins.toString().padStart(2, '0')}:${remaining.toString().padStart(2, '0')}`;
   };
 
+  const handleVocalPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      'Dictée vocale & Audio 🎙️',
+      'Comment souhaitez-vous vous exprimer ?',
+      [
+        {
+          text: 'Dicter au micro du clavier ⌨️',
+          onPress: () => {
+            inputRef.current?.focus();
+            setVocalError('Appuyez sur le micro 🎙️ de votre clavier pour dicter');
+          },
+        },
+        {
+          text: 'Joindre une note vocale 📁',
+          onPress: () => handlePickAudioFile(),
+        },
+        {
+          text: 'Annuler',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
   const startAudioRecording = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setVocalError(null);
@@ -230,17 +255,12 @@ export default function HniaChatScreen() {
     setIsRecordingPaused(false);
     setRecordingDuration(0);
 
-    // If vocal is too short (< 1 sec) or user said nothing -> ChatGPT Error bar!
-    if (duration < 1 && !selectedAudio) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      setVocalError('Erreur : aucune parole détectée');
-      return;
-    }
-
     if (selectedAudio) {
       handleSendMessage(undefined);
     } else {
-      handleSendMessage(`🎙️ [Message vocal de ${formatRecordingTime(duration)}]`);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      setVocalError('Pour dicter, utilisez le micro de votre clavier ⌨️ ou joignez une note (+)');
+      inputRef.current?.focus();
     }
   };
 
@@ -811,34 +831,126 @@ export default function HniaChatScreen() {
         return (
           <View key={idx} style={styles.bulletRow}>
             <Text style={styles.bulletDot}>•</Text>
-            <Text style={styles.bulletText}>{renderInlineBold(bulletText)}</Text>
+            <Text style={styles.bulletText}>{renderRichText(bulletText, styles.bulletText)}</Text>
           </View>
         );
       }
 
       return (
         <Text key={idx} style={styles.normalText}>
-          {renderInlineBold(trimmed)}
+          {renderRichText(trimmed, styles.normalText)}
         </Text>
       );
     });
   };
 
-  // Helper for **bold** text
-  const renderInlineBold = (str: string) => {
-    // Strip raw HTML tags if any (e.g. <b>, <code>)
-    const cleanStr = str.replace(/<b>(.*?)<\/b>/g, '**$1**').replace(/<code>(.*?)<\/code>/g, '$1');
-    const parts = cleanStr.split(/(\*\*.*?\*\*)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return (
-          <Text key={i} style={styles.boldText}>
-            {part.slice(2, -2)}
+  // Comprehensive Rich Text Formatter supporting HTML & Markdown (<b>, <i>, <code>, **, *, _, etc.)
+  const renderRichText = (rawStr: string, baseStyle: any = styles.normalText) => {
+    if (!rawStr) return null;
+
+    // 1. Decode HTML entities
+    let str = rawStr
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>');
+
+    // 2. Strip separator bars
+    str = str.replace(/[━─═-]{4,}/g, '');
+
+    // 3. Normalize HTML tags to tokens
+    str = str
+      .replace(/<\/?(?:b|strong)>/gi, '|||B|||')
+      .replace(/<\/?(?:i|em)>/gi, '|||I|||')
+      .replace(/<\/?code>/gi, '|||C|||')
+      .replace(/\*\*(.*?)\*\*/g, '|||B|||$1|||B|||')
+      .replace(/`([^`]+)`/g, '|||C|||$1|||C|||');
+
+    // 4. Strip any other HTML tags
+    str = str.replace(/<[^>]+>/g, '');
+
+    // 5. Tokenize
+    const tokens = str.split(/(\|\|\|[BIC]\|\|\|)/g);
+
+    let isBold = false;
+    let isItalic = false;
+    let isCode = false;
+
+    const elements: React.ReactNode[] = [];
+
+    tokens.forEach((token, idx) => {
+      if (token === '|||B|||') {
+        isBold = !isBold;
+      } else if (token === '|||I|||') {
+        isItalic = !isItalic;
+      } else if (token === '|||C|||') {
+        isCode = !isCode;
+      } else if (token) {
+        if (isCode) {
+          elements.push(
+            <View key={idx} style={styles.codePill}>
+              <Text style={styles.codeText}>{token}</Text>
+            </View>
+          );
+          return;
+        }
+
+        const textStyles: any = [baseStyle];
+        if (isBold) textStyles.push(styles.boldText);
+        if (isItalic) textStyles.push(styles.italicText);
+
+        elements.push(
+          <Text key={idx} style={textStyles}>
+            {token}
           </Text>
         );
       }
-      return <Text key={i}>{part}</Text>;
     });
+
+    return elements;
+  };
+
+  // Structured Confirmation Card Renderer with zero raw HTML
+  const renderConfirmationCardContent = (confirmText: string) => {
+    if (!confirmText) return null;
+
+    let cleaned = confirmText.replace(/^[❓⚠️\s]+/, '').trim();
+    cleaned = cleaned.replace(/[━─═-]{4,}/g, '');
+
+    const lines = cleaned.split('\n').map((l) => l.trim()).filter(Boolean);
+
+    return (
+      <View style={{ gap: 6, marginTop: 4 }}>
+        {lines.map((line, idx) => {
+          const isQuestion = line.startsWith('Confirmer ') || line.endsWith('?') || line.includes('Souhaitez-vous');
+          if (isQuestion) {
+            return (
+              <View key={idx} style={styles.confirmPromptBox}>
+                <Text style={styles.confirmPromptText}>
+                  {renderRichText(line, styles.confirmPromptText)}
+                </Text>
+              </View>
+            );
+          }
+
+          const isHeader = line.toLowerCase().includes('confirmation') && idx === 0;
+          if (isHeader) {
+            return (
+              <Text key={idx} style={styles.confirmActionHeading}>
+                {renderRichText(line, styles.confirmActionHeading)}
+              </Text>
+            );
+          }
+
+          return (
+            <View key={idx} style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}>
+              {renderRichText(line, styles.confirmationLineText)}
+            </View>
+          );
+        })}
+      </View>
+    );
   };
 
   // Render Single Message
@@ -872,6 +984,18 @@ export default function HniaChatScreen() {
           {/* Content */}
           {isUser ? (
             <Text style={styles.userText}>{item.content}</Text>
+          ) : item.pendingConfirmation ? (
+            // If message has a pending confirmation card, don't repeat duplicate confirmation prompt as regular message
+            item.content &&
+            !item.content.includes("Confirmation") &&
+            !item.content.includes("❓") &&
+            item.content !== item.pendingConfirmation.confirmText ? (
+              renderFormattedText(item.content)
+            ) : (
+              <Text style={[styles.normalText, { fontWeight: '600', color: '#0f172a', marginBottom: 4 }]}>
+                Veuillez vérifier et confirmer l'action suivante :
+              </Text>
+            )
           ) : (
             renderFormattedText(item.content)
           )}
@@ -881,29 +1005,27 @@ export default function HniaChatScreen() {
             <View style={styles.confirmationCard}>
               <View style={styles.confirmationHeader}>
                 <AlertCircle size={18} color="#d97706" />
-                <Text style={styles.confirmationTitle}>Confirmation d'action</Text>
+                <Text style={styles.confirmationTitle}>Confirmation d'action requise</Text>
               </View>
 
-              <Text style={styles.confirmationDesc}>
-                {item.pendingConfirmation.confirmText.replace(/❓\s*/, '').replace(/\*\*/g, '')}
-              </Text>
+              {renderConfirmationCardContent(item.pendingConfirmation.confirmText)}
 
               {item.pendingConfirmation.status === 'EXECUTED' ? (
-                <View style={[styles.actionStatusBadge, { backgroundColor: '#ecfdf5' }]}>
+                <View style={[styles.actionStatusBadge, { backgroundColor: '#ecfdf5', marginTop: 10 }]}>
                   <Check size={16} color="#059669" />
                   <Text style={[styles.actionStatusText, { color: '#059669' }]}>
                     Action confirmée et exécutée ✅
                   </Text>
                 </View>
               ) : item.pendingConfirmation.status === 'REJECTED' ? (
-                <View style={[styles.actionStatusBadge, { backgroundColor: '#fef2f2' }]}>
+                <View style={[styles.actionStatusBadge, { backgroundColor: '#fef2f2', marginTop: 10 }]}>
                   <X size={16} color="#dc2626" />
                   <Text style={[styles.actionStatusText, { color: '#dc2626' }]}>
                     Action annulée ❌
                   </Text>
                 </View>
               ) : (
-                <View style={styles.confirmationButtonsRow}>
+                <View style={[styles.confirmationButtonsRow, { marginTop: 12 }]}>
                   <TouchableOpacity
                     style={[styles.confirmBtn, confirmingToolId === item.pendingConfirmation.toolCallId && styles.btnDisabled]}
                     onPress={() => handleConfirmation(item.pendingConfirmation!.toolCallId, 'confirm')}
@@ -932,24 +1054,34 @@ export default function HniaChatScreen() {
             </View>
           )}
 
-          {/* Follow-up Suggestion Chips */}
+          {/* Follow-up Suggestion Chips (filter out duplicate confirm/cancel) */}
           {!isUser && item.followUpSuggestions && item.followUpSuggestions.length > 0 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.suggestionsScroll}
-              contentContainerStyle={{ gap: 8, paddingTop: 10 }}
-            >
-              {item.followUpSuggestions.map((sug, sIdx) => (
-                <TouchableOpacity
-                  key={sIdx}
-                  style={styles.suggestionChip}
-                  onPress={() => handleSendMessage(sug)}
+            (() => {
+              const filteredSuggestions = item.followUpSuggestions.filter(
+                (sug) =>
+                  !item.pendingConfirmation ||
+                  (!sug.toLowerCase().includes('confirm') && !sug.toLowerCase().includes('annul'))
+              );
+              if (filteredSuggestions.length === 0) return null;
+              return (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.suggestionsScroll}
+                  contentContainerStyle={{ gap: 8, paddingTop: 10 }}
                 >
-                  <Text style={styles.suggestionChipText}>{sug}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+                  {filteredSuggestions.map((sug, sIdx) => (
+                    <TouchableOpacity
+                      key={sIdx}
+                      style={styles.suggestionChip}
+                      onPress={() => handleSendMessage(sug)}
+                    >
+                      <Text style={styles.suggestionChipText}>{sug}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              );
+            })()
           )}
         </View>
       </View>
@@ -1243,7 +1375,7 @@ export default function HniaChatScreen() {
                     <View style={styles.chatGptVoiceButtonsRow}>
                       <TouchableOpacity
                         style={styles.chatGptMicButton}
-                        onPress={startAudioRecording}
+                        onPress={handleVocalPress}
                         hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                         activeOpacity={0.7}
                       >
@@ -1252,7 +1384,7 @@ export default function HniaChatScreen() {
 
                       <TouchableOpacity
                         style={styles.chatGptVoiceCircleButton}
-                        onPress={startAudioRecording}
+                        onPress={handleVocalPress}
                         hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                         activeOpacity={0.85}
                       >
@@ -1547,6 +1679,49 @@ const styles = StyleSheet.create({
   boldText: {
     fontWeight: '700',
     color: '#0f172a',
+  },
+  italicText: {
+    fontStyle: 'italic',
+    color: '#334155',
+  },
+  codePill: {
+    backgroundColor: '#e2e8f0',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+    marginHorizontal: 2,
+    alignSelf: 'center',
+  },
+  codeText: {
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontSize: 12,
+    color: '#0f172a',
+    fontWeight: '600',
+  },
+  confirmActionHeading: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#92400e',
+    marginBottom: 6,
+  },
+  confirmationLineText: {
+    fontSize: 13,
+    color: '#78350f',
+    lineHeight: 20,
+  },
+  confirmPromptBox: {
+    backgroundColor: '#fef3c7',
+    borderRadius: 8,
+    padding: 8,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  confirmPromptText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#92400e',
+    lineHeight: 18,
   },
   header2: {
     fontSize: 17,
