@@ -43,6 +43,7 @@ import { useAppStore } from './src/store/useAppStore';
 import { parentService, authService, authStorage, studentService, API_BASE_URL, teacherService, adminService } from './src/services/api';
 import { notificationService } from './src/services/notificationService';
 import * as Notifications from 'expo-notifications';
+import * as Updates from 'expo-updates';
 import Constants from 'expo-constants';
 import "./src/styles/global.css";
 
@@ -393,6 +394,25 @@ export default function App() {
       queryClient.invalidateQueries({ queryKey: ['notifCount'] });
     });
     return () => subscription.remove();
+  }, []);
+
+  // Automatic OTA update detection & background reload
+  useEffect(() => {
+    async function checkAndApplyUpdates() {
+      if (__DEV__) return;
+      try {
+        const update = await Updates.checkForUpdateAsync();
+        if (update.isAvailable) {
+          console.log('[UPDATES] New OTA update found, downloading...');
+          await Updates.fetchUpdateAsync();
+          console.log('[UPDATES] Update downloaded, reloading app...');
+          await Updates.reloadAsync();
+        }
+      } catch (err) {
+        console.log('[UPDATES-CHECK-FAIL]', err);
+      }
+    }
+    checkAndApplyUpdates();
   }, []);
 
   // Notification Response Listener
