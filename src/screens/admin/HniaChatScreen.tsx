@@ -18,8 +18,6 @@ import {
   StatusBar,
   Keyboard,
   Animated,
-  LayoutAnimation,
-  UIManager,
 } from 'react-native';
 import {
   Send,
@@ -56,23 +54,9 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
-import { requireOptionalNativeModule } from 'expo-modules-core';
+import { Audio } from 'expo-av';
 import { adminService } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
-
-function getNativeAudio(): any {
-  try {
-    const hasAV = requireOptionalNativeModule('ExponentAV');
-    if (!hasAV) return null;
-    return require('expo-av').Audio;
-  } catch {
-    return null;
-  }
-}
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 const HNIA_AVATAR = require('../../../assets/hnia/hnia_mascot_icon.png');
 
@@ -118,6 +102,7 @@ export default function HniaChatScreen() {
   const [apkUpdateModalVisible, setApkUpdateModalVisible] = useState(false);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const recordingRef = useRef<any>(null);
+  const recordingStartTimeRef = useRef<number>(0);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Animated sound waves
@@ -129,25 +114,30 @@ export default function HniaChatScreen() {
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
 
-  // Keyboard listeners for perfect input positioning above keyboard
+  // Cleanup recording on screen unmount
+  useEffect(() => {
+    return () => {
+      if (recordingRef.current) {
+        try {
+          recordingRef.current.stopAndUnloadAsync();
+        } catch {}
+      }
+    };
+  }, []);
+
+  // Keyboard listeners for clean, smooth positioning above keyboard
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
     const showSub = Keyboard.addListener(showEvent, (e) => {
-      try {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      } catch {}
       setKeyboardHeight(e.endCoordinates.height);
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      }, 80);
     });
 
     const hideSub = Keyboard.addListener(hideEvent, () => {
-      try {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      } catch {}
       setKeyboardHeight(0);
     });
 
@@ -156,6 +146,17 @@ export default function HniaChatScreen() {
       hideSub.remove();
     };
   }, []);
+
+  // Auto-scroll to bottom ONLY when new messages arrive (allows smooth scrolling up to read old messages)
+  const prevMessagesLengthRef = useRef(messages.length);
+  useEffect(() => {
+    if (messages.length > prevMessagesLengthRef.current) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 80);
+    }
+    prevMessagesLengthRef.current = messages.length;
+  }, [messages.length]);
 
   // Audio wave pulsing animation
   useEffect(() => {
@@ -228,16 +229,10 @@ export default function HniaChatScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setVocalError(null);
 
-    const Audio = getNativeAudio();
-    if (!Audio) {
-      setApkUpdateModalVisible(true);
-      return;
-    }
-
     try {
       const permission = await Audio.requestPermissionsAsync();
       if (!permission.granted) {
-        setVocalError('Permission microphone requise');
+        setVocalError('Permission microphone requise dans les réglages');
         return;
       }
 
@@ -246,6 +241,7 @@ export default function HniaChatScreen() {
         playsInSilentModeIOS: true,
       });
 
+      recordingStartTimeRef.current = Date.now();
       const recording = new Audio.Recording();
       await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
       await recording.startAsync();
@@ -256,7 +252,15 @@ export default function HniaChatScreen() {
       setRecordingDuration(0);
     } catch (err: any) {
       console.warn('[HniaChat] Audio recording start error:', err);
-      setVocalError('Erreur micro : ' + (err.message || 'Impossible de démarrer'));
+      if (
+        err?.message?.includes('ExponentAV') ||
+        err?.message?.includes('null') ||
+        err?.message?.includes('not found')
+      ) {
+        setApkUpdateModalVisible(true);
+      } else {
+        setVocalError('Erreur micro : ' + (err.message || 'Impossible de démarrer'));
+      }
     }
   };
 
@@ -275,6 +279,7 @@ export default function HniaChatScreen() {
 
   const stopAndSendAudioRecording = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const elapsedMs = Date.now() - recordingStartTimeRef.current;
     const duration = recordingDuration;
     setIsRecording(false);
     setIsRecordingPaused(false);
@@ -287,7 +292,7 @@ export default function HniaChatScreen() {
       try {
         await recording.stopAndUnloadAsync();
         const uri = recording.getURI();
-        if (uri && duration >= 1) {
+        if (uri && (elapsedMs >= 500 || duration >= 1)) {
           const base64 = await FileSystem.readAsStringAsync(uri, {
             encoding: 'base64',
           });
@@ -306,9 +311,9 @@ export default function HniaChatScreen() {
       return;
     }
 
-    if (duration < 1) {
+    if (elapsedMs < 500 && duration < 1) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      setVocalError('Erreur : aucune parole détectée');
+      setVocalError('Message trop court : maintenez pour dicter');
     }
   };
 
@@ -1211,7 +1216,7 @@ export default function HniaChatScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <View style={{ flex: 1 }}>
@@ -1274,7 +1279,8 @@ export default function HniaChatScreen() {
               renderItem={renderMessageItem}
               contentContainerStyle={styles.messagesList}
               showsVerticalScrollIndicator={false}
-              onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
               ListFooterComponent={
                 isLoading ? (
                   <View style={styles.thinkingRow}>
@@ -1355,12 +1361,7 @@ export default function HniaChatScreen() {
           <View
             style={[
               styles.bottomBarContainer,
-              {
-                paddingBottom:
-                  keyboardHeight > 0
-                    ? 8
-                    : Math.max(insets.bottom, 12),
-              },
+              { paddingBottom: 8 },
             ]}
           >
             {vocalError ? (
