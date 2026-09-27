@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, StatusBar, Alert, Dimensions, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GraduationCap, ArrowRight, ChevronRight, Globe, Check } from 'lucide-react-native';
+import { GraduationCap, ArrowRight, ChevronRight, Globe, Check, Building2 } from 'lucide-react-native';
 import { useLanguage, Language } from '../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
@@ -52,7 +52,7 @@ export const LandingScreen = ({
   onSelectRole,
   onViewOnboarding,
 }: {
-  onSelectRole: (role: 'parent' | 'teacher') => void;
+  onSelectRole: (role: 'parent' | 'teacher' | 'admin') => void;
   onViewOnboarding?: () => void;
 }) => {
   const { language, setLanguage, t } = useLanguage();
@@ -166,6 +166,49 @@ export const LandingScreen = ({
               image={require('../../assets/3d/teacher.jpg')}
               onPress={() => onSelectRole('teacher')}
             />
+
+            <TouchableOpacity 
+              onPress={() => onSelectRole('admin')}
+              activeOpacity={0.9}
+              style={{
+                backgroundColor: 'white',
+                borderRadius: 32,
+                padding: 20,
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginBottom: 20,
+                shadowColor: '#1e3a5f',
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.05,
+                shadowRadius: 20,
+                elevation: 5,
+                borderWidth: 1,
+                borderColor: '#f1f4f6',
+              }}
+            >
+              <View style={{
+                width: 80,
+                height: 80,
+                borderRadius: 24,
+                backgroundColor: '#1e3a5f',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: 20,
+              }}>
+                <Building2 size={36} color="white" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 20, fontWeight: '900', color: '#2b3437', marginBottom: 4, fontFamily: 'Jakarta-Bold' }}>
+                  {language === 'ar' ? 'الإدارة' : language === 'fr' ? 'Direction' : 'Admin'}
+                </Text>
+                <Text style={{ fontSize: 13, color: '#737c7f', lineHeight: 18, fontWeight: '500' }}>
+                  {language === 'ar' ? 'أدِر مدرستك مع هنيّة' : language === 'fr' ? 'Pilotez votre école avec Hnia IA' : 'Manage your school with Hnia AI'}
+                </Text>
+              </View>
+              <View style={{ width: 36, height: 36, borderRadius: 14, backgroundColor: '#f1f4f6', alignItems: 'center', justifyContent: 'center' }}>
+                <ChevronRight size={18} color="#1e3a5f" strokeWidth={3} />
+              </View>
+            </TouchableOpacity>
             
             <RoleCard 
               title={(t?.student || 'Student')}

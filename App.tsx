@@ -29,13 +29,18 @@ import { TeacherTaskDetailScreen } from './src/screens/teacher/TeacherTaskDetail
 import { StudentSubmissionScreen } from './src/screens/teacher/StudentSubmissionScreen';
 import { TeacherClassRosterScreen } from './src/screens/teacher/TeacherClassRosterScreen';
 import { TeacherGradeEntryScreen } from './src/screens/teacher/TeacherGradeEntryScreen';
+import AdminDashboardScreen from './src/screens/admin/AdminDashboardScreen';
+import HniaChatScreen from './src/screens/admin/HniaChatScreen';
+import AdminCaisseScreen from './src/screens/admin/AdminCaisseScreen';
+import AdminMoreScreen from './src/screens/admin/AdminMoreScreen';
+
 import { CoursesScreen } from './src/screens/CoursesScreen';
-import { Home as HomeIcon, FileText, CreditCard, User, Megaphone, Calendar, BarChart3, ClipboardList, BookOpen, Users, ClipboardCheck, GraduationCap } from 'lucide-react-native';
+import { Home as HomeIcon, FileText, CreditCard, User, Megaphone, Calendar, BarChart3, ClipboardList, BookOpen, Users, ClipboardCheck, GraduationCap, LayoutDashboard, Bot, Wallet, MoreHorizontal } from 'lucide-react-native';
 import { View, ActivityIndicator, Alert, StyleSheet, AppState } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from './src/store/useAppStore';
-import { parentService, authService, authStorage, studentService, API_BASE_URL, teacherService } from './src/services/api';
+import { parentService, authService, authStorage, studentService, API_BASE_URL, teacherService, adminService } from './src/services/api';
 import { notificationService } from './src/services/notificationService';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
@@ -95,7 +100,19 @@ function BottomTabsContent({ onSignOut }: { onSignOut: () => void }) {
     profileTab,
   ];
 
-  return (
+      if (userRole === 'admin') {
+      return (
+        <Tab.Navigator screenOptions={{ headerShown: false, tabBarStyle: { backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#e2e8f0', height: 60 + insets.bottom, paddingBottom: 10 + insets.bottom, paddingTop: 8, elevation: 0, shadowOpacity: 0 }, tabBarActiveTintColor: '#0072e6', tabBarInactiveTintColor: '#94a3b8', tabBarLabelStyle: { fontWeight: '800', fontSize: 10, marginTop: 2, fontFamily: 'PlusJakartaSans-ExtraBold', letterSpacing: 0.2 } }}>
+          <Tab.Screen name="Dashboard" component={AdminDashboardScreen} options={{ tabBarLabel: (t as any).adminDashboard || 'Dashboard', tabBarIcon: ({ color, focused }) => <LayoutDashboard size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} /> }} />
+          <Tab.Screen name="Hnia" component={HniaChatScreen} options={{ tabBarLabel: 'Hnia', tabBarIcon: ({ color, focused }) => <Bot size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} /> }} />
+          <Tab.Screen name="Caisse" component={AdminCaisseScreen} options={{ tabBarLabel: (t as any).adminCaisse || 'Caisse', tabBarIcon: ({ color, focused }) => <Wallet size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} /> }} />
+          <Tab.Screen name="More" options={{ tabBarLabel: (t as any).more || 'Plus', tabBarIcon: ({ color, focused }) => <MoreHorizontal size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} /> }}>
+            {props => <AdminMoreScreen {...props} onSignOut={onSignOut} />}
+          </Tab.Screen>
+        </Tab.Navigator>
+      );
+    }
+return (
     <Tab.Navigator
       initialRouteName="Home"
       screenOptions={({ route }) => ({
@@ -183,7 +200,7 @@ export default function App() {
   } = useAppStore();
   const [authState, setAuthState] = useState<'loading' | 'onboarding' | 'landing' | 'signedIn' | 'signedOut'>('onboarding');
   const [isLaunchScreenVisible, setIsLaunchScreenVisible] = useState(true);
-  const [selectedRole, setSelectedRole] = useState<'parent' | 'teacher'>('parent');
+  const [selectedRole, setSelectedRole] = useState<'parent' | 'teacher' | 'admin'>('parent');
   const [isBootstrapDone, setIsBootstrapDone] = useState(false);
   const [isLaunchMinTimeDone, setIsLaunchMinTimeDone] = useState(false);
   const targetAuthStateRef = React.useRef<'onboarding' | 'landing' | 'signedIn'>('onboarding');
@@ -241,12 +258,19 @@ export default function App() {
               setChildren(childrenData);
               setSelectedChildId(childrenData[0].id);
             }
-          } else {
-             // Teacher profile fetching can be added here
+          } else if (role === 'teacher') {
              profile = await teacherService.fetchProfile();
+          } else if (role === 'admin') {
+            profile = await adminService.fetchProfile().catch(() => null);
+            if (profile) {
+              setUserName(profile.name || 'Admin');
+              setUserAvatarUrl(profile.img || null);
+            } else {
+              setUserName('Admin');
+            }
           }
 
-          if (profile) {
+          if (profile && role !== 'admin') {
             setUserName(`${profile.name} ${profile.surname}`);
             setUserAvatarUrl(profile.img || null);
           }
@@ -445,7 +469,7 @@ export default function App() {
     [handleSignOut]
   );
 
-  const onSelectRole = (role: 'parent' | 'teacher') => {
+  const onSelectRole = (role: 'parent' | 'teacher' | 'admin') => {
     setSelectedRole(role);
     setAuthState('signedOut');
   };

@@ -274,6 +274,9 @@ export const authService = {
 
   registerPushToken: async (uid: string, pushToken: string) => {
     const role = await authStorage.getUserRole();
+    if (role === 'admin') {
+      return null;
+    }
     const endpoint = role === 'teacher' ? '/api/mobile/teacher/push-token' : '/api/mobile/parent/push-token';
     const body = role === 'teacher' ? { teacherId: uid, pushToken } : { parentId: uid, pushToken };
     
@@ -841,5 +844,48 @@ export const teacherService = {
       body: JSON.stringify({ teacherId, classId, subjectId, term, grades, proofUrl }),
     });
     return data;
+  },
+};
+
+export const adminService = {
+  // Fetch admin dashboard data
+  fetchDashboard: async () => {
+    return apiFetch('/api/mobile/admin/dashboard');
+  },
+  
+  // Fetch admin profile
+  fetchProfile: async () => {
+    const userId = await authStorage.getUserId();
+    return apiFetch(`/api/mobile/admin/profile?id=${userId}`);
+  },
+  
+  // Chat with Hnia AI
+  sendMessage: async (data: {
+    message: string;
+    conversationId?: string;
+    audioBase64?: string;
+    audioMimeType?: string;
+    imageBase64?: string;
+    imageMimeType?: string;
+  }) => {
+    return apiFetch('/api/mobile/agent/chat', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  
+  // Confirm or cancel a pending action
+  confirmAction: async (toolCallId: string, action: 'confirm' | 'cancel') => {
+    return apiFetch('/api/mobile/agent/confirm', {
+      method: 'POST',
+      body: JSON.stringify({ toolCallId, action }),
+    });
+  },
+  
+  // Fetch chat history
+  fetchChatHistory: async (conversationId?: string, limit = 50) => {
+    const params = new URLSearchParams({ limit: limit.toString() });
+    if (conversationId) params.set('conversationId', conversationId);
+    return apiFetch(`/api/mobile/agent/history?${params.toString()}`);
   },
 };

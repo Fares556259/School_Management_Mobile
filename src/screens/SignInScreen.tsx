@@ -11,12 +11,12 @@ import {
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GraduationCap, Phone, Lock, ChevronLeft, ArrowRight } from 'lucide-react-native';
+import { GraduationCap, Phone, Lock, ChevronLeft, ArrowRight, Mail } from 'lucide-react-native';
 import { authService } from '../services/api';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage, Language } from '../context/LanguageContext';
 
-export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'teacher', onSignIn: () => void, onBack: () => void }) => {
+export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'teacher' | 'admin', onSignIn: () => void, onBack: () => void }) => {
   const { setUserName, setUserAvatarUrl, setChildren, setSelectedChildId, setUserId, setUserRole } = useAppStore();
   const { language, setLanguage, t, isRTL } = useLanguage();
 
@@ -51,6 +51,10 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
   };
 
   const handleFinalAuth = async () => {
+    if (role === 'admin' && !phone.trim()) {
+      setError(language === 'ar' ? 'الرجاء إدخال البريد الإلكتروني' : 'Veuillez entrer votre email');
+      return;
+    }
     if (!password.trim()) {
       setError(t?.pleaseEnterYourPassword || 'Please enter your password.');
       return;
@@ -109,25 +113,25 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
     }
   };
 
-  const stepTitle = step === 'PHONE'
+  const stepTitle = role === 'admin' ? (language === 'ar' ? 'تسجيل دخول الإدارة' : 'Connexion Direction') : step === 'PHONE'
     ? (t?.welcomeBack || 'Welcome back!')
     : step === 'NEEDS_SETUP'
     ? (t?.createYourPassword || 'Create your password')
     : (language === 'ar' ? `مرحباً، ${tempParent?.name?.split(' ')[0]} 👋` : `Hi, ${tempParent?.name?.split(' ')[0]} 👋`);
 
-  const stepSub = step === 'PHONE'
+  const stepSub = role === 'admin' ? (language === 'ar' ? 'أدخل بريدك الإلكتروني وكلمة السر' : 'Entrez vos identifiants pour continuer') : step === 'PHONE'
     ? (t?.enterYourRegisteredPhoneNumber || 'Enter your registered phone number')
     : step === 'NEEDS_SETUP'
     ? (t?.chooseAStrongPasswordFor || 'Choose a strong password for your first login')
     : (language === 'ar' ? 'أدخل كلمة السر للمتابعة' : language === 'fr' ? 'Entrez votre mot de passe pour continuer' : 'Enter your password to continue');
 
-  const loadingLabel = step === 'PHONE'
+  const loadingLabel = (role === 'admin' || step !== 'PHONE' && step !== 'NEEDS_SETUP') ? (language === 'ar' ? 'جاري الدخول...' : language === 'fr' ? 'Connexion...' : 'Signing in...') : step === 'PHONE'
     ? (language === 'ar' ? 'جاري التحقق...' : language === 'fr' ? 'Vérification...' : 'Checking...')
     : step === 'NEEDS_SETUP'
     ? (language === 'ar' ? 'جاري الإنشاء...' : language === 'fr' ? 'Création...' : 'Setting up...')
     : (language === 'ar' ? 'جاري الدخول...' : language === 'fr' ? 'Connexion...' : 'Signing in...');
 
-  const btnLabel = step === 'PHONE'
+  const btnLabel = role === 'admin' ? (t?.signIn || 'Sign In') : step === 'PHONE'
     ? (t?.continue || 'Continue')
     : step === 'NEEDS_SETUP'
     ? (t?.setPassword || 'Set Password')
@@ -185,7 +189,7 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
                 Snap<Text style={{ color: '#0055d4' }}>School</Text>
               </Text>
               <Text style={{ fontSize: 13, color: '#737c7f', fontWeight: 'bold', marginTop: 4, letterSpacing: 1 }}>
-                {role === 'parent' ? (t?.parentPortal || 'PARENT PORTAL') : (t?.teacherPortal || 'TEACHER PORTAL')}
+                {role === 'parent' ? (t?.parentPortal || 'PARENT PORTAL') : role === 'teacher' ? (t?.teacherPortal || 'TEACHER PORTAL') : (language === 'ar' ? 'بوابة الإدارة' : 'ADMIN PORTAL')}
               </Text>
             </View>
 
@@ -200,15 +204,17 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
             </View>
 
             {/* Phone Input */}
-            {step === 'PHONE' && (
+            {(role === 'admin' || step === 'PHONE') && (
               <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#f8fbff', borderRadius: 20, borderWidth: 1, borderColor: '#e2e8f0', paddingHorizontal: 18, paddingVertical: 16, marginBottom: 16, gap: 12 }}>
-                <Phone size={22} color="#737c7f" />
+                {role === 'admin' ? <Mail size={22} color="#737c7f" /> : <Phone size={22} color="#737c7f" />}
                 <TextInput
                   value={phone}
                   onChangeText={v => { setPhone(v); setError(''); }}
-                  placeholder={t?.eg55666777 || 'e.g. 55 666 777'}
+                  placeholder={role === 'admin' ? 'directeur@ecole.tn' : (t?.eg55666777 || 'e.g. 55 666 777')}
                   placeholderTextColor="#94a3b8"
-                  keyboardType="phone-pad"
+                  keyboardType={role === 'admin' ? "email-address" : "phone-pad"}
+                  autoCapitalize={role === 'admin' ? "none" : undefined}
+                  autoComplete={role === 'admin' ? "email" : undefined}
                   autoFocus
                   style={{ flex: 1, color: '#2b3437', fontSize: 18, fontWeight: 'bold', textAlign: isRTL ? 'right' : 'left' }}
                 />
@@ -216,7 +222,7 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
             )}
 
             {/* Password Input */}
-            {step !== 'PHONE' && (
+            {(role === 'admin' || step !== 'PHONE') && (
               <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#f8fbff', borderRadius: 20, borderWidth: 1, borderColor: '#e2e8f0', paddingHorizontal: 18, paddingVertical: 16, marginBottom: 16, gap: 12 }}>
                 <Lock size={22} color="#737c7f" />
                 <TextInput
@@ -225,7 +231,7 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
                   placeholder={step === 'NEEDS_SETUP' ? (t?.createAStrongPassword || 'Create a strong password') : (t?.yourPassword || 'Your password')}
                   placeholderTextColor="#94a3b8"
                   secureTextEntry
-                  autoFocus
+                  autoFocus={role === 'admin' ? false : true}
                   style={{ flex: 1, color: '#2b3437', fontSize: 18, fontWeight: 'bold', textAlign: isRTL ? 'right' : 'left' }}
                 />
               </View>
@@ -247,7 +253,7 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
 
             {/* Button */}
             <TouchableOpacity
-              onPress={step === 'PHONE' ? handleCheckStatus : handleFinalAuth}
+              onPress={(role === 'admin' || step !== 'PHONE') ? handleFinalAuth : handleCheckStatus}
               disabled={isLoading}
               style={{ backgroundColor: '#0055d4', borderRadius: 20, paddingVertical: 18, alignItems: 'center', justifyContent: 'center', flexDirection: isRTL ? 'row-reverse' : 'row', gap: 10, marginTop: 8, opacity: isLoading ? 0.85 : 1 }}
             >

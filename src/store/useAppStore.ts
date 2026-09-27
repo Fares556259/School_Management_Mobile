@@ -3,7 +3,7 @@ import { Student } from '../types';
 
 interface AppState {
   children: Student[];
-  userRole: 'parent' | 'teacher' | null;
+  userRole: 'parent' | 'teacher' | 'admin' | null;
   userId: string | null;
   userName: string;
   userAvatarUrl: string | null;
@@ -14,7 +14,7 @@ interface AppState {
   studentStatuses: Record<string, 'Present' | 'Absent' | 'Due'>;
   selectedTeacherClass: any | null;
   setChildren: (children: Student[]) => void;
-  setUserRole: (role: 'parent' | 'teacher' | null) => void;
+  setUserRole: (role: 'parent' | 'teacher' | 'admin' | null) => void;
   setUserId: (id: string | null) => void;
   setUserName: (name: string) => void;
   setUserAvatarUrl: (url: string | null) => void;
