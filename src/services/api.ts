@@ -900,4 +900,27 @@ export const adminService = {
     if (conversationId) params.set('conversationId', conversationId);
     return apiFetch(`/api/mobile/agent/history?${params.toString()}`);
   },
+
+  // Caisse & Financials
+  fetchCaisse: async () => {
+    return apiFetch('/api/mobile/admin/caisse');
+  },
+
+  searchStudentsForCaisse: async (search: string) => {
+    return apiFetch(`/api/mobile/admin/caisse?search=${encodeURIComponent(search)}`);
+  },
+
+  collectStudentPayment: async (data: { studentId: string; amount: number; paymentMethod?: string }) => {
+    return apiFetch('/api/mobile/admin/caisse', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'collect_student', ...data }),
+    });
+  },
+
+  recordExpense: async (data: { title: string; amount: number; category?: string }) => {
+    return apiFetch('/api/mobile/admin/caisse', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'record_expense', ...data }),
+    });
+  },
 };
