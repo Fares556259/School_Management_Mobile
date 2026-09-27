@@ -396,7 +396,7 @@ export default function App() {
     return () => subscription.remove();
   }, []);
 
-  // Safe background OTA update pre-fetching
+  // Safe background OTA update pre-fetching & auto-apply
   useEffect(() => {
     async function prefetchUpdates() {
       if (__DEV__) return;
@@ -405,6 +405,8 @@ export default function App() {
         if (update.isAvailable) {
           console.log('[UPDATES] Prefetching update in background...');
           await Updates.fetchUpdateAsync();
+          console.log('[UPDATES] Update downloaded, reloading app...');
+          await Updates.reloadAsync();
         }
       } catch (err) {
         console.log('[UPDATES-PREFETCH-SILENT]', err);

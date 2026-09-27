@@ -52,11 +52,28 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
 import { adminService } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
+
+async function readAudioAsBase64(uri: string): Promise<string> {
+  try {
+    return await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+  } catch (legacyErr) {
+    try {
+      const { File } = require('expo-file-system');
+      const file = new File(uri);
+      return await file.base64();
+    } catch (newErr) {
+      console.error('[HniaChat] All audio base64 conversion failed:', legacyErr, newErr);
+      throw legacyErr;
+    }
+  }
+}
 
 const HNIA_AVATAR = require('../../../assets/hnia/hnia_mascot_icon.png');
 
@@ -290,19 +307,21 @@ export default function HniaChatScreen() {
 
     if (recording) {
       try {
-        await recording.stopAndUnloadAsync();
         const uri = recording.getURI();
-        if (uri && (elapsedMs >= 500 || duration >= 1)) {
-          const base64 = await FileSystem.readAsStringAsync(uri, {
-            encoding: 'base64',
-          });
+        await recording.stopAndUnloadAsync();
+        const finalUri = uri || recording.getURI();
+        if (finalUri && (elapsedMs >= 400 || duration >= 1)) {
+          const base64 = await readAudioAsBase64(finalUri);
           if (base64) {
             handleSendMessage(undefined, base64, 'audio/mp4');
             return;
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         console.warn('[HniaChat] Stop recording error:', err);
+        setVocalError('Erreur audio : ' + (err?.message || 'Fichier non lisible'));
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return;
       }
     }
 
@@ -311,7 +330,7 @@ export default function HniaChatScreen() {
       return;
     }
 
-    if (elapsedMs < 500 && duration < 1) {
+    if (elapsedMs < 400 && duration < 1) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setVocalError('Message trop court : maintenez pour dicter');
     }
@@ -353,9 +372,7 @@ export default function HniaChatScreen() {
 
       if (!result.canceled && result.assets && result.assets[0]) {
         const asset = result.assets[0];
-        const base64 = await FileSystem.readAsStringAsync(asset.uri, {
-          encoding: 'base64',
-        });
+        const base64 = await readAudioAsBase64(asset.uri);
 
         if (base64) {
           setSelectedAudio({
