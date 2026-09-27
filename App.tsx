@@ -102,7 +102,31 @@ function BottomTabsContent({ onSignOut }: { onSignOut: () => void }) {
 
       if (userRole === 'admin') {
       return (
-        <Tab.Navigator screenOptions={{ headerShown: false, tabBarStyle: { backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#e2e8f0', height: 60 + insets.bottom, paddingBottom: 10 + insets.bottom, paddingTop: 8, elevation: 0, shadowOpacity: 0 }, tabBarActiveTintColor: '#0072e6', tabBarInactiveTintColor: '#94a3b8', tabBarLabelStyle: { fontWeight: '800', fontSize: 10, marginTop: 2, fontFamily: 'PlusJakartaSans-ExtraBold', letterSpacing: 0.2 } }}>
+        <Tab.Navigator
+          screenOptions={{
+            headerShown: false,
+            tabBarHideOnKeyboard: true,
+            tabBarStyle: {
+              backgroundColor: '#ffffff',
+              borderTopWidth: 1,
+              borderTopColor: '#e2e8f0',
+              height: 60 + insets.bottom,
+              paddingBottom: 10 + insets.bottom,
+              paddingTop: 8,
+              elevation: 0,
+              shadowOpacity: 0
+            },
+            tabBarActiveTintColor: '#0072e6',
+            tabBarInactiveTintColor: '#94a3b8',
+            tabBarLabelStyle: {
+              fontWeight: '800',
+              fontSize: 10,
+              marginTop: 2,
+              fontFamily: 'PlusJakartaSans-ExtraBold',
+              letterSpacing: 0.2
+            }
+          }}
+        >
           <Tab.Screen name="Dashboard" component={AdminDashboardScreen} options={{ tabBarLabel: (t as any).adminDashboard || 'Dashboard', tabBarIcon: ({ color, focused }) => <LayoutDashboard size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} /> }} />
           <Tab.Screen name="Hnia" component={HniaChatScreen} options={{ tabBarLabel: 'Hnia', tabBarIcon: ({ color, focused }) => <Bot size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} /> }} />
           <Tab.Screen name="Caisse" component={AdminCaisseScreen} options={{ tabBarLabel: (t as any).adminCaisse || 'Caisse', tabBarIcon: ({ color, focused }) => <Wallet size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} /> }} />
@@ -117,6 +141,7 @@ return (
       initialRouteName="Home"
       screenOptions={({ route }) => ({
         headerShown: false,
+        tabBarHideOnKeyboard: true,
         tabBarStyle: {
           backgroundColor: '#ffffff',
           borderTopWidth: 1,
