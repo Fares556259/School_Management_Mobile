@@ -73,7 +73,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const HNIA_AVATAR = require('../../../assets/hnia/hnia_avatar.jpg');
+const HNIA_AVATAR = require('../../../assets/hnia/hnia_mascot_icon.png');
 
 interface ChatMessage {
   id: string;
@@ -811,6 +811,15 @@ export default function HniaChatScreen() {
     },
   ];
 
+  const EXECUTIVE_QUICK_CHIPS = [
+    { label: '💰 Caisse du jour', prompt: 'Bilan officiel de clôture de caisse du jour (recettes, dépenses, solde physique net).' },
+    { label: '📋 Absences', prompt: "Quels sont les élèves et professeurs absents aujourd'hui ?" },
+    { label: '💳 Impayés', prompt: 'Donne-moi la liste des impayés et reliquats pour ce mois-ci.' },
+    { label: '💸 Noter dépense', prompt: 'Je veux enregistrer une dépense de caisse.' },
+    { label: '⏰ Planning', prompt: "Emploi du temps des cours prévus aujourd'hui." },
+    { label: '📢 Annonce', prompt: 'Je souhaite diffuser une annonce importante aux parents.' },
+  ];
+
   // Markdown parser & renderer
   const renderFormattedText = (text: string) => {
     if (!text) return null;
@@ -966,9 +975,9 @@ export default function HniaChatScreen() {
       } else if (token) {
         if (isCode) {
           elements.push(
-            <View key={idx} style={styles.codePill}>
-              <Text style={styles.codeText}>{token}</Text>
-            </View>
+            <Text key={idx} style={styles.codeTextInline}>
+              {` ${token} `}
+            </Text>
           );
           return;
         }
@@ -1311,6 +1320,28 @@ export default function HniaChatScreen() {
               >
                 <X size={16} color="#6b7280" />
               </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Executive Quick Suggestion Chips (when in chat) */}
+          {messages.length > 0 && !isRecording && (
+            <View style={styles.quickChipsWrapper}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.quickChipsContent}
+              >
+                {EXECUTIVE_QUICK_CHIPS.map((chip, idx) => (
+                  <TouchableOpacity
+                    key={idx}
+                    style={styles.quickChipBtn}
+                    activeOpacity={0.7}
+                    onPress={() => handleSendMessage(chip.prompt)}
+                  >
+                    <Text style={styles.quickChipText}>{chip.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
           )}
 
@@ -1855,6 +1886,13 @@ const styles = StyleSheet.create({
     color: '#0f172a',
     fontWeight: '600',
   },
+  codeTextInline: {
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontSize: 12,
+    color: '#0055d4',
+    backgroundColor: '#eff6ff',
+    fontWeight: '700',
+  },
   confirmActionHeading: {
     fontSize: 14,
     fontWeight: '800',
@@ -2144,6 +2182,33 @@ const styles = StyleSheet.create({
   },
   attachmentRemoveBtn: {
     padding: 6,
+  },
+
+  /* Quick Chips Bar */
+  quickChipsWrapper: {
+    paddingVertical: 6,
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+  },
+  quickChipsContent: {
+    paddingHorizontal: 14,
+    gap: 8,
+  },
+  quickChipBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  quickChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#334155',
   },
 
   /* Bottom Input Bar (ChatGPT Mobile Style) */
