@@ -52,6 +52,7 @@ import {
   FolderUp,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
@@ -522,6 +523,27 @@ export default function HniaChatScreen() {
     );
   };
 
+  // Process, resize (max width 1200) and compress image for fast, reliable upload
+  const processAndSetImage = async (uri: string) => {
+    try {
+      const manipulated = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 1200 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+      );
+      if (manipulated.base64) {
+        setSelectedImage({
+          uri: manipulated.uri,
+          base64: manipulated.base64,
+          mimeType: 'image/jpeg',
+        });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (e) {
+      console.warn('[HniaChat] Image manipulation fallback:', e);
+    }
+  };
+
   // Pick Image from Gallery
   const handlePickImage = async () => {
     setAttachmentModalVisible(false);
@@ -534,20 +556,12 @@ export default function HniaChatScreen() {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        base64: true,
-        quality: 0.6,
+        allowsEditing: false,
+        quality: 0.7,
       });
 
       if (!result.canceled && result.assets && result.assets[0]) {
-        const asset = result.assets[0];
-        if (asset.base64) {
-          setSelectedImage({
-            uri: asset.uri,
-            base64: asset.base64,
-            mimeType: asset.mimeType || 'image/jpeg',
-          });
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        }
+        await processAndSetImage(result.assets[0].uri);
       }
     } catch (err) {
       console.warn('[ImagePicker] Error:', err);
@@ -565,20 +579,12 @@ export default function HniaChatScreen() {
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        base64: true,
-        quality: 0.6,
+        allowsEditing: false,
+        quality: 0.7,
       });
 
       if (!result.canceled && result.assets && result.assets[0]) {
-        const asset = result.assets[0];
-        if (asset.base64) {
-          setSelectedImage({
-            uri: asset.uri,
-            base64: asset.base64,
-            mimeType: asset.mimeType || 'image/jpeg',
-          });
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        }
+        await processAndSetImage(result.assets[0].uri);
       }
     } catch (err) {
       console.warn('[Camera] Error:', err);
@@ -1323,8 +1329,8 @@ export default function HniaChatScreen() {
             </View>
           )}
 
-          {/* Executive Quick Suggestion Chips (when in chat) */}
-          {messages.length > 0 && !isRecording && (
+          {/* Executive Quick Suggestion Chips (when in chat and keyboard closed) */}
+          {messages.length > 0 && !isRecording && keyboardHeight === 0 && (
             <View style={styles.quickChipsWrapper}>
               <ScrollView
                 horizontal
@@ -1349,9 +1355,6 @@ export default function HniaChatScreen() {
           <View
             style={[
               styles.bottomBarContainer,
-              Platform.OS === 'android' && keyboardHeight > 0 && {
-                marginBottom: keyboardHeight,
-              },
               {
                 paddingBottom:
                   keyboardHeight > 0
