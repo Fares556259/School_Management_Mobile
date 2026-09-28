@@ -1470,43 +1470,43 @@ export default function HniaChatScreen() {
             />
           )}
 
-          {/* Selected Attachment Chip - Image */}
+          {/* Selected Attachment Thumbnail (ChatGPT clean style - minimal, no text clutter) */}
           {selectedImage && (
             <View style={styles.attachmentPreviewContainer}>
-              <Image source={{ uri: selectedImage.uri }} style={styles.attachmentThumbnail} />
-              <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={styles.attachmentName} numberOfLines={1}>
-                  Photo prête à être analysée
-                </Text>
-                <Text style={styles.attachmentSub}>Hnia extraira le montant, date et reçus</Text>
+              <View style={styles.attachmentImageWrapper}>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => setFullscreenImageUri(selectedImage.uri)}
+                >
+                  <Image source={{ uri: selectedImage.uri }} style={styles.attachmentImageThumb} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setSelectedImage(null)}
+                  style={styles.attachmentCloseBadge}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <X size={11} color="#ffffff" strokeWidth={2.8} />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                onPress={() => setSelectedImage(null)}
-                style={styles.attachmentRemoveBtn}
-              >
-                <X size={16} color="#6b7280" />
-              </TouchableOpacity>
             </View>
           )}
 
-          {/* Selected Attachment Chip - Audio */}
+          {/* Selected Attachment Audio Pill (Minimal) */}
           {selectedAudio && (
             <View style={styles.attachmentPreviewContainer}>
-              <View style={[styles.attachmentThumbnail, { backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' }]}>
-                <Mic size={22} color="#0055d4" />
-              </View>
-              <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={styles.attachmentName} numberOfLines={1}>
-                  {selectedAudio.name}
+              <View style={styles.attachmentAudioPill}>
+                <Mic size={15} color="#0055d4" strokeWidth={2.2} />
+                <Text style={styles.attachmentAudioText} numberOfLines={1}>
+                  {selectedAudio.name || 'Note vocale'}
                 </Text>
-                <Text style={styles.attachmentSub}>Note vocale prête à être transcrite</Text>
+                <TouchableOpacity
+                  onPress={() => setSelectedAudio(null)}
+                  style={styles.attachmentAudioRemoveBtn}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <X size={13} color="#64748b" strokeWidth={2.4} />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                onPress={() => setSelectedAudio(null)}
-                style={styles.attachmentRemoveBtn}
-              >
-                <X size={16} color="#6b7280" />
-              </TouchableOpacity>
             </View>
           )}
 
@@ -2402,39 +2402,70 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  /* Attachment preview */
+  /* Attachment preview (ChatGPT clean thumbnail style) */
   attachmentPreviewContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    marginHorizontal: 16,
-    marginBottom: 8,
-    padding: 8,
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 6,
+  },
+  attachmentImageWrapper: {
+    position: 'relative',
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#0f172a',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  attachmentImageThumb: {
+    width: '100%',
+    height: '100%',
     borderRadius: 12,
+  },
+  attachmentCloseBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#0f172a',
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+  },
+  attachmentAudioPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#f1f5f9',
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 18,
+    maxWidth: 240,
   },
-  attachmentThumbnail: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-  },
-  attachmentName: {
-    fontSize: 13,
+  attachmentAudioText: {
+    fontSize: 12,
     fontWeight: '700',
-    color: '#0f172a',
+    color: '#334155',
+    flexShrink: 1,
   },
-  attachmentSub: {
-    fontSize: 11,
-    color: '#64748b',
-    marginTop: 2,
-  },
-  attachmentRemoveBtn: {
-    padding: 6,
+  attachmentAudioRemoveBtn: {
+    padding: 2,
+    marginLeft: 2,
   },
 
   /* Quick Chips Bar */
