@@ -682,6 +682,16 @@ export default function HniaChatScreen() {
       if (res && res.success) {
         if (res.conversationId) setConversationId(res.conversationId);
 
+        if (res.transcription) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === userMsg.id
+                ? { ...m, content: `🎙️ "${res.transcription}"`, transcription: res.transcription }
+                : m
+            )
+          );
+        }
+
         const botMsg: ChatMessage = {
           id: `bot_${Date.now()}`,
           role: 'assistant',

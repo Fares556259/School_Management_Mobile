@@ -86,7 +86,8 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
 
     try {
       controller = new AbortController();
-      timeoutId = setTimeout(() => controller?.abort(), 30000);
+      const timeoutMs = (options as any)?.timeout || (endpoint.includes('/agent/') ? 55000 : 30000);
+      timeoutId = setTimeout(() => controller?.abort(), timeoutMs);
       const schoolId = await authStorage.getSchoolId();
       const token = await authStorage.getToken();
       const url = `${API_BASE_URL}${endpoint}`;
