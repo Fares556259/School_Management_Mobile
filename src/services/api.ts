@@ -907,6 +907,11 @@ export const adminService = {
     return apiFetch('/api/mobile/admin/caisse');
   },
 
+  fetchCaissePdf: async (date?: string) => {
+    const params = date ? `?date=${encodeURIComponent(date)}` : '';
+    return apiFetch(`/api/mobile/admin/caisse/pdf${params}`);
+  },
+
   searchStudentsForCaisse: async (search: string) => {
     return apiFetch(`/api/mobile/admin/caisse?search=${encodeURIComponent(search)}`);
   },

@@ -1299,6 +1299,25 @@ export default function HniaChatScreen() {
                 Veuillez vérifier et confirmer l'action suivante :
               </Text>
             )
+          ) : caisseData ? (
+            (() => {
+              const lines = (item.content || '').split('\n').filter((line) => {
+                const l = line.toLowerCase();
+                return (
+                  !l.includes('recettes :') &&
+                  !l.includes('recettes (+') &&
+                  !l.includes('dépenses :') &&
+                  !l.includes('dépenses (-') &&
+                  !l.includes('solde net') &&
+                  !l.includes('solde physique') &&
+                  !l.includes('encaissement') &&
+                  !l.includes('sortie')
+                );
+              });
+              const filtered = lines.join('\n').trim();
+              const textToRender = filtered || "Point de caisse d'aujourd'hui :";
+              return renderFormattedText(textToRender);
+            })()
           ) : (
             renderFormattedText(item.content)
           )}

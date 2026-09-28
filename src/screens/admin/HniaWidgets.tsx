@@ -26,6 +26,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import { adminService } from '../../services/api';
 
 // ============================================================================
 // Types
@@ -131,7 +132,7 @@ function handlePhoneCall(student: UnpaidStudentItem) {
 }
 
 // ============================================================================
-// 1. CaisseCardWidget (Emerald Green Theme)
+// 1. CaisseCardWidget (Clean Minimal Apple Theme + Bordereau PDF)
 // ============================================================================
 
 export function CaisseCardWidget({
@@ -141,267 +142,287 @@ export function CaisseCardWidget({
   data: CaisseWidgetData;
   onOpenCaisse?: () => void;
 }) {
+  const [downloadingBordereau, setDownloadingBordereau] = useState(false);
   const incomes = Math.max(0, data.totalIncomes || 0);
   const expenses = Math.max(0, data.totalExpenses || 0);
-  const totalVolume = incomes + expenses;
 
-  const incomePercent = totalVolume > 0 ? Math.max(10, Math.min(90, Math.round((incomes / totalVolume) * 100))) : 50;
-  const expensePercent = 100 - incomePercent;
+  const handleDownloadBordereau = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setDownloadingBordereau(true);
+
+    try {
+      const res = await adminService.fetchCaissePdf(data.date);
+      if (!res || !res.success) {
+        throw new Error(res?.error || 'Échec de génération du bordereau de caisse');
+      }
+
+      const filename =
+        res.filename ||
+        `Bordereau_Caisse_${(data.date || 'Jour').replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
+      const localUri = `${FileSystem.documentDirectory}${filename}`;
+
+      if (res.pdfBase64) {
+        await FileSystem.writeAsStringAsync(localUri, res.pdfBase64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+      } else if (res.pdfUrl) {
+        const downloadRes = await FileSystem.downloadAsync(res.pdfUrl, localUri);
+        if (downloadRes.status !== 200) {
+          throw new Error('Échec du téléchargement du bordereau');
+        }
+      } else {
+        throw new Error('Données PDF non reçues');
+      }
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(localUri, {
+          mimeType: 'application/pdf',
+          dialogTitle: `Bordereau de Caisse - ${data.date || "Aujourd'hui"}`,
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        Alert.alert('Bordereau enregistré', `Le document PDF a été enregistré avec succès : ${filename}`);
+      }
+    } catch (err: any) {
+      console.error('[CaisseCardWidget] Download bordereau error:', err);
+      Alert.alert('Erreur', 'Impossible de télécharger le bordereau : ' + (err.message || 'Erreur inconnue'));
+    } finally {
+      setDownloadingBordereau(false);
+    }
+  };
+
+  const isNetPositive = data.netCashBalance >= 0;
 
   return (
     <View style={caisseStyles.card}>
-      {/* Glow Header */}
+      {/* Header: Clean Wallet icon + Title + Date */}
       <View style={caisseStyles.headerRow}>
-        <View style={caisseStyles.titleRow}>
-          <View style={caisseStyles.iconBadge}>
-            <Wallet size={16} color="#34d399" />
+        <View style={caisseStyles.headerLeft}>
+          <View style={caisseStyles.iconCircle}>
+            <Wallet size={15} color="#059669" />
           </View>
-          <View>
-            <Text style={caisseStyles.title}>Point de Caisse Journalière</Text>
-            <Text style={caisseStyles.subtitle}>{data.date || 'Aujourd\'hui'}</Text>
-          </View>
+          <Text style={caisseStyles.headerTitle}>Point de caisse</Text>
         </View>
-        <View style={caisseStyles.liveBadge}>
-          <View style={caisseStyles.liveDot} />
-          <Text style={caisseStyles.liveText}>En direct</Text>
-        </View>
+        <Text style={caisseStyles.headerDate}>{data.date || "Aujourd'hui"}</Text>
       </View>
 
-      {/* Metrics Row: Incomes & Expenses */}
-      <View style={caisseStyles.metricsGrid}>
-        {/* Recettes */}
-        <View style={caisseStyles.metricBox}>
-          <View style={caisseStyles.metricLabelRow}>
-            <TrendingUp size={13} color="#34d399" />
-            <Text style={caisseStyles.metricLabel}>Recettes</Text>
-          </View>
-          <Text style={caisseStyles.incomeAmount}>
-            + {incomes.toLocaleString('fr-FR')} DT
-          </Text>
-          <Text style={caisseStyles.metricSub}>
-            {data.paymentsCount !== undefined ? `${data.paymentsCount} encaissement(s)` : 'Aujourd\'hui'}
-          </Text>
-        </View>
-
-        {/* Vertical divider */}
-        <View style={caisseStyles.metricDivider} />
-
-        {/* Dépenses */}
-        <View style={caisseStyles.metricBox}>
-          <View style={caisseStyles.metricLabelRow}>
-            <TrendingDown size={13} color="#f87171" />
-            <Text style={caisseStyles.metricLabel}>Dépenses</Text>
-          </View>
-          <Text style={caisseStyles.expenseAmount}>
-            - {expenses.toLocaleString('fr-FR')} DT
-          </Text>
-          <Text style={caisseStyles.metricSub}>
-            {data.expensesCount !== undefined ? `${data.expensesCount} sortie(s)` : 'Aujourd\'hui'}
-          </Text>
-        </View>
-      </View>
-
-      {/* Visual Proportion Bar */}
-      <View style={caisseStyles.barContainer}>
-        <View style={[caisseStyles.barGreen, { flex: incomePercent }]} />
-        <View style={[caisseStyles.barRed, { flex: expensePercent }]} />
-      </View>
-
-      {/* Net Cash Banner */}
-      <View style={caisseStyles.netBanner}>
-        <View>
-          <Text style={caisseStyles.netLabel}>💼 SOLDE NET PHYSIQUE</Text>
-          <Text style={caisseStyles.netSub}>Espèces en coffre</Text>
-        </View>
-        <Text style={caisseStyles.netAmount}>
-          {data.netCashBalance >= 0 ? '+' : ''}
+      {/* Hero: Bold Net Cash Balance */}
+      <View style={caisseStyles.heroSection}>
+        <Text style={caisseStyles.heroLabel}>SOLDE NET EN CAISSE</Text>
+        <Text style={[caisseStyles.heroAmount, { color: isNetPositive ? '#059669' : '#dc2626' }]}>
+          {isNetPositive ? '+ ' : ''}
           {data.netCashBalance.toLocaleString('fr-FR')} DT
         </Text>
       </View>
 
-      {/* Action Button */}
-      {onOpenCaisse && (
+      {/* Minimal Inflows & Outflows stats row */}
+      <View style={caisseStyles.statsRow}>
+        <View style={caisseStyles.statCol}>
+          <Text style={caisseStyles.statLabel}>Recettes</Text>
+          <Text style={caisseStyles.incomeVal}>
+            + {incomes.toLocaleString('fr-FR')} DT
+          </Text>
+          {Boolean(data.paymentsCount) && (
+            <Text style={caisseStyles.statSub}>
+              {data.paymentsCount} encaissement{data.paymentsCount! > 1 ? 's' : ''}
+            </Text>
+          )}
+        </View>
+
+        <View style={caisseStyles.statDivider} />
+
+        <View style={caisseStyles.statCol}>
+          <Text style={caisseStyles.statLabel}>Dépenses</Text>
+          <Text style={caisseStyles.expenseVal}>
+            - {expenses.toLocaleString('fr-FR')} DT
+          </Text>
+          {Boolean(data.expensesCount) && (
+            <Text style={caisseStyles.statSub}>
+              {data.expensesCount} sortie{data.expensesCount! > 1 ? 's' : ''}
+            </Text>
+          )}
+        </View>
+      </View>
+
+      {/* Action Buttons: Bordereau PDF & Ouvrir la Caisse */}
+      <View style={caisseStyles.actionRow}>
         <TouchableOpacity
-          activeOpacity={0.85}
-          style={caisseStyles.actionBtn}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            onOpenCaisse();
-          }}
+          activeOpacity={0.8}
+          style={[caisseStyles.pdfBtn, downloadingBordereau && { opacity: 0.6 }]}
+          onPress={handleDownloadBordereau}
+          disabled={downloadingBordereau}
         >
-          <Text style={caisseStyles.actionBtnText}>📊 Ouvrir la Caisse</Text>
-          <ArrowRight size={15} color="#064e3b" strokeWidth={2.5} />
+          {downloadingBordereau ? (
+            <ActivityIndicator size="small" color="#0f172a" />
+          ) : (
+            <>
+              <FileText size={14} color="#0f172a" />
+              <Text style={caisseStyles.pdfBtnText}>Bordereau PDF</Text>
+            </>
+          )}
         </TouchableOpacity>
-      )}
+
+        {onOpenCaisse && (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={caisseStyles.openBtn}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onOpenCaisse();
+            }}
+          >
+            <Text style={caisseStyles.openBtnText}>Voir la Caisse</Text>
+            <ArrowRight size={13} color="#ffffff" strokeWidth={2.5} />
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 }
 
 const caisseStyles = StyleSheet.create({
   card: {
-    backgroundColor: '#064e3b',
+    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 16,
     marginTop: 10,
     marginBottom: 6,
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.25)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 3,
+    borderColor: '#e2e8f0',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 12,
   },
-  titleRow: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
-  iconBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+  iconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#ecfdf5',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
-    fontSize: 14,
+  headerTitle: {
+    fontSize: 13,
     fontWeight: '700',
-    color: '#ffffff',
+    color: '#0f172a',
     letterSpacing: -0.2,
   },
-  subtitle: {
-    fontSize: 11,
-    color: '#a7f3d0',
-    marginTop: 1,
+  headerDate: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#64748b',
   },
-  liveBadge: {
-    flexDirection: 'row',
+  heroSection: {
     alignItems: 'center',
-    backgroundColor: 'rgba(52, 211, 153, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    gap: 5,
-  },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#34d399',
-  },
-  liveText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#34d399',
-  },
-  metricsGrid: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(2, 44, 34, 0.6)',
-    borderRadius: 12,
     paddingVertical: 10,
-    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+    marginBottom: 12,
   },
-  metricBox: {
-    flex: 1,
-  },
-  metricLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 2,
-  },
-  metricLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#d1fae5',
-  },
-  incomeAmount: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#34d399',
-  },
-  expenseAmount: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#f87171',
-  },
-  metricSub: {
+  heroLabel: {
     fontSize: 10,
-    color: '#a7f3d0',
-    marginTop: 2,
+    fontWeight: '700',
+    color: '#64748b',
+    letterSpacing: 0.6,
+    marginBottom: 4,
+    textTransform: 'uppercase',
   },
-  metricDivider: {
-    width: 1,
-    height: 36,
-    backgroundColor: 'rgba(52, 211, 153, 0.2)',
-    marginHorizontal: 10,
+  heroAmount: {
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
-  barContainer: {
-    flexDirection: 'row',
-    height: 5,
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginTop: 10,
-    marginBottom: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-  },
-  barGreen: {
-    backgroundColor: '#34d399',
-  },
-  barRed: {
-    backgroundColor: '#f87171',
-  },
-  netBanner: {
+  statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(2, 44, 34, 0.9)',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.3)',
-  },
-  netLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#a7f3d0',
-    letterSpacing: 0.4,
-  },
-  netSub: {
-    fontSize: 10,
-    color: '#6ee7b7',
-    marginTop: 1,
-  },
-  netAmount: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#ffffff',
-  },
-  actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#34d399',
+    backgroundColor: '#f8fafc',
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    marginTop: 12,
+    marginBottom: 14,
+  },
+  statCol: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748b',
+    marginBottom: 2,
+  },
+  incomeVal: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  expenseVal: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#dc2626',
+  },
+  statSub: {
+    fontSize: 10,
+    color: '#94a3b8',
+    marginTop: 2,
+  },
+  statDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: '#e2e8f0',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
-  actionBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#064e3b',
+  pdfBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    gap: 6,
+  },
+  pdfBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  openBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0f172a',
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    gap: 6,
+  },
+  openBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#ffffff',
   },
 });
 
