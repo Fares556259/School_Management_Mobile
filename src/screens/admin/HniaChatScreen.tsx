@@ -55,7 +55,6 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
-import VoiceVisualizer from '../../components/voice/VoiceVisualizer';
 import { adminService } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
 
@@ -134,9 +133,9 @@ export default function HniaChatScreen() {
   const smoothedAmplitudeRef = useRef<number>(0);
   const [isProcessingVocal, setIsProcessingVocal] = useState<boolean>(false);
 
-  // Dynamic live waveform bars for the bottom recording bar (14 bars)
+  // Dynamic live waveform bars for the bottom recording bar (22 bars)
   const bottomBarAnims = useRef<Animated.Value[]>(
-    Array.from({ length: 14 }, () => new Animated.Value(0.18))
+    Array.from({ length: 22 }, () => new Animated.Value(0.18))
   ).current;
 
   const flatListRef = useRef<FlatList>(null);
@@ -274,12 +273,14 @@ export default function HniaChatScreen() {
 
     setLiveAmplitude(smoothed);
 
-    // Live update bottom bar waveform bars
-    const bottomBarWeights = [0.25, 0.4, 0.55, 0.7, 0.85, 1.0, 1.0, 0.85, 0.7, 0.55, 0.4, 0.25, 0.2, 0.15];
+    // Live update bottom bar waveform bars across all bars
+    const count = bottomBarAnims.length;
+    const mid = (count - 1) / 2;
     bottomBarAnims.forEach((anim, i) => {
-      const weight = bottomBarWeights[i] || 0.5;
-      const jitter = 0.88 + 0.24 * Math.sin(i * 1.5);
-      const target = Math.max(0.14, smoothed * weight * jitter * 2.4);
+      const dist = Math.abs(i - mid) / mid;
+      const weight = 0.35 + 0.65 * Math.cos((dist * Math.PI) / 2);
+      const jitter = 0.88 + 0.24 * Math.sin(i * 1.4);
+      const target = Math.max(0.14, smoothed * weight * jitter * 2.5);
       Animated.spring(anim, {
         toValue: target,
         friction: 7,
@@ -1458,43 +1459,6 @@ export default function HniaChatScreen() {
             </View>
           )}
 
-          {/* Live Real-time Center Voice Visualizer */}
-          {(isRecording || isProcessingVocal) && (
-            <View style={styles.centerVisualizerOverlay} pointerEvents="box-none">
-              <View style={styles.centerVisualizerCard}>
-                <VoiceVisualizer
-                  state={
-                    isProcessingVocal
-                      ? 'processing'
-                      : isRecordingPaused
-                      ? 'idle'
-                      : liveAmplitude > 0.04
-                      ? 'speaking'
-                      : 'listening'
-                  }
-                  amplitude={isRecordingPaused ? 0 : liveAmplitude}
-                  size={200}
-                  label={
-                    isProcessingVocal
-                      ? 'Hnia analyse votre message...'
-                      : isRecordingPaused
-                      ? 'Enregistrement en pause'
-                      : liveAmplitude > 0.04
-                      ? 'Hnia vous écoute...'
-                      : 'Parlez maintenant...'
-                  }
-                  subtext={
-                    isProcessingVocal
-                      ? 'Compréhension et préparation de la réponse'
-                      : `Durée : ${formatRecordingTime(recordingDuration)} • Appuyez sur ⬆ pour envoyer`
-                  }
-                  showWaveform={true}
-                  waveformBarsCount={16}
-                />
-              </View>
-            </View>
-          )}
-
           {/* Bottom Floating Input Bar (ChatGPT Mobile Interface) */}
           <View
             style={[
@@ -2485,13 +2449,14 @@ const styles = StyleSheet.create({
   soundWaveContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: 2.2,
     height: 24,
+    paddingHorizontal: 4,
   },
   waveBar: {
-    width: 3,
-    height: 20,
-    borderRadius: 2,
+    width: 2.2,
+    height: 22,
+    borderRadius: 99,
     backgroundColor: '#334155',
   },
   recordingStopSquareBtn: {
@@ -2697,34 +2662,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#92400e',
     lineHeight: 17,
-  },
-
-  /* Center Real-Time Voice Visualizer Overlay */
-  centerVisualizerOverlay: {
-    position: 'absolute',
-    top: 40,
-    bottom: 80,
-    left: 16,
-    right: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 50,
-  },
-  centerVisualizerCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.96)',
-    borderRadius: 32,
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    maxWidth: 350,
-    shadowColor: '#0055d4',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.16,
-    shadowRadius: 26,
-    elevation: 12,
-    borderWidth: 1.5,
-    borderColor: 'rgba(226, 232, 240, 0.9)',
   },
 });
