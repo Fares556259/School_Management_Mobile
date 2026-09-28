@@ -161,9 +161,6 @@ export default function HniaChatScreen() {
 
     const showSub = Keyboard.addListener(showEvent, (e) => {
       setKeyboardHeight(e.endCoordinates.height);
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 80);
     });
 
     const hideSub = Keyboard.addListener(hideEvent, () => {
@@ -1441,7 +1438,7 @@ export default function HniaChatScreen() {
               contentContainerStyle={styles.messagesList}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
+              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'none'}
               ListFooterComponent={
                 isLoading ? (
                   <View style={styles.thinkingRow}>
@@ -1496,12 +1493,13 @@ export default function HniaChatScreen() {
             </View>
           )}
 
-          {/* Executive Quick Suggestion Chips (when in chat and keyboard closed) */}
-          {messages.length > 0 && !isRecording && keyboardHeight === 0 && (
+          {/* Executive Quick Suggestion Chips (when in chat and no attachment) */}
+          {messages.length > 0 && !isRecording && !selectedImage && !selectedAudio && (
             <View style={styles.quickChipsWrapper}>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
                 contentContainerStyle={styles.quickChipsContent}
               >
                 {EXECUTIVE_QUICK_CHIPS.map((chip, idx) => (
@@ -1829,27 +1827,36 @@ export default function HniaChatScreen() {
         visible={!!fullscreenImageUri}
         transparent
         animationType="fade"
+        statusBarTranslucent
         onRequestClose={() => setFullscreenImageUri(null)}
       >
+        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
         <View style={styles.fullscreenModalContainer}>
-          <SafeAreaView style={styles.fullscreenHeaderArea}>
-            <TouchableOpacity
-              style={styles.fullscreenCloseBtn}
-              onPress={() => setFullscreenImageUri(null)}
-              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-            >
-              <X size={24} color="#ffffff" strokeWidth={2.4} />
-            </TouchableOpacity>
-          </SafeAreaView>
-          <View style={styles.fullscreenImageArea}>
-            {fullscreenImageUri && (
-              <Image
-                source={{ uri: fullscreenImageUri }}
-                style={styles.fullscreenImage}
-                resizeMode="contain"
-              />
-            )}
-          </View>
+          <TouchableOpacity
+            style={styles.fullscreenBackdrop}
+            activeOpacity={1}
+            onPress={() => setFullscreenImageUri(null)}
+          >
+            <View style={styles.fullscreenHeaderArea}>
+              <TouchableOpacity
+                style={styles.fullscreenCloseBtn}
+                onPress={() => setFullscreenImageUri(null)}
+                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                activeOpacity={0.8}
+              >
+                <X size={22} color="#ffffff" strokeWidth={2.4} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.fullscreenImageArea}>
+              {fullscreenImageUri && (
+                <Image
+                  source={{ uri: fullscreenImageUri }}
+                  style={styles.fullscreenImage}
+                  resizeMode="contain"
+                />
+              )}
+            </View>
+          </TouchableOpacity>
         </View>
       </Modal>
     </View>
@@ -2780,30 +2787,40 @@ const styles = StyleSheet.create({
   /* Fullscreen Image Modal */
   fullscreenModalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    backgroundColor: '#000000',
+  },
+  fullscreenBackdrop: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   fullscreenHeaderArea: {
     position: 'absolute',
-    top: 20,
+    top: Platform.OS === 'android' ? Math.max(StatusBar.currentHeight || 0, 32) + 24 : 64,
     right: 20,
-    zIndex: 20,
+    zIndex: 99,
   },
   fullscreenCloseBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: 'rgba(30, 41, 59, 0.88)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 10,
   },
   fullscreenImageArea: {
     width: '100%',
     height: '80%',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
+    padding: 12,
   },
   fullscreenImage: {
     width: '100%',
