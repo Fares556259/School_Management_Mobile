@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -58,6 +59,14 @@ import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
 import { adminService } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
+import {
+  CaisseCardWidget,
+  UnpaidTuitionWidget,
+  PdfReceiptWidget,
+  tryParseCaisseWidget,
+  tryParseUnpaidWidget,
+  tryParseReceiptWidget,
+} from './HniaWidgets';
 
 async function readAudioAsBase64(uri: string): Promise<string> {
   try {
@@ -85,6 +94,10 @@ interface ChatMessage {
   imageUri?: string;
   isVoice?: boolean;
   transcription?: string;
+  widget?: {
+    type: 'caisse' | 'unpaid_tuition' | 'pdf_receipt';
+    data: any;
+  } | null;
   pendingConfirmation?: {
     toolCallId: string;
     toolName: string;
@@ -98,6 +111,7 @@ interface ChatMessage {
 
 export default function HniaChatScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<any>();
   const userName = useAppStore((s) => s.userName) || 'Directeur';
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -545,6 +559,7 @@ export default function HniaChatScreen() {
           content: res.message || 'C’est bon !',
           transcription: res.transcription,
           pendingConfirmation: res.pendingConfirmation,
+          widget: res.widget,
           followUpSuggestions: res.followUpSuggestions,
           createdAt: new Date().toISOString(),
         };
@@ -621,6 +636,7 @@ export default function HniaChatScreen() {
               role: m.role,
               content,
               imageUri,
+              widget: m.widget || null,
               createdAt: m.createdAt,
             };
           });
@@ -828,6 +844,7 @@ export default function HniaChatScreen() {
           content: res.message || 'C’est bon !',
           transcription: res.transcription,
           pendingConfirmation: res.pendingConfirmation,
+          widget: res.widget,
           followUpSuggestions: res.followUpSuggestions,
           createdAt: new Date().toISOString(),
         };
@@ -1212,13 +1229,30 @@ export default function HniaChatScreen() {
   const renderMessageItem = ({ item }: { item: ChatMessage }) => {
     const isUser = item.role === 'user';
 
+    const caisseData = !isUser
+      ? (item.widget?.type === 'caisse' ? item.widget.data : tryParseCaisseWidget(item.content))
+      : null;
+    const unpaidData = !isUser
+      ? (item.widget?.type === 'unpaid_tuition' ? item.widget.data : tryParseUnpaidWidget(item.content))
+      : null;
+    const receiptData = !isUser
+      ? (item.widget?.type === 'pdf_receipt' ? item.widget.data : tryParseReceiptWidget(item.content))
+      : null;
+    const hasWidget = Boolean(caisseData || unpaidData || receiptData);
+
     return (
       <View style={[styles.messageRow, isUser ? styles.userRow : styles.assistantRow]}>
         {!isUser && (
           <Image source={HNIA_AVATAR} style={styles.assistantAvatarSmall} />
         )}
 
-        <View style={[styles.bubbleContainer, isUser ? styles.userBubble : styles.assistantBubble]}>
+        <View
+          style={[
+            styles.bubbleContainer,
+            isUser ? styles.userBubble : styles.assistantBubble,
+            hasWidget && { maxWidth: '88%', minWidth: '78%' },
+          ]}
+        >
           {/* Attached image preview */}
           {item.imageUri && (
             <TouchableOpacity
@@ -1267,6 +1301,22 @@ export default function HniaChatScreen() {
             )
           ) : (
             renderFormattedText(item.content)
+          )}
+
+          {/* Interactive Visual Widgets */}
+          {caisseData && (
+            <CaisseCardWidget
+              data={caisseData}
+              onOpenCaisse={() => navigation.navigate('Caisse')}
+            />
+          )}
+
+          {unpaidData && (
+            <UnpaidTuitionWidget data={unpaidData} />
+          )}
+
+          {receiptData && (
+            <PdfReceiptWidget data={receiptData} />
           )}
 
           {/* Interactive Confirmation Card */}
