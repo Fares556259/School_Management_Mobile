@@ -22,11 +22,13 @@ import {
   AlertCircle,
   Sparkles,
   ExternalLink,
+  Printer,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import { adminService } from '../../services/api';
+import * as WebBrowser from 'expo-web-browser';
+import { adminService, authStorage } from '../../services/api';
 
 // ============================================================================
 // Types
@@ -143,8 +145,30 @@ export function CaisseCardWidget({
   onOpenCaisse?: () => void;
 }) {
   const [downloadingBordereau, setDownloadingBordereau] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const incomes = Math.max(0, data.totalIncomes || 0);
   const expenses = Math.max(0, data.totalExpenses || 0);
+
+  const handlePrintBordereau = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setPrinting(true);
+    try {
+      const token = await authStorage.getToken();
+      const dateParam = data.date ? `&date=${encodeURIComponent(data.date)}` : '';
+      const printUrl = `https://www.snapschool.academy/api/mobile/admin/caisse/print?token=${encodeURIComponent(token || '')}${dateParam}`;
+
+      await WebBrowser.openBrowserAsync(printUrl, {
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
+        toolbarColor: '#0f172a',
+        controlsColor: '#ffffff',
+      });
+    } catch (err: any) {
+      console.error('[CaisseCardWidget] Print error:', err);
+      Alert.alert('Erreur', "Impossible d'ouvrir le module d'impression : " + (err.message || ''));
+    } finally {
+      setPrinting(false);
+    }
+  };
 
   const handleDownloadBordereau = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -244,11 +268,28 @@ export function CaisseCardWidget({
         </View>
       </View>
 
-      {/* Action Buttons: Bordereau PDF & Ouvrir la Caisse */}
+      {/* Primary Action: Direct 1-Tap Print Button */}
+      <TouchableOpacity
+        activeOpacity={0.85}
+        style={caisseStyles.printMainBtn}
+        onPress={handlePrintBordereau}
+        disabled={printing}
+      >
+        {printing ? (
+          <ActivityIndicator size="small" color="#ffffff" />
+        ) : (
+          <>
+            <Printer size={15} color="#ffffff" strokeWidth={2.2} />
+            <Text style={caisseStyles.printMainBtnText}>Imprimer le Bordereau</Text>
+          </>
+        )}
+      </TouchableOpacity>
+
+      {/* Secondary Actions: Partager PDF & Voir la Caisse */}
       <View style={caisseStyles.actionRow}>
         <TouchableOpacity
           activeOpacity={0.8}
-          style={[caisseStyles.pdfBtn, downloadingBordereau && { opacity: 0.6 }]}
+          style={[caisseStyles.secondaryBtn, downloadingBordereau && { opacity: 0.6 }]}
           onPress={handleDownloadBordereau}
           disabled={downloadingBordereau}
         >
@@ -256,8 +297,8 @@ export function CaisseCardWidget({
             <ActivityIndicator size="small" color="#0f172a" />
           ) : (
             <>
-              <FileText size={14} color="#0f172a" />
-              <Text style={caisseStyles.pdfBtnText}>Bordereau PDF</Text>
+              <Share2 size={13} color="#0f172a" />
+              <Text style={caisseStyles.secondaryBtnText}>Partager PDF</Text>
             </>
           )}
         </TouchableOpacity>
@@ -265,14 +306,14 @@ export function CaisseCardWidget({
         {onOpenCaisse && (
           <TouchableOpacity
             activeOpacity={0.8}
-            style={caisseStyles.openBtn}
+            style={caisseStyles.secondaryBtn}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               onOpenCaisse();
             }}
           >
-            <Text style={caisseStyles.openBtnText}>Voir la Caisse</Text>
-            <ArrowRight size={13} color="#ffffff" strokeWidth={2.5} />
+            <Text style={caisseStyles.secondaryBtnText}>Voir la Caisse</Text>
+            <ArrowRight size={12} color="#0f172a" strokeWidth={2} />
           </TouchableOpacity>
         )}
       </View>
@@ -385,44 +426,50 @@ const caisseStyles = StyleSheet.create({
     height: 32,
     backgroundColor: '#e2e8f0',
   },
+  printMainBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#059669',
+    borderRadius: 11,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    gap: 8,
+    marginBottom: 8,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  printMainBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: -0.2,
+  },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  pdfBtn: {
+  secondaryBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: '#e2e8f0',
     borderRadius: 10,
-    paddingVertical: 9,
-    paddingHorizontal: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     gap: 6,
   },
-  pdfBtnText: {
+  secondaryBtnText: {
     fontSize: 12,
     fontWeight: '700',
     color: '#0f172a',
-  },
-  openBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0f172a',
-    borderRadius: 10,
-    paddingVertical: 9,
-    paddingHorizontal: 12,
-    gap: 6,
-  },
-  openBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#ffffff',
   },
 });
 
@@ -708,6 +755,28 @@ const unpaidStyles = StyleSheet.create({
 
 export function PdfReceiptWidget({ data }: { data: PdfReceiptWidgetData }) {
   const [downloading, setDownloading] = useState(false);
+  const [printing, setPrinting] = useState(false);
+
+  const handlePrint = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (data.pdfUrl) {
+      setPrinting(true);
+      try {
+        await WebBrowser.openBrowserAsync(data.pdfUrl, {
+          presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
+          toolbarColor: '#0f172a',
+          controlsColor: '#ffffff',
+        });
+      } catch (err: any) {
+        console.error('[PdfReceiptWidget] Print error:', err);
+        Alert.alert('Erreur', "Impossible d'ouvrir le document : " + (err.message || ''));
+      } finally {
+        setPrinting(false);
+      }
+    } else {
+      handleDownload();
+    }
+  };
 
   const handleDownload = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -800,23 +869,40 @@ export function PdfReceiptWidget({ data }: { data: PdfReceiptWidgetData }) {
         </View>
       </View>
 
-      {/* Download Action Button */}
-      <TouchableOpacity
-        activeOpacity={0.85}
-        style={[receiptStyles.downloadBtn, downloading && receiptStyles.downloadBtnDisabled]}
-        onPress={handleDownload}
-        disabled={downloading}
-      >
-        {downloading ? (
-          <ActivityIndicator size="small" color="#ffffff" />
-        ) : (
-          <>
-            <Download size={15} color="#ffffff" strokeWidth={2.2} />
-            <Text style={receiptStyles.downloadBtnText}>Télécharger le Reçu PDF</Text>
-            <Share2 size={13} color="#93c5fd" />
-          </>
-        )}
-      </TouchableOpacity>
+      {/* Action Buttons: Imprimer & Partager */}
+      <View style={receiptStyles.actionRow}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={receiptStyles.printBtn}
+          onPress={handlePrint}
+          disabled={printing}
+        >
+          {printing ? (
+            <ActivityIndicator size="small" color="#ffffff" />
+          ) : (
+            <>
+              <Printer size={14} color="#ffffff" strokeWidth={2.2} />
+              <Text style={receiptStyles.printBtnText}>Imprimer</Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={[receiptStyles.shareBtn, downloading && receiptStyles.downloadBtnDisabled]}
+          onPress={handleDownload}
+          disabled={downloading}
+        >
+          {downloading ? (
+            <ActivityIndicator size="small" color="#0f172a" />
+          ) : (
+            <>
+              <Share2 size={13} color="#0f172a" />
+              <Text style={receiptStyles.shareBtnText}>Partager PDF</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -928,24 +1014,48 @@ const receiptStyles = StyleSheet.create({
     fontWeight: '700',
     color: '#d97706',
   },
-  downloadBtn: {
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+  },
+  printBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#0284c7',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginTop: 10,
-    gap: 8,
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    gap: 6,
+  },
+  printBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  shareBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    gap: 6,
+  },
+  shareBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0f172a',
   },
   downloadBtnDisabled: {
-    opacity: 0.7,
-  },
-  downloadBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#ffffff',
+    opacity: 0.6,
   },
 });
 
