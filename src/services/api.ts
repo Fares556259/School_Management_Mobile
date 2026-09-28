@@ -903,8 +903,12 @@ export const adminService = {
   },
 
   // Caisse & Financials
-  fetchCaisse: async () => {
-    return apiFetch('/api/mobile/admin/caisse');
+  fetchCaisse: async (month?: number, year?: number) => {
+    const params = new URLSearchParams();
+    if (month) params.set('month', month.toString());
+    if (year) params.set('year', year.toString());
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiFetch(`/api/mobile/admin/caisse${query}`);
   },
 
   fetchCaissePdf: async (date?: string) => {
@@ -916,10 +920,24 @@ export const adminService = {
     return apiFetch(`/api/mobile/admin/caisse?search=${encodeURIComponent(search)}`);
   },
 
-  collectStudentPayment: async (data: { studentId: string; amount: number; paymentMethod?: string }) => {
+  collectStudentPayment: async (data: { studentId: string; amount: number; paymentMethod?: string; month?: number; year?: number }) => {
     return apiFetch('/api/mobile/admin/caisse', {
       method: 'POST',
       body: JSON.stringify({ action: 'collect_student', ...data }),
+    });
+  },
+
+  paySalary: async (data: {
+    recipientId: string;
+    recipientType: 'teacher' | 'staff';
+    amount: number;
+    month?: number;
+    year?: number;
+    paymentMethod?: string;
+  }) => {
+    return apiFetch('/api/mobile/admin/caisse', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'pay_salary', ...data }),
     });
   },
 
