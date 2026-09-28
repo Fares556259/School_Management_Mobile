@@ -29,8 +29,14 @@ import {
   Bot,
   ArrowRight,
   TrendingUp,
+  Printer,
+  Share2,
 } from 'lucide-react-native';
-import { adminService } from '../../services/api';
+import * as Haptics from 'expo-haptics';
+import * as WebBrowser from 'expo-web-browser';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+import { adminService, authStorage } from '../../services/api';
 
 interface Transaction {
   id: string;
@@ -165,6 +171,74 @@ export default function AdminCaisseScreen() {
       });
   };
 
+  // ── PRINT & SHARE BORDEREAU ────────────────────────────────────────────────
+  const [printing, setPrinting] = useState(false);
+  const [sharing, setSharing] = useState(false);
+
+  const handlePrintBordereau = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setPrinting(true);
+    try {
+      const token = await authStorage.getToken();
+      const printUrl = `https://www.snapschool.academy/api/mobile/admin/caisse/print?token=${encodeURIComponent(token || '')}`;
+
+      await WebBrowser.openBrowserAsync(printUrl, {
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
+        toolbarColor: '#0f172a',
+        controlsColor: '#ffffff',
+      });
+    } catch (err: any) {
+      console.error('[AdminCaisseScreen] Print error:', err);
+      Alert.alert('Erreur', "Impossible d'ouvrir le module d'impression : " + (err.message || ''));
+    } finally {
+      setPrinting(false);
+    }
+  };
+
+  const handleShareBordereau = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setSharing(true);
+    try {
+      const res = await adminService.fetchCaissePdf();
+      if (!res || !res.success) {
+        throw new Error(res?.error || 'Échec de génération du bordereau');
+      }
+
+      const filename =
+        res.filename ||
+        `Bordereau_Caisse_${new Date().toISOString().split('T')[0]}.pdf`;
+      const localUri = `${FileSystem.documentDirectory}${filename}`;
+
+      if (res.pdfBase64) {
+        await FileSystem.writeAsStringAsync(localUri, res.pdfBase64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+      } else if (res.pdfUrl) {
+        const downloadRes = await FileSystem.downloadAsync(res.pdfUrl, localUri);
+        if (downloadRes.status !== 200) {
+          throw new Error('Échec du téléchargement du bordereau');
+        }
+      } else {
+        throw new Error('Données PDF non reçues');
+      }
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(localUri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Bordereau de Caisse Journalière',
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        Alert.alert('Bordereau enregistré', `Le document PDF a été enregistré avec succès : ${filename}`);
+      }
+    } catch (err: any) {
+      console.error('[AdminCaisseScreen] Share error:', err);
+      Alert.alert('Erreur', 'Impossible de télécharger le bordereau : ' + (err.message || 'Erreur inconnue'));
+    } finally {
+      setSharing(false);
+    }
+  };
+
   // ───────────────────────────────────────────────────────────────────────────
   // RENDER
   // ───────────────────────────────────────────────────────────────────────────
@@ -192,64 +266,157 @@ export default function AdminCaisseScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0055d4']} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── 1. HERO CASH BALANCE CARD (INFORMATIVE) ───────────────────────── */}
+        {/* ── 1. HERO CASH BALANCE CARD (CLEAN APPLE / MINIMAL LUXURY) ─────── */}
         <View
           style={{
             marginTop: 12,
-            backgroundColor: '#0f172a',
+            backgroundColor: '#ffffff',
             borderRadius: 20,
-            padding: 22,
+            padding: 20,
+            borderWidth: 1,
+            borderColor: '#e2e8f0',
             shadowColor: '#0f172a',
-            shadowOpacity: 0.15,
-            shadowRadius: 15,
-            shadowOffset: { width: 0, height: 6 },
-            elevation: 4,
+            shadowOpacity: 0.05,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 4 },
+            elevation: 2,
           }}
         >
+          {/* Header Row */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' }}>
-                <Wallet size={18} color="#38bdf8" />
+              <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: '#ecfdf5', alignItems: 'center', justifyContent: 'center' }}>
+                <Wallet size={16} color="#059669" />
               </View>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                Solde Net du Jour
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#0f172a', letterSpacing: -0.2 }}>
+                Point de Caisse du Jour
               </Text>
             </View>
-            <View style={{ backgroundColor: summary.todayNet >= 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: summary.todayNet >= 0 ? '#34d399' : '#f87171' }}>
-                {summary.todayNet >= 0 ? '+ Aujourd\'hui' : '- Aujourd\'hui'}
+            <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 }}>
+              <Text style={{ fontSize: 11, fontWeight: '600', color: '#64748b' }}>
+                Aujourd'hui
               </Text>
             </View>
           </View>
 
-          <Text style={{ fontSize: 36, fontWeight: '900', color: '#fff', marginTop: 14, letterSpacing: -0.5 }}>
-            {summary.todayNet >= 0 ? `+${summary.todayNet.toLocaleString()} DT` : `${summary.todayNet.toLocaleString()} DT`}
-          </Text>
+          {/* Hero Net Amount */}
+          <View style={{ alignItems: 'center', paddingVertical: 12 }}>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: '#64748b', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 4 }}>
+              Solde Net en Caisse
+            </Text>
+            <Text
+              style={{
+                fontSize: 34,
+                fontWeight: '900',
+                color: summary.todayNet >= 0 ? '#059669' : '#dc2626',
+                letterSpacing: -0.5,
+              }}
+            >
+              {summary.todayNet >= 0 ? `+${summary.todayNet.toLocaleString()} DT` : `${summary.todayNet.toLocaleString()} DT`}
+            </Text>
+          </View>
 
-          {/* Inflow vs Outflow Split */}
-          <View style={{ flexDirection: 'row', marginTop: 18, paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' }}>
-            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(16,185,129,0.18)', alignItems: 'center', justifyContent: 'center' }}>
-                <ArrowDownLeft size={18} color="#10b981" />
+          {/* Inflow vs Outflow Split Row */}
+          <View
+            style={{
+              flexDirection: 'row',
+              backgroundColor: '#f8fafc',
+              borderRadius: 14,
+              paddingVertical: 12,
+              paddingHorizontal: 16,
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 14,
+              borderWidth: 1,
+              borderColor: '#f1f5f9',
+            }}
+          >
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+                <ArrowDownLeft size={13} color="#059669" />
+                <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600' }}>Recettes</Text>
               </View>
-              <View>
-                <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '500' }}>Recettes</Text>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: '#34d399' }}>+{summary.todayIncome.toLocaleString()} DT</Text>
-              </View>
+              <Text style={{ fontSize: 16, fontWeight: '800', color: '#059669' }}>
+                +{summary.todayIncome.toLocaleString()} DT
+              </Text>
             </View>
 
-            <View style={{ width: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginHorizontal: 8 }} />
+            <View style={{ width: 1, height: 34, backgroundColor: '#e2e8f0' }} />
 
-            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 8 }}>
-              <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(239,68,68,0.18)', alignItems: 'center', justifyContent: 'center' }}>
-                <ArrowUpRight size={18} color="#ef4444" />
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+                <ArrowUpRight size={13} color="#dc2626" />
+                <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600' }}>Dépenses</Text>
               </View>
-              <View>
-                <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '500' }}>Dépenses</Text>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: '#f87171' }}>-{summary.todayExpense.toLocaleString()} DT</Text>
-              </View>
+              <Text style={{ fontSize: 16, fontWeight: '800', color: '#dc2626' }}>
+                -{summary.todayExpense.toLocaleString()} DT
+              </Text>
             </View>
           </View>
+
+          {/* Primary Action Button: 🖨️ IMPRIMER LE BORDEREAU DU JOUR */}
+          <TouchableOpacity
+            onPress={handlePrintBordereau}
+            disabled={printing}
+            activeOpacity={0.85}
+            style={{
+              backgroundColor: '#059669',
+              borderRadius: 12,
+              paddingVertical: 12,
+              paddingHorizontal: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              marginBottom: 8,
+              shadowColor: '#059669',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.18,
+              shadowRadius: 4,
+              elevation: 2,
+            }}
+          >
+            {printing ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <>
+                <Printer size={16} color="#ffffff" strokeWidth={2.2} />
+                <Text style={{ fontSize: 14, fontWeight: '800', color: '#ffffff', letterSpacing: -0.2 }}>
+                  Imprimer le Bordereau du Jour
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {/* Secondary Action: Partager PDF */}
+          <TouchableOpacity
+            onPress={handleShareBordereau}
+            disabled={sharing}
+            activeOpacity={0.8}
+            style={{
+              backgroundColor: '#f8fafc',
+              borderWidth: 1,
+              borderColor: '#e2e8f0',
+              borderRadius: 10,
+              paddingVertical: 9,
+              paddingHorizontal: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+            }}
+          >
+            {sharing ? (
+              <ActivityIndicator size="small" color="#0f172a" />
+            ) : (
+              <>
+                <Share2 size={13} color="#0f172a" />
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#0f172a' }}>
+                  Partager le PDF (WhatsApp / Email)
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* ── 2. HNIA ACTION BANNER (CO-PILOT ENTRY) ────────────────────────── */}
