@@ -55,6 +55,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
+import VoiceVisualizer from '../../components/voice/VoiceVisualizer';
 import { adminService } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
 
@@ -127,6 +128,16 @@ export default function HniaChatScreen() {
   const waveAnim2 = useRef(new Animated.Value(0.8)).current;
   const waveAnim3 = useRef(new Animated.Value(0.3)).current;
   const waveAnim4 = useRef(new Animated.Value(0.9)).current;
+
+  // Real-time audio amplitude for live voice visualization (0.0 to 1.0)
+  const [liveAmplitude, setLiveAmplitude] = useState<number>(0);
+  const smoothedAmplitudeRef = useRef<number>(0);
+  const [isProcessingVocal, setIsProcessingVocal] = useState<boolean>(false);
+
+  // Dynamic live waveform bars for the bottom recording bar (14 bars)
+  const bottomBarAnims = useRef<Animated.Value[]>(
+    Array.from({ length: 14 }, () => new Animated.Value(0.18))
+  ).current;
 
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
@@ -242,6 +253,42 @@ export default function HniaChatScreen() {
     return `${mins.toString().padStart(2, '0')}:${remaining.toString().padStart(2, '0')}`;
   };
 
+  // Handle live audio amplitude from expo-av metering
+  const handleAudioMetering = (meteringDb: number) => {
+    // meteringDb ranges from -160 dBFS (silence) to 0 dBFS (loudest)
+    const minDb = -52;
+    const maxDb = -4;
+
+    let raw = 0;
+    if (meteringDb > minDb) {
+      raw = (meteringDb - minDb) / (maxDb - minDb);
+      raw = Math.min(1, Math.max(0, raw));
+      raw = Math.pow(raw, 1.25);
+    }
+
+    const prev = smoothedAmplitudeRef.current;
+    const attack = 0.45;
+    const release = 0.12;
+    const smoothed = raw > prev ? prev + attack * (raw - prev) : prev + release * (raw - prev);
+    smoothedAmplitudeRef.current = smoothed;
+
+    setLiveAmplitude(smoothed);
+
+    // Live update bottom bar waveform bars
+    const bottomBarWeights = [0.25, 0.4, 0.55, 0.7, 0.85, 1.0, 1.0, 0.85, 0.7, 0.55, 0.4, 0.25, 0.2, 0.15];
+    bottomBarAnims.forEach((anim, i) => {
+      const weight = bottomBarWeights[i] || 0.5;
+      const jitter = 0.88 + 0.24 * Math.sin(i * 1.5);
+      const target = Math.max(0.14, smoothed * weight * jitter * 2.4);
+      Animated.spring(anim, {
+        toValue: target,
+        friction: 7,
+        tension: 110,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
+
   const startAudioRecording = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setVocalError(null);
@@ -260,7 +307,16 @@ export default function HniaChatScreen() {
 
       recordingStartTimeRef.current = Date.now();
       const recording = new Audio.Recording();
-      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await recording.prepareToRecordAsync({
+        ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
+        isMeteringEnabled: true,
+      });
+      recording.setProgressUpdateInterval(40);
+      recording.setOnRecordingStatusUpdate((status) => {
+        if (status.isRecording && typeof status.metering === 'number') {
+          handleAudioMetering(status.metering);
+        }
+      });
       await recording.startAsync();
       recordingRef.current = recording;
 
@@ -284,6 +340,11 @@ export default function HniaChatScreen() {
   const pauseAudioRecording = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsRecordingPaused(true);
+    setLiveAmplitude(0);
+    smoothedAmplitudeRef.current = 0;
+    bottomBarAnims.forEach((anim) => {
+      Animated.spring(anim, { toValue: 0.14, friction: 8, tension: 50, useNativeDriver: true }).start();
+    });
     const recording = recordingRef.current;
     if (recording) {
       try {
@@ -301,6 +362,11 @@ export default function HniaChatScreen() {
     setIsRecording(false);
     setIsRecordingPaused(false);
     setRecordingDuration(0);
+    setLiveAmplitude(0);
+    smoothedAmplitudeRef.current = 0;
+    bottomBarAnims.forEach((anim) => {
+      Animated.spring(anim, { toValue: 0.14, friction: 8, tension: 50, useNativeDriver: true }).start();
+    });
 
     const recording = recordingRef.current;
     recordingRef.current = null;
@@ -313,6 +379,7 @@ export default function HniaChatScreen() {
         if (finalUri && (elapsedMs >= 400 || duration >= 1)) {
           const base64 = await readAudioAsBase64(finalUri);
           if (base64) {
+            setIsProcessingVocal(true);
             handleSendMessage(undefined, base64, 'audio/mp4');
             return;
           }
@@ -341,6 +408,12 @@ export default function HniaChatScreen() {
     setIsRecording(false);
     setIsRecordingPaused(false);
     setRecordingDuration(0);
+    setLiveAmplitude(0);
+    smoothedAmplitudeRef.current = 0;
+    setIsProcessingVocal(false);
+    bottomBarAnims.forEach((anim) => {
+      Animated.spring(anim, { toValue: 0.14, friction: 8, tension: 50, useNativeDriver: true }).start();
+    });
     const recording = recordingRef.current;
     recordingRef.current = null;
     if (recording) {
@@ -741,6 +814,7 @@ export default function HniaChatScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsLoading(false);
+      setIsProcessingVocal(false);
       abortControllerRef.current = null;
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
@@ -1384,6 +1458,43 @@ export default function HniaChatScreen() {
             </View>
           )}
 
+          {/* Live Real-time Center Voice Visualizer */}
+          {(isRecording || isProcessingVocal) && (
+            <View style={styles.centerVisualizerOverlay} pointerEvents="box-none">
+              <View style={styles.centerVisualizerCard}>
+                <VoiceVisualizer
+                  state={
+                    isProcessingVocal
+                      ? 'processing'
+                      : isRecordingPaused
+                      ? 'idle'
+                      : liveAmplitude > 0.04
+                      ? 'speaking'
+                      : 'listening'
+                  }
+                  amplitude={isRecordingPaused ? 0 : liveAmplitude}
+                  size={200}
+                  label={
+                    isProcessingVocal
+                      ? 'Hnia analyse votre message...'
+                      : isRecordingPaused
+                      ? 'Enregistrement en pause'
+                      : liveAmplitude > 0.04
+                      ? 'Hnia vous écoute...'
+                      : 'Parlez maintenant...'
+                  }
+                  subtext={
+                    isProcessingVocal
+                      ? 'Compréhension et préparation de la réponse'
+                      : `Durée : ${formatRecordingTime(recordingDuration)} • Appuyez sur ⬆ pour envoyer`
+                  }
+                  showWaveform={true}
+                  waveformBarsCount={16}
+                />
+              </View>
+            </View>
+          )}
+
           {/* Bottom Floating Input Bar (ChatGPT Mobile Interface) */}
           <View
             style={[
@@ -1436,14 +1547,24 @@ export default function HniaChatScreen() {
                     {formatRecordingTime(recordingDuration)}
                   </Text>
 
-                  {/* Dynamic Sound Wave Bars */}
+                  {/* Dynamic Sound Wave Bars driven by live amplitude */}
                   <View style={styles.soundWaveContainer}>
-                    <Animated.View style={[styles.waveBar, { transform: [{ scaleY: isRecordingPaused ? 0.3 : waveAnim1 }] }]} />
-                    <Animated.View style={[styles.waveBar, { transform: [{ scaleY: isRecordingPaused ? 0.6 : waveAnim2 }] }]} />
-                    <Animated.View style={[styles.waveBar, { transform: [{ scaleY: isRecordingPaused ? 0.4 : waveAnim3 }] }]} />
-                    <Animated.View style={[styles.waveBar, { transform: [{ scaleY: isRecordingPaused ? 0.8 : waveAnim4 }] }]} />
-                    <Animated.View style={[styles.waveBar, { transform: [{ scaleY: isRecordingPaused ? 0.5 : waveAnim2 }] }]} />
-                    <Animated.View style={[styles.waveBar, { transform: [{ scaleY: isRecordingPaused ? 0.3 : waveAnim1 }] }]} />
+                    {bottomBarAnims.map((anim, i) => (
+                      <Animated.View
+                        key={i}
+                        style={[
+                          styles.waveBar,
+                          {
+                            transform: [{ scaleY: isRecordingPaused ? 0.25 : anim }],
+                            backgroundColor: isRecordingPaused
+                              ? '#94a3b8'
+                              : liveAmplitude > 0.08
+                              ? '#0055d4'
+                              : '#334155',
+                          },
+                        ]}
+                      />
+                    ))}
                   </View>
                 </View>
 
@@ -2576,5 +2697,34 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#92400e',
     lineHeight: 17,
+  },
+
+  /* Center Real-Time Voice Visualizer Overlay */
+  centerVisualizerOverlay: {
+    position: 'absolute',
+    top: 40,
+    bottom: 80,
+    left: 16,
+    right: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 50,
+  },
+  centerVisualizerCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderRadius: 32,
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    maxWidth: 350,
+    shadowColor: '#0055d4',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.16,
+    shadowRadius: 26,
+    elevation: 12,
+    borderWidth: 1.5,
+    borderColor: 'rgba(226, 232, 240, 0.9)',
   },
 });
