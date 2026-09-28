@@ -32,6 +32,7 @@ import {
   Bot,
   Check,
   X,
+  Maximize2,
   RotateCcw,
   Copy,
   Receipt,
@@ -105,6 +106,7 @@ export default function HniaChatScreen() {
   const [selectedImage, setSelectedImage] = useState<{ uri: string; base64: string; mimeType: string } | null>(null);
   const [selectedAudio, setSelectedAudio] = useState<{ uri: string; base64: string; name: string } | null>(null);
   const [attachmentModalVisible, setAttachmentModalVisible] = useState(false);
+  const [fullscreenImageUri, setFullscreenImageUri] = useState<string | null>(null);
   const [confirmingToolId, setConfirmingToolId] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | undefined>(undefined);
 
@@ -581,12 +583,36 @@ export default function HniaChatScreen() {
       if (res && res.success) {
         if (res.conversationId) setConversationId(res.conversationId);
         if (Array.isArray(res.messages) && res.messages.length > 0) {
-          const loaded: ChatMessage[] = res.messages.map((m: any) => ({
-            id: m.id,
-            role: m.role,
-            content: m.content,
-            createdAt: m.createdAt,
-          }));
+          const loaded: ChatMessage[] = res.messages.map((m: any) => {
+            let content = m.content || '';
+            let imageUri = m.imageUri;
+
+            // Client-side fallback parsing for image tags or legacy prompt descriptors
+            if (content.includes('[IMAGE:')) {
+              const match = content.match(/\[IMAGE:(https?:\/\/[^\]]+)\]/);
+              if (match) {
+                imageUri = match[1];
+                content = content.replace(/\[IMAGE:https?:\/\/[^\]]+\]\n?/, '').trim();
+              }
+            } else if (content.includes('[DOCUMENT NUMÉRISÉ REÇU PAR PHOTO]')) {
+              const urlMatch = content.match(/Justificatif \(URL image\) :\s*(https?:\/\/[^\s\n]+)/) ||
+                               content.match(/img:\s*["\x27](https?:\/\/[^"\x27]+)["\x27]/);
+              if (urlMatch) imageUri = urlMatch[1];
+              const titleMatch = content.match(/Titre \/ Enseigne :\s*([^\n]+)/);
+              const amountMatch = content.match(/Montant extrait :\s*([^\n]+)/);
+              const merchant = titleMatch && !titleMatch[1].includes('Non spécifié') ? titleMatch[1].trim() : '';
+              const amount = amountMatch && !amountMatch[1].includes('Non spécifié') ? amountMatch[1].trim() : '';
+              content = merchant ? `📷 ${merchant}${amount ? ` (${amount})` : ''}` : '📷 Justificatif / Reçu envoyé';
+            }
+
+            return {
+              id: m.id,
+              role: m.role,
+              content,
+              imageUri,
+              createdAt: m.createdAt,
+            };
+          });
           setMessages(loaded);
         }
       }
@@ -761,6 +787,25 @@ export default function HniaChatScreen() {
             prev.map((m) =>
               m.id === userMsg.id
                 ? { ...m, content: `🎙️ "${res.transcription}"`, transcription: res.transcription }
+                : m
+            )
+          );
+        }
+
+        // Keep image attached and format clean caption if image was sent
+        if (res.imageUrl || res.analyzedDocument) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === userMsg.id
+                ? {
+                    ...m,
+                    imageUri: res.imageUrl || m.imageUri,
+                    content:
+                      rawText ||
+                      (res.analyzedDocument?.merchant || res.analyzedDocument?.title
+                        ? `📷 ${res.analyzedDocument.merchant || res.analyzedDocument.title}${res.analyzedDocument.amount ? ` (${res.analyzedDocument.amount} DT)` : ''}`
+                        : m.content),
+                  }
                 : m
             )
           );
@@ -1165,11 +1210,21 @@ export default function HniaChatScreen() {
         <View style={[styles.bubbleContainer, isUser ? styles.userBubble : styles.assistantBubble]}>
           {/* Attached image preview */}
           {item.imageUri && (
-            <Image
-              source={{ uri: item.imageUri }}
-              style={styles.messageImage}
-              resizeMode="cover"
-            />
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => setFullscreenImageUri(item.imageUri!)}
+              style={styles.messageImageWrapper}
+            >
+              <Image
+                source={{ uri: item.imageUri }}
+                style={styles.messageImage}
+                resizeMode="cover"
+              />
+              <View style={styles.imageZoomBadge}>
+                <Maximize2 size={11} color="#ffffff" />
+                <Text style={styles.imageZoomText}>Agrandir</Text>
+              </View>
+            </TouchableOpacity>
           )}
 
           {/* Transcribed badge if voice note */}
@@ -1182,7 +1237,11 @@ export default function HniaChatScreen() {
 
           {/* Content */}
           {isUser ? (
-            <Text style={styles.userText}>{item.content}</Text>
+            <Text style={styles.userText}>
+              {item.content?.includes('[DOCUMENT NUMÉRISÉ REÇU PAR PHOTO]')
+                ? '📷 Justificatif / Reçu envoyé'
+                : item.content?.replace(/\[IMAGE:https?:\/\/[^\]]+\]\n?/, '').trim() || (item.imageUri ? '📷 Document envoyé' : '')}
+            </Text>
           ) : item.pendingConfirmation ? (
             // If message has a pending confirmation card, don't repeat duplicate confirmation prompt as regular message
             item.content &&
@@ -1764,6 +1823,35 @@ export default function HniaChatScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Fullscreen Image Preview Modal */}
+      <Modal
+        visible={!!fullscreenImageUri}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFullscreenImageUri(null)}
+      >
+        <View style={styles.fullscreenModalContainer}>
+          <SafeAreaView style={styles.fullscreenHeaderArea}>
+            <TouchableOpacity
+              style={styles.fullscreenCloseBtn}
+              onPress={() => setFullscreenImageUri(null)}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            >
+              <X size={24} color="#ffffff" strokeWidth={2.4} />
+            </TouchableOpacity>
+          </SafeAreaView>
+          <View style={styles.fullscreenImageArea}>
+            {fullscreenImageUri && (
+              <Image
+                source={{ uri: fullscreenImageUri }}
+                style={styles.fullscreenImage}
+                resizeMode="contain"
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -2080,11 +2168,36 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     fontStyle: 'italic',
   },
+  messageImageWrapper: {
+    position: 'relative',
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
   messageImage: {
     width: 220,
-    height: 140,
+    height: 150,
+    borderRadius: 14,
+    backgroundColor: '#0f172a',
+  },
+  imageZoomBadge: {
+    position: 'absolute',
+    bottom: 6,
+    right: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 12,
-    marginBottom: 8,
+  },
+  imageZoomText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '700',
   },
   transcriptionBadge: {
     flexDirection: 'row',
@@ -2662,5 +2775,38 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#92400e',
     lineHeight: 17,
+  },
+
+  /* Fullscreen Image Modal */
+  fullscreenModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenHeaderArea: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    zIndex: 20,
+  },
+  fullscreenCloseBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullscreenImageArea: {
+    width: '100%',
+    height: '80%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  fullscreenImage: {
+    width: '100%',
+    height: '100%',
   },
 });
