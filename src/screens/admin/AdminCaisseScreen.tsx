@@ -382,7 +382,7 @@ export default function AdminCaisseScreen() {
               <>
                 <Printer size={16} color="#ffffff" strokeWidth={2.2} />
                 <Text style={{ fontSize: 14, fontWeight: '800', color: '#ffffff', letterSpacing: -0.2 }}>
-                  Imprimer le Bordereau du Jour
+                  Imprimer le Livre de Caisse (A4)
                 </Text>
               </>
             )}
@@ -412,7 +412,7 @@ export default function AdminCaisseScreen() {
               <>
                 <Share2 size={13} color="#0f172a" />
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#0f172a' }}>
-                  Partager le PDF (WhatsApp / Email)
+                  Partager le PDF officiel (WhatsApp / Email)
                 </Text>
               </>
             )}
