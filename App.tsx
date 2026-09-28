@@ -106,7 +106,7 @@ function BottomTabsContent({ onSignOut }: { onSignOut: () => void }) {
         <Tab.Navigator
           screenOptions={{
             headerShown: false,
-            tabBarHideOnKeyboard: true,
+            tabBarHideOnKeyboard: false,
             tabBarStyle: {
               backgroundColor: '#ffffff',
               borderTopWidth: 1,
@@ -129,7 +129,7 @@ function BottomTabsContent({ onSignOut }: { onSignOut: () => void }) {
           }}
         >
           <Tab.Screen name="Dashboard" component={AdminDashboardScreen} options={{ tabBarLabel: (t as any).adminDashboard || 'Dashboard', tabBarIcon: ({ color, focused }) => <LayoutDashboard size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} /> }} />
-          <Tab.Screen name="Hnia" component={HniaChatScreen} options={{ tabBarLabel: 'Hnia', tabBarIcon: ({ color, focused }) => <Bot size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} /> }} />
+          <Tab.Screen name="Hnia" component={HniaChatScreen} options={{ tabBarHideOnKeyboard: false, tabBarLabel: 'Hnia', tabBarIcon: ({ color, focused }) => <Bot size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} /> }} />
           <Tab.Screen name="Caisse" component={AdminCaisseScreen} options={{ tabBarLabel: (t as any).adminCaisse || 'Caisse', tabBarIcon: ({ color, focused }) => <Wallet size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} /> }} />
           <Tab.Screen name="More" options={{ tabBarLabel: (t as any).more || 'Plus', tabBarIcon: ({ color, focused }) => <MoreHorizontal size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} /> }}>
             {props => <AdminMoreScreen {...props} onSignOut={onSignOut} />}

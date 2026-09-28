@@ -110,9 +110,6 @@ export default function HniaChatScreen() {
   const [confirmingToolId, setConfirmingToolId] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | undefined>(undefined);
 
-  // Keyboard height tracking for edge-to-edge Android and iOS
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-
   // Audio recording state
   const [isRecording, setIsRecording] = useState(false);
   const [isRecordingPaused, setIsRecordingPaused] = useState(false);
@@ -154,24 +151,41 @@ export default function HniaChatScreen() {
     };
   }, []);
 
-  // Keyboard listeners for clean, smooth positioning above keyboard
+  // Track whether user was near the bottom before keyboard showed
+  const isNearBottomRef = useRef(true);
+  const handleScroll = useCallback((e: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+    const paddingToBottom = 80;
+    isNearBottomRef.current =
+      layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
+  }, []);
+
+  // Keyboard show/hide handling:
+  // When keyboard opens: if user was at bottom, keep newest messages visible
+  // When keyboard dismisses (e.g. back button on Android): blur input cleanly to prevent ghost focus
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
-    const showSub = Keyboard.addListener(showEvent, (e) => {
-      setKeyboardHeight(e.endCoordinates.height);
+    const showSub = Keyboard.addListener(showEvent, () => {
+      if (isNearBottomRef.current && messages.length > 0) {
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 120);
+      }
     });
 
     const hideSub = Keyboard.addListener(hideEvent, () => {
-      setKeyboardHeight(0);
+      if (inputRef.current?.isFocused()) {
+        inputRef.current?.blur();
+      }
     });
 
     return () => {
       showSub.remove();
       hideSub.remove();
     };
-  }, []);
+  }, [messages.length]);
 
   // Auto-scroll to bottom ONLY when new messages arrive (allows smooth scrolling up to read old messages)
   const prevMessagesLengthRef = useRef(messages.length);
@@ -1374,8 +1388,8 @@ export default function HniaChatScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        behavior="padding"
+        keyboardVerticalOffset={0}
       >
         <View style={{ flex: 1 }}>
           {/* Main Content */}
@@ -1390,6 +1404,7 @@ export default function HniaChatScreen() {
               style={{ flex: 1 }}
               contentContainerStyle={styles.emptyContainer}
               showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
             >
               <View style={styles.avatarHaloContainer}>
                 <View style={styles.avatarHalo}>
@@ -1439,6 +1454,8 @@ export default function HniaChatScreen() {
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'none'}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
               ListFooterComponent={
                 isLoading ? (
                   <View style={styles.thinkingRow}>
