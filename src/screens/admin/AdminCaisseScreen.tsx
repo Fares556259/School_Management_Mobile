@@ -9,7 +9,6 @@ import {
   RefreshControl,
   Platform,
   StatusBar,
-  Alert,
   Modal,
   Image,
 } from 'react-native';
@@ -30,19 +29,18 @@ import {
   X,
   CreditCard,
   HandCoins,
-  Search,
-  Sparkles,
   Camera,
   Image as ImageIcon,
-  Tag,
-  Eye,
+  CheckCircle2,
+  AlertCircle,
+  ChevronRight,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as ImagePicker from 'expo-image-picker';
-import { adminService, authStorage, API_BASE_URL } from '../../services/api';
+import { adminService, authStorage } from '../../services/api';
 
 interface Transaction {
   id: string;
@@ -60,6 +58,13 @@ interface CaisseSummary {
   todayNet: number;
   monthIncome: number;
   monthExpense: number;
+}
+
+interface CustomFeedback {
+  visible: boolean;
+  type: 'success' | 'error';
+  title: string;
+  message: string;
 }
 
 export default function AdminCaisseScreen() {
@@ -81,10 +86,10 @@ export default function AdminCaisseScreen() {
 
   // Dynamic Categories from Server
   const [incomeCategories, setIncomeCategories] = useState<string[]>([
-    'Scolarité',
     'Inscription',
     'Cantine',
     'Transport',
+    'Activités',
     'Donation',
     'Événement',
     'Autre',
@@ -100,28 +105,33 @@ export default function AdminCaisseScreen() {
     'Divers',
   ]);
 
-  // Print & Share
+  // Print & Share loading
   const [printing, setPrinting] = useState(false);
   const [sharing, setSharing] = useState(false);
+
+  // Custom Feedback Modal (Replaces all generic OS Alert.alert!)
+  const [feedback, setFeedback] = useState<CustomFeedback | null>(null);
+
+  // Custom Photo Picker Modal (Replaces generic ActionSheet Alert!)
+  const [showPhotoPicker, setShowPhotoPicker] = useState<{
+    visible: boolean;
+    onSelected: (uri: string) => void;
+  } | null>(null);
 
   // Full-Screen Image Preview Modal
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  // ── MODAL 1: ENCAISSER STATE ───────────────────────────────────────────────
+  // ── MODAL 1: ENCAISSER RECETTE STATE (PURE DIRECT RECEIPT) ────────────────
   const [showCollectModal, setShowCollectModal] = useState(false);
-  const [collectMode, setCollectMode] = useState<'student' | 'general'>('student');
-  const [studentSearch, setStudentSearch] = useState('');
-  const [searchingStudents, setSearchingStudents] = useState(false);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
   const [collectTitle, setCollectTitle] = useState('');
   const [collectAmount, setCollectAmount] = useState('');
-  const [collectCategory, setCollectCategory] = useState('Scolarité');
+  const [collectCategory, setCollectCategory] = useState('Inscription');
   const [collectMethod, setCollectMethod] = useState<'Espèces' | 'Chèque' | 'Virement'>('Espèces');
   const [collectImageUri, setCollectImageUri] = useState<string | null>(null);
   const [showNewIncomeCategoryInput, setShowNewIncomeCategoryInput] = useState(false);
   const [newIncomeCategoryText, setNewIncomeCategoryText] = useState('');
   const [submittingCollect, setSubmittingCollect] = useState(false);
+  const [collectError, setCollectError] = useState('');
 
   // ── MODAL 2: DÉPENSER STATE ────────────────────────────────────────────────
   const [showExpenseModal, setShowExpenseModal] = useState(false);
@@ -132,6 +142,7 @@ export default function AdminCaisseScreen() {
   const [showNewExpenseCategoryInput, setShowNewExpenseCategoryInput] = useState(false);
   const [newExpenseCategoryText, setNewExpenseCategoryText] = useState('');
   const [submittingExpense, setSubmittingExpense] = useState(false);
+  const [expenseError, setExpenseError] = useState('');
 
   // ── DATA FETCHING ──────────────────────────────────────────────────────────
   const loadCaisseData = useCallback(async (isRefresh = false) => {
@@ -143,7 +154,10 @@ export default function AdminCaisseScreen() {
         setTransactions(data.todayTransactions || []);
         if (data.monthLabel) setMonthLabel(data.monthLabel);
         if (Array.isArray(data.incomeCategories) && data.incomeCategories.length > 0) {
-          setIncomeCategories(data.incomeCategories);
+          // Exclude 'Scolarité' / 'Tuition' from general caisse receipts since it lives in Dashboard
+          const filtered = data.incomeCategories.filter((c: string) => !['scolarité', 'scolarite', 'tuition'].includes(c.toLowerCase()));
+          setIncomeCategories(filtered);
+          if (filtered.length > 0) setCollectCategory(filtered[0]);
         }
         if (Array.isArray(data.expenseCategories) && data.expenseCategories.length > 0) {
           setExpenseCategories(data.expenseCategories);
@@ -166,12 +180,18 @@ export default function AdminCaisseScreen() {
     loadCaisseData(true);
   };
 
-  // ── PHOTO PICKER (CAMERA OR GALLERY) ───────────────────────────────────────
-  const pickFromGallery = async (onSelected: (uri: string) => void) => {
+  // ── PHOTO PICKER HELPERS ───────────────────────────────────────────────────
+  const openGallery = async (onSelected: (uri: string) => void) => {
+    setShowPhotoPicker(null);
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission requise', "L'accès aux photos est requis pour joindre un reçu.");
+        setFeedback({
+          visible: true,
+          type: 'error',
+          title: 'Permission requise',
+          message: "L'accès à la galerie photo est nécessaire pour joindre un reçu.",
+        });
         return;
       }
 
@@ -189,11 +209,17 @@ export default function AdminCaisseScreen() {
     }
   };
 
-  const takeFromCamera = async (onSelected: (uri: string) => void) => {
+  const openCamera = async (onSelected: (uri: string) => void) => {
+    setShowPhotoPicker(null);
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission requise', "L'accès à l'appareil photo est requis pour photographier le reçu.");
+        setFeedback({
+          visible: true,
+          type: 'error',
+          title: 'Permission requise',
+          message: "L'accès à la caméra est nécessaire pour photographier le reçu.",
+        });
         return;
       }
 
@@ -210,60 +236,22 @@ export default function AdminCaisseScreen() {
     }
   };
 
-  const promptImageChoice = (onSelected: (uri: string) => void) => {
+  const triggerPhotoPicker = (onSelected: (uri: string) => void) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert(
-      'Joindre un Justificatif',
-      'Prendre une photo du reçu ou choisir depuis la galerie ?',
-      [
-        { text: '📷 Prendre une photo', onPress: () => takeFromCamera(onSelected) },
-        { text: '🖼️ Choisir une photo', onPress: () => pickFromGallery(onSelected) },
-        { text: 'Annuler', style: 'cancel' },
-      ]
-    );
+    setShowPhotoPicker({ visible: true, onSelected });
   };
 
-  // ── STUDENT SEARCH FOR QUICK COLLECTION ────────────────────────────────────
-  const handleStudentSearch = async (text: string) => {
-    setStudentSearch(text);
-    if (text.trim().length < 2) {
-      setSearchResults([]);
+  // ── SUBMIT ENCAISSEMENT RECETTE ────────────────────────────────────────────
+  const handleConfirmCollect = async () => {
+    setCollectError('');
+    if (!collectTitle.trim()) {
+      setCollectError('Veuillez indiquer le libellé de la recette.');
       return;
     }
-    setSearchingStudents(true);
-    try {
-      const res = await adminService.searchStudentsForCaisse(text.trim());
-      if (res && res.success && res.students) {
-        setSearchResults(res.students);
-      }
-    } catch (err) {
-      console.error('Search students error:', err);
-    } finally {
-      setSearchingStudents(false);
-    }
-  };
 
-  const handleSelectStudent = (student: any) => {
-    setSelectedStudent(student);
-    setCollectAmount(student.dueAmount > 0 ? student.dueAmount.toString() : '450');
-    setSearchResults([]);
-  };
-
-  // ── SUBMIT ENCAISSEMENT ────────────────────────────────────────────────────
-  const handleConfirmCollect = async () => {
     const amt = parseFloat(collectAmount);
     if (isNaN(amt) || amt <= 0) {
-      Alert.alert('Montant invalide', 'Veuillez saisir un montant positif valide.');
-      return;
-    }
-
-    if (collectMode === 'student' && !selectedStudent) {
-      Alert.alert('Élève requis', 'Veuillez rechercher et sélectionner un élève, ou basculez sur "Autre Recette".');
-      return;
-    }
-
-    if (collectMode === 'general' && !collectTitle.trim()) {
-      Alert.alert('Motif requis', 'Veuillez indiquer le libellé de la recette (ex: Cantine, Inscription, Don...).');
+      setCollectError('Veuillez saisir un montant positif valide.');
       return;
     }
 
@@ -274,70 +262,56 @@ export default function AdminCaisseScreen() {
         uploadedImgUrl = await adminService.uploadFile(collectImageUri, 'receipt');
       }
 
-      if (collectMode === 'student') {
-        const res = await adminService.collectStudentPayment({
-          studentId: selectedStudent.id,
-          amount: amt,
-          paymentMethod: collectMethod,
-          category: collectCategory,
-          img: uploadedImgUrl,
-        });
+      const res = await adminService.recordIncome({
+        title: collectTitle.trim(),
+        amount: amt,
+        category: collectCategory,
+        paymentMethod: collectMethod,
+        img: uploadedImgUrl,
+      });
 
-        if (res && res.success) {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          Alert.alert('Encaissement réussi', `✓ ${amt} DT encaissés pour ${selectedStudent.name}.`);
-          setShowCollectModal(false);
-          resetCollectModal();
-          loadCaisseData(true);
-        } else {
-          throw new Error(res?.error || "Échec de l'encaissement");
-        }
+      if (res && res.success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setShowCollectModal(false);
+        setCollectTitle('');
+        setCollectAmount('');
+        setCollectImageUri(null);
+        setShowNewIncomeCategoryInput(false);
+        setNewIncomeCategoryText('');
+
+        // Custom clean feedback popup
+        setFeedback({
+          visible: true,
+          type: 'success',
+          title: 'Recette Encaissée',
+          message: `✓ ${amt} DT encaissés avec succès pour "${collectTitle}".`,
+        });
+        loadCaisseData(true);
       } else {
-        const res = await adminService.recordIncome({
-          title: collectTitle.trim(),
-          amount: amt,
-          category: collectCategory,
-          paymentMethod: collectMethod,
-          img: uploadedImgUrl,
-        });
-
-        if (res && res.success) {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          Alert.alert('Recette enregistrée', `✓ ${amt} DT encaissés pour "${collectTitle}".`);
-          setShowCollectModal(false);
-          resetCollectModal();
-          loadCaisseData(true);
-        } else {
-          throw new Error(res?.error || "Échec de l'enregistrement");
-        }
+        throw new Error(res?.error || "Échec de l'enregistrement");
       }
     } catch (err: any) {
-      Alert.alert('Erreur', err.message || 'Une erreur est survenue.');
+      setFeedback({
+        visible: true,
+        type: 'error',
+        title: 'Erreur',
+        message: err.message || 'Une erreur est survenue lors de l’encaissement.',
+      });
     } finally {
       setSubmittingCollect(false);
     }
   };
 
-  const resetCollectModal = () => {
-    setSelectedStudent(null);
-    setStudentSearch('');
-    setCollectTitle('');
-    setCollectAmount('');
-    setCollectCategory('Scolarité');
-    setCollectImageUri(null);
-    setShowNewIncomeCategoryInput(false);
-    setNewIncomeCategoryText('');
-  };
-
   // ── SUBMIT DÉPENSE ─────────────────────────────────────────────────────────
   const handleConfirmExpense = async () => {
+    setExpenseError('');
     if (!expenseTitle.trim()) {
-      Alert.alert('Motif requis', 'Veuillez indiquer le motif de la dépense.');
+      setExpenseError('Veuillez indiquer le motif de la dépense.');
       return;
     }
     const amt = parseFloat(expenseAmount);
     if (isNaN(amt) || amt <= 0) {
-      Alert.alert('Montant invalide', 'Veuillez saisir un montant valide.');
+      setExpenseError('Veuillez saisir un montant valide.');
       return;
     }
 
@@ -357,20 +331,31 @@ export default function AdminCaisseScreen() {
 
       if (res && res.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert('Dépense enregistrée', `✓ ${amt} DT décaissés pour "${expenseTitle}".`);
         setShowExpenseModal(false);
         setExpenseTitle('');
         setExpenseAmount('');
-        setExpenseCategory('Fournitures');
         setExpenseImageUri(null);
         setShowNewExpenseCategoryInput(false);
         setNewExpenseCategoryText('');
+
+        // Custom clean feedback popup
+        setFeedback({
+          visible: true,
+          type: 'success',
+          title: 'Dépense Enregistrée',
+          message: `✓ ${amt} DT décaissés pour "${expenseTitle}".`,
+        });
         loadCaisseData(true);
       } else {
         throw new Error(res?.error || "Échec de l'enregistrement");
       }
     } catch (err: any) {
-      Alert.alert('Erreur', err.message || 'Une erreur est survenue.');
+      setFeedback({
+        visible: true,
+        type: 'error',
+        title: 'Erreur',
+        message: err.message || 'Une erreur est survenue lors de la dépense.',
+      });
     } finally {
       setSubmittingExpense(false);
     }
@@ -391,7 +376,12 @@ export default function AdminCaisseScreen() {
       });
     } catch (err: any) {
       console.error('[AdminCaisseScreen] Print error:', err);
-      Alert.alert('Erreur', "Impossible d'ouvrir le module d'impression : " + (err.message || ''));
+      setFeedback({
+        visible: true,
+        type: 'error',
+        title: "Erreur d'impression",
+        message: "Impossible d'ouvrir le module d'impression : " + (err.message || ''),
+      });
     } finally {
       setPrinting(false);
     }
@@ -431,11 +421,21 @@ export default function AdminCaisseScreen() {
           UTI: 'com.adobe.pdf',
         });
       } else {
-        Alert.alert('Bordereau enregistré', `Le document PDF a été enregistré avec succès : ${filename}`);
+        setFeedback({
+          visible: true,
+          type: 'success',
+          title: 'Document enregistré',
+          message: `Le bordereau PDF a été enregistré avec succès : ${filename}`,
+        });
       }
     } catch (err: any) {
       console.error('[AdminCaisseScreen] Share error:', err);
-      Alert.alert('Erreur', 'Impossible de télécharger le bordereau : ' + (err.message || 'Erreur inconnue'));
+      setFeedback({
+        visible: true,
+        type: 'error',
+        title: 'Erreur',
+        message: 'Impossible de télécharger le bordereau : ' + (err.message || 'Erreur inconnue'),
+      });
     } finally {
       setSharing(false);
     }
@@ -638,7 +638,7 @@ export default function AdminCaisseScreen() {
           </View>
         </View>
 
-        {/* ── 2. ACTIONS DU JOUR (COHESIVE, HARMONIOUS & LUXURY UI) ─────────── */}
+        {/* ── 2. ACTIONS DU JOUR (MATCHING MODERN LUXURY UI) ───────────────── */}
         <View style={{ marginTop: 18 }}>
           <Text style={{ fontSize: 12, fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 10 }}>
             Actions Rapides du Jour
@@ -649,6 +649,7 @@ export default function AdminCaisseScreen() {
             <TouchableOpacity
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setCollectError('');
                 setShowCollectModal(true);
               }}
               activeOpacity={0.85}
@@ -678,6 +679,7 @@ export default function AdminCaisseScreen() {
             <TouchableOpacity
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setExpenseError('');
                 setShowExpenseModal(true);
               }}
               activeOpacity={0.85}
@@ -703,7 +705,7 @@ export default function AdminCaisseScreen() {
               <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Sortie de caisse</Text>
             </TouchableOpacity>
 
-            {/* Card 3: Hnia IA (REPLACED BLACK BOX WITH BEAUTIFUL SOFT BLUE LUXURY CARD) */}
+            {/* Card 3: Hnia IA (LUXURY SOFT-BLUE CARD) */}
             <TouchableOpacity
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -852,7 +854,7 @@ export default function AdminCaisseScreen() {
         </View>
       </ScrollView>
 
-      {/* ── MODAL 1: ENCAISSER (AVEC TOUTES CATÉGORIES, CRÉATION & IMAGES) ───── */}
+      {/* ── MODAL 1: ENCAISSER UNE RECETTE (PURE, CLEAN, NO SCOLARITÉ ELEVE) ──── */}
       <Modal
         visible={showCollectModal}
         transparent
@@ -875,7 +877,7 @@ export default function AdminCaisseScreen() {
               maxHeight: '90%',
               backgroundColor: '#ffffff',
               borderRadius: 24,
-              padding: 20,
+              padding: 22,
               shadowColor: '#000',
               shadowOpacity: 0.15,
               shadowRadius: 18,
@@ -883,7 +885,7 @@ export default function AdminCaisseScreen() {
             }}
           >
             {/* Modal Header */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <View>
                 <Text style={{ fontSize: 19, fontWeight: '900', color: '#0f172a' }}>
                   Encaisser une Recette
@@ -901,134 +903,40 @@ export default function AdminCaisseScreen() {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 10 }}>
-              {/* Type Switcher: Scolarité vs Autre Recette */}
-              <View style={{ flexDirection: 'row', backgroundColor: '#f1f5f9', borderRadius: 12, padding: 3, marginBottom: 14 }}>
-                <TouchableOpacity
-                  onPress={() => setCollectMode('student')}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 7,
-                    borderRadius: 9,
-                    backgroundColor: collectMode === 'student' ? '#ffffff' : 'transparent',
-                    alignItems: 'center',
-                    shadowColor: collectMode === 'student' ? '#000' : 'transparent',
-                    shadowOpacity: collectMode === 'student' ? 0.05 : 0,
-                    shadowRadius: 3,
-                    elevation: collectMode === 'student' ? 1 : 0,
-                  }}
-                >
-                  <Text style={{ fontSize: 12.5, fontWeight: '800', color: collectMode === 'student' ? '#0f172a' : '#64748b' }}>
-                    🎓 Scolarité Élève
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => setCollectMode('general')}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 7,
-                    borderRadius: 9,
-                    backgroundColor: collectMode === 'general' ? '#ffffff' : 'transparent',
-                    alignItems: 'center',
-                    shadowColor: collectMode === 'general' ? '#000' : 'transparent',
-                    shadowOpacity: collectMode === 'general' ? 0.05 : 0,
-                    shadowRadius: 3,
-                    elevation: collectMode === 'general' ? 1 : 0,
-                  }}
-                >
-                  <Text style={{ fontSize: 12.5, fontWeight: '800', color: collectMode === 'general' ? '#0f172a' : '#64748b' }}>
-                    💵 Autre Recette Libre
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Student Search (if Student Mode) */}
-              {collectMode === 'student' ? (
-                !selectedStudent ? (
-                  <View style={{ marginBottom: 12 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 5 }}>
-                      Rechercher l'élève
-                    </Text>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        backgroundColor: '#f8fafc',
-                        borderRadius: 12,
-                        paddingHorizontal: 12,
-                        borderWidth: 1,
-                        borderColor: '#cbd5e1',
-                      }}
-                    >
-                      <Search size={16} color="#94a3b8" />
-                      <TextInput
-                        value={studentSearch}
-                        onChangeText={handleStudentSearch}
-                        placeholder="Tapez le nom ou prénom..."
-                        placeholderTextColor="#94a3b8"
-                        style={{ flex: 1, paddingVertical: 9, paddingHorizontal: 8, fontSize: 13.5, color: '#0f172a' }}
-                      />
-                      {searchingStudents && <ActivityIndicator size="small" color="#0055d4" />}
-                    </View>
-
-                    {searchResults.length > 0 && (
-                      <View style={{ maxHeight: 160, marginTop: 6, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
-                        <ScrollView nestedScrollEnabled>
-                          {searchResults.map((st) => (
-                            <TouchableOpacity
-                              key={st.id}
-                              onPress={() => handleSelectStudent(st)}
-                              style={{ padding: 10, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
-                            >
-                              <View>
-                                <Text style={{ fontSize: 13.5, fontWeight: '700', color: '#0f172a' }}>{st.name}</Text>
-                                <Text style={{ fontSize: 11, color: '#64748b' }}>{st.className} • Reste dû : {st.dueAmount} DT</Text>
-                              </View>
-                              <Text style={{ fontSize: 12, fontWeight: '800', color: '#059669' }}>Sélectionner</Text>
-                            </TouchableOpacity>
-                          ))}
-                        </ScrollView>
-                      </View>
-                    )}
-                  </View>
-                ) : (
-                  <View style={{ backgroundColor: '#f0fdf4', borderRadius: 12, padding: 10, marginBottom: 12, borderWidth: 1, borderColor: '#bbf7d0' }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Text style={{ fontSize: 14.5, fontWeight: '800', color: '#166534' }}>{selectedStudent.name}</Text>
-                      <TouchableOpacity onPress={() => setSelectedStudent(null)}>
-                        <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#dc2626' }}>Changer</Text>
-                      </TouchableOpacity>
-                    </View>
-                    <Text style={{ fontSize: 11.5, color: '#15803d', marginTop: 2 }}>
-                      {selectedStudent.className} • Reste dû : {selectedStudent.dueAmount} DT
-                    </Text>
-                  </View>
-                )
-              ) : (
-                /* General Income Description */
-                <View style={{ marginBottom: 12 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 5 }}>
-                    Motif / Libellé de la recette
-                  </Text>
-                  <TextInput
-                    value={collectTitle}
-                    onChangeText={setCollectTitle}
-                    placeholder="Ex: Frais d'inscription, Cantine, Vente manuels..."
-                    placeholderTextColor="#94a3b8"
-                    style={{
-                      backgroundColor: '#ffffff',
-                      borderWidth: 1.5,
-                      borderColor: '#cbd5e1',
-                      borderRadius: 12,
-                      paddingHorizontal: 12,
-                      paddingVertical: 9,
-                      fontSize: 13.5,
-                      fontWeight: '600',
-                      color: '#0f172a',
-                    }}
-                  />
+              {/* Inline Error if any */}
+              {Boolean(collectError) && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#fef2f2', padding: 10, borderRadius: 10, marginBottom: 12 }}>
+                  <AlertCircle size={15} color="#dc2626" />
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#dc2626' }}>{collectError}</Text>
                 </View>
               )}
+
+              {/* Motif / Libellé de la recette */}
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 5 }}>
+                  Motif / Libellé de la recette
+                </Text>
+                <TextInput
+                  value={collectTitle}
+                  onChangeText={(t) => {
+                    setCollectTitle(t);
+                    if (collectError) setCollectError('');
+                  }}
+                  placeholder="Ex: Frais d'inscription, Cantine, Vente manuels, Don..."
+                  placeholderTextColor="#94a3b8"
+                  style={{
+                    backgroundColor: '#ffffff',
+                    borderWidth: 1.5,
+                    borderColor: '#cbd5e1',
+                    borderRadius: 12,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    fontSize: 14,
+                    fontWeight: '600',
+                    color: '#0f172a',
+                  }}
+                />
+              </View>
 
               {/* Amount Field */}
               <View style={{ marginBottom: 12 }}>
@@ -1037,9 +945,12 @@ export default function AdminCaisseScreen() {
                 </Text>
                 <TextInput
                   value={collectAmount}
-                  onChangeText={setCollectAmount}
+                  onChangeText={(t) => {
+                    setCollectAmount(t);
+                    if (collectError) setCollectError('');
+                  }}
                   keyboardType="numeric"
-                  placeholder="Ex: 450"
+                  placeholder="Ex: 150"
                   placeholderTextColor="#94a3b8"
                   style={{
                     backgroundColor: '#ffffff',
@@ -1047,7 +958,7 @@ export default function AdminCaisseScreen() {
                     borderColor: '#cbd5e1',
                     borderRadius: 12,
                     paddingHorizontal: 12,
-                    paddingVertical: 9,
+                    paddingVertical: 10,
                     fontSize: 18,
                     fontWeight: '800',
                     color: '#0f172a',
@@ -1069,7 +980,7 @@ export default function AdminCaisseScreen() {
                         onPress={() => setCollectMethod(method)}
                         style={{
                           flex: 1,
-                          paddingVertical: 7,
+                          paddingVertical: 8,
                           borderRadius: 10,
                           borderWidth: 1,
                           borderColor: isSelected ? '#059669' : '#e2e8f0',
@@ -1086,7 +997,7 @@ export default function AdminCaisseScreen() {
                 </View>
               </View>
 
-              {/* ── ALL CATEGORIES + CREATE NEW (AS ON WEB) ────────────────── */}
+              {/* Catégories de recette + Bouton Créer */}
               <View style={{ marginBottom: 14 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569' }}>
@@ -1117,8 +1028,8 @@ export default function AdminCaisseScreen() {
                         borderColor: '#0055d4',
                         borderRadius: 10,
                         paddingHorizontal: 10,
-                        paddingVertical: 6,
-                        fontSize: 12.5,
+                        paddingVertical: 7,
+                        fontSize: 13,
                         color: '#0f172a',
                       }}
                     />
@@ -1135,9 +1046,9 @@ export default function AdminCaisseScreen() {
                           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                         }
                       }}
-                      style={{ backgroundColor: '#0055d4', borderRadius: 10, paddingHorizontal: 12, justifyContent: 'center' }}
+                      style={{ backgroundColor: '#0055d4', borderRadius: 10, paddingHorizontal: 14, justifyContent: 'center' }}
                     >
-                      <Check size={16} color="#fff" />
+                      <Check size={16} color="#fff" strokeWidth={2.5} />
                     </TouchableOpacity>
                   </View>
                 )}
@@ -1153,15 +1064,15 @@ export default function AdminCaisseScreen() {
                           setCollectCategory(cat);
                         }}
                         style={{
-                          paddingVertical: 5,
-                          paddingHorizontal: 10,
+                          paddingVertical: 6,
+                          paddingHorizontal: 11,
                           borderRadius: 12,
                           borderWidth: 1,
                           borderColor: isSelected ? '#059669' : '#e2e8f0',
                           backgroundColor: isSelected ? '#f0fdf4' : '#ffffff',
                         }}
                       >
-                        <Text style={{ fontSize: 11.5, fontWeight: isSelected ? '800' : '600', color: isSelected ? '#059669' : '#475569' }}>
+                        <Text style={{ fontSize: 12, fontWeight: isSelected ? '800' : '600', color: isSelected ? '#059669' : '#475569' }}>
                           {cat}
                         </Text>
                       </TouchableOpacity>
@@ -1170,7 +1081,7 @@ export default function AdminCaisseScreen() {
                 </View>
               </View>
 
-              {/* ── IMAGE ATTACHMENT (REÇU / JUSTIFICATIF AS ON WEB) ────────── */}
+              {/* Justificatif / Reçu (Photo) */}
               <View style={{ marginBottom: 16 }}>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 6 }}>
                   Justificatif / Reçu (Photo)
@@ -1181,7 +1092,7 @@ export default function AdminCaisseScreen() {
                     <Image source={{ uri: collectImageUri }} style={{ width: 44, height: 44, borderRadius: 8 }} />
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 12, fontWeight: '700', color: '#0f172a' }}>Justificatif joint</Text>
-                      <Text style={{ fontSize: 10, color: '#64748b' }}>Photo prête à être téléchargée</Text>
+                      <Text style={{ fontSize: 10.5, color: '#64748b' }}>Photo prête à être enregistrée</Text>
                     </View>
                     <TouchableOpacity
                       onPress={() => setCollectImageUri(null)}
@@ -1192,7 +1103,7 @@ export default function AdminCaisseScreen() {
                   </View>
                 ) : (
                   <TouchableOpacity
-                    onPress={() => promptImageChoice(setCollectImageUri)}
+                    onPress={() => triggerPhotoPicker(setCollectImageUri)}
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
@@ -1202,25 +1113,25 @@ export default function AdminCaisseScreen() {
                       borderColor: '#cbd5e1',
                       borderStyle: 'dashed',
                       borderRadius: 12,
-                      paddingVertical: 10,
+                      paddingVertical: 11,
                       backgroundColor: '#f8fafc',
                     }}
                   >
                     <Camera size={16} color="#0055d4" />
-                    <Text style={{ fontSize: 12.5, fontWeight: '700', color: '#0055d4' }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#0055d4' }}>
                       Prendre ou choisir une photo du reçu
                     </Text>
                   </TouchableOpacity>
                 )}
               </View>
 
-              {/* Modal Action Buttons */}
+              {/* Action Buttons */}
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <TouchableOpacity
                   onPress={() => setShowCollectModal(false)}
                   style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: '#f1f5f9', alignItems: 'center' }}
                 >
-                  <Text style={{ fontSize: 13.5, fontWeight: '700', color: '#64748b' }}>Annuler</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#64748b' }}>Annuler</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -1252,7 +1163,7 @@ export default function AdminCaisseScreen() {
         </View>
       </Modal>
 
-      {/* ── MODAL 2: DÉPENSER (AVEC TOUTES CATÉGORIES, CRÉATION & IMAGES) ───── */}
+      {/* ── MODAL 2: ENREGISTRER UNE DÉPENSE ──────────────────────────────────── */}
       <Modal
         visible={showExpenseModal}
         transparent
@@ -1275,7 +1186,7 @@ export default function AdminCaisseScreen() {
               maxHeight: '90%',
               backgroundColor: '#ffffff',
               borderRadius: 24,
-              padding: 20,
+              padding: 22,
               shadowColor: '#000',
               shadowOpacity: 0.15,
               shadowRadius: 18,
@@ -1283,7 +1194,7 @@ export default function AdminCaisseScreen() {
             }}
           >
             {/* Modal Header */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <View>
                 <Text style={{ fontSize: 19, fontWeight: '900', color: '#0f172a' }}>
                   Enregistrer une Dépense
@@ -1301,6 +1212,14 @@ export default function AdminCaisseScreen() {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 10 }}>
+              {/* Inline Error if any */}
+              {Boolean(expenseError) && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#fef2f2', padding: 10, borderRadius: 10, marginBottom: 12 }}>
+                  <AlertCircle size={15} color="#dc2626" />
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#dc2626' }}>{expenseError}</Text>
+                </View>
+              )}
+
               {/* Motif */}
               <View style={{ marginBottom: 12 }}>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 5 }}>
@@ -1308,7 +1227,10 @@ export default function AdminCaisseScreen() {
                 </Text>
                 <TextInput
                   value={expenseTitle}
-                  onChangeText={setExpenseTitle}
+                  onChangeText={(t) => {
+                    setExpenseTitle(t);
+                    if (expenseError) setExpenseError('');
+                  }}
                   placeholder="Ex: Achat ramettes papier, Plomberie, Carburant..."
                   placeholderTextColor="#94a3b8"
                   style={{
@@ -1317,8 +1239,8 @@ export default function AdminCaisseScreen() {
                     borderColor: '#cbd5e1',
                     borderRadius: 12,
                     paddingHorizontal: 12,
-                    paddingVertical: 9,
-                    fontSize: 13.5,
+                    paddingVertical: 10,
+                    fontSize: 14,
                     fontWeight: '600',
                     color: '#0f172a',
                   }}
@@ -1332,7 +1254,10 @@ export default function AdminCaisseScreen() {
                 </Text>
                 <TextInput
                   value={expenseAmount}
-                  onChangeText={setExpenseAmount}
+                  onChangeText={(t) => {
+                    setExpenseAmount(t);
+                    if (expenseError) setExpenseError('');
+                  }}
                   keyboardType="numeric"
                   placeholder="Ex: 85"
                   placeholderTextColor="#94a3b8"
@@ -1342,7 +1267,7 @@ export default function AdminCaisseScreen() {
                     borderColor: '#cbd5e1',
                     borderRadius: 12,
                     paddingHorizontal: 12,
-                    paddingVertical: 9,
+                    paddingVertical: 10,
                     fontSize: 18,
                     fontWeight: '800',
                     color: '#0f172a',
@@ -1350,7 +1275,7 @@ export default function AdminCaisseScreen() {
                 />
               </View>
 
-              {/* ── ALL EXPENSE CATEGORIES + CREATE NEW (AS ON WEB) ─────────── */}
+              {/* Catégories de dépense + Bouton Créer */}
               <View style={{ marginBottom: 14 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569' }}>
@@ -1381,8 +1306,8 @@ export default function AdminCaisseScreen() {
                         borderColor: '#dc2626',
                         borderRadius: 10,
                         paddingHorizontal: 10,
-                        paddingVertical: 6,
-                        fontSize: 12.5,
+                        paddingVertical: 7,
+                        fontSize: 13,
                         color: '#0f172a',
                       }}
                     />
@@ -1399,9 +1324,9 @@ export default function AdminCaisseScreen() {
                           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                         }
                       }}
-                      style={{ backgroundColor: '#dc2626', borderRadius: 10, paddingHorizontal: 12, justifyContent: 'center' }}
+                      style={{ backgroundColor: '#dc2626', borderRadius: 10, paddingHorizontal: 14, justifyContent: 'center' }}
                     >
-                      <Check size={16} color="#fff" />
+                      <Check size={16} color="#fff" strokeWidth={2.5} />
                     </TouchableOpacity>
                   </View>
                 )}
@@ -1417,15 +1342,15 @@ export default function AdminCaisseScreen() {
                           setExpenseCategory(cat);
                         }}
                         style={{
-                          paddingVertical: 5,
-                          paddingHorizontal: 10,
+                          paddingVertical: 6,
+                          paddingHorizontal: 11,
                           borderRadius: 12,
                           borderWidth: 1,
                           borderColor: isSelected ? '#dc2626' : '#e2e8f0',
                           backgroundColor: isSelected ? '#fef2f2' : '#ffffff',
                         }}
                       >
-                        <Text style={{ fontSize: 11.5, fontWeight: isSelected ? '800' : '600', color: isSelected ? '#dc2626' : '#475569' }}>
+                        <Text style={{ fontSize: 12, fontWeight: isSelected ? '800' : '600', color: isSelected ? '#dc2626' : '#475569' }}>
                           {cat}
                         </Text>
                       </TouchableOpacity>
@@ -1434,7 +1359,7 @@ export default function AdminCaisseScreen() {
                 </View>
               </View>
 
-              {/* ── IMAGE ATTACHMENT (FACTURE / TICKET DE CAISSE) ───────────── */}
+              {/* Justificatif / Facture (Photo) */}
               <View style={{ marginBottom: 16 }}>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 6 }}>
                   Facture / Ticket (Photo)
@@ -1445,7 +1370,7 @@ export default function AdminCaisseScreen() {
                     <Image source={{ uri: expenseImageUri }} style={{ width: 44, height: 44, borderRadius: 8 }} />
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 12, fontWeight: '700', color: '#0f172a' }}>Facture jointe</Text>
-                      <Text style={{ fontSize: 10, color: '#64748b' }}>Photo prête à être enregistrée</Text>
+                      <Text style={{ fontSize: 10.5, color: '#64748b' }}>Photo prête à être enregistrée</Text>
                     </View>
                     <TouchableOpacity
                       onPress={() => setExpenseImageUri(null)}
@@ -1456,7 +1381,7 @@ export default function AdminCaisseScreen() {
                   </View>
                 ) : (
                   <TouchableOpacity
-                    onPress={() => promptImageChoice(setExpenseImageUri)}
+                    onPress={() => triggerPhotoPicker(setExpenseImageUri)}
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
@@ -1466,25 +1391,25 @@ export default function AdminCaisseScreen() {
                       borderColor: '#cbd5e1',
                       borderStyle: 'dashed',
                       borderRadius: 12,
-                      paddingVertical: 10,
+                      paddingVertical: 11,
                       backgroundColor: '#f8fafc',
                     }}
                   >
                     <Camera size={16} color="#dc2626" />
-                    <Text style={{ fontSize: 12.5, fontWeight: '700', color: '#dc2626' }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#dc2626' }}>
                       Photographier la facture ou le ticket
                     </Text>
                   </TouchableOpacity>
                 )}
               </View>
 
-              {/* Modal Actions */}
+              {/* Action Buttons */}
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <TouchableOpacity
                   onPress={() => setShowExpenseModal(false)}
                   style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: '#f1f5f9', alignItems: 'center' }}
                 >
-                  <Text style={{ fontSize: 13.5, fontWeight: '700', color: '#64748b' }}>Annuler</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#64748b' }}>Annuler</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -1516,6 +1441,180 @@ export default function AdminCaisseScreen() {
         </View>
       </Modal>
 
+      {/* ── CUSTOM PHOTO PICKER MODAL (NO GENERIC ALERT DIALOG!) ──────────── */}
+      <Modal
+        visible={Boolean(showPhotoPicker)}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowPhotoPicker(null)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.65)', justifyContent: 'flex-end' }}>
+          <View
+            style={{
+              backgroundColor: '#ffffff',
+              borderTopLeftRadius: 26,
+              borderTopRightRadius: 26,
+              paddingTop: 18,
+              paddingBottom: Math.max(insets.bottom, 24),
+              paddingHorizontal: 20,
+            }}
+          >
+            {/* Top Indicator */}
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#cbd5e1', alignSelf: 'center', marginBottom: 14 }} />
+
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <View>
+                <Text style={{ fontSize: 18, fontWeight: '900', color: '#0f172a' }}>Joindre un Justificatif</Text>
+                <Text style={{ fontSize: 12.5, color: '#64748b', marginTop: 2 }}>Prenez une photo ou importez depuis vos photos</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowPhotoPicker(null)}
+                style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X size={16} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Option 1: Caméra */}
+            <TouchableOpacity
+              onPress={() => showPhotoPicker && openCamera(showPhotoPicker.onSelected)}
+              activeOpacity={0.8}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: '#f8fafc',
+                padding: 14,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
+                marginBottom: 10,
+              }}
+            >
+              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
+                <Camera size={22} color="#0055d4" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: '800', color: '#0f172a' }}>Prendre une photo</Text>
+                <Text style={{ fontSize: 12, color: '#64748b', marginTop: 1 }}>Photographier le ticket avec la caméra</Text>
+              </View>
+              <ChevronRight size={18} color="#94a3b8" />
+            </TouchableOpacity>
+
+            {/* Option 2: Galerie */}
+            <TouchableOpacity
+              onPress={() => showPhotoPicker && openGallery(showPhotoPicker.onSelected)}
+              activeOpacity={0.8}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: '#f8fafc',
+                padding: 14,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
+                marginBottom: 14,
+              }}
+            >
+              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#ecfdf5', alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
+                <ImageIcon size={22} color="#059669" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: '800', color: '#0f172a' }}>Choisir dans la galerie</Text>
+                <Text style={{ fontSize: 12, color: '#64748b', marginTop: 1 }}>Importer une image existante</Text>
+              </View>
+              <ChevronRight size={18} color="#94a3b8" />
+            </TouchableOpacity>
+
+            {/* Cancel Button */}
+            <TouchableOpacity
+              onPress={() => setShowPhotoPicker(null)}
+              style={{ paddingVertical: 13, borderRadius: 14, backgroundColor: '#f1f5f9', alignItems: 'center' }}
+            >
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#64748b' }}>Annuler</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── CUSTOM FEEDBACK / CONFIRMATION MODAL (NO GENERIC OS POPUP!) ─────── */}
+      <Modal
+        visible={Boolean(feedback)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFeedback(null)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 24,
+          }}
+        >
+          <View
+            style={{
+              width: '100%',
+              maxWidth: 360,
+              backgroundColor: '#ffffff',
+              borderRadius: 24,
+              padding: 24,
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOpacity: 0.18,
+              shadowRadius: 20,
+              elevation: 6,
+            }}
+          >
+            {/* Icon */}
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: feedback?.type === 'success' ? '#ecfdf5' : '#fef2f2',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
+              }}
+            >
+              {feedback?.type === 'success' ? (
+                <CheckCircle2 size={36} color="#059669" />
+              ) : (
+                <AlertCircle size={36} color="#dc2626" />
+              )}
+            </View>
+
+            {/* Title */}
+            <Text style={{ fontSize: 20, fontWeight: '900', color: '#0f172a', textAlign: 'center' }}>
+              {feedback?.title}
+            </Text>
+
+            {/* Message */}
+            <Text style={{ fontSize: 14, color: '#64748b', textAlign: 'center', marginTop: 8, lineHeight: 21 }}>
+              {feedback?.message}
+            </Text>
+
+            {/* OK Button */}
+            <TouchableOpacity
+              onPress={() => setFeedback(null)}
+              activeOpacity={0.85}
+              style={{
+                width: '100%',
+                marginTop: 22,
+                paddingVertical: 13,
+                borderRadius: 14,
+                backgroundColor: feedback?.type === 'success' ? '#0f172a' : '#dc2626',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Text style={{ fontSize: 15, fontWeight: '800', color: '#ffffff' }}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* ── FULLSCREEN IMAGE PREVIEW MODAL ──────────────────────────────────── */}
       <Modal
         visible={Boolean(previewImage)}
@@ -1523,7 +1622,7 @@ export default function AdminCaisseScreen() {
         animationType="fade"
         onRequestClose={() => setPreviewImage(null)}
       >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
           <TouchableOpacity
             onPress={() => setPreviewImage(null)}
             style={{ position: 'absolute', top: 50, right: 20, zIndex: 10, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}

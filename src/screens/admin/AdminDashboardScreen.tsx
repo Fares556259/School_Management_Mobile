@@ -10,7 +10,6 @@ import {
   Platform,
   StatusBar,
   Linking,
-  Alert,
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,6 +26,7 @@ import {
   RefreshCw,
   Bot,
   AlertTriangle,
+  AlertCircle,
   Bell,
   Sparkles,
   CheckCircle2,
@@ -143,6 +143,13 @@ export default function AdminDashboardScreen() {
   const [payMethod, setPayMethod] = useState<'Espèces' | 'Chèque' | 'Virement'>('Espèces');
   const [submittingPay, setSubmittingPay] = useState(false);
 
+  // Custom Feedback Modal (Replaces all generic OS Alert.alert!)
+  const [feedback, setFeedback] = useState<{
+    type: 'success' | 'error';
+    title: string;
+    message: string;
+  } | null>(null);
+
   // ── DATA FETCHING ──────────────────────────────────────────────────────────
   const loadDashboard = useCallback(async (m?: number, y?: number, isRefresh = false) => {
     if (!isRefresh) setLoading(true);
@@ -238,7 +245,11 @@ export default function AdminDashboardScreen() {
   // ── CALL & WHATSAPP SHORTCUTS ──────────────────────────────────────────────
   const handleCall = (phone: string | undefined, name: string) => {
     if (!phone) {
-      Alert.alert('Numéro manquant', `Aucun numéro de téléphone enregistré pour ${name}.`);
+      setFeedback({
+        type: 'error',
+        title: 'Numéro manquant',
+        message: `Aucun numéro de téléphone enregistré pour ${name}.`,
+      });
       return;
     }
     Linking.openURL(`tel:${phone}`);
@@ -246,7 +257,11 @@ export default function AdminDashboardScreen() {
 
   const handleWhatsAppStudent = (phone: string | undefined, studentName: string, dueAmount: number) => {
     if (!phone) {
-      Alert.alert('Numéro manquant', `Aucun numéro de téléphone enregistré pour ${studentName}.`);
+      setFeedback({
+        type: 'error',
+        title: 'Numéro manquant',
+        message: `Aucun numéro de téléphone enregistré pour ${studentName}.`,
+      });
       return;
     }
     let cleanPhone = phone.replace(/[^0-9]/g, '');
@@ -267,7 +282,11 @@ export default function AdminDashboardScreen() {
         }
       })
       .catch(() => {
-        Alert.alert('WhatsApp non disponible', "L'application WhatsApp n'est pas installée sur cet appareil.");
+        setFeedback({
+          type: 'error',
+          title: 'WhatsApp non disponible',
+          message: "L'application WhatsApp n'est pas installée sur cet appareil.",
+        });
       });
   };
 
@@ -283,7 +302,11 @@ export default function AdminDashboardScreen() {
     if (!payModalItem) return;
     const amt = parseFloat(payAmount);
     if (isNaN(amt) || amt <= 0) {
-      Alert.alert('Montant invalide', 'Veuillez saisir un montant positif valide.');
+      setFeedback({
+        type: 'error',
+        title: 'Montant invalide',
+        message: 'Veuillez saisir un montant positif valide.',
+      });
       return;
     }
 
@@ -299,8 +322,12 @@ export default function AdminDashboardScreen() {
         });
         if (res && res.success) {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          Alert.alert('Succès', res.message || `✓ Encaissé ${amt} DT pour ${payModalItem.name}.`);
           setPayModalItem(null);
+          setFeedback({
+            type: 'success',
+            title: 'Encaissement validé !',
+            message: res.message || `✓ Encaissé ${amt} DT pour ${payModalItem.name}.`,
+          });
           loadDashboard(selectedMonth, selectedYear, true);
         } else {
           throw new Error(res?.error || "Échec de l'encaissement");
@@ -316,15 +343,23 @@ export default function AdminDashboardScreen() {
         });
         if (res && res.success) {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          Alert.alert('Succès', res.message || `✓ Rémunération de ${amt} DT versée à ${payModalItem.name}.`);
           setPayModalItem(null);
+          setFeedback({
+            type: 'success',
+            title: 'Rémunération validée !',
+            message: res.message || `✓ Rémunération de ${amt} DT versée à ${payModalItem.name}.`,
+          });
           loadDashboard(selectedMonth, selectedYear, true);
         } else {
           throw new Error(res?.error || 'Échec du versement');
         }
       }
     } catch (err: any) {
-      Alert.alert('Erreur', err.message || 'Une erreur est survenue.');
+      setFeedback({
+        type: 'error',
+        title: 'Erreur',
+        message: err.message || 'Une erreur est survenue.',
+      });
     } finally {
       setSubmittingPay(false);
     }
@@ -1192,6 +1227,85 @@ export default function AdminDashboardScreen() {
                 )}
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── CUSTOM FEEDBACK / CONFIRMATION MODAL (NO GENERIC OS POPUP!) ─────── */}
+      <Modal
+        visible={Boolean(feedback)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFeedback(null)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 24,
+          }}
+        >
+          <View
+            style={{
+              width: '100%',
+              maxWidth: 360,
+              backgroundColor: '#ffffff',
+              borderRadius: 24,
+              padding: 24,
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOpacity: 0.18,
+              shadowRadius: 20,
+              elevation: 6,
+            }}
+          >
+            {/* Icon */}
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: feedback?.type === 'success' ? '#ecfdf5' : '#fef2f2',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
+              }}
+            >
+              {feedback?.type === 'success' ? (
+                <CheckCircle2 size={36} color="#059669" />
+              ) : (
+                <AlertCircle size={36} color="#dc2626" />
+              )}
+            </View>
+
+            {/* Title */}
+            <Text style={{ fontSize: 20, fontWeight: '900', color: '#0f172a', textAlign: 'center' }}>
+              {feedback?.title}
+            </Text>
+
+            {/* Message */}
+            <Text style={{ fontSize: 14, color: '#64748b', textAlign: 'center', marginTop: 8, lineHeight: 21 }}>
+              {feedback?.message}
+            </Text>
+
+            {/* OK Button */}
+            <TouchableOpacity
+              onPress={() => setFeedback(null)}
+              activeOpacity={0.85}
+              style={{
+                width: '100%',
+                marginTop: 22,
+                paddingVertical: 13,
+                borderRadius: 14,
+                backgroundColor: feedback?.type === 'success' ? '#0f172a' : '#dc2626',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Text style={{ fontSize: 15, fontWeight: '800', color: '#ffffff' }}>OK</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
