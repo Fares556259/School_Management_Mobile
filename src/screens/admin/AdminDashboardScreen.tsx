@@ -26,8 +26,6 @@ import {
   Sparkles,
   CheckCircle2,
   Calendar,
-  ChevronLeft,
-  ChevronRight,
   Search,
   Phone,
   MessageCircle,
@@ -120,10 +118,9 @@ export default function AdminDashboardScreen() {
   const currentMonthNum = now.getMonth() + 1;
   const currentYearNum = now.getFullYear();
 
-  // Month navigation state
-  const [selectedMonth, setSelectedMonth] = useState(currentMonthNum);
-  const [selectedYear, setSelectedYear] = useState(currentYearNum);
-  const isCurrentMonth = selectedMonth === currentMonthNum && selectedYear === currentYearNum;
+  // Always default to current month
+  const selectedMonth = currentMonthNum;
+  const selectedYear = currentYearNum;
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -173,39 +170,6 @@ export default function AdminDashboardScreen() {
     loadDashboard(selectedMonth, selectedYear, true);
   };
 
-  // ── MONTH NAVIGATION ───────────────────────────────────────────────────────
-  const handlePrevMonth = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    let newM = selectedMonth - 1;
-    let newY = selectedYear;
-    if (newM < 1) {
-      newM = 12;
-      newY -= 1;
-    }
-    setSelectedMonth(newM);
-    setSelectedYear(newY);
-    loadDashboard(newM, newY);
-  };
-
-  const handleNextMonth = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    let newM = selectedMonth + 1;
-    let newY = selectedYear;
-    if (newM > 12) {
-      newM = 1;
-      newY += 1;
-    }
-    setSelectedMonth(newM);
-    setSelectedYear(newY);
-    loadDashboard(newM, newY);
-  };
-
-  const handleResetToCurrentMonth = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setSelectedMonth(currentMonthNum);
-    setSelectedYear(currentYearNum);
-    loadDashboard(currentMonthNum, currentYearNum);
-  };
 
   // ── UNPAID ENTITIES & FILTERING ────────────────────────────────────────────
   const allUnpaid = useMemo(() => data?.allUnpaid || [], [data?.allUnpaid]);
@@ -397,11 +361,21 @@ export default function AdminDashboardScreen() {
 
       {/* ── HEADER (AIRY, CLEAN & EXECUTIVE) ─────────────────────────────────── */}
       <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 }}>
-        {/* Top Micro-Row: Date & School badge */}
+        {/* Top Micro-Row: Date & Month badge & School */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748b', textTransform: 'capitalize' }}>
-            {todayDateStr}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748b', textTransform: 'capitalize' }}>
+              {todayDateStr}
+            </Text>
+            {Boolean(data?.monthLabel) && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#f1f5f9', paddingHorizontal: 7, paddingVertical: 2.5, borderRadius: 8 }}>
+                <Calendar size={11} color="#0055d4" />
+                <Text style={{ fontSize: 11, fontWeight: '700', color: '#0f172a' }}>
+                  {data?.monthLabel}
+                </Text>
+              </View>
+            )}
+          </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#eff6ff', paddingHorizontal: 9, paddingVertical: 3.5, borderRadius: 12, borderWidth: 1, borderColor: '#dbeafe' }}>
             <Building2 size={12} color="#0055d4" />
             <Text style={{ fontSize: 11.5, fontWeight: '800', color: '#0055d4' }} numberOfLines={1}>
@@ -434,63 +408,6 @@ export default function AdminDashboardScreen() {
             }}
           >
             <RefreshCw size={15} color="#0055d4" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Month Selector Bar - Sleek, Light & Pill-shaped */}
-        <View
-          style={{
-            marginTop: 12,
-            backgroundColor: '#ffffff',
-            borderRadius: 16,
-            paddingVertical: 6,
-            paddingHorizontal: 10,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderWidth: 1,
-            borderColor: '#e2e8f0',
-            shadowColor: '#000',
-            shadowOpacity: 0.02,
-            shadowRadius: 5,
-            elevation: 1,
-          }}
-        >
-          <TouchableOpacity
-            onPress={handlePrevMonth}
-            style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <ChevronLeft size={18} color="#0f172a" />
-          </TouchableOpacity>
-
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Calendar size={14} color="#0055d4" />
-            <Text style={{ fontSize: 13.5, fontWeight: '800', color: '#0f172a' }}>
-              {data?.monthLabel || 'Ce mois'}
-            </Text>
-            {isCurrentMonth ? (
-              <View style={{ backgroundColor: '#ecfdf5', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
-                <Text style={{ fontSize: 10, fontWeight: '800', color: '#059669' }}>En cours</Text>
-              </View>
-            ) : (
-              <TouchableOpacity
-                onPress={handleResetToCurrentMonth}
-                style={{ backgroundColor: '#eff6ff', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}
-              >
-                <Text style={{ fontSize: 10, fontWeight: '800', color: '#0055d4' }}>Revenir à ce mois</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <TouchableOpacity
-            onPress={handleNextMonth}
-            style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <ChevronRight size={18} color="#0f172a" />
           </TouchableOpacity>
         </View>
       </View>
@@ -608,7 +525,7 @@ export default function AdminDashboardScreen() {
                     <TrendingUp size={16} color="#0055d4" />
                   </View>
                   <Text style={{ fontSize: 14.5, fontWeight: '800', color: '#0f172a' }}>
-                    Recouvrement Scolarités
+                    Recouvrement Scolarités {data?.financialPulse?.monthLabel ? `• ${data.financialPulse.monthLabel}` : ''}
                   </Text>
                 </View>
                 <TouchableOpacity

@@ -57,6 +57,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { adminService } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
 import {
@@ -68,10 +69,13 @@ import {
   tryParseReceiptWidget,
 } from './HniaWidgets';
 
+const HNIA_STORAGE_KEY = '@hnia_chat_messages_v2';
+const HNIA_CONV_STORAGE_KEY = '@hnia_chat_conv_id_v2';
+
 async function readAudioAsBase64(uri: string): Promise<string> {
   try {
     return await FileSystem.readAsStringAsync(uri, {
-      encoding: FileSystem.EncodingType.Base64,
+      encoding: 'base64' as any,
     });
   } catch (legacyErr) {
     try {
@@ -331,13 +335,38 @@ export default function HniaChatScreen() {
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
       });
 
       recordingStartTimeRef.current = Date.now();
       const recording = new Audio.Recording();
       await recording.prepareToRecordAsync({
-        ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
         isMeteringEnabled: true,
+        android: {
+          extension: '.m4a',
+          outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+          audioEncoder: Audio.AndroidAudioEncoder.AAC,
+          sampleRate: 44100,
+          numberOfChannels: 1,
+          bitRate: 128000,
+        },
+        ios: {
+          extension: '.m4a',
+          outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
+          audioQuality: Audio.IOSAudioQuality.HIGH,
+          sampleRate: 44100,
+          numberOfChannels: 1,
+          bitRate: 128000,
+          linearPCMBitDepth: 16,
+          linearPCMIsBigEndian: false,
+          linearPCMIsFloat: false,
+        },
+        web: {
+          mimeType: 'audio/webm',
+          bitsPerSecond: 128000,
+        },
       });
       recording.setProgressUpdateInterval(40);
       recording.setOnRecordingStatusUpdate((status) => {
@@ -403,6 +432,11 @@ export default function HniaChatScreen() {
       try {
         const uri = recording.getURI();
         await recording.stopAndUnloadAsync();
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+        }).catch(() => null);
+
         const finalUri = uri || recording.getURI();
         if (finalUri && (elapsedMs >= 400 || duration >= 1)) {
           const base64 = await readAudioAsBase64(finalUri);
@@ -447,6 +481,10 @@ export default function HniaChatScreen() {
     if (recording) {
       try {
         await recording.stopAndUnloadAsync();
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+        }).catch(() => null);
       } catch (err) {
         console.warn('[HniaChat] Cancel error:', err);
       }
@@ -522,6 +560,20 @@ export default function HniaChatScreen() {
     }
   };
 
+  // Save messages to local AsyncStorage for instant loading across app sessions
+  const saveMessagesToLocal = useCallback(async (msgs: ChatMessage[], convId?: string) => {
+    try {
+      if (msgs && msgs.length > 0) {
+        await AsyncStorage.setItem(HNIA_STORAGE_KEY, JSON.stringify(msgs.slice(-80)));
+      }
+      if (convId) {
+        await AsyncStorage.setItem(HNIA_CONV_STORAGE_KEY, convId);
+      }
+    } catch (e) {
+      console.warn('[HniaChat] Local save error:', e);
+    }
+  }, []);
+
   // Send direct audio message
   const handleSendAudioMessage = async (
     audioBase64: string,
@@ -539,7 +591,11 @@ export default function HniaChatScreen() {
       createdAt: new Date().toISOString(),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages((prev) => {
+      const next = [...prev, userMsg];
+      saveMessagesToLocal(next, conversationId);
+      return next;
+    });
     setIsLoading(true);
 
     try {
@@ -550,6 +606,7 @@ export default function HniaChatScreen() {
         audioMimeType,
       });
 
+      const nextConvId = res?.conversationId || conversationId;
       if (res && res.success) {
         if (res.conversationId) setConversationId(res.conversationId);
 
@@ -564,7 +621,11 @@ export default function HniaChatScreen() {
           createdAt: new Date().toISOString(),
         };
 
-        setMessages((prev) => [...prev, botMsg]);
+        setMessages((prev) => {
+          const next = [...prev, botMsg];
+          saveMessagesToLocal(next, nextConvId);
+          return next;
+        });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
         const errorMsg: ChatMessage = {
@@ -576,7 +637,11 @@ export default function HniaChatScreen() {
             'Désolée, je n’ai pas pu transcrire votre message vocal.',
           createdAt: new Date().toISOString(),
         };
-        setMessages((prev) => [...prev, errorMsg]);
+        setMessages((prev) => {
+          const next = [...prev, errorMsg];
+          saveMessagesToLocal(next, conversationId);
+          return next;
+        });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     } catch (err: any) {
@@ -587,7 +652,11 @@ export default function HniaChatScreen() {
         content: '⚠️ Erreur lors de l’envoi du mémo vocal. Vérifiez votre connexion.',
         createdAt: new Date().toISOString(),
       };
-      setMessages((prev) => [...prev, errorMsg]);
+      setMessages((prev) => {
+        const next = [...prev, errorMsg];
+        saveMessagesToLocal(next, conversationId);
+        return next;
+      });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsLoading(false);
@@ -597,17 +666,44 @@ export default function HniaChatScreen() {
     }
   };
 
-  // Load chat history on mount
+  // Load chat history: immediately from local cache, then sync from server
   useEffect(() => {
-    loadChatHistory();
+    let isMounted = true;
+    (async () => {
+      try {
+        const [cachedRaw, cachedConvId] = await Promise.all([
+          AsyncStorage.getItem(HNIA_STORAGE_KEY),
+          AsyncStorage.getItem(HNIA_CONV_STORAGE_KEY),
+        ]);
+        if (!isMounted) return;
+        if (cachedConvId) setConversationId(cachedConvId);
+        if (cachedRaw) {
+          const parsed = JSON.parse(cachedRaw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setMessages(parsed);
+            setIsInitializing(false);
+          }
+        }
+      } catch (cacheErr) {
+        console.warn('[HniaChat] Read local cache error:', cacheErr);
+      }
+      if (isMounted) {
+        await loadChatHistory();
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const loadChatHistory = async () => {
     try {
-      setIsInitializing(true);
       const res = await adminService.fetchChatHistory();
       if (res && res.success) {
-        if (res.conversationId) setConversationId(res.conversationId);
+        if (res.conversationId) {
+          setConversationId(res.conversationId);
+          AsyncStorage.setItem(HNIA_CONV_STORAGE_KEY, res.conversationId).catch(() => null);
+        }
         if (Array.isArray(res.messages) && res.messages.length > 0) {
           const loaded: ChatMessage[] = res.messages.map((m: any) => {
             let content = m.content || '';
@@ -641,6 +737,7 @@ export default function HniaChatScreen() {
             };
           });
           setMessages(loaded);
+          saveMessagesToLocal(loaded, res.conversationId);
         }
       }
     } catch (err) {
@@ -660,12 +757,14 @@ export default function HniaChatScreen() {
         {
           text: 'Nouvelle conversation',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             setMessages([]);
             setConversationId(undefined);
             setSelectedImage(null);
             setSelectedAudio(null);
             setInputText('');
+            await AsyncStorage.removeItem(HNIA_STORAGE_KEY).catch(() => null);
+            await AsyncStorage.removeItem(HNIA_CONV_STORAGE_KEY).catch(() => null);
           },
         },
       ]
@@ -769,7 +868,11 @@ export default function HniaChatScreen() {
       createdAt: new Date().toISOString(),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages((prev) => {
+      const next = [...prev, userMsg];
+      saveMessagesToLocal(next, conversationId);
+      return next;
+    });
     setInputText('');
     const imagePayload = selectedImage;
     const audioPayload = selectedAudio;
@@ -806,23 +909,26 @@ export default function HniaChatScreen() {
         return;
       }
 
+      const nextConvId = res?.conversationId || conversationId;
       if (res && res.success) {
         if (res.conversationId) setConversationId(res.conversationId);
 
         if (res.transcription) {
-          setMessages((prev) =>
-            prev.map((m) =>
+          setMessages((prev) => {
+            const next = prev.map((m) =>
               m.id === userMsg.id
                 ? { ...m, content: `🎙️ "${res.transcription}"`, transcription: res.transcription }
                 : m
-            )
-          );
+            );
+            saveMessagesToLocal(next, nextConvId);
+            return next;
+          });
         }
 
         // Keep image attached and format clean caption if image was sent
         if (res.imageUrl || res.analyzedDocument) {
-          setMessages((prev) =>
-            prev.map((m) =>
+          setMessages((prev) => {
+            const next = prev.map((m) =>
               m.id === userMsg.id
                 ? {
                     ...m,
@@ -830,12 +936,14 @@ export default function HniaChatScreen() {
                     content:
                       rawText ||
                       (res.analyzedDocument?.merchant || res.analyzedDocument?.title
-                        ? `📷 ${res.analyzedDocument.merchant || res.analyzedDocument.title}${res.analyzedDocument.amount ? ` (${res.analyzedDocument.amount} DT)` : ''}`
+                        ? `📷 ${res.analyzedDocument.merchant || res.analyzedDocument?.title}${res.analyzedDocument.amount ? ` (${res.analyzedDocument.amount} DT)` : ''}`
                         : m.content),
                   }
                 : m
-            )
-          );
+            );
+            saveMessagesToLocal(next, nextConvId);
+            return next;
+          });
         }
 
         const botMsg: ChatMessage = {
@@ -849,7 +957,11 @@ export default function HniaChatScreen() {
           createdAt: new Date().toISOString(),
         };
 
-        setMessages((prev) => [...prev, botMsg]);
+        setMessages((prev) => {
+          const next = [...prev, botMsg];
+          saveMessagesToLocal(next, nextConvId);
+          return next;
+        });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
         const isVocal = Boolean(audioPayload || directAudioBase64);
@@ -864,7 +976,11 @@ export default function HniaChatScreen() {
             : (res?.message || res?.error || 'Désolée, une erreur est survenue lors de la communication.'),
           createdAt: new Date().toISOString(),
         };
-        setMessages((prev) => [...prev, errorMsg]);
+        setMessages((prev) => {
+          const next = [...prev, errorMsg];
+          saveMessagesToLocal(next, conversationId);
+          return next;
+        });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     } catch (err: any) {
@@ -884,7 +1000,11 @@ export default function HniaChatScreen() {
           : '⚠️ Connexion interrompue. Vérifiez votre réseau et réessayez.',
         createdAt: new Date().toISOString(),
       };
-      setMessages((prev) => [...prev, errorMsg]);
+      setMessages((prev) => {
+        const next = [...prev, errorMsg];
+        saveMessagesToLocal(next, conversationId);
+        return next;
+      });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsLoading(false);
