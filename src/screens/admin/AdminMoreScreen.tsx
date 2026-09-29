@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Platform, StatusBar, Alert, A
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Settings, LogOut, User, HelpCircle, RefreshCw } from 'lucide-react-native';
 import * as Updates from 'expo-updates';
+import Constants from 'expo-constants';
 import { useAppStore } from '../../store/useAppStore';
 
 export default function AdminMoreScreen({ onSignOut }: { onSignOut?: () => void }) {
@@ -66,6 +67,13 @@ export default function AdminMoreScreen({ onSignOut }: { onSignOut?: () => void 
             <Text style={{ fontSize: 16, fontWeight: '600', color: '#ef4444', marginLeft: 14 }}>Déconnexion</Text>
           </TouchableOpacity>
         )}
+
+        {/* App Version Tag */}
+        <View style={{ alignItems: 'center', marginTop: 24, marginBottom: 16 }}>
+          <Text style={{ fontSize: 12, fontWeight: '700', color: '#94a3b8' }}>
+            SnapSchool v{Constants.expoConfig?.version || '1.0.3'} {Updates.channel ? `(${Updates.channel})` : ''}
+          </Text>
+        </View>
       </ScrollView>
     </View>
   );

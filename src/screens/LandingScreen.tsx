@@ -3,6 +3,8 @@ import { View, Text, ScrollView, TouchableOpacity, Image, StatusBar, Alert, Dime
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GraduationCap, ArrowRight, ChevronRight, Globe, Check, Building2 } from 'lucide-react-native';
 import { useLanguage, Language } from '../context/LanguageContext';
+import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
 
 const { width } = Dimensions.get('window');
 
@@ -269,7 +271,10 @@ export const LandingScreen = ({
           {/* Footer Info */}
           <View style={{ marginTop: 24, alignItems: 'center' }}>
              <Text style={{ fontSize: 12, color: '#bdc3c7', fontWeight: 'bold', letterSpacing: 1, textTransform: 'uppercase' }}>
-               Powered by SnapSchool Admin
+               Powered by SnapSchool
+             </Text>
+             <Text style={{ fontSize: 11, color: '#94a3b8', marginTop: 4, fontWeight: '600' }}>
+               v{Constants.expoConfig?.version || '1.0.3'} {Updates.channel ? `(${Updates.channel})` : ''}
              </Text>
           </View>
         </ScrollView>

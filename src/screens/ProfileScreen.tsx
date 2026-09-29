@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput, ActivityIndicator, StatusBar, Dimensions, Switch, Linking } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bell, Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, ChevronLeft, User, Pencil, FileText, Info, PhoneCall, MapPin, Image as ImageIcon, Award, Globe, Sparkles } from 'lucide-react-native';
+import { Bell, Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, ChevronLeft, User, Pencil, FileText, Info, PhoneCall, MapPin, Image as ImageIcon, Award, Globe, Sparkles, RefreshCw } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Svg, Circle } from 'react-native-svg';
 import { useAppStore } from '../store/useAppStore';
@@ -10,6 +10,8 @@ import { useLanguage, Language } from '../context/LanguageContext';
 import { authService, parentService, studentService, uiService, teacherService } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { notificationService } from '../services/notificationService';
+import * as Updates from 'expo-updates';
+import Constants from 'expo-constants';
 
 import { GlobalHeader } from '../components/GlobalHeader';
 import { StatusToast, ToastConfig, ToastType } from '../components/StatusToast';
@@ -528,6 +530,46 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     }
   };
 
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+
+  const handleCheckUpdate = async () => {
+    setCheckingUpdate(true);
+    try {
+      if (__DEV__) {
+        Alert.alert(
+          language === 'ar' ? 'وضع التطوير' : 'Mode Dev',
+          language === 'ar' ? 'المزامنة التلقائية مفعلة فقط في النسخة المجمعة.' : 'Les mises à jour OTA sont actives uniquement en version compilée/production.'
+        );
+        return;
+      }
+      const update = await Updates.checkForUpdateAsync();
+      if (update.isAvailable) {
+        showToast('info', language === 'ar' ? 'جارٍ التحميل...' : 'Téléchargement...', language === 'ar' ? 'جارٍ تحميل آخر تحديث للتطبيق' : 'Téléchargement de la dernière version...');
+        await Updates.fetchUpdateAsync();
+        Alert.alert(
+          language === 'ar' ? 'التحديث جاهز! 🚀' : 'Mise à jour prête ! 🚀',
+          language === 'ar' ? 'تم تنزيل آخر إصدار من SnapSchool. اضغط على إعادة التشغيل لتطبيقه الآن.' : 'La dernière version de SnapSchool a été téléchargée avec succès. Appuyez sur Redémarrer pour l\'appliquer.',
+          [
+            { text: language === 'ar' ? 'إلغاء' : 'Plus tard', style: 'cancel' },
+            { text: language === 'ar' ? 'إعادة التشغيل الآن' : 'Redémarrer maintenant', onPress: () => Updates.reloadAsync() },
+          ]
+        );
+      } else {
+        Alert.alert(
+          language === 'ar' ? 'التطبيق محدث ✅' : 'Application à jour ✅',
+          language === 'ar' ? `أنت تستخدم أحدث إصدار متاح حالياً (v${Constants.expoConfig?.version || '1.0.3'}).` : `Vous utilisez déjà la toute dernière version disponible (v${Constants.expoConfig?.version || '1.0.3'}).`
+        );
+      }
+    } catch (err: any) {
+      Alert.alert(
+        language === 'ar' ? 'حالة التحديث' : 'Mise à jour',
+        language === 'ar' ? `أنت على النسخة الحالية (v${Constants.expoConfig?.version || '1.0.3'}).` : `Vous disposez de la version courante (v${Constants.expoConfig?.version || '1.0.3'}).`
+      );
+    } finally {
+      setCheckingUpdate(false);
+    }
+  };
+
   const handleLogout = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
@@ -773,6 +815,13 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
               onPress={() => navigation.navigate('Onboarding')}
             />
             <SettingItemV3 
+              icon={RefreshCw} 
+              color="#10b981" iconBg="bg-emerald-50"
+              label={language === 'ar' ? 'التحقق من التحديثات' : language === 'fr' ? 'Vérifier les mises à jour' : 'Check for Updates'} 
+              subtitle={checkingUpdate ? (language === 'ar' ? 'جارٍ التحقق...' : 'Vérification en cours...') : `SnapSchool v${Constants.expoConfig?.version || '1.0.3'}`}
+              onPress={handleCheckUpdate}
+            />
+            <SettingItemV3 
               icon={LogOut} 
               color="#ef4444" iconBg="bg-red-50"
               label={t.signOut} 
@@ -781,6 +830,13 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
               isLast 
               onPress={handleLogout} 
             />
+          </View>
+
+          {/* App Version Tag */}
+          <View style={{ alignItems: 'center', marginTop: 20, marginBottom: 8 }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#94a3b8' }}>
+              SnapSchool v{Constants.expoConfig?.version || '1.0.3'} {Updates.channel ? `(${Updates.channel})` : ''}
+            </Text>
           </View>
         </View>
       </ScrollView>

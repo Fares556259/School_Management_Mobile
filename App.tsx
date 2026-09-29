@@ -240,6 +240,45 @@ export default function App() {
     }
   }, [isBootstrapDone, isLaunchMinTimeDone]);
 
+  const authStateRef = React.useRef(authState);
+  useEffect(() => {
+    authStateRef.current = authState;
+  }, [authState]);
+
+  const lastUpdateCheckRef = React.useRef<number>(0);
+  const checkAndApplyUpdates = React.useCallback(async (isManual = false) => {
+    if (__DEV__) return;
+    const now = Date.now();
+    if (!isManual && now - lastUpdateCheckRef.current < 3 * 60 * 1000) return;
+    lastUpdateCheckRef.current = now;
+
+    try {
+      const update = await Updates.checkForUpdateAsync();
+      if (update.isAvailable) {
+        console.log('[UPDATES] Update found, downloading in background...');
+        await Updates.fetchUpdateAsync();
+        console.log('[UPDATES] Update downloaded successfully!');
+        
+        // If user is not logged in yet (on landing/onboarding), reload immediately to apply newest UI
+        if (authStateRef.current !== 'signedIn') {
+          await Updates.reloadAsync();
+        } else {
+          // If user is inside the app, prompt politely to avoid interrupting work
+          Alert.alert(
+            'Mise à jour prête ! 🚀',
+            'Une nouvelle version de SnapSchool a été téléchargée. Voulez-vous redémarrer pour appliquer les nouveautés ?',
+            [
+              { text: 'Plus tard', style: 'cancel' },
+              { text: 'Redémarrer', onPress: () => Updates.reloadAsync() },
+            ]
+          );
+        }
+      }
+    } catch (err) {
+      console.log('[UPDATES-CHECK-SILENT]', err);
+    }
+  }, []);
+
   // Check stored auth on launch
   useEffect(() => {
 
@@ -338,6 +377,7 @@ export default function App() {
         authStorage.getUserId().then((storedUid) => {
           if (storedUid) registerPush(storedUid);
         });
+        checkAndApplyUpdates();
       }
     });
 
@@ -396,24 +436,10 @@ export default function App() {
     return () => subscription.remove();
   }, []);
 
-  // Safe background OTA update pre-fetching & auto-apply
+  // Safe background OTA update check on launch
   useEffect(() => {
-    async function prefetchUpdates() {
-      if (__DEV__) return;
-      try {
-        const update = await Updates.checkForUpdateAsync();
-        if (update.isAvailable) {
-          console.log('[UPDATES] Prefetching update in background...');
-          await Updates.fetchUpdateAsync();
-          console.log('[UPDATES] Update downloaded, reloading app...');
-          await Updates.reloadAsync();
-        }
-      } catch (err) {
-        console.log('[UPDATES-PREFETCH-SILENT]', err);
-      }
-    }
-    prefetchUpdates();
-  }, []);
+    checkAndApplyUpdates();
+  }, [checkAndApplyUpdates]);
 
   // Notification Response Listener
   useEffect(() => {
