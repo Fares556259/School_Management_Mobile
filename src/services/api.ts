@@ -924,7 +924,15 @@ export const adminService = {
     return apiFetch(`/api/mobile/admin/caisse?search=${encodeURIComponent(search)}`);
   },
 
-  collectStudentPayment: async (data: { studentId: string; amount: number; paymentMethod?: string; month?: number; year?: number }) => {
+  collectStudentPayment: async (data: {
+    studentId: string;
+    amount: number;
+    paymentMethod?: string;
+    month?: number;
+    year?: number;
+    category?: string;
+    img?: string | null;
+  }) => {
     return apiFetch('/api/mobile/admin/caisse', {
       method: 'POST',
       body: JSON.stringify({ action: 'collect_student', ...data }),
@@ -945,10 +953,39 @@ export const adminService = {
     });
   },
 
-  recordExpense: async (data: { title: string; amount: number; category?: string }) => {
+  recordExpense: async (data: { title: string; amount: number; category?: string; img?: string | null }) => {
     return apiFetch('/api/mobile/admin/caisse', {
       method: 'POST',
       body: JSON.stringify({ action: 'record_expense', ...data }),
     });
+  },
+
+  recordIncome: async (data: { title: string; amount: number; category?: string; paymentMethod?: string; img?: string | null }) => {
+    return apiFetch('/api/mobile/admin/caisse', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'record_income', ...data }),
+    });
+  },
+
+  uploadFile: async (uri: string, type: string = 'caisse'): Promise<string | null> => {
+    const formData = new FormData();
+    const filename = uri.split('/').pop() || `receipt_${Date.now()}.jpg`;
+    formData.append('file', {
+      uri,
+      name: filename,
+      type: 'image/jpeg',
+    } as any);
+    formData.append('type', type);
+
+    const token = await authStorage.getToken();
+    const uploadRes = await fetch(`${API_BASE_URL}/api/mobile/upload`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const data = await uploadRes.json();
+    return data?.url || null;
   },
 };
