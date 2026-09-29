@@ -394,299 +394,277 @@ export default function AdminCaisseScreen() {
   };
 
   // ───────────────────────────────────────────────────────────────────────────
-  // RENDER
+  // RENDER (ULTRA-CLEAN NATIVE FINTECH DESIGN)
   // ───────────────────────────────────────────────────────────────────────────
   return (
     <View style={{ flex: 1, backgroundColor: '#f8fafc', paddingTop: topPadding }}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" translucent={Platform.OS === 'android'} />
 
-      {/* Header */}
-      <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <View>
-          <Text style={{ fontSize: 26, fontWeight: '800', color: '#0f172a' }}>💰 Caisse & Finances</Text>
-          <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '500', marginTop: 2 }}>{monthLabel} • Radar financier</Text>
-        </View>
-        <TouchableOpacity
-          onPress={onRefresh}
-          style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, elevation: 1 }}
-        >
-          <RefreshCw size={18} color="#0055d4" />
-        </TouchableOpacity>
-      </View>
+      {/* ── HEADER (COMPACT & NATIVE) ────────────────────────────────────────── */}
+      <View style={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 }}>
+        {/* Title + Quick Action Icons */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View>
+            <Text style={{ fontSize: 24, fontWeight: '900', color: '#0f172a', letterSpacing: -0.5 }}>
+              Caisse
+            </Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b', marginTop: 1 }}>
+              {monthLabel} • Radar financier
+            </Text>
+          </View>
 
-      {/* ── MONTH SELECTOR BAR (MINIMAL LUXURY) ───────────────────────────── */}
-      <View
-        style={{
-          marginHorizontal: 20,
-          marginTop: 4,
-          marginBottom: 6,
-          backgroundColor: '#ffffff',
-          borderRadius: 14,
-          paddingVertical: 7,
-          paddingHorizontal: 12,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderWidth: 1,
-          borderColor: '#e2e8f0',
-          shadowColor: '#000',
-          shadowOpacity: 0.02,
-          shadowRadius: 5,
-          elevation: 1,
-        }}
-      >
-        <TouchableOpacity
-          onPress={handlePrevMonth}
-          style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}
-          activeOpacity={0.7}
-        >
-          <ChevronLeft size={18} color="#0f172a" />
-        </TouchableOpacity>
-
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Calendar size={15} color="#0055d4" />
-          <Text style={{ fontSize: 14, fontWeight: '800', color: '#0f172a', letterSpacing: -0.2 }}>
-            {monthLabel}
-          </Text>
-          {isCurrentMonth ? (
-            <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-              <Text style={{ fontSize: 10, fontWeight: '700', color: '#0055d4' }}>En cours</Text>
-            </View>
-          ) : (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {/* Quick Hnia Chip */}
             <TouchableOpacity
-              onPress={handleResetToCurrentMonth}
-              style={{ backgroundColor: '#fef3c7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}
+              onPress={() => navigation.navigate('Hnia')}
+              activeOpacity={0.8}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 5,
+                backgroundColor: '#eff6ff',
+                paddingHorizontal: 11,
+                paddingVertical: 6,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: '#bfdbfe',
+              }}
             >
-              <Text style={{ fontSize: 10, fontWeight: '700', color: '#d97706' }}>Ce mois</Text>
+              <Bot size={14} color="#0055d4" />
+              <Text style={{ fontSize: 12, fontWeight: '800', color: '#0055d4' }}>Hnia</Text>
             </TouchableOpacity>
-          )}
+
+            {/* Refresh Button */}
+            <TouchableOpacity
+              onPress={onRefresh}
+              activeOpacity={0.7}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: '#ffffff',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
+              }}
+            >
+              <RefreshCw size={14} color="#475569" />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        <TouchableOpacity
-          onPress={handleNextMonth}
-          style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}
-          activeOpacity={0.7}
+        {/* Month Selector Bar (Compact Luxury Pill) */}
+        <View
+          style={{
+            marginTop: 10,
+            backgroundColor: '#ffffff',
+            borderRadius: 12,
+            paddingVertical: 5,
+            paddingHorizontal: 8,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderWidth: 1,
+            borderColor: '#e2e8f0',
+          }}
         >
-          <ChevronRight size={18} color="#0f172a" />
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handlePrevMonth}
+            style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <ChevronLeft size={16} color="#0f172a" />
+          </TouchableOpacity>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Calendar size={13} color="#0055d4" />
+            <Text style={{ fontSize: 13, fontWeight: '800', color: '#0f172a' }}>
+              {monthLabel}
+            </Text>
+            {isCurrentMonth ? (
+              <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 6 }}>
+                <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#0055d4' }}>En cours</Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                onPress={handleResetToCurrentMonth}
+                style={{ backgroundColor: '#fef3c7', paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 6 }}
+              >
+                <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#d97706' }}>Revenir à ce mois</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <TouchableOpacity
+            onPress={handleNextMonth}
+            style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' }}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <ChevronRight size={16} color="#0f172a" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 6, paddingBottom: 40 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0055d4']} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── 1. HERO CASH BALANCE CARD (CLEAN APPLE / MINIMAL LUXURY) ─────── */}
+        {/* ── 1. HERO BALANCE CARD (APPLE WALLET / REVOLUT STYLE) ──────────── */}
         <View
           style={{
-            marginTop: 8,
             backgroundColor: '#ffffff',
-            borderRadius: 20,
-            padding: 20,
+            borderRadius: 18,
+            padding: 16,
             borderWidth: 1,
             borderColor: '#e2e8f0',
             shadowColor: '#0f172a',
-            shadowOpacity: 0.05,
-            shadowRadius: 12,
-            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.04,
+            shadowRadius: 10,
+            shadowOffset: { width: 0, height: 3 },
             elevation: 2,
           }}
         >
-          {/* Header Row */}
+          {/* Card Header */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: '#ecfdf5', alignItems: 'center', justifyContent: 'center' }}>
-                <Wallet size={16} color="#059669" />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: '#ecfdf5', alignItems: 'center', justifyContent: 'center' }}>
+                <Wallet size={13} color="#059669" />
               </View>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: '#0f172a', letterSpacing: -0.2 }}>
-                Point de Caisse du Jour
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Solde Net Caisse
               </Text>
             </View>
-            <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 }}>
-              <Text style={{ fontSize: 11, fontWeight: '600', color: '#64748b' }}>
-                Aujourd'hui
-              </Text>
+            <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: '#475569' }}>Aujourd'hui</Text>
             </View>
           </View>
 
-          {/* Hero Net Amount */}
-          <View style={{ alignItems: 'center', paddingVertical: 12 }}>
-            <Text style={{ fontSize: 10, fontWeight: '700', color: '#64748b', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 4 }}>
-              Solde Net en Caisse
-            </Text>
+          {/* Big Hero Amount */}
+          <View style={{ marginVertical: 8 }}>
             <Text
               style={{
-                fontSize: 34,
+                fontSize: 32,
                 fontWeight: '900',
                 color: summary.todayNet >= 0 ? '#059669' : '#dc2626',
-                letterSpacing: -0.5,
+                letterSpacing: -0.8,
               }}
             >
               {summary.todayNet >= 0 ? `+${summary.todayNet.toLocaleString()} DT` : `${summary.todayNet.toLocaleString()} DT`}
             </Text>
           </View>
 
-          {/* Inflow vs Outflow Split Row */}
-          <View
-            style={{
-              flexDirection: 'row',
-              backgroundColor: '#f8fafc',
-              borderRadius: 14,
-              paddingVertical: 12,
-              paddingHorizontal: 16,
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 14,
-              borderWidth: 1,
-              borderColor: '#f1f5f9',
-            }}
-          >
-            <View style={{ flex: 1, alignItems: 'center' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 }}>
-                <ArrowDownLeft size={13} color="#059669" />
-                <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600' }}>Recettes</Text>
-              </View>
-              <Text style={{ fontSize: 16, fontWeight: '800', color: '#059669' }}>
+          {/* Compact Inflow / Outflow Split */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#f0fdf4', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 10, gap: 5 }}>
+              <ArrowDownLeft size={12} color="#059669" />
+              <Text style={{ fontSize: 11, color: '#166534', fontWeight: '600' }}>Recettes</Text>
+              <Text style={{ fontSize: 12, fontWeight: '800', color: '#15803d', marginLeft: 'auto' }}>
                 +{summary.todayIncome.toLocaleString()} DT
               </Text>
             </View>
 
-            <View style={{ width: 1, height: 34, backgroundColor: '#e2e8f0' }} />
-
-            <View style={{ flex: 1, alignItems: 'center' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 }}>
-                <ArrowUpRight size={13} color="#dc2626" />
-                <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '600' }}>Dépenses</Text>
-              </View>
-              <Text style={{ fontSize: 16, fontWeight: '800', color: '#dc2626' }}>
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fef2f2', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 10, gap: 5 }}>
+              <ArrowUpRight size={12} color="#dc2626" />
+              <Text style={{ fontSize: 11, color: '#991b1b', fontWeight: '600' }}>Dépenses</Text>
+              <Text style={{ fontSize: 12, fontWeight: '800', color: '#b91c1c', marginLeft: 'auto' }}>
                 -{summary.todayExpense.toLocaleString()} DT
               </Text>
             </View>
           </View>
 
-          {/* Primary Action Button: 🖨️ IMPRIMER LE LIVRE DE CAISSE */}
-          <TouchableOpacity
-            onPress={handlePrintBordereau}
-            disabled={printing}
-            activeOpacity={0.85}
-            style={{
-              backgroundColor: '#059669',
-              borderRadius: 12,
-              paddingVertical: 12,
-              paddingHorizontal: 16,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              marginBottom: 8,
-              shadowColor: '#059669',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.18,
-              shadowRadius: 4,
-              elevation: 2,
-            }}
-          >
-            {printing ? (
-              <ActivityIndicator size="small" color="#ffffff" />
-            ) : (
-              <>
-                <Printer size={16} color="#ffffff" strokeWidth={2.2} />
-                <Text style={{ fontSize: 14, fontWeight: '800', color: '#ffffff', letterSpacing: -0.2 }}>
-                  Imprimer le Livre de Caisse (A4)
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
+          {/* Side-by-Side Quick Action Buttons */}
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              onPress={handlePrintBordereau}
+              disabled={printing}
+              activeOpacity={0.8}
+              style={{
+                flex: 1,
+                backgroundColor: '#059669',
+                borderRadius: 10,
+                paddingVertical: 9,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+              }}
+            >
+              {printing ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Printer size={13} color="#ffffff" strokeWidth={2.2} />
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#ffffff' }}>
+                    Livre de Caisse A4
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
 
-          {/* Secondary Action: Partager PDF */}
-          <TouchableOpacity
-            onPress={handleShareBordereau}
-            disabled={sharing}
-            activeOpacity={0.8}
-            style={{
-              backgroundColor: '#f8fafc',
-              borderWidth: 1,
-              borderColor: '#e2e8f0',
-              borderRadius: 10,
-              paddingVertical: 9,
-              paddingHorizontal: 12,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-            }}
-          >
-            {sharing ? (
-              <ActivityIndicator size="small" color="#0f172a" />
-            ) : (
-              <>
-                <Share2 size={13} color="#0f172a" />
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#0f172a' }}>
-                  Partager le PDF officiel (WhatsApp / Email)
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleShareBordereau}
+              disabled={sharing}
+              activeOpacity={0.8}
+              style={{
+                flex: 1,
+                backgroundColor: '#f8fafc',
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
+                borderRadius: 10,
+                paddingVertical: 9,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+              }}
+            >
+              {sharing ? (
+                <ActivityIndicator size="small" color="#0f172a" />
+              ) : (
+                <>
+                  <Share2 size={13} color="#0f172a" />
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#0f172a' }}>
+                    Partager PDF
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* ── 2. HNIA ACTION BANNER (CO-PILOT ENTRY) ────────────────────────── */}
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Hnia')}
-          activeOpacity={0.88}
-          style={{
-            marginTop: 14,
-            backgroundColor: '#eff6ff',
-            borderWidth: 1.5,
-            borderColor: '#bfdbfe',
-            borderRadius: 16,
-            padding: 16,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, paddingRight: 10 }}>
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#0055d4', alignItems: 'center', justifyContent: 'center' }}>
-              <Bot size={22} color="#fff" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: '800', color: '#1e3a8a' }}>Actionner la caisse avec Hnia</Text>
-              <Text style={{ fontSize: 12, color: '#475569', marginTop: 2 }} numberOfLines={1}>
-                "Hnia, note 150 DT pour Youssef" ou "Dépense 30 DT"
-              </Text>
-            </View>
-          </View>
-          <ArrowRight size={18} color="#0055d4" />
-        </TouchableOpacity>
-
-        {/* ── 3. SEGMENTED TABS ────────────────────────────────────────────── */}
+        {/* ── 2. SEGMENTED TABS (NATIVE PILL SWITCH) ──────────────────────── */}
         <View
           style={{
             flexDirection: 'row',
             backgroundColor: '#e2e8f0',
             borderRadius: 12,
-            padding: 4,
-            marginTop: 20,
+            padding: 3,
+            marginTop: 12,
+            marginBottom: 10,
           }}
         >
           <TouchableOpacity
             onPress={() => setActiveTab('movements')}
             style={{
               flex: 1,
-              paddingVertical: 10,
-              borderRadius: 10,
+              paddingVertical: 8,
+              borderRadius: 9,
               backgroundColor: activeTab === 'movements' ? '#fff' : 'transparent',
               alignItems: 'center',
               shadowColor: activeTab === 'movements' ? '#000' : 'transparent',
               shadowOpacity: activeTab === 'movements' ? 0.08 : 0,
-              shadowRadius: 4,
+              shadowRadius: 3,
               elevation: activeTab === 'movements' ? 2 : 0,
             }}
           >
             <Text
               style={{
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: '700',
                 color: activeTab === 'movements' ? '#0f172a' : '#64748b',
               }}
@@ -699,20 +677,20 @@ export default function AdminCaisseScreen() {
             onPress={() => setActiveTab('unpaid')}
             style={{
               flex: 1,
-              paddingVertical: 10,
-              borderRadius: 10,
+              paddingVertical: 8,
+              borderRadius: 9,
               backgroundColor: activeTab === 'unpaid' ? '#fff' : 'transparent',
               alignItems: 'center',
               shadowColor: activeTab === 'unpaid' ? '#000' : 'transparent',
               shadowOpacity: activeTab === 'unpaid' ? 0.08 : 0,
-              shadowRadius: 4,
+              shadowRadius: 3,
               elevation: activeTab === 'unpaid' ? 2 : 0,
             }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Text
                 style={{
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: '700',
                   color: activeTab === 'unpaid' ? '#0f172a' : '#64748b',
                 }}
@@ -720,15 +698,15 @@ export default function AdminCaisseScreen() {
                 Impayés ({allUnpaid.length})
               </Text>
               {allUnpaid.length > 0 && (
-                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444' }} />
+                <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#ef4444' }} />
               )}
             </View>
           </TouchableOpacity>
         </View>
 
-        {/* ── 4. TAB CONTENT: MOVEMENTS ────────────────────────────────────── */}
+        {/* ── 3. TAB CONTENT: MOVEMENTS ────────────────────────────────────── */}
         {activeTab === 'movements' && (
-          <View style={{ marginTop: 16 }}>
+          <View style={{ marginTop: 4 }}>
             {loading ? (
               <View style={{ paddingVertical: 40, alignItems: 'center' }}>
                 <ActivityIndicator size="large" color="#0055d4" />
@@ -739,23 +717,23 @@ export default function AdminCaisseScreen() {
                 style={{
                   backgroundColor: '#fff',
                   borderRadius: 16,
-                  padding: 32,
+                  padding: 28,
                   alignItems: 'center',
-                  marginTop: 8,
+                  marginTop: 4,
                   borderWidth: 1,
                   borderColor: '#e2e8f0',
                 }}
               >
-                <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-                  <Clock size={28} color="#94a3b8" />
+                <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+                  <Clock size={24} color="#94a3b8" />
                 </View>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: '#1e293b' }}>Aucun flux aujourd'hui</Text>
-                <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center', marginTop: 6, lineHeight: 18 }}>
-                  Toutes les transactions encaissées ou dépensées aujourd'hui apparaîtront ici en temps réel.
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#1e293b' }}>Aucun flux aujourd'hui</Text>
+                <Text style={{ fontSize: 12.5, color: '#64748b', textAlign: 'center', marginTop: 4, lineHeight: 18 }}>
+                  Toutes les transactions encaissées ou décaissées aujourd'hui apparaîtront ici en direct.
                 </Text>
               </View>
             ) : (
-              <View style={{ gap: 10 }}>
+              <View style={{ gap: 8 }}>
                 {transactions.map((tx) => {
                   const isIncome = tx.type === 'IN';
                   const timeStr = new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -766,7 +744,7 @@ export default function AdminCaisseScreen() {
                       style={{
                         backgroundColor: '#fff',
                         borderRadius: 14,
-                        padding: 14,
+                        padding: 12,
                         flexDirection: 'row',
                         alignItems: 'center',
                         justifyContent: 'space-between',
@@ -774,38 +752,38 @@ export default function AdminCaisseScreen() {
                         borderColor: '#f1f5f9',
                         shadowColor: '#000',
                         shadowOpacity: 0.02,
-                        shadowRadius: 6,
+                        shadowRadius: 5,
                         elevation: 1,
                       }}
                     >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, paddingRight: 10 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, paddingRight: 8 }}>
                         <View
                           style={{
-                            width: 38,
-                            height: 38,
-                            borderRadius: 19,
+                            width: 34,
+                            height: 34,
+                            borderRadius: 17,
                             backgroundColor: isIncome ? '#ecfdf5' : '#fef2f2',
                             alignItems: 'center',
                             justifyContent: 'center',
                           }}
                         >
-                          {isIncome ? <ArrowDownLeft size={18} color="#10b981" /> : <ArrowUpRight size={18} color="#ef4444" />}
+                          {isIncome ? <ArrowDownLeft size={16} color="#10b981" /> : <ArrowUpRight size={16} color="#ef4444" />}
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={{ fontSize: 14, fontWeight: '700', color: '#1e293b' }} numberOfLines={1}>
+                          <Text style={{ fontSize: 13.5, fontWeight: '700', color: '#1e293b' }} numberOfLines={1}>
                             {tx.title}
                           </Text>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                            <Text style={{ fontSize: 11, color: '#94a3b8' }}>{timeStr}</Text>
-                            <Text style={{ fontSize: 11, color: '#cbd5e1' }}>•</Text>
-                            <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6 }}>
-                              <Text style={{ fontSize: 10, fontWeight: '600', color: '#475569' }}>{tx.category}</Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 }}>
+                            <Text style={{ fontSize: 10.5, color: '#94a3b8' }}>{timeStr}</Text>
+                            <Text style={{ fontSize: 10.5, color: '#cbd5e1' }}>•</Text>
+                            <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5 }}>
+                              <Text style={{ fontSize: 9.5, fontWeight: '600', color: '#475569' }}>{tx.category}</Text>
                             </View>
                           </View>
                         </View>
                       </View>
 
-                      <Text style={{ fontSize: 16, fontWeight: '800', color: isIncome ? '#10b981' : '#ef4444' }}>
+                      <Text style={{ fontSize: 15, fontWeight: '800', color: isIncome ? '#10b981' : '#ef4444' }}>
                         {isIncome ? `+${tx.amount} DT` : `-${tx.amount} DT`}
                       </Text>
                     </View>
@@ -816,95 +794,89 @@ export default function AdminCaisseScreen() {
           </View>
         )}
 
-        {/* ── 5. TAB CONTENT: UNPAID ENTITIES (STUDENTS, TEACHERS, STAFF) ──── */}
+        {/* ── 4. TAB CONTENT: UNPAID (STREAMLINED FINTECH LIST) ────────────── */}
         {activeTab === 'unpaid' && (
-          <View style={{ marginTop: 16 }}>
-            {/* 5A. Dual KPI Overview (ActionCenter Style Adapted to Mobile) */}
-            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
-              {/* Card 1: Rémunérations En Attente */}
-              <View
-                style={{
-                  flex: 1,
-                  backgroundColor: '#ffffff',
-                  borderRadius: 14,
-                  padding: 12,
-                  borderWidth: 1,
-                  borderColor: '#e2e8f0',
-                  borderLeftWidth: 4,
-                  borderLeftColor: '#f43f5e',
-                  shadowColor: '#000',
-                  shadowOpacity: 0.02,
-                  shadowRadius: 5,
-                  elevation: 1,
-                }}
-              >
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                    <Wallet size={13} color="#f43f5e" />
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748b' }}>
-                      Salaires Dus
-                    </Text>
-                  </View>
-                  <View style={{ backgroundColor: '#fff1f2', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6 }}>
-                    <Text style={{ fontSize: 10, fontWeight: '800', color: '#e11d48' }}>
-                      {unpaidEmployeesCount}
-                    </Text>
+          <View style={{ marginTop: 4 }}>
+            {/* 4A. Compact Dual KPI Ribbon */}
+            <View
+              style={{
+                backgroundColor: '#ffffff',
+                borderRadius: 14,
+                padding: 10,
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginBottom: 10,
+              }}
+            >
+              {/* Scolarités dues */}
+              <View style={{ flex: 1, paddingLeft: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <GraduationCap size={13} color="#059669" />
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748b' }}>Scolarités Dues</Text>
+                  <View style={{ backgroundColor: '#ecfdf5', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, marginLeft: 'auto', marginRight: 8 }}>
+                    <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#059669' }}>{studentItems.length}</Text>
                   </View>
                 </View>
-                <Text style={{ fontSize: 18, fontWeight: '900', color: '#0f172a' }}>
-                  {unpaidEmployeesTotal.toLocaleString()} DT
-                </Text>
-                <Text style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
-                  {teacherItems.length} ens. • {staffItems.length} pers.
+                <Text style={{ fontSize: 17, fontWeight: '900', color: '#0f172a', marginTop: 2 }}>
+                  {unpaidStudentsTotal.toLocaleString()} DT
                 </Text>
               </View>
 
-              {/* Card 2: Scolarités En Souffrance */}
-              <View
-                style={{
-                  flex: 1,
-                  backgroundColor: '#ffffff',
-                  borderRadius: 14,
-                  padding: 12,
-                  borderWidth: 1,
-                  borderColor: '#e2e8f0',
-                  borderLeftWidth: 4,
-                  borderLeftColor: '#10b981',
-                  shadowColor: '#000',
-                  shadowOpacity: 0.02,
-                  shadowRadius: 5,
-                  elevation: 1,
-                }}
-              >
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                    <GraduationCap size={13} color="#10b981" />
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748b' }}>
-                      Scolarités Dues
-                    </Text>
-                  </View>
-                  <View style={{ backgroundColor: '#ecfdf5', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6 }}>
-                    <Text style={{ fontSize: 10, fontWeight: '800', color: '#059669' }}>
-                      {studentItems.length}
-                    </Text>
+              <View style={{ width: 1, height: 32, backgroundColor: '#e2e8f0' }} />
+
+              {/* Salaires dus */}
+              <View style={{ flex: 1, paddingLeft: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Wallet size={13} color="#f43f5e" />
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748b' }}>Salaires Dus</Text>
+                  <View style={{ backgroundColor: '#fff1f2', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, marginLeft: 'auto', marginRight: 4 }}>
+                    <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#e11d48' }}>{unpaidEmployeesCount}</Text>
                   </View>
                 </View>
-                <Text style={{ fontSize: 18, fontWeight: '900', color: '#0f172a' }}>
-                  {unpaidStudentsTotal.toLocaleString()} DT
-                </Text>
-                <Text style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
-                  {studentItems.length} élève(s) en attente
+                <Text style={{ fontSize: 17, fontWeight: '900', color: '#0f172a', marginTop: 2 }}>
+                  {unpaidEmployeesTotal.toLocaleString()} DT
                 </Text>
               </View>
             </View>
 
-            {/* 5B. Category Filter Pills */}
-            <View style={{ flexDirection: 'row', gap: 6, marginBottom: 12 }}>
+            {/* 4B. Search + Filter Bar */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: '#fff',
+                borderRadius: 12,
+                paddingHorizontal: 10,
+                paddingVertical: 7,
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
+                marginBottom: 8,
+              }}
+            >
+              <Search size={15} color="#94a3b8" />
+              <TextInput
+                value={unpaidSearch}
+                onChangeText={setUnpaidSearch}
+                placeholder="Rechercher élève, enseignant, classe..."
+                placeholderTextColor="#94a3b8"
+                style={{ flex: 1, marginLeft: 8, fontSize: 12.5, color: '#1e293b' }}
+              />
+              {unpaidSearch ? (
+                <TouchableOpacity onPress={() => setUnpaidSearch('')}>
+                  <X size={14} color="#94a3b8" />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            {/* 4C. Horizontal Category Chips */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }} contentContainerStyle={{ gap: 6 }}>
               {[
-                { key: 'ALL', label: `Tous (${allUnpaid.length})` },
-                { key: 'STUDENT', label: `Élèves (${studentItems.length})` },
-                { key: 'TEACHER', label: `Enseignants (${teacherItems.length})` },
-                { key: 'STAFF', label: `Personnel (${staffItems.length})` },
+                { key: 'ALL', label: 'Tous', count: allUnpaid.length },
+                { key: 'STUDENT', label: 'Élèves', count: studentItems.length },
+                { key: 'TEACHER', label: 'Enseignants', count: teacherItems.length },
+                { key: 'STAFF', label: 'Personnel', count: staffItems.length },
               ].map((tab) => {
                 const isActive = unpaidCategory === tab.key;
                 return (
@@ -915,77 +887,46 @@ export default function AdminCaisseScreen() {
                       setUnpaidCategory(tab.key as any);
                     }}
                     style={{
-                      paddingVertical: 7,
-                      paddingHorizontal: 11,
-                      borderRadius: 18,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4,
+                      paddingVertical: 5,
+                      paddingHorizontal: 10,
+                      borderRadius: 16,
                       backgroundColor: isActive ? '#0f172a' : '#ffffff',
                       borderWidth: 1,
                       borderColor: isActive ? '#0f172a' : '#e2e8f0',
-                      shadowColor: isActive ? '#0f172a' : 'transparent',
-                      shadowOpacity: isActive ? 0.12 : 0,
-                      shadowRadius: 3,
-                      elevation: isActive ? 1 : 0,
                     }}
                   >
-                    <Text
-                      style={{
-                        fontSize: 11.5,
-                        fontWeight: isActive ? '800' : '600',
-                        color: isActive ? '#ffffff' : '#64748b',
-                      }}
-                    >
+                    <Text style={{ fontSize: 11.5, fontWeight: isActive ? '800' : '600', color: isActive ? '#ffffff' : '#64748b' }}>
                       {tab.label}
                     </Text>
+                    <View style={{ backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : '#f1f5f9', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 8 }}>
+                      <Text style={{ fontSize: 9.5, fontWeight: '800', color: isActive ? '#ffffff' : '#475569' }}>
+                        {tab.count}
+                      </Text>
+                    </View>
                   </TouchableOpacity>
                 );
               })}
-            </View>
+            </ScrollView>
 
-            {/* 5C. Search Input */}
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: '#fff',
-                borderRadius: 12,
-                paddingHorizontal: 12,
-                paddingVertical: 9,
-                borderWidth: 1,
-                borderColor: '#e2e8f0',
-                marginBottom: 12,
-              }}
-            >
-              <Search size={16} color="#94a3b8" />
-              <TextInput
-                value={unpaidSearch}
-                onChangeText={setUnpaidSearch}
-                placeholder="Chercher par nom, classe, contact..."
-                placeholderTextColor="#94a3b8"
-                style={{ flex: 1, marginLeft: 8, fontSize: 13, color: '#1e293b' }}
-              />
-              {unpaidSearch ? (
-                <TouchableOpacity onPress={() => setUnpaidSearch('')}>
-                  <X size={15} color="#94a3b8" />
-                </TouchableOpacity>
-              ) : null}
-            </View>
-
-            {/* 5D. Unpaid Entities List */}
+            {/* 4D. List of Unpaid Cards */}
             {loading ? (
               <View style={{ paddingVertical: 40, alignItems: 'center' }}>
                 <ActivityIndicator size="large" color="#0055d4" />
                 <Text style={{ fontSize: 13, color: '#64748b', marginTop: 12 }}>Chargement des impayés...</Text>
               </View>
             ) : filteredUnpaid.length === 0 ? (
-              <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 32, alignItems: 'center', marginTop: 4 }}>
-                <CheckCircle2 size={36} color="#10b981" />
-                <Text style={{ fontSize: 16, fontWeight: '700', color: '#1e293b', marginTop: 10 }}>Tout est en règle !</Text>
-                <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center', marginTop: 4 }}>
+              <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 30, alignItems: 'center', marginTop: 4, borderWidth: 1, borderColor: '#e2e8f0' }}>
+                <CheckCircle2 size={32} color="#10b981" />
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#1e293b', marginTop: 8 }}>Tout est en règle !</Text>
+                <Text style={{ fontSize: 12, color: '#64748b', textAlign: 'center', marginTop: 3 }}>
                   Aucun impayé trouvé pour {monthLabel}.
                 </Text>
               </View>
             ) : (
-              <View style={{ gap: 10 }}>
+              <View style={{ gap: 8 }}>
                 {filteredUnpaid.map((item) => {
                   const isStudent = item.type === 'student';
                   const isTeacher = item.type === 'teacher';
@@ -996,87 +937,75 @@ export default function AdminCaisseScreen() {
                       key={`${item.type}_${item.id}`}
                       style={{
                         backgroundColor: '#ffffff',
-                        borderRadius: 16,
-                        padding: 14,
+                        borderRadius: 14,
+                        padding: 12,
                         borderWidth: 1,
                         borderColor: '#e2e8f0',
                         shadowColor: '#000',
                         shadowOpacity: 0.02,
-                        shadowRadius: 5,
+                        shadowRadius: 4,
                         elevation: 1,
                       }}
                     >
-                      {/* Top Row: Avatar + Name + Tags + Net Due Amount */}
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      {/* Top Row: Icon + Name + Class + Due Amount */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, paddingRight: 8 }}>
                           {/* Role Icon */}
                           <View
                             style={{
-                              width: 38,
-                              height: 38,
-                              borderRadius: 19,
+                              width: 34,
+                              height: 34,
+                              borderRadius: 17,
                               backgroundColor: isStudent ? '#ecfdf5' : isTeacher ? '#eff6ff' : '#f5f3ff',
                               alignItems: 'center',
                               justifyContent: 'center',
                             }}
                           >
                             {isStudent ? (
-                              <GraduationCap size={18} color="#059669" />
+                              <GraduationCap size={16} color="#059669" />
                             ) : isTeacher ? (
-                              <User size={18} color="#0055d4" />
+                              <User size={16} color="#0055d4" />
                             ) : (
-                              <Briefcase size={18} color="#7c3aed" />
+                              <Briefcase size={16} color="#7c3aed" />
                             )}
                           </View>
 
-                          {/* Info */}
                           <View style={{ flex: 1 }}>
-                            <Text style={{ fontSize: 15, fontWeight: '800', color: '#0f172a' }}>
+                            <Text style={{ fontSize: 14.5, fontWeight: '800', color: '#0f172a' }} numberOfLines={1}>
                               {item.name}
                             </Text>
 
-                            {/* Tags row */}
-                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4, marginTop: 3 }}>
-                              {isStudent && (
-                                <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
-                                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#0055d4' }}>{item.className}</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 5, marginTop: 2 }}>
+                              {item.className ? (
+                                <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5 }}>
+                                  <Text style={{ fontSize: 9.5, fontWeight: '700', color: '#0055d4' }}>{item.className}</Text>
                                 </View>
-                              )}
+                              ) : null}
 
-                              {isTeacher && (
-                                <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
-                                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#0055d4' }}>ENSEIGNANTS</Text>
+                              {isTeacher ? (
+                                <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5 }}>
+                                  <Text style={{ fontSize: 9.5, fontWeight: '700', color: '#0055d4' }}>Enseignant</Text>
                                 </View>
-                              )}
+                              ) : null}
 
-                              {isStaff && (
-                                <View style={{ backgroundColor: '#f5f3ff', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
-                                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#7c3aed' }}>PERSONNEL</Text>
+                              {isStaff ? (
+                                <View style={{ backgroundColor: '#f5f3ff', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5 }}>
+                                  <Text style={{ fontSize: 9.5, fontWeight: '700', color: '#7c3aed' }}>Personnel</Text>
                                 </View>
-                              )}
+                              ) : null}
 
-                              {/* Advance badge */}
-                              {Boolean(item.advanceAmount && item.advanceAmount > 0) && (
-                                <View style={{ backgroundColor: '#fef3c7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-                                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#d97706' }}>
-                                    Avance: {item.advanceAmount} DT
-                                  </Text>
-                                </View>
-                              )}
-
-                              {/* Missed hours deduction badge */}
-                              {Boolean(item.missedHours && item.missedHours > 0) && (
-                                <View style={{ backgroundColor: '#fee2e2', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-                                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#dc2626' }}>
-                                    {item.missedHours}h abs. (-{item.deduction || 0} DT)
-                                  </Text>
-                                </View>
-                              )}
-
-                              {isStudent && item.parentName && (
-                                <Text style={{ fontSize: 11, color: '#64748b' }}>
+                              {item.parentName ? (
+                                <Text style={{ fontSize: 10.5, color: '#64748b' }} numberOfLines={1}>
                                   • {item.parentName}
                                 </Text>
+                              ) : null}
+
+                              {Boolean(item.advanceAmount && item.advanceAmount > 0) && (
+                                <View style={{ backgroundColor: '#fef3c7', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5 }}>
+                                  <Text style={{ fontSize: 9, fontWeight: '700', color: '#d97706' }}>
+                                    Avance {item.advanceAmount} DT
+                                  </Text>
+                                </View>
                               )}
                             </View>
                           </View>
@@ -1089,76 +1018,75 @@ export default function AdminCaisseScreen() {
                               fontSize: 16,
                               fontWeight: '900',
                               color: item.dueAmount > 0 ? (isStudent ? '#dc2626' : '#0f172a') : '#10b981',
+                              letterSpacing: -0.3,
                             }}
                           >
                             {item.dueAmount} DT
                           </Text>
                           {isStudent && item.status === 'PARTIAL' && (
-                            <Text style={{ fontSize: 10, fontWeight: '600', color: '#f59e0b', marginTop: 1 }}>
-                              Acompte: {item.paidAmount} DT
+                            <Text style={{ fontSize: 9.5, fontWeight: '700', color: '#d97706' }}>
+                              Acompte {item.paidAmount} DT
                             </Text>
                           )}
                           {!isStudent && item.dueAmount === 0 && (
-                            <Text style={{ fontSize: 10, fontWeight: '700', color: '#10b981', marginTop: 1 }}>
+                            <Text style={{ fontSize: 9.5, fontWeight: '700', color: '#10b981' }}>
                               Soldé
                             </Text>
                           )}
                         </View>
                       </View>
 
-                      {/* Bottom Action Shortcuts */}
-                      <View style={{ flexDirection: 'row', gap: 8, marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#f1f5f9' }}>
-                        {/* 1. Call Button */}
+                      {/* Action Row: Sleek & Native */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#f1f5f9' }}>
+                        {/* Call button */}
                         <TouchableOpacity
                           onPress={() => handleCall(isStudent ? item.parentPhone : item.phone, item.name)}
                           style={{
-                            flex: 1,
+                            width: 32,
+                            height: 32,
+                            borderRadius: 16,
                             backgroundColor: '#f1f5f9',
-                            borderRadius: 9,
-                            paddingVertical: 8,
-                            flexDirection: 'row',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: 5,
                           }}
+                          hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
                         >
-                          <Phone size={13} color="#334155" />
-                          <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155' }}>Appeler</Text>
+                          <Phone size={13} color="#475569" />
                         </TouchableOpacity>
 
-                        {/* 2. WhatsApp Button (Students only) */}
+                        {/* WhatsApp button (Students only) */}
                         {isStudent && (
                           <TouchableOpacity
                             onPress={() => handleWhatsAppStudent(item.parentPhone, item.name, item.dueAmount)}
                             style={{
-                              flex: 1,
+                              width: 32,
+                              height: 32,
+                              borderRadius: 16,
                               backgroundColor: '#ecfdf5',
-                              borderRadius: 9,
-                              paddingVertical: 8,
-                              flexDirection: 'row',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: 5,
                             }}
+                            hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
                           >
-                            <MessageCircle size={13} color="#10b981" />
-                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#047857' }}>WhatsApp</Text>
+                            <MessageCircle size={14} color="#059669" />
                           </TouchableOpacity>
                         )}
 
-                        {/* 3. Action Pay / Collect Button */}
+                        {/* Quick action button (Encaisser / Payer) */}
                         <TouchableOpacity
                           onPress={() => openPayModal(item)}
                           style={{
-                            flex: 1.1,
+                            flex: 1,
                             backgroundColor: isStudent ? '#059669' : '#0f172a',
-                            borderRadius: 9,
-                            paddingVertical: 8,
+                            borderRadius: 8,
+                            paddingVertical: 7,
                             flexDirection: 'row',
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: 5,
+                            marginLeft: 4,
                           }}
+                          activeOpacity={0.85}
                         >
                           {isStudent ? (
                             <>
