@@ -859,8 +859,12 @@ export const teacherService = {
 
 export const adminService = {
   // Fetch admin dashboard data
-  fetchDashboard: async () => {
-    return apiFetch('/api/mobile/admin/dashboard');
+  fetchDashboard: async (month?: number, year?: number) => {
+    const params = new URLSearchParams();
+    if (month) params.set('month', month.toString());
+    if (year) params.set('year', year.toString());
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiFetch(`/api/mobile/admin/dashboard${query}`);
   },
   
   // Fetch admin profile
