@@ -41,6 +41,7 @@ import {
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { adminService } from '../../services/api';
+import { trackEvent } from '../../services/posthog';
 
 interface UnpaidItem {
   id: string;
@@ -247,6 +248,7 @@ export default function AdminDashboardScreen() {
       });
       return;
     }
+    trackEvent('admin_phone_call_initiated', { recipientName: name });
     Linking.openURL(`tel:${phone}`);
   };
 
@@ -267,6 +269,13 @@ export default function AdminDashboardScreen() {
     const mLabel = data?.monthLabel || 'ce mois';
     const message = `Bonjour Madame / Monsieur, nous vous rappelons que les frais de scolarité pour ${studentName} (${dueAmount} DT) pour le mois de ${mLabel} sont en attente. Merci de bien vouloir régulariser la situation auprès de l'administration. Cordialement, la Direction.`;
     const url = `whatsapp://send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
+
+    trackEvent('admin_whatsapp_reminder_opened', {
+      studentName,
+      dueAmount,
+      month: selectedMonth,
+      year: selectedYear,
+    });
 
     Linking.canOpenURL(url)
       .then((supported) => {
@@ -317,6 +326,14 @@ export default function AdminDashboardScreen() {
         });
         if (res && res.success) {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          trackEvent('tuition_payment_collected', {
+            amount: amt,
+            paymentMethod: payMethod,
+            month: selectedMonth,
+            year: selectedYear,
+            studentId: payModalItem.id,
+            studentName: payModalItem.name,
+          });
           setPayModalItem(null);
           setFeedback({
             type: 'success',
@@ -338,6 +355,14 @@ export default function AdminDashboardScreen() {
         });
         if (res && res.success) {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          trackEvent('salary_payment_disbursed', {
+            amount: amt,
+            paymentMethod: payMethod,
+            month: selectedMonth,
+            year: selectedYear,
+            recipientType: payModalItem.type,
+            recipientName: payModalItem.name,
+          });
           setPayModalItem(null);
           setFeedback({
             type: 'success',

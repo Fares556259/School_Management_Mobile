@@ -41,6 +41,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as ImagePicker from 'expo-image-picker';
 import { adminService, authStorage } from '../../services/api';
+import { trackEvent } from '../../services/posthog';
 
 interface Transaction {
   id: string;
@@ -272,6 +273,13 @@ export default function AdminCaisseScreen() {
 
       if (res && res.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        trackEvent('caisse_income_recorded', {
+          amount: amt,
+          category: collectCategory,
+          paymentMethod: collectMethod,
+          title: collectTitle.trim(),
+          hasImage: Boolean(uploadedImgUrl),
+        });
         setShowCollectModal(false);
         setCollectTitle('');
         setCollectAmount('');
@@ -331,6 +339,12 @@ export default function AdminCaisseScreen() {
 
       if (res && res.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        trackEvent('caisse_expense_recorded', {
+          amount: amt,
+          category: expenseCategory,
+          title: expenseTitle.trim(),
+          hasImage: Boolean(uploadedImgUrl),
+        });
         setShowExpenseModal(false);
         setExpenseTitle('');
         setExpenseAmount('');

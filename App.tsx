@@ -53,6 +53,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 
+import { PostHogProvider } from 'posthog-react-native';
+import { posthog, identifyUser, resetUser, trackScreen } from './src/services/posthog';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -231,6 +234,7 @@ export default function App() {
   const [isLaunchMinTimeDone, setIsLaunchMinTimeDone] = useState(false);
   const targetAuthStateRef = React.useRef<'onboarding' | 'landing' | 'signedIn'>('onboarding');
   const postOnboardingStateRef = React.useRef<'signedIn' | 'landing'>('landing');
+  const routeNameRef = React.useRef<string | undefined>(undefined);
 
   // Transition smoothly from launch screen once bootstrap and minimum animation time have elapsed
   useEffect(() => {
@@ -312,6 +316,7 @@ export default function App() {
             setUserId(uid);
             setUserRole(role as any);
             registerPush(uid);
+            identifyUser(uid, { role });
           }
 
           // Fetch profile
@@ -474,6 +479,7 @@ export default function App() {
     
     if (uid) setUserId(uid);
     if (role) setUserRole(role as any);
+    if (uid) identifyUser(uid, { role });
 
     // 1. Immediately transition to signedIn state for instant feedback
     setAuthState('signedIn');
@@ -527,6 +533,7 @@ export default function App() {
 
   const handleSignOut = React.useCallback(async () => {
     await authService.logout();
+    resetUser();
     setChildren([]);
     setUserName("User");
     setUserRole(null);
@@ -546,83 +553,102 @@ export default function App() {
   };
 
   return (
-    <PersistQueryClientProvider 
-      client={queryClient}
-      persistOptions={{ persister: asyncStoragePersister }}
-    >
-      <LanguageProvider>
-        <SafeAreaProvider>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <View style={{ flex: 1, backgroundColor: '#f8fbff' }}>
-              <NavigationContainer ref={navigationRef}>
-                {authState === 'onboarding' || authState === 'loading' ? (
-                  <OnboardingScreen
-                    onComplete={async () => {
-                      await AsyncStorage.setItem('@has_seen_onboarding', 'true');
-                      setAuthState(postOnboardingStateRef.current);
-                    }}
-                  />
-                ) : authState === 'landing' ? (
-                  <LandingScreen 
-                    onSelectRole={onSelectRole}
-                  />
-                ) : authState === 'signedOut' ? (
-                  <SignInScreen role={selectedRole} onSignIn={handleSignIn} onBack={() => setAuthState('landing')} />
-                ) : (
-                  <Stack.Navigator screenOptions={{ headerShown: false }}>
-                    <Stack.Screen
-                      name="MainTabs"
-                      children={MainTabsScreen}
-                    />
-                    <Stack.Screen name="Attendance" component={AttendanceScreen} />
-                    <Stack.Screen name="Notifications" component={NotificationsScreen} />
-                    <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
-                    <Stack.Screen name="HomeworkDetail" component={HomeworkDetailScreen} />
-                    <Stack.Screen name="ExamDetail" component={ExamDetailScreen} />
-                    <Stack.Screen name="AnnouncementDetail" component={AnnouncementDetailScreen} />
-                    <Stack.Screen name="LinkChild" component={LinkChildScreen} />
-                    <Stack.Screen name="Exams" component={ExamsScreen} />
-                    <Stack.Screen name="Results" component={ResultsScreen} />
-                    <Stack.Screen name="TeacherTaskDetail" component={TeacherTaskDetailScreen} />
-                    <Stack.Screen name="StudentSubmission" component={StudentSubmissionScreen} />
-                    <Stack.Screen name="TeacherClassRoster" component={TeacherClassRosterScreen} />
-                    <Stack.Screen name="TeacherAttendance" component={TeacherAttendanceScreen} />
-                    <Stack.Screen name="TeacherLessons" component={TeacherLessonsScreen} />
-                    <Stack.Screen name="TeacherTasks" component={TeacherTasksScreen} />
-                    <Stack.Screen name="TeacherGrades" component={TeacherGradeEntryScreen} />
-                    <Stack.Screen name="TeacherProfile">
-                      {(props) => <ProfileScreen {...props} onSignOut={handleSignOut} />}
-                    </Stack.Screen>
-                    <Stack.Screen name="Onboarding">
-                      {(props) => (
-                        <OnboardingScreen
-                          onComplete={() => {
-                            if (props.navigation.canGoBack()) {
-                              props.navigation.goBack();
-                            } else {
-                              setAuthState('landing');
-                            }
-                          }}
-                        />
-                      )}
-                    </Stack.Screen>
-                  </Stack.Navigator>
-                )}
-              </NavigationContainer>
+    <PostHogProvider client={posthog} autocapture>
+      <PersistQueryClientProvider 
+        client={queryClient}
+        persistOptions={{ persister: asyncStoragePersister }}
+      >
+        <LanguageProvider>
+          <SafeAreaProvider>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              <View style={{ flex: 1, backgroundColor: '#f8fbff' }}>
+                <NavigationContainer
+                  ref={navigationRef}
+                  onReady={() => {
+                    routeNameRef.current = navigationRef.getCurrentRoute()?.name;
+                    if (routeNameRef.current) {
+                      trackScreen(routeNameRef.current);
+                    }
+                  }}
+                  onStateChange={async () => {
+                    const previousRouteName = routeNameRef.current;
+                    const currentRouteName = navigationRef.getCurrentRoute()?.name;
 
-              {/* Seamless Full-Screen Launch Overlay: rendered on top until ready */}
-              {isLaunchScreenVisible && (
-                <View style={[StyleSheet.absoluteFill, { zIndex: 999999 }]} pointerEvents="auto">
-                  <AppLaunchScreen 
-                    onFinish={() => setIsLaunchMinTimeDone(true)} 
-                    minDurationMs={1100} 
-                  />
-                </View>
-              )}
-            </View>
-          </GestureHandlerRootView>
-        </SafeAreaProvider>
-      </LanguageProvider>
-    </PersistQueryClientProvider>
+                    if (previousRouteName !== currentRouteName && currentRouteName) {
+                      trackScreen(currentRouteName);
+                    }
+                    routeNameRef.current = currentRouteName;
+                  }}
+                >
+                  {authState === 'onboarding' || authState === 'loading' ? (
+                    <OnboardingScreen
+                      onComplete={async () => {
+                        await AsyncStorage.setItem('@has_seen_onboarding', 'true');
+                        setAuthState(postOnboardingStateRef.current);
+                      }}
+                    />
+                  ) : authState === 'landing' ? (
+                    <LandingScreen 
+                      onSelectRole={onSelectRole}
+                    />
+                  ) : authState === 'signedOut' ? (
+                    <SignInScreen role={selectedRole} onSignIn={handleSignIn} onBack={() => setAuthState('landing')} />
+                  ) : (
+                    <Stack.Navigator screenOptions={{ headerShown: false }}>
+                      <Stack.Screen
+                        name="MainTabs"
+                        children={MainTabsScreen}
+                      />
+                      <Stack.Screen name="Attendance" component={AttendanceScreen} />
+                      <Stack.Screen name="Notifications" component={NotificationsScreen} />
+                      <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
+                      <Stack.Screen name="HomeworkDetail" component={HomeworkDetailScreen} />
+                      <Stack.Screen name="ExamDetail" component={ExamDetailScreen} />
+                      <Stack.Screen name="AnnouncementDetail" component={AnnouncementDetailScreen} />
+                      <Stack.Screen name="LinkChild" component={LinkChildScreen} />
+                      <Stack.Screen name="Exams" component={ExamsScreen} />
+                      <Stack.Screen name="Results" component={ResultsScreen} />
+                      <Stack.Screen name="TeacherTaskDetail" component={TeacherTaskDetailScreen} />
+                      <Stack.Screen name="StudentSubmission" component={StudentSubmissionScreen} />
+                      <Stack.Screen name="TeacherClassRoster" component={TeacherClassRosterScreen} />
+                      <Stack.Screen name="TeacherAttendance" component={TeacherAttendanceScreen} />
+                      <Stack.Screen name="TeacherLessons" component={TeacherLessonsScreen} />
+                      <Stack.Screen name="TeacherTasks" component={TeacherTasksScreen} />
+                      <Stack.Screen name="TeacherGrades" component={TeacherGradeEntryScreen} />
+                      <Stack.Screen name="TeacherProfile">
+                        {(props) => <ProfileScreen {...props} onSignOut={handleSignOut} />}
+                      </Stack.Screen>
+                      <Stack.Screen name="Onboarding">
+                        {(props) => (
+                          <OnboardingScreen
+                            onComplete={() => {
+                              if (props.navigation.canGoBack()) {
+                                props.navigation.goBack();
+                              } else {
+                                setAuthState('landing');
+                              }
+                            }}
+                          />
+                        )}
+                      </Stack.Screen>
+                    </Stack.Navigator>
+                  )}
+                </NavigationContainer>
+
+                {/* Seamless Full-Screen Launch Overlay: rendered on top until ready */}
+                {isLaunchScreenVisible && (
+                  <View style={[StyleSheet.absoluteFill, { zIndex: 999999 }]} pointerEvents="auto">
+                    <AppLaunchScreen 
+                      onFinish={() => setIsLaunchMinTimeDone(true)} 
+                      minDurationMs={1100} 
+                    />
+                  </View>
+                )}
+              </View>
+            </GestureHandlerRootView>
+          </SafeAreaProvider>
+        </LanguageProvider>
+      </PersistQueryClientProvider>
+    </PostHogProvider>
   );
 }
