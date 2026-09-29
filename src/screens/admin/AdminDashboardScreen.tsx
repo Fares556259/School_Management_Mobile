@@ -15,19 +15,14 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import {
-  LayoutDashboard,
   GraduationCap,
   Users,
-  UserCheck,
   Building2,
   TrendingUp,
-  Clock,
   ArrowRight,
   RefreshCw,
   Bot,
-  AlertTriangle,
   AlertCircle,
-  Bell,
   Sparkles,
   CheckCircle2,
   Calendar,
@@ -134,7 +129,7 @@ export default function AdminDashboardScreen() {
   const [data, setData] = useState<DashboardData | null>(null);
 
   // Unpaid section filtering state
-  const [unpaidCategory, setUnpaidCategory] = useState<'ALL' | 'STUDENT' | 'TEACHER' | 'STAFF'>('ALL');
+  const [unpaidCategory, setUnpaidCategory] = useState<'STUDENT' | 'TEACHER' | 'STAFF' | 'ALL'>('STUDENT');
   const [unpaidSearch, setUnpaidSearch] = useState('');
 
   // Payment / Collection Modal State
@@ -376,49 +371,55 @@ export default function AdminDashboardScreen() {
       <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" translucent={Platform.OS === 'android'} />
 
       {/* ── HEADER (AIRY, CLEAN & EXECUTIVE) ─────────────────────────────────── */}
-      <View style={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: 10 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View>
-            <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '600', textTransform: 'capitalize' }}>
-              {todayDateStr}
+      <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 }}>
+        {/* Top Micro-Row: Date & School badge */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748b', textTransform: 'capitalize' }}>
+            {todayDateStr}
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#eff6ff', paddingHorizontal: 9, paddingVertical: 3.5, borderRadius: 12, borderWidth: 1, borderColor: '#dbeafe' }}>
+            <Building2 size={12} color="#0055d4" />
+            <Text style={{ fontSize: 11.5, fontWeight: '800', color: '#0055d4' }} numberOfLines={1}>
+              {data?.schoolName || 'SnapSchool'}
             </Text>
-            <Text style={{ fontSize: 26, fontWeight: '900', color: '#0f172a', marginTop: 2, letterSpacing: -0.5 }}>
-              Bonjour, {data?.adminName || 'Direction'} 👋
-            </Text>
-          </View>
-
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <TouchableOpacity
-              onPress={onRefresh}
-              activeOpacity={0.7}
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: 19,
-                backgroundColor: '#ffffff',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderWidth: 1,
-                borderColor: '#e2e8f0',
-                shadowColor: '#000',
-                shadowOpacity: 0.03,
-                shadowRadius: 5,
-                elevation: 1,
-              }}
-            >
-              <RefreshCw size={16} color="#0055d4" />
-            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Month Selector Bar (Airy & Elegant) */}
+        {/* Main Title & Refresh */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={{ fontSize: 24, fontWeight: '900', color: '#0f172a', letterSpacing: -0.5 }}>
+            Bonjour, {data?.adminName || 'Direction'} 👋
+          </Text>
+          <TouchableOpacity
+            onPress={onRefresh}
+            activeOpacity={0.7}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              backgroundColor: '#ffffff',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 1,
+              borderColor: '#e2e8f0',
+              shadowColor: '#000',
+              shadowOpacity: 0.03,
+              shadowRadius: 4,
+              elevation: 1,
+            }}
+          >
+            <RefreshCw size={15} color="#0055d4" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Month Selector Bar - Sleek, Light & Pill-shaped */}
         <View
           style={{
             marginTop: 12,
             backgroundColor: '#ffffff',
-            borderRadius: 14,
-            paddingVertical: 7,
-            paddingHorizontal: 12,
+            borderRadius: 16,
+            paddingVertical: 6,
+            paddingHorizontal: 10,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -426,7 +427,7 @@ export default function AdminDashboardScreen() {
             borderColor: '#e2e8f0',
             shadowColor: '#000',
             shadowOpacity: 0.02,
-            shadowRadius: 4,
+            shadowRadius: 5,
             elevation: 1,
           }}
         >
@@ -439,21 +440,21 @@ export default function AdminDashboardScreen() {
             <ChevronLeft size={18} color="#0f172a" />
           </TouchableOpacity>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Calendar size={15} color="#0055d4" />
-            <Text style={{ fontSize: 14, fontWeight: '800', color: '#0f172a' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Calendar size={14} color="#0055d4" />
+            <Text style={{ fontSize: 13.5, fontWeight: '800', color: '#0f172a' }}>
               {data?.monthLabel || 'Ce mois'}
             </Text>
             {isCurrentMonth ? (
-              <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
-                <Text style={{ fontSize: 10, fontWeight: '800', color: '#0055d4' }}>En cours</Text>
+              <View style={{ backgroundColor: '#ecfdf5', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
+                <Text style={{ fontSize: 10, fontWeight: '800', color: '#059669' }}>En cours</Text>
               </View>
             ) : (
               <TouchableOpacity
                 onPress={handleResetToCurrentMonth}
-                style={{ backgroundColor: '#fef3c7', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}
+                style={{ backgroundColor: '#eff6ff', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}
               >
-                <Text style={{ fontSize: 10, fontWeight: '800', color: '#d97706' }}>Revenir à ce mois</Text>
+                <Text style={{ fontSize: 10, fontWeight: '800', color: '#0055d4' }}>Revenir à ce mois</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -484,341 +485,295 @@ export default function AdminDashboardScreen() {
           </View>
         ) : (
           <>
-            {/* ── 1. OPERATIONS 4-GRID (BREATHABLE & SPACIOUS) ──────────────── */}
-            <View style={{ marginTop: 14 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.6 }}>
-                  Effectif de l'école • {data?.schoolName || 'SnapSchool'}
+            {/* ── 1. COMPACT 4-STAT OPERATIONS BAR (LIGHT, AIRY & SPACE-SAVING) ── */}
+            <View
+              style={{
+                marginTop: 10,
+                backgroundColor: '#ffffff',
+                borderRadius: 18,
+                paddingVertical: 12,
+                paddingHorizontal: 6,
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
+                flexDirection: 'row',
+                alignItems: 'center',
+                shadowColor: '#000',
+                shadowOpacity: 0.02,
+                shadowRadius: 5,
+                elevation: 1,
+              }}
+            >
+              {/* Élèves */}
+              <View style={{ flex: 1, alignItems: 'center' }}>
+                <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
+                  <GraduationCap size={17} color="#0055d4" />
+                </View>
+                <Text style={{ fontSize: 17, fontWeight: '900', color: '#0f172a' }}>
+                  {data?.operations.students.toLocaleString() || 0}
+                </Text>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#64748b', marginTop: 1 }}>
+                  Élèves
                 </Text>
               </View>
 
-              <View style={{ flexDirection: 'row', gap: 12 }}>
-                {/* Students */}
-                <View
-                  style={{
-                    flex: 1,
-                    backgroundColor: '#ffffff',
-                    borderRadius: 18,
-                    padding: 16,
-                    borderWidth: 1,
-                    borderColor: '#f1f5f9',
-                    shadowColor: '#000',
-                    shadowOpacity: 0.03,
-                    shadowRadius: 8,
-                    elevation: 1,
-                  }}
-                >
-                  <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: '#fff7ed', alignItems: 'center', justifyContent: 'center' }}>
-                    <GraduationCap size={22} color="#ea580c" />
-                  </View>
-                  <Text style={{ fontSize: 26, fontWeight: '900', color: '#0f172a', marginTop: 12 }}>
-                    {data?.operations.students.toLocaleString() || 0}
-                  </Text>
-                  <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '600', marginTop: 2 }}>
-                    Élèves
-                  </Text>
-                </View>
+              <View style={{ width: 1, height: 32, backgroundColor: '#f1f5f9' }} />
 
-                {/* Teachers */}
-                <View
-                  style={{
-                    flex: 1,
-                    backgroundColor: '#ffffff',
-                    borderRadius: 18,
-                    padding: 16,
-                    borderWidth: 1,
-                    borderColor: '#f1f5f9',
-                    shadowColor: '#000',
-                    shadowOpacity: 0.03,
-                    shadowRadius: 8,
-                    elevation: 1,
-                  }}
-                >
-                  <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: '#ecfdf5', alignItems: 'center', justifyContent: 'center' }}>
-                    <Users size={22} color="#059669" />
-                  </View>
-                  <Text style={{ fontSize: 26, fontWeight: '900', color: '#0f172a', marginTop: 12 }}>
-                    {data?.operations.teachers.toLocaleString() || 0}
-                  </Text>
-                  <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '600', marginTop: 2 }}>
-                    Enseignants
-                  </Text>
+              {/* Enseignants */}
+              <View style={{ flex: 1, alignItems: 'center' }}>
+                <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: '#ecfdf5', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
+                  <Users size={17} color="#059669" />
                 </View>
+                <Text style={{ fontSize: 17, fontWeight: '900', color: '#0f172a' }}>
+                  {data?.operations.teachers.toLocaleString() || 0}
+                </Text>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#64748b', marginTop: 1 }}>
+                  Profs
+                </Text>
               </View>
 
-              <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
-                {/* Staff */}
-                <View
-                  style={{
-                    flex: 1,
-                    backgroundColor: '#ffffff',
-                    borderRadius: 18,
-                    padding: 16,
-                    borderWidth: 1,
-                    borderColor: '#f1f5f9',
-                    shadowColor: '#000',
-                    shadowOpacity: 0.03,
-                    shadowRadius: 8,
-                    elevation: 1,
-                  }}
-                >
-                  <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: '#fdf4ff', alignItems: 'center', justifyContent: 'center' }}>
-                    <UserCheck size={22} color="#c026d3" />
-                  </View>
-                  <Text style={{ fontSize: 26, fontWeight: '900', color: '#0f172a', marginTop: 12 }}>
-                    {data?.operations.staff.toLocaleString() || 0}
-                  </Text>
-                  <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '600', marginTop: 2 }}>
-                    Personnel
-                  </Text>
-                </View>
+              <View style={{ width: 1, height: 32, backgroundColor: '#f1f5f9' }} />
 
-                {/* Classes */}
-                <View
-                  style={{
-                    flex: 1,
-                    backgroundColor: '#ffffff',
-                    borderRadius: 18,
-                    padding: 16,
-                    borderWidth: 1,
-                    borderColor: '#f1f5f9',
-                    shadowColor: '#000',
-                    shadowOpacity: 0.03,
-                    shadowRadius: 8,
-                    elevation: 1,
-                  }}
-                >
-                  <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: '#fef9c3', alignItems: 'center', justifyContent: 'center' }}>
-                    <Building2 size={22} color="#ca8a04" />
-                  </View>
-                  <Text style={{ fontSize: 26, fontWeight: '900', color: '#0f172a', marginTop: 12 }}>
-                    {data?.operations.classes.toLocaleString() || 0}
-                  </Text>
-                  <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '600', marginTop: 2 }}>
-                    Classes
-                  </Text>
+              {/* Classes */}
+              <View style={{ flex: 1, alignItems: 'center' }}>
+                <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: '#fef9c3', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
+                  <Building2 size={17} color="#ca8a04" />
                 </View>
+                <Text style={{ fontSize: 17, fontWeight: '900', color: '#0f172a' }}>
+                  {data?.operations.classes.toLocaleString() || 0}
+                </Text>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#64748b', marginTop: 1 }}>
+                  Classes
+                </Text>
+              </View>
+
+              <View style={{ width: 1, height: 32, backgroundColor: '#f1f5f9' }} />
+
+              {/* Personnel */}
+              <View style={{ flex: 1, alignItems: 'center' }}>
+                <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
+                  <Briefcase size={17} color="#7c3aed" />
+                </View>
+                <Text style={{ fontSize: 17, fontWeight: '900', color: '#0f172a' }}>
+                  {data?.operations.staff.toLocaleString() || 0}
+                </Text>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#64748b', marginTop: 1 }}>
+                  Staff
+                </Text>
               </View>
             </View>
 
-            {/* ── 2. FINANCIAL PROGRESS PULSE (CLEAN & SPACIOUS) ─────────────── */}
+            {/* ── 2. FINANCIAL PROGRESS PULSE (CLEAN, MODERN & SPACIOUS) ──────── */}
             <View
               style={{
-                marginTop: 20,
+                marginTop: 14,
                 backgroundColor: '#ffffff',
                 borderRadius: 20,
-                padding: 20,
+                padding: 18,
                 borderWidth: 1,
                 borderColor: '#e2e8f0',
                 shadowColor: '#000',
-                shadowOpacity: 0.04,
-                shadowRadius: 10,
-                elevation: 2,
+                shadowOpacity: 0.03,
+                shadowRadius: 8,
+                elevation: 1,
               }}
             >
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <TrendingUp size={20} color="#0055d4" />
-                  <Text style={{ fontSize: 15, fontWeight: '800', color: '#0f172a' }}>
-                    Recouvrement Scolarités • {data?.monthLabel || 'Ce mois'}
+                  <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' }}>
+                    <TrendingUp size={16} color="#0055d4" />
+                  </View>
+                  <Text style={{ fontSize: 14.5, fontWeight: '800', color: '#0f172a' }}>
+                    Recouvrement Scolarités
                   </Text>
                 </View>
                 <TouchableOpacity
                   onPress={() => navigation.navigate('Caisse')}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                  activeOpacity={0.7}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#eff6ff', paddingHorizontal: 9, paddingVertical: 4.5, borderRadius: 10 }}
                 >
-                  <Text style={{ fontSize: 12.5, fontWeight: '700', color: '#0055d4' }}>Voir Caisse</Text>
-                  <ArrowRight size={14} color="#0055d4" />
+                  <Text style={{ fontSize: 11.5, fontWeight: '800', color: '#0055d4' }}>Voir Caisse</Text>
+                  <ArrowRight size={13} color="#0055d4" />
                 </TouchableOpacity>
               </View>
 
               {/* Amount collected vs expected */}
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 16 }}>
-                <Text style={{ fontSize: 30, fontWeight: '900', color: '#0055d4', letterSpacing: -0.5 }}>
-                  {data?.financialPulse.collectedTuition.toLocaleString() || 0} DT
-                </Text>
-                <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '600' }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 14 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+                  <Text style={{ fontSize: 28, fontWeight: '900', color: '#0055d4', letterSpacing: -0.5 }}>
+                    {data?.financialPulse.collectedTuition.toLocaleString() || 0} DT
+                  </Text>
+                  <Text style={{ fontSize: 12.5, color: '#64748b', fontWeight: '600' }}>
+                    encaissés
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 12.5, color: '#64748b', fontWeight: '600' }}>
                   sur {data?.financialPulse.expectedTuition.toLocaleString() || 0} DT
                 </Text>
               </View>
 
               {/* Progress Bar */}
-              <View style={{ height: 10, backgroundColor: '#e2e8f0', borderRadius: 5, marginTop: 12, overflow: 'hidden' }}>
+              <View style={{ height: 8, backgroundColor: '#f1f5f9', borderRadius: 4, marginTop: 10, overflow: 'hidden' }}>
                 <View
                   style={{
                     height: '100%',
                     width: `${Math.min(100, data?.financialPulse.collectionRate || 0)}%`,
                     backgroundColor: (data?.financialPulse.collectionRate || 0) >= 80 ? '#10b981' : '#0055d4',
-                    borderRadius: 5,
+                    borderRadius: 4,
                   }}
                 />
               </View>
 
               {/* Bottom stats row */}
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
-                <View style={{ backgroundColor: '#ecfdf5', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
-                  <Text style={{ fontSize: 12.5, fontWeight: '800', color: '#059669' }}>
-                    {data?.financialPulse.collectionRate || 0}% recouvré
+                <View style={{ backgroundColor: '#ecfdf5', paddingHorizontal: 9, paddingVertical: 3.5, borderRadius: 8 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#059669' }}>
+                    {data?.financialPulse.collectionRate || 0}% collecté
                   </Text>
                 </View>
-                <Text style={{ fontSize: 13, fontWeight: '800', color: '#dc2626' }}>
-                  Reste à percevoir : {data?.financialPulse.remainingToCollect.toLocaleString() || 0} DT
-                </Text>
+                <View style={{ backgroundColor: '#fef2f2', paddingHorizontal: 9, paddingVertical: 3.5, borderRadius: 8 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#dc2626' }}>
+                    Reste : {data?.financialPulse.remainingToCollect.toLocaleString() || 0} DT
+                  </Text>
+                </View>
               </View>
             </View>
 
             {/* ── 3. ATTENDANCE PULSE TODAY ─────────────────────────────────── */}
             <View
               style={{
-                marginTop: 20,
+                marginTop: 12,
                 backgroundColor: '#ffffff',
-                borderRadius: 20,
-                padding: 20,
+                borderRadius: 18,
+                padding: 14,
                 borderWidth: 1,
                 borderColor: '#e2e8f0',
                 shadowColor: '#000',
-                shadowOpacity: 0.04,
-                shadowRadius: 10,
-                elevation: 2,
+                shadowOpacity: 0.02,
+                shadowRadius: 6,
+                elevation: 1,
               }}
             >
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <CheckCircle2 size={20} color="#10b981" />
-                  <Text style={{ fontSize: 15, fontWeight: '800', color: '#0f172a' }}>
-                    Présence du jour
+                  <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#ecfdf5', alignItems: 'center', justifyContent: 'center' }}>
+                    <CheckCircle2 size={16} color="#059669" />
+                  </View>
+                  <Text style={{ fontSize: 13.5, fontWeight: '800', color: '#0f172a' }}>
+                    Présence aujourd'hui
                   </Text>
                 </View>
-                <View style={{ backgroundColor: '#ecfdf5', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
-                  <Text style={{ fontSize: 12.5, fontWeight: '800', color: '#059669' }}>
+                <View style={{ backgroundColor: data?.attendanceToday.absentCount === 0 ? '#ecfdf5' : '#fff1f2', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
+                  <Text style={{ fontSize: 11.5, fontWeight: '800', color: data?.attendanceToday.absentCount === 0 ? '#059669' : '#e11d48' }}>
                     {data?.attendanceToday.attendanceRate || 98}% de présence
                   </Text>
                 </View>
               </View>
 
-              <View style={{ marginTop: 14, padding: 14, backgroundColor: '#f8fafc', borderRadius: 14 }}>
-                <Text style={{ fontSize: 13.5, color: '#334155', fontWeight: '600' }}>
-                  {data?.attendanceToday.absentCount === 0
-                    ? "✨ 100% des élèves présents ce matin. Aucune absence signalée."
-                    : `⚠️ ${data?.attendanceToday.absentCount} absence(s) signalée(s) aujourd'hui.`}
-                </Text>
-
-                {data?.attendanceToday.recentAbsentees && data.attendanceToday.recentAbsentees.length > 0 && (
-                  <View style={{ marginTop: 10, gap: 8 }}>
-                    {data.attendanceToday.recentAbsentees.map((a) => (
-                      <View key={a.id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#1e293b' }}>
-                          • {a.studentName}
-                        </Text>
-                        <View style={{ backgroundColor: '#fee2e2', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
-                          <Text style={{ fontSize: 11, fontWeight: '800', color: '#dc2626' }}>{a.className}</Text>
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
+              {data?.attendanceToday.recentAbsentees && data.attendanceToday.recentAbsentees.length > 0 ? (
+                <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#f1f5f9', flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {data.attendanceToday.recentAbsentees.map((a) => (
+                    <View key={a.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#fef2f2', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 7 }}>
+                      <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#dc2626' }}>{a.studentName}</Text>
+                      <Text style={{ fontSize: 10, color: '#ef4444' }}>({a.className})</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
             </View>
 
-            {/* ── 4. SUIVI DES IMPAYÉS & RELANCES (THE NEW HOME OF IMPAYÉS!) ── */}
-            <View style={{ marginTop: 24 }}>
-              {/* Section Header */}
-              <View style={{ marginBottom: 12 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Wallet size={18} color="#dc2626" />
-                  <Text style={{ fontSize: 18, fontWeight: '900', color: '#0f172a', letterSpacing: -0.3 }}>
-                    Suivi des Impayés & Relances
+            {/* ── 4. SUIVI DES IMPAYÉS & RELANCES (COMPACT, LIGHT & ELEGANT) ── */}
+            <View
+              style={{
+                marginTop: 18,
+                backgroundColor: '#ffffff',
+                borderRadius: 20,
+                padding: 16,
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
+                shadowColor: '#000',
+                shadowOpacity: 0.03,
+                shadowRadius: 8,
+                elevation: 1,
+              }}
+            >
+              {/* Header: Title + Total badge */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                  <Wallet size={16} color="#0055d4" />
+                  <Text style={{ fontSize: 16, fontWeight: '900', color: '#0f172a', letterSpacing: -0.3 }}>
+                    Impayés & Salaires dus
                   </Text>
                 </View>
-                <Text style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
-                  Scolarités et salaires en attente de régularisation ({data?.monthLabel || 'ce mois'})
-                </Text>
+                <View style={{ backgroundColor: '#fef2f2', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
+                  <Text style={{ fontSize: 11.5, fontWeight: '800', color: '#dc2626' }}>
+                    {(unpaidStudentsTotal + unpaidEmployeesTotal).toLocaleString()} DT total
+                  </Text>
+                </View>
               </View>
 
-              {/* Dual KPI Ribbon (Spacious & Clean) */}
-              <View
-                style={{
-                  backgroundColor: '#ffffff',
-                  borderRadius: 16,
-                  padding: 14,
-                  borderWidth: 1,
-                  borderColor: '#e2e8f0',
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  marginBottom: 12,
-                  shadowColor: '#000',
-                  shadowOpacity: 0.02,
-                  shadowRadius: 5,
-                  elevation: 1,
-                }}
-              >
-                {/* Scolarités dues */}
-                <View style={{ flex: 1, paddingLeft: 6 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                    <GraduationCap size={15} color="#059669" />
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748b' }}>Scolarités Dues</Text>
-                    <View style={{ backgroundColor: '#ecfdf5', paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 5, marginLeft: 'auto', marginRight: 8 }}>
-                      <Text style={{ fontSize: 10.5, fontWeight: '800', color: '#059669' }}>{unpaidStudentsCount}</Text>
+              {/* Dual Stat Ribbon (Airy & Lightweight) */}
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                <View style={{ flex: 1, backgroundColor: '#f8fafc', padding: 10, borderRadius: 12, borderWidth: 1, borderColor: '#f1f5f9' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748b' }}>Scolarités dues</Text>
+                    <View style={{ backgroundColor: '#ecfdf5', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 5 }}>
+                      <Text style={{ fontSize: 10, fontWeight: '800', color: '#059669' }}>{unpaidStudentsCount}</Text>
                     </View>
                   </View>
-                  <Text style={{ fontSize: 20, fontWeight: '900', color: '#0f172a', marginTop: 4 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '900', color: '#0f172a', marginTop: 3 }}>
                     {unpaidStudentsTotal.toLocaleString()} DT
                   </Text>
                 </View>
 
-                <View style={{ width: 1, height: 38, backgroundColor: '#e2e8f0' }} />
-
-                {/* Salaires dus */}
-                <View style={{ flex: 1, paddingLeft: 14 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                    <Wallet size={15} color="#f43f5e" />
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748b' }}>Salaires Dus</Text>
-                    <View style={{ backgroundColor: '#fff1f2', paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 5, marginLeft: 'auto', marginRight: 4 }}>
-                      <Text style={{ fontSize: 10.5, fontWeight: '800', color: '#e11d48' }}>{unpaidEmployeesCount}</Text>
+                <View style={{ flex: 1, backgroundColor: '#f8fafc', padding: 10, borderRadius: 12, borderWidth: 1, borderColor: '#f1f5f9' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748b' }}>Salaires dus</Text>
+                    <View style={{ backgroundColor: '#f5f3ff', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 5 }}>
+                      <Text style={{ fontSize: 10, fontWeight: '800', color: '#7c3aed' }}>{unpaidEmployeesCount}</Text>
                     </View>
                   </View>
-                  <Text style={{ fontSize: 20, fontWeight: '900', color: '#0f172a', marginTop: 4 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '900', color: '#0f172a', marginTop: 3 }}>
                     {unpaidEmployeesTotal.toLocaleString()} DT
                   </Text>
                 </View>
               </View>
 
-              {/* Search Bar */}
+              {/* Integrated Search Input */}
               <View
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  backgroundColor: '#ffffff',
-                  borderRadius: 14,
-                  paddingHorizontal: 12,
-                  paddingVertical: 9,
+                  backgroundColor: '#f8fafc',
+                  borderRadius: 12,
+                  paddingHorizontal: 10,
+                  paddingVertical: 7,
                   borderWidth: 1,
                   borderColor: '#e2e8f0',
                   marginBottom: 10,
                 }}
               >
-                <Search size={16} color="#94a3b8" />
+                <Search size={14} color="#94a3b8" />
                 <TextInput
                   value={unpaidSearch}
                   onChangeText={setUnpaidSearch}
-                  placeholder="Rechercher élève, classe, enseignant..."
+                  placeholder="Rechercher élève, classe, prof..."
                   placeholderTextColor="#94a3b8"
-                  style={{ flex: 1, marginLeft: 8, fontSize: 13.5, color: '#1e293b' }}
+                  style={{ flex: 1, marginLeft: 8, fontSize: 12.5, color: '#0f172a', paddingVertical: 0 }}
                 />
                 {unpaidSearch ? (
                   <TouchableOpacity onPress={() => setUnpaidSearch('')}>
-                    <X size={16} color="#94a3b8" />
+                    <X size={14} color="#94a3b8" />
                   </TouchableOpacity>
                 ) : null}
               </View>
 
-              {/* Category Filter Chips */}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }} contentContainerStyle={{ gap: 8 }}>
+              {/* Category Segmented Chips - Clean Brand Blue & White, NO HARSH BLACK! */}
+              <View style={{ flexDirection: 'row', gap: 6, marginBottom: 12 }}>
                 {[
-                  { key: 'ALL', label: 'Tous', count: allUnpaid.length },
                   { key: 'STUDENT', label: 'Élèves', count: studentItems.length },
-                  { key: 'TEACHER', label: 'Enseignants', count: teacherItems.length },
-                  { key: 'STAFF', label: 'Personnel', count: staffItems.length },
+                  { key: 'TEACHER', label: 'Profs', count: teacherItems.length },
+                  { key: 'STAFF', label: 'Staff', count: staffItems.length },
+                  { key: 'ALL', label: 'Tous', count: allUnpaid.length },
                 ].map((tab) => {
                   const isActive = unpaidCategory === tab.key;
                   return (
@@ -829,52 +784,44 @@ export default function AdminDashboardScreen() {
                         setUnpaidCategory(tab.key as any);
                       }}
                       style={{
+                        flex: 1,
                         flexDirection: 'row',
                         alignItems: 'center',
-                        gap: 6,
+                        justifyContent: 'center',
+                        gap: 4,
                         paddingVertical: 7,
-                        paddingHorizontal: 13,
-                        borderRadius: 18,
-                        backgroundColor: isActive ? '#0f172a' : '#ffffff',
+                        borderRadius: 10,
+                        backgroundColor: isActive ? '#eff6ff' : '#ffffff',
                         borderWidth: 1,
-                        borderColor: isActive ? '#0f172a' : '#e2e8f0',
+                        borderColor: isActive ? '#0055d4' : '#e2e8f0',
                       }}
                     >
-                      <Text style={{ fontSize: 12.5, fontWeight: isActive ? '800' : '600', color: isActive ? '#ffffff' : '#64748b' }}>
+                      <Text style={{ fontSize: 11.5, fontWeight: isActive ? '800' : '600', color: isActive ? '#0055d4' : '#64748b' }}>
                         {tab.label}
                       </Text>
-                      <View style={{ backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : '#f1f5f9', paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 8 }}>
-                        <Text style={{ fontSize: 10.5, fontWeight: '800', color: isActive ? '#ffffff' : '#475569' }}>
+                      <View style={{ backgroundColor: isActive ? '#dbeafe' : '#f1f5f9', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 6 }}>
+                        <Text style={{ fontSize: 9.5, fontWeight: '800', color: isActive ? '#0055d4' : '#64748b' }}>
                           {tab.count}
                         </Text>
                       </View>
                     </TouchableOpacity>
                   );
                 })}
-              </ScrollView>
+              </View>
 
-              {/* Unpaid Cards List */}
+              {/* Compact List Items */}
               {filteredUnpaid.length === 0 ? (
-                <View
-                  style={{
-                    backgroundColor: '#ffffff',
-                    borderRadius: 18,
-                    padding: 30,
-                    alignItems: 'center',
-                    borderWidth: 1,
-                    borderColor: '#e2e8f0',
-                  }}
-                >
-                  <CheckCircle2 size={36} color="#10b981" />
-                  <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e293b', marginTop: 10 }}>
-                    Tout est en règle !
+                <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+                  <CheckCircle2 size={30} color="#10b981" />
+                  <Text style={{ fontSize: 14, fontWeight: '800', color: '#1e293b', marginTop: 8 }}>
+                    Tout est à jour !
                   </Text>
-                  <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center', marginTop: 4 }}>
-                    Aucun impayé trouvé pour {data?.monthLabel || 'ce mois'}.
+                  <Text style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                    Aucun impayé trouvé pour cette sélection.
                   </Text>
                 </View>
               ) : (
-                <View style={{ gap: 10 }}>
+                <View style={{ gap: 8 }}>
                   {filteredUnpaid.map((item) => {
                     const isStudent = item.type === 'student';
                     const isTeacher = item.type === 'teacher';
@@ -885,160 +832,139 @@ export default function AdminDashboardScreen() {
                         key={`${item.type}_${item.id}`}
                         style={{
                           backgroundColor: '#ffffff',
-                          borderRadius: 16,
-                          padding: 15,
+                          borderRadius: 14,
+                          padding: 12,
                           borderWidth: 1,
-                          borderColor: '#e2e8f0',
+                          borderColor: '#f1f5f9',
                           shadowColor: '#000',
                           shadowOpacity: 0.02,
-                          shadowRadius: 5,
+                          shadowRadius: 3,
                           elevation: 1,
                         }}
                       >
-                        {/* Top: Icon + Name + Role + Due Amount */}
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, paddingRight: 8 }}>
+                          {/* Left: Avatar + Info */}
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, paddingRight: 8 }}>
                             <View
                               style={{
-                                width: 38,
-                                height: 38,
-                                borderRadius: 19,
+                                width: 36,
+                                height: 36,
+                                borderRadius: 18,
                                 backgroundColor: isStudent ? '#ecfdf5' : isTeacher ? '#eff6ff' : '#f5f3ff',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                               }}
                             >
                               {isStudent ? (
-                                <GraduationCap size={18} color="#059669" />
+                                <GraduationCap size={17} color="#059669" />
                               ) : isTeacher ? (
-                                <User size={18} color="#0055d4" />
+                                <User size={17} color="#0055d4" />
                               ) : (
-                                <Briefcase size={18} color="#7c3aed" />
+                                <Briefcase size={17} color="#7c3aed" />
                               )}
                             </View>
 
                             <View style={{ flex: 1 }}>
-                              <Text style={{ fontSize: 15, fontWeight: '800', color: '#0f172a' }} numberOfLines={1}>
+                              <Text style={{ fontSize: 14, fontWeight: '800', color: '#0f172a' }} numberOfLines={1}>
                                 {item.name}
                               </Text>
-
-                              <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 3 }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 5, marginTop: 2 }}>
                                 {item.className ? (
-                                  <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 6 }}>
-                                    <Text style={{ fontSize: 10.5, fontWeight: '700', color: '#0055d4' }}>{item.className}</Text>
+                                  <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5 }}>
+                                    <Text style={{ fontSize: 10, fontWeight: '700', color: '#0055d4' }}>{item.className}</Text>
                                   </View>
                                 ) : null}
-
-                                {isTeacher && (
-                                  <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 6 }}>
-                                    <Text style={{ fontSize: 10.5, fontWeight: '700', color: '#0055d4' }}>Enseignant</Text>
+                                {isTeacher ? (
+                                  <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5 }}>
+                                    <Text style={{ fontSize: 10, fontWeight: '700', color: '#0055d4' }}>Enseignant</Text>
                                   </View>
-                                )}
-
-                                {isStaff && (
-                                  <View style={{ backgroundColor: '#f5f3ff', paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 6 }}>
-                                    <Text style={{ fontSize: 10.5, fontWeight: '700', color: '#7c3aed' }}>Personnel</Text>
+                                ) : null}
+                                {isStaff ? (
+                                  <View style={{ backgroundColor: '#f5f3ff', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5 }}>
+                                    <Text style={{ fontSize: 10, fontWeight: '700', color: '#7c3aed' }}>Personnel</Text>
                                   </View>
-                                )}
-
-                                {item.parentName && (
-                                  <Text style={{ fontSize: 11.5, color: '#64748b' }} numberOfLines={1}>
+                                ) : null}
+                                {item.parentName ? (
+                                  <Text style={{ fontSize: 11, color: '#64748b' }} numberOfLines={1}>
                                     • {item.parentName}
                                   </Text>
-                                )}
-
-                                {Boolean(item.advanceAmount && item.advanceAmount > 0) && (
-                                  <View style={{ backgroundColor: '#fef3c7', paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 6 }}>
-                                    <Text style={{ fontSize: 10, fontWeight: '700', color: '#d97706' }}>
-                                      Avance {item.advanceAmount} DT
-                                    </Text>
-                                  </View>
-                                )}
+                                ) : null}
                               </View>
                             </View>
                           </View>
 
-                          {/* Due Amount */}
+                          {/* Right: Amount Due */}
                           <View style={{ alignItems: 'flex-end' }}>
-                            <Text
-                              style={{
-                                fontSize: 17,
-                                fontWeight: '900',
-                                color: item.dueAmount > 0 ? (isStudent ? '#dc2626' : '#0f172a') : '#10b981',
-                                letterSpacing: -0.3,
-                              }}
-                            >
+                            <Text style={{ fontSize: 15, fontWeight: '900', color: isStudent ? '#dc2626' : '#0f172a' }}>
                               {item.dueAmount} DT
                             </Text>
                             {isStudent && item.status === 'PARTIAL' && (
-                              <Text style={{ fontSize: 10, fontWeight: '700', color: '#d97706' }}>
+                              <Text style={{ fontSize: 9.5, fontWeight: '700', color: '#d97706' }}>
                                 Acompte {item.paidAmount} DT
                               </Text>
                             )}
                           </View>
                         </View>
 
-                        {/* Bottom Actions Row */}
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#f1f5f9' }}>
-                          {/* Call Button */}
+                        {/* Action Micro-Bar */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#f8fafc' }}>
+                          {/* Call */}
                           <TouchableOpacity
                             onPress={() => handleCall(isStudent ? item.parentPhone : item.phone, item.name)}
                             style={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: 18,
+                              width: 32,
+                              height: 32,
+                              borderRadius: 16,
                               backgroundColor: '#f1f5f9',
                               alignItems: 'center',
                               justifyContent: 'center',
                             }}
-                            hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                           >
-                            <Phone size={15} color="#475569" />
+                            <Phone size={13} color="#475569" />
                           </TouchableOpacity>
 
-                          {/* WhatsApp Button (Students) */}
+                          {/* WhatsApp (Students) */}
                           {isStudent && (
                             <TouchableOpacity
                               onPress={() => handleWhatsAppStudent(item.parentPhone, item.name, item.dueAmount)}
                               style={{
-                                width: 36,
-                                height: 36,
-                                borderRadius: 18,
+                                width: 32,
+                                height: 32,
+                                borderRadius: 16,
                                 backgroundColor: '#ecfdf5',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                               }}
-                              hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                             >
-                              <MessageCircle size={16} color="#059669" />
+                              <MessageCircle size={14} color="#059669" />
                             </TouchableOpacity>
                           )}
 
-                          {/* Action Button: Encaisser / Payer */}
+                          {/* Collect / Pay */}
                           <TouchableOpacity
                             onPress={() => openPayModal(item)}
+                            activeOpacity={0.85}
                             style={{
-                              flex: 1,
-                              backgroundColor: isStudent ? '#059669' : '#0f172a',
+                              paddingHorizontal: 12,
+                              paddingVertical: 6,
                               borderRadius: 10,
-                              paddingVertical: 9,
+                              backgroundColor: isStudent ? '#059669' : '#0055d4',
                               flexDirection: 'row',
                               alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: 6,
-                              marginLeft: 4,
+                              gap: 4,
                             }}
-                            activeOpacity={0.85}
                           >
                             {isStudent ? (
                               <>
-                                <HandCoins size={14} color="#ffffff" />
-                                <Text style={{ fontSize: 13, fontWeight: '800', color: '#ffffff' }}>Encaisser</Text>
+                                <HandCoins size={12} color="#ffffff" />
+                                <Text style={{ fontSize: 11.5, fontWeight: '800', color: '#ffffff' }}>Encaisser</Text>
                               </>
                             ) : (
                               <>
-                                <CreditCard size={14} color="#ffffff" />
-                                <Text style={{ fontSize: 13, fontWeight: '800', color: '#ffffff' }}>Payer</Text>
+                                <CreditCard size={12} color="#ffffff" />
+                                <Text style={{ fontSize: 11.5, fontWeight: '800', color: '#ffffff' }}>Payer</Text>
                               </>
                             )}
                           </TouchableOpacity>
@@ -1050,36 +976,44 @@ export default function AdminDashboardScreen() {
               )}
             </View>
 
-            {/* ── 5. HNIA CO-PILOT CARD ────────────────────────────────────── */}
+            {/* ── 5. HNIA CO-PILOT CARD (LIGHT, GLOWING & ELEGANT - NO BLACK BOX!) ── */}
             <TouchableOpacity
               onPress={() => navigation.navigate('Hnia')}
               activeOpacity={0.9}
               style={{
-                marginTop: 24,
-                backgroundColor: '#0f172a',
+                marginTop: 18,
+                backgroundColor: '#eff6ff',
                 borderRadius: 20,
-                padding: 18,
-                shadowColor: '#0f172a',
-                shadowOpacity: 0.15,
-                shadowRadius: 10,
-                elevation: 3,
+                padding: 16,
+                borderWidth: 1.5,
+                borderColor: '#bfdbfe',
+                shadowColor: '#0055d4',
+                shadowOpacity: 0.05,
+                shadowRadius: 8,
+                elevation: 1,
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, paddingRight: 10 }}>
-                  <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: '#1e3a8a', alignItems: 'center', justifyContent: 'center' }}>
-                    <Bot size={24} color="#60a5fa" />
+                  <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center' }}>
+                    <Bot size={22} color="#0055d4" />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 15, fontWeight: '800', color: '#fff' }}>
-                      Hnia IA • Assistante Direction
-                    </Text>
-                    <Text style={{ fontSize: 12.5, color: '#94a3b8', marginTop: 2 }}>
-                      Encaisser, dépense, remplacement ou alerte vocale.
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <Text style={{ fontSize: 14.5, fontWeight: '900', color: '#0f172a' }}>
+                        Hnia IA • Assistante Direction
+                      </Text>
+                      <Sparkles size={13} color="#0055d4" />
+                    </View>
+                    <Text style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>
+                      Pilotage vocal, gestion de caisse et bilans en direct.
                     </Text>
                   </View>
                 </View>
-                <ArrowRight size={20} color="#60a5fa" />
+                <View style={{ backgroundColor: '#0055d4', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={{ fontSize: 11.5, fontWeight: '800', color: '#ffffff' }}>Ouvrir</Text>
+                  <ArrowRight size={12} color="#ffffff" />
+                </View>
               </View>
             </TouchableOpacity>
           </>
@@ -1150,16 +1084,17 @@ export default function AdminDashboardScreen() {
               value={payAmount}
               onChangeText={setPayAmount}
               keyboardType="numeric"
-              placeholder="Ex: 450"
+              placeholder="Ex: 250"
+              placeholderTextColor="#94a3b8"
               style={{
-                backgroundColor: '#ffffff',
-                borderWidth: 1.5,
-                borderColor: '#cbd5e1',
+                backgroundColor: '#f8fafc',
                 borderRadius: 12,
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
                 paddingHorizontal: 14,
                 paddingVertical: 10,
-                fontSize: 18,
-                fontWeight: '800',
+                fontSize: 16,
+                fontWeight: '700',
                 color: '#0f172a',
                 marginBottom: 14,
               }}
@@ -1299,7 +1234,7 @@ export default function AdminDashboardScreen() {
                 marginTop: 22,
                 paddingVertical: 13,
                 borderRadius: 14,
-                backgroundColor: feedback?.type === 'success' ? '#0f172a' : '#dc2626',
+                backgroundColor: feedback?.type === 'success' ? '#0055d4' : '#dc2626',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
