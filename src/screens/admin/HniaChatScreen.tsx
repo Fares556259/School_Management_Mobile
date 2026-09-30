@@ -159,31 +159,9 @@ interface ConversationThread {
   lastMessage: string | null;
 }
 
-// Performant smooth fade-in & slide-up animation for message bubbles (P4)
+// Clean, flicker-free message item container
 function AnimatedMessageItem({ children }: { children: React.ReactNode }) {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(8)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
-  return (
-    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-      {children}
-    </Animated.View>
-  );
+  return <View style={{ width: '100%' }}>{children}</View>;
 }
 
 export default function HniaChatScreen() {
@@ -777,8 +755,17 @@ export default function HniaChatScreen() {
               createdAt: m.createdAt,
             };
           });
-          setMessages(loaded);
-          saveMessagesToLocal(loaded, threadId);
+          const seen = new Set<string>();
+          const deduped: ChatMessage[] = [];
+          for (const msg of loaded) {
+            const key = msg.id || `${msg.role}_${msg.createdAt}`;
+            if (!seen.has(key)) {
+              seen.add(key);
+              deduped.push(msg);
+            }
+          }
+          setMessages(deduped);
+          saveMessagesToLocal(deduped, threadId);
         }
       }
     } catch (err) {
@@ -852,7 +839,16 @@ export default function HniaChatScreen() {
         if (cachedRaw) {
           const parsed = JSON.parse(cachedRaw);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            setMessages(parsed);
+            const seen = new Set<string>();
+            const deduped: ChatMessage[] = [];
+            for (const msg of parsed) {
+              const key = msg.id || `${msg.role}_${msg.createdAt}`;
+              if (!seen.has(key)) {
+                seen.add(key);
+                deduped.push(msg);
+              }
+            }
+            setMessages(deduped);
             setIsInitializing(false);
           }
         }
@@ -939,8 +935,18 @@ export default function HniaChatScreen() {
               createdAt: m.createdAt,
             };
           });
-          setMessages(loaded);
-          saveMessagesToLocal(loaded, res.conversationId);
+
+          const seen = new Set<string>();
+          const deduped: ChatMessage[] = [];
+          for (const msg of loaded) {
+            const key = msg.id || `${msg.role}_${msg.createdAt}`;
+            if (!seen.has(key)) {
+              seen.add(key);
+              deduped.push(msg);
+            }
+          }
+          setMessages(deduped);
+          saveMessagesToLocal(deduped, res.conversationId);
         }
       }
     } catch (err) {
@@ -1092,6 +1098,7 @@ export default function HniaChatScreen() {
     const botMsgId = `bot_${Date.now()}`;
     let accumulatedText = '';
     let isStreamStarted = false;
+    let isDoneTriggered = false;
     let receivedWidget: any = null;
     let receivedConfirmation: any = null;
 
@@ -1162,15 +1169,32 @@ export default function HniaChatScreen() {
           },
           onConfirmation: (pendingConfirmation) => {
             if (controller.signal.aborted) return;
+            isStreamStarted = true;
             receivedConfirmation = pendingConfirmation;
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === botMsgId ? { ...m, pendingConfirmation } : m
-              )
-            );
+            setMessages((prev) => {
+              const exists = prev.some((m) => m.id === botMsgId);
+              if (exists) {
+                return prev.map((m) =>
+                  m.id === botMsgId ? { ...m, pendingConfirmation } : m
+                );
+              }
+              return [
+                ...prev,
+                {
+                  id: botMsgId,
+                  role: 'assistant',
+                  content: accumulatedText || "Veuillez vérifier et confirmer l'action ci-dessous :",
+                  isStreaming: false,
+                  pendingConfirmation,
+                  createdAt: new Date().toISOString(),
+                },
+              ];
+            });
           },
           onDone: (result) => {
             if (controller.signal.aborted) return;
+            isDoneTriggered = true;
+            isStreamStarted = true;
             setActiveStatusStep(null);
             setActiveToolName(null);
 
@@ -1261,7 +1285,8 @@ export default function HniaChatScreen() {
       }
 
       // If stream didn't trigger onDone but finished successfully
-      if (res && res.success && !isStreamStarted) {
+      if (res && res.success && !isDoneTriggered && !isStreamStarted) {
+        isDoneTriggered = true;
         const nextConvId = res?.conversationId || conversationId;
         if (res.conversationId) setConversationId(res.conversationId);
 
@@ -1277,12 +1302,15 @@ export default function HniaChatScreen() {
         };
 
         setMessages((prev) => {
+          if (prev.some((m) => m.id === botMsgId)) {
+            return prev.map((m) => (m.id === botMsgId ? botMsg : m));
+          }
           const next = [...prev, botMsg];
           saveMessagesToLocal(next, nextConvId);
           return next;
         });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } else if (res && !res.success && !isStreamStarted) {
+      } else if (res && !res.success && !isStreamStarted && !isDoneTriggered) {
         const isVocal = Boolean(audioPayload || directAudioBase64);
         if (isVocal) {
           setVocalError(res?.message || 'Erreur : message vocal non compris');
@@ -1351,34 +1379,25 @@ export default function HniaChatScreen() {
     try {
       const res = await adminService.confirmAction(toolCallId, action);
       if (res && res.success) {
-        // Update local message pendingConfirmation status
-        setMessages((prev) =>
-          prev.map((m) => {
+        const newStatus: 'EXECUTED' | 'REJECTED' = action === 'confirm' ? 'EXECUTED' : 'REJECTED';
+        setMessages((prev) => {
+          const next: ChatMessage[] = prev.map((m) => {
             if (m.pendingConfirmation?.toolCallId === toolCallId) {
               return {
                 ...m,
                 pendingConfirmation: {
                   ...m.pendingConfirmation,
-                  status: action === 'confirm' ? 'EXECUTED' : 'REJECTED',
+                  status: newStatus,
                   reference: res.actionResult?.reference,
                   resultMessage: res.actionResult?.summary || res.message,
                 },
               };
             }
             return m;
-          })
-        );
-
-        // Add confirmation response bubble
-        if (action === 'confirm') {
-          const resultMsg: ChatMessage = {
-            id: `res_${Date.now()}`,
-            role: 'assistant',
-            content: res.message || '✅ Action confirmée et enregistrée avec succès !',
-            createdAt: new Date().toISOString(),
-          };
-          setMessages((prev) => [...prev, resultMsg]);
-        }
+          });
+          saveMessagesToLocal(next, conversationId);
+          return next;
+        });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else if (res?.message?.includes('introuvable') || res?.message?.includes('expirée')) {
         handleSendMessage(action === 'confirm' ? "Oui, je confirme l'enregistrement." : "Non, annule cette action.");
@@ -1618,9 +1637,9 @@ export default function HniaChatScreen() {
       }
 
       // 5. Metric Key-Value Row: e.g. "• 🟢 Présents : 498 / 498 élèves" or "💰 **Montant :** 10 DT"
-      const cleanMetricLine = trimmed.replace(/^[•*-]\s*/, '');
+      const cleanMetricLine = trimmed.replace(/^[•*-]\s*/, '').replace(/^[\uFE00-\uFE0F\s]+/, '');
       const emojiMatch = cleanMetricLine.match(
-        /^(\p{Extended_Pictographic}|\p{Emoji_Presentation}|[🟢🔴🟠🟡🔵⚪⚫📍🏛️🌾💰💳📋📞👤🏢🏷️📂📅⏱️⏳⌛❌✅❓ℹ️💡📊📈📉🎯])\s*/u
+        /^(\p{Extended_Pictographic}(?:\uFE0F|\uFE0E)?|\p{Emoji_Presentation}|[🟢🔴🟠🟡🔵⚪⚫📍🏛️🌾💰💳📋📞👤🏢🏷️📂📅⏱️⏳⌛❌✅❓ℹ️💡📊📈📉🎯])\s*/u
       );
       if (emojiMatch) {
         const emoji = emojiMatch[1];
@@ -1630,14 +1649,18 @@ export default function HniaChatScreen() {
           const rawLabel = afterEmoji.slice(0, colonIdx).trim();
           const rawValue = afterEmoji.slice(colonIdx + 1).trim();
 
-          // Strip orphaned bold/italic tags and whitespace around colon
+          // Strip orphaned bold/italic tags, variation selectors, and whitespace around colon
           const label = rawLabel
+            .replace(/^[\uFE00-\uFE0F\s]+/, '')
             .replace(/^(\*\*|\*|__|_|<b>|<strong>)+/, '')
             .replace(/(\*\*|\*|__|_|<\/b>|<\/strong>)+$/, '')
+            .replace(/[\uFE00-\uFE0F\s]+$/, '')
             .trim();
 
           const value = rawValue
-            .replace(/^(\*\*|\*|__|_|<\/b>|<\/strong>)+\s*/, '')
+            .replace(/^[\uFE00-\uFE0F\s]+/, '')
+            .replace(/^(\*\*|\*|__|_|<b>|<strong>)+\s*/, '')
+            .replace(/[\uFE00-\uFE0F\s]+$/, '')
             .trim();
 
           return (
@@ -1909,12 +1932,14 @@ export default function HniaChatScreen() {
                 ? '📷 Justificatif / Reçu envoyé'
                 : item.content?.replace(/\[IMAGE:https?:\/\/[^\]]+\]\n?/, '').trim() || (item.imageUri ? '📷 Document envoyé' : '')}
             </Text>
-          ) : actionCardData && actionCardData.status === 'PENDING' ? (
-            <Text style={[styles.normalText, { fontWeight: '600', color: '#0f172a', marginBottom: 4 }]}>
-              {item.content && !item.content.includes("Confirmation") && !item.content.includes("❓")
-                ? renderFormattedText(item.content)
-                : "Veuillez vérifier et confirmer l'action ci-dessous :"}
-            </Text>
+          ) : actionCardData ? (
+            actionCardData.status === 'PENDING' ? (
+              <Text style={[styles.normalText, { fontWeight: '600', color: '#0f172a', marginBottom: 4 }]}>
+                {item.content && !item.content.includes("Confirmation") && !item.content.includes("❓")
+                  ? renderFormattedText(item.content)
+                  : "Veuillez vérifier et confirmer l'action ci-dessous :"}
+              </Text>
+            ) : null
           ) : caisseData ? (
             (() => {
               const lines = (item.content || '').split('\n').filter((line) => {
@@ -2164,7 +2189,7 @@ export default function HniaChatScreen() {
             <FlatList
               ref={flatListRef}
               data={messages}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item, index) => `${item.id}_${index}`}
               renderItem={renderMessageItem}
               contentContainerStyle={styles.messagesList}
               showsVerticalScrollIndicator={false}

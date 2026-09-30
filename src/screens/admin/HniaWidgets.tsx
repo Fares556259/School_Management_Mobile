@@ -1350,39 +1350,39 @@ export function tryParseActionCardWidget(
   // Intitulé / Titre / Description
   const titleMatch =
     text.match(/(?:intitulé|titre|description)\s*[:\s]+\*?`?([^\n*`]+)`?\*?/i) ||
-    text.match(/🏷️\s*\*?`?([^\n*`]+)`?\*?/i);
+    text.match(/🏷\uFE0F?\s*\*?`?([^\n*`]+)`?\*?/iu);
   if (titleMatch) {
-    fields.push({ label: 'Description', value: titleMatch[1].trim() });
+    fields.push({ label: 'Description', value: titleMatch[1].replace(/[\uFE00-\uFE0F]/g, '').trim() });
   }
 
   // Catégorie
   const catMatch =
     text.match(/(?:catégorie)\s*[:\s]+\*?`?([^\n*`([<]+)/i) ||
-    text.match(/📂\s*\*?`?([^\n*`([<]+)/i);
+    text.match(/📂\s*\*?`?([^\n*`([<]+)/iu);
   if (catMatch) {
-    fields.push({ label: 'Catégorie', value: catMatch[1].trim() });
+    fields.push({ label: 'Catégorie', value: catMatch[1].replace(/[\uFE00-\uFE0F]/g, '').trim() });
   }
 
   // Date
   const dateMatch =
     text.match(/(?:date)\s*[:\s]+\*?`?([0-9/.\-\s\w]+)`?\*?/i) ||
-    text.match(/📅\s*\*?`?([0-9/.\-\s\w]+)`?\*?/i);
+    text.match(/📅\s*\*?`?([0-9/.\-\s\w]+)`?\*?/iu);
   if (dateMatch) {
-    fields.push({ label: 'Date', value: dateMatch[1].trim() });
+    fields.push({ label: 'Date', value: dateMatch[1].replace(/[\uFE00-\uFE0F]/g, '').trim() });
   }
 
   // Élève / Bénéficiaire / Nom
   const nameMatch =
     text.match(/(?:nom|prénom|élève|bénéficiaire)\s*[:\s]+\*?`?([^\n*`]+)`?\*?/i) ||
-    text.match(/👨‍🎓\s*\*?`?([^\n*`]+)`?\*?/i);
+    text.match(/👨‍🎓\s*\*?`?([^\n*`]+)`?\*?/iu);
   if (nameMatch && !isExpense) {
-    fields.push({ label: 'Nom & Prénom', value: nameMatch[1].trim() });
+    fields.push({ label: 'Nom & Prénom', value: nameMatch[1].replace(/[\uFE00-\uFE0F]/g, '').trim() });
   }
 
   // Classe
   const classMatch = text.match(/(?:classe)\s*[:\s]+\*?`?([^\n*`]+)`?\*?/i);
   if (classMatch && !isExpense) {
-    fields.push({ label: 'Classe', value: classMatch[1].trim() });
+    fields.push({ label: 'Classe', value: classMatch[1].replace(/[\uFE00-\uFE0F]/g, '').trim() });
   }
 
   // If no fields could be extracted and not already executed/rejected, do not falsely parse
