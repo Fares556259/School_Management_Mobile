@@ -50,12 +50,16 @@ import {
   AudioLines,
   Volume2,
   FolderUp,
+  Globe,
+  Building2,
+  BookOpen,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
+import * as Clipboard from 'expo-clipboard';
 import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { adminService } from '../../services/api';
@@ -127,6 +131,19 @@ export default function HniaChatScreen() {
   const [fullscreenImageUri, setFullscreenImageUri] = useState<string | null>(null);
   const [confirmingToolId, setConfirmingToolId] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | undefined>(undefined);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+
+  const handleCopyMessage = async (msgId: string, textToCopy: string) => {
+    try {
+      const cleanText = textToCopy.replace(/\[IMAGE:https?:\/\/[^\]]+\]\n?/g, '').trim();
+      await Clipboard.setStringAsync(cleanText);
+      await Haptics.selectionAsync();
+      setCopiedMessageId(msgId);
+      setTimeout(() => setCopiedMessageId(null), 2000);
+    } catch (err) {
+      console.warn('[HniaChat] Copy failed:', err);
+    }
+  };
 
   // Audio recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -1189,17 +1206,135 @@ export default function HniaChatScreen() {
         return <View key={idx} style={{ height: 6 }} />;
       }
 
-      // Blockquote / Tip
-      if (trimmed.startsWith('<blockquote>') || trimmed.includes('💡 Hnia :') || trimmed.includes('💡')) {
-        const cleanTip = trimmed.replace(/<\/?blockquote>/g, '').replace(/<[^>]*>/g, '');
+      // 1. Official SnapSchool Card Header: e.g. "🏛️ SNAPSCHOOL │ SUIVI DES ABSENCES" or "🏛️ SNAPSCHOOL | WIKIPEDIA"
+      if (/^(?:🏛️|🏢|🏫)?\s*SNAPSCHOOL\s*[│|:]\s*(.+)$/i.test(trimmed) || /^(?:🏛️|🏢|🏫)\s+([A-ZÀ-Ÿ\s]{3,})$/i.test(trimmed)) {
+        const match = trimmed.match(/^(?:🏛️|🏢|🏫)?\s*SNAPSCHOOL\s*[│|:]\s*(.+)$/i) || trimmed.match(/^(?:🏛️|🏢|🏫)\s+([A-ZÀ-Ÿ\s]{3,})$/i);
+        const title = (match ? match[1] : trimmed).replace(/[━─═-]{2,}/g, '').trim();
+        const upper = title.toUpperCase();
+
+        const IconComponent =
+          upper.includes('ABSENCE') || upper.includes('PRÉSENCE') || upper.includes('APPEL')
+            ? Calendar
+            : upper.includes('CAISSE') || upper.includes('FINANCE') || upper.includes('IMPAYÉ') || upper.includes('PAIEMENT')
+            ? Wallet
+            : upper.includes('WIKI') || upper.includes('RECHERCHE')
+            ? Globe
+            : upper.includes('ÉLÈVE') || upper.includes('PROFIL') || upper.includes('PARENT')
+            ? Users
+            : upper.includes('NOTE') || upper.includes('EXAMEN')
+            ? BookOpen
+            : Building2;
+
         return (
-          <View key={idx} style={styles.tipCard}>
-            <Text style={styles.tipText}>{cleanTip}</Text>
+          <View key={idx} style={styles.cardHeaderBadge}>
+            <View style={styles.cardHeaderIconContainer}>
+              <IconComponent size={13} color="#0055d4" />
+            </View>
+            <Text style={styles.cardHeaderBadgeTitle} numberOfLines={1}>
+              {title}
+            </Text>
+            <View style={styles.cardHeaderTag}>
+              <Text style={styles.cardHeaderTagText}>SNAPSCHOOL</Text>
+            </View>
           </View>
         );
       }
 
-      // Header 3
+      // 2. ASCII Progress Bar: e.g. "[░░░░░░░░░░] 100%" or "[▓▓▓▓▓▓▓▓▓░] 90%" or "[██████████] 100%"
+      const progressMatch = trimmed.match(/\[([▓█░▒─\-#=]+)\]\s*(\d+)%/);
+      if (progressMatch) {
+        const pct = Math.min(100, Math.max(0, parseInt(progressMatch[2], 10)));
+        const barColor = pct >= 80 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444';
+        const badgeBg = pct >= 80 ? '#ecfdf5' : pct >= 50 ? '#fef3c7' : '#fef2f2';
+        const badgeText = pct >= 80 ? '#059669' : pct >= 50 ? '#d97706' : '#dc2626';
+
+        return (
+          <View key={idx} style={styles.progressBarWrapper}>
+            <View style={styles.progressBarTrack}>
+              <View style={[styles.progressBarFill, { width: `${pct}%`, backgroundColor: barColor }]} />
+            </View>
+            <View style={[styles.progressBadge, { backgroundColor: badgeBg }]}>
+              <Text style={[styles.progressBadgeText, { color: badgeText }]}>{pct}%</Text>
+            </View>
+          </View>
+        );
+      }
+
+      // 3. Date Pill: e.g. "📅 29/09/2026 (Mardi 29 Septembre 2026)"
+      if (trimmed.startsWith('📅')) {
+        const dateText = trimmed.replace(/^📅\s*/, '').trim();
+        return (
+          <View key={idx} style={styles.datePillRow}>
+            <Calendar size={13} color="#475569" />
+            <Text style={styles.datePillText}>{dateText}</Text>
+          </View>
+        );
+      }
+
+      // 4. Blockquote / Tip / Advice Card: e.g. "> 💡 **Hnia :** ..." or "💡 Hnia : ..." or "<blockquote>...</blockquote>"
+      if (
+        trimmed.startsWith('>') ||
+        trimmed.startsWith('<blockquote>') ||
+        trimmed.includes('💡 Hnia :') ||
+        trimmed.includes('💡 **Hnia :**') ||
+        (trimmed.startsWith('💡') && trimmed.length > 5)
+      ) {
+        let cleanTip = trimmed
+          .replace(/<\/?blockquote>/g, '')
+          .replace(/^>\s*/, '')
+          .replace(/^💡\s*/, '')
+          .replace(/^\*{0,2}Hnia\s*:\*{0,2}\s*/i, '')
+          .trim();
+
+        return (
+          <View key={idx} style={styles.insightCard}>
+            <View style={styles.insightHeader}>
+              <View style={styles.insightIconBadge}>
+                <Sparkles size={13} color="#0055d4" />
+              </View>
+              <Text style={styles.insightTitle}>Conseil Hnia</Text>
+            </View>
+            <Text style={styles.insightBody}>
+              {renderRichText(cleanTip, styles.insightBody)}
+            </Text>
+          </View>
+        );
+      }
+
+      // 5. Metric Key-Value Row: e.g. "• 🟢 Présents : 498 / 498 élèves" or "• 📍 Géographie : ..."
+      const metricMatch = trimmed.match(
+        /^(?:[•*-]\s*)?([🟢🔴🟠🟡🔵⚪⚫📍🏛️🌾💰💳📋📞👤🏢])\s*(.+?)\s*:\s*(.+)$/
+      );
+      if (metricMatch) {
+        const emoji = metricMatch[1];
+        const label = metricMatch[2].trim();
+        const value = metricMatch[3].trim();
+
+        return (
+          <View key={idx} style={styles.metricCardRow}>
+            <View style={styles.metricIconBox}>
+              <Text style={styles.metricIconText}>{emoji}</Text>
+            </View>
+            <View style={styles.metricBody}>
+              <Text style={styles.metricLabelText}>{label}</Text>
+              <Text style={styles.metricValueText}>
+                {renderRichText(value, styles.metricValueText)}
+              </Text>
+            </View>
+          </View>
+        );
+      }
+
+      // 6. Section Subtitle with leading emoji: e.g. "📊 Assiduité du jour :" or "🇹🇳 Tajerouine (تاجروين)"
+      if (/^[📊📈📉📍👥📌🎯💼💰🇹🇳]\s*(.+)$/.test(trimmed) && trimmed.length < 50) {
+        return (
+          <Text key={idx} style={styles.sectionSubtitle}>
+            {renderRichText(trimmed, styles.sectionSubtitle)}
+          </Text>
+        );
+      }
+
+      // 7. Headers
       if (trimmed.startsWith('###')) {
         return (
           <Text key={idx} style={styles.header3}>
@@ -1208,7 +1343,6 @@ export default function HniaChatScreen() {
         );
       }
 
-      // Header 2 or 1
       if (trimmed.startsWith('##') || trimmed.startsWith('#')) {
         return (
           <Text key={idx} style={styles.header2}>
@@ -1217,13 +1351,16 @@ export default function HniaChatScreen() {
         );
       }
 
-      // Bullet points
-      if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*')) {
-        const bulletText = trimmed.replace(/^[-•*]\s*/, '');
+      // 8. Bullet points: only match literal "•" OR "-" / "*" followed by whitespace
+      const bulletMatch = trimmed.match(/^(?:[•]|(?:[-*]\s+))(.+)$/);
+      if (bulletMatch) {
+        const bulletContent = bulletMatch[1].trim();
         return (
           <View key={idx} style={styles.bulletRow}>
-            <Text style={styles.bulletDot}>•</Text>
-            <Text style={styles.bulletText}>{renderRichText(bulletText, styles.bulletText)}</Text>
+            <View style={styles.bulletDot} />
+            <Text style={styles.bulletText}>
+              {renderRichText(bulletContent, styles.bulletText)}
+            </Text>
           </View>
         );
       }
@@ -1251,18 +1388,30 @@ export default function HniaChatScreen() {
     // 2. Strip separator bars
     str = str.replace(/[━─═-]{4,}/g, '');
 
-    // 3. Normalize HTML tags to tokens
-    str = str
-      .replace(/<\/?(?:b|strong)>/gi, '|||B|||')
-      .replace(/<\/?(?:i|em)>/gi, '|||I|||')
-      .replace(/<\/?code>/gi, '|||C|||')
-      .replace(/\*\*(.*?)\*\*/g, '|||B|||$1|||B|||')
-      .replace(/`([^`]+)`/g, '|||C|||$1|||C|||');
+    // 3. Fix mismatched asterisks like *Word** -> **Word** or **Word* -> **Word**
+    str = str.replace(/(^|\s)\*([^*\s][^*]*?)\*\*(?=\s|$|[.,!?;:])/g, '$1**$2**');
+    str = str.replace(/(^|\s)\*\*([^*\s][^*]*?)\*(?=\s|$|[.,!?;:])/g, '$1**$2**');
 
-    // 4. Strip any other HTML tags
+    // 4. Tokenize Code pills (HTML code or backticks)
+    str = str.replace(/<\/?code>/gi, '|||C|||');
+    str = str.replace(/`([^`]+)`/g, '|||C|||$1|||C|||');
+
+    // 5. Tokenize Bold Italic ***text***
+    str = str.replace(/\*\*\*(.+?)\*\*\*/g, '|||B||||||I|||$1|||I||||||B|||');
+
+    // 6. Tokenize Bold <b> or **text**
+    str = str.replace(/<\/?(?:b|strong)>/gi, '|||B|||');
+    str = str.replace(/\*\*(.+?)\*\*/g, '|||B|||$1|||B|||');
+
+    // 7. Tokenize Italic <i> or *text* or _text_
+    str = str.replace(/<\/?(?:i|em)>/gi, '|||I|||');
+    str = str.replace(/(^|\s)\*([^*\s][^*]*?)\*(?=\s|$|[.,!?;:])/g, '$1|||I|||$2|||I|||');
+    str = str.replace(/(^|\s)_([^_\s][^_]*?)_(?=\s|$|[.,!?;:])/g, '$1|||I|||$2|||I|||');
+
+    // 8. Strip any remaining HTML tags
     str = str.replace(/<[^>]+>/g, '');
 
-    // 5. Tokenize
+    // 9. Tokenize
     const tokens = str.split(/(\|\|\|[BIC]\|\|\|)/g);
 
     let isBold = false;
@@ -1282,7 +1431,7 @@ export default function HniaChatScreen() {
         if (isCode) {
           elements.push(
             <Text key={idx} style={styles.codeTextInline}>
-              {` ${token} `}
+              {` ${token.trim()} `}
             </Text>
           );
           return;
@@ -1511,6 +1660,34 @@ export default function HniaChatScreen() {
               )}
             </View>
           )}
+
+          {/* Assistant Action Footer: model tag + copy button */}
+          {!isUser && item.content ? (
+            <View style={styles.assistantFooterRow}>
+              <View style={styles.assistantFooterLeft}>
+                <View style={styles.assistantFooterDot} />
+                <Text style={styles.assistantFooterModel}>Hnia IA</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.copyButton}
+                onPress={() => handleCopyMessage(item.id, item.content)}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                {copiedMessageId === item.id ? (
+                  <>
+                    <Check size={11} color="#059669" />
+                    <Text style={[styles.copyButtonText, { color: '#059669' }]}>Copié !</Text>
+                  </>
+                ) : (
+                  <>
+                    <Copy size={11} color="#64748b" />
+                    <Text style={styles.copyButtonText}>Copier</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          ) : null}
 
           {/* Follow-up Suggestion Chips (filter out duplicate confirm/cancel) */}
           {!isUser && item.followUpSuggestions && item.followUpSuggestions.length > 0 && (
@@ -2258,8 +2435,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   userBubble: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#0055d4',
     borderBottomRightRadius: 4,
+    shadowColor: '#0055d4',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 2,
   },
   assistantBubble: {
     backgroundColor: '#ffffff',
@@ -2267,13 +2449,15 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
     borderBottomLeftRadius: 4,
     shadowColor: '#000',
-    shadowOpacity: 0.02,
-    shadowRadius: 6,
-    elevation: 1,
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
+    elevation: 2,
   },
   userText: {
     fontSize: 15,
-    color: '#0f172a',
+    color: '#ffffff',
+    fontWeight: '500',
     lineHeight: 22,
   },
   normalText: {
@@ -2356,9 +2540,11 @@ const styles = StyleSheet.create({
     marginVertical: 2,
   },
   bulletDot: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0055d4',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#0055d4',
+    marginTop: 7,
   },
   bulletText: {
     flex: 1,
@@ -2380,6 +2566,229 @@ const styles = StyleSheet.create({
     color: '#334155',
     lineHeight: 19,
     fontStyle: 'italic',
+  },
+
+  /* Enhanced Rich Message Components (Header pills, progress bar, insights, metrics) */
+  cardHeaderBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f7ff',
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    marginVertical: 6,
+    gap: 8,
+  },
+  cardHeaderIconContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  cardHeaderBadgeTitle: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1e40af',
+    letterSpacing: 0.3,
+  },
+  cardHeaderTag: {
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  cardHeaderTagText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: 0.5,
+  },
+
+  progressBarWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginVertical: 8,
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  progressBarTrack: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  progressBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+
+  datePillRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginVertical: 4,
+  },
+  datePillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#334155',
+  },
+
+  insightCard: {
+    backgroundColor: '#f0f9ff',
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+    borderRadius: 12,
+    padding: 12,
+    marginVertical: 8,
+  },
+  insightHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  insightIconBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#e0f2fe',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  insightTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0369a1',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  insightBody: {
+    fontSize: 13,
+    color: '#0c4a6e',
+    lineHeight: 19,
+    fontStyle: 'italic',
+  },
+
+  metricCardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    marginVertical: 3,
+    gap: 10,
+  },
+  metricIconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  metricIconText: {
+    fontSize: 14,
+  },
+  metricBody: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  metricLabelText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  metricValueText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+
+  assistantFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+  },
+  assistantFooterLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  assistantFooterDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#0055d4',
+  },
+  assistantFooterModel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#94a3b8',
+    letterSpacing: 0.3,
+  },
+  copyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  copyButtonText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748b',
   },
   messageImageWrapper: {
     position: 'relative',
