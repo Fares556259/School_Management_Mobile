@@ -172,7 +172,7 @@ const mapStudent = (s: any): Student & { raw: any } => ({
 
 // ─── Auth Service ────────────────────────────────────────────────────────────
 export const authService = {
-  checkPhoneStatus: async (phone: string, role: string): Promise<{ success: boolean; status?: 'NEEDS_SETUP' | 'NEEDS_PASSWORD'; error?: string; name?: string; img?: string }> => {
+  checkPhoneStatus: async (phone: string, role: string): Promise<{ success: boolean; status?: 'NEEDS_SETUP' | 'NEEDS_PASSWORD'; notFound?: boolean; error?: string; name?: string; img?: string }> => {
     const data = await apiFetch('/api/mobile/login', {
       method: 'POST',
       body: JSON.stringify({ phone: phone.trim(), role }),
@@ -181,7 +181,11 @@ export const authService = {
     if (!data) return { success: false, error: 'Network error or account not found.' };
     
     if (data.success === false) {
-      return { success: false, error: data.error };
+      return {
+        success: false,
+        notFound: data.notFound || false,
+        error: data.error,
+      };
     }
 
     return {
@@ -189,6 +193,88 @@ export const authService = {
       status: data.status,
       name: data.name,
       img: data.img
+    };
+  },
+
+  verifyStudent: async (nationalId: string): Promise<{
+    success: boolean;
+    error?: string;
+    alreadyLinked?: boolean;
+    linkedParentPhone?: string;
+    student?: {
+      id: string;
+      name: string;
+      surname: string;
+      sex: "MALE" | "FEMALE";
+      nationalId: string;
+      levelId: number;
+      levelName: string;
+      className: string;
+      schoolId: string;
+      schoolName: string;
+      bloodType: string;
+      address: string;
+    };
+  }> => {
+    const data = await apiFetch('/api/mobile/student/verify', {
+      method: 'POST',
+      body: JSON.stringify({ nationalId: nationalId.trim() }),
+    });
+
+    if (!data) return { success: false, error: 'Erreur réseau. Veuillez réessayer.' };
+    return data;
+  },
+
+  signUpParent: async (payload: {
+    studentIds: string[];
+    parentName: string;
+    parentSurname: string;
+    phone: string;
+    password: string;
+    relation?: string;
+    address?: string;
+    bloodType?: string;
+    emergencyPhone?: string;
+    medicalNotes?: string;
+  }): Promise<{
+    success: boolean;
+    error?: string;
+    userId?: string;
+    userType?: string;
+    name?: string;
+    img?: string | null;
+    students?: any[];
+  }> => {
+    const response = await apiFetch('/api/mobile/auth', {
+      method: 'POST',
+      body: JSON.stringify({ ...payload, action: 'signup', role: 'parent' }),
+    });
+
+    if (!response) {
+      return { success: false, error: 'Erreur de connexion réseau.' };
+    }
+
+    if (!response.success) {
+      return { success: false, error: response.error || "Échec de l'inscription." };
+    }
+
+    await Promise.all([
+      response.token ? authStorage.saveToken(response.token) : Promise.resolve(),
+      response.userId ? authStorage.saveUserId(response.userId) : Promise.resolve(),
+      response.userType ? authStorage.saveUserRole(response.userType) : Promise.resolve(),
+      response.schoolId ? authStorage.saveSchoolId(response.schoolId) : Promise.resolve(),
+      response.students
+        ? AsyncStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify(response.students))
+        : Promise.resolve(),
+    ]);
+
+    return {
+      success: true,
+      userId: response.userId,
+      userType: response.userType,
+      name: response.name,
+      img: response.img || null,
+      students: response.students,
     };
   },
 

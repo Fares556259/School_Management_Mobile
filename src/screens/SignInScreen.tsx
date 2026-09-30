@@ -16,7 +16,17 @@ import { authService } from '../services/api';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage, Language } from '../context/LanguageContext';
 
-export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'teacher' | 'admin', onSignIn: () => void, onBack: () => void }) => {
+export const SignInScreen = ({
+  role,
+  onSignIn,
+  onBack,
+  onNavigateToSignUp,
+}: {
+  role: 'parent' | 'teacher' | 'admin';
+  onSignIn: () => void;
+  onBack: () => void;
+  onNavigateToSignUp?: (phone?: string) => void;
+}) => {
   const { setUserName, setUserAvatarUrl, setChildren, setSelectedChildId, setUserId, setUserRole } = useAppStore();
   const { language, setLanguage, t, isRTL } = useLanguage();
 
@@ -27,6 +37,7 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [hint, setHint] = useState('');
+  const [showSignUpPrompt, setShowSignUpPrompt] = useState(false);
 
   const handleCheckStatus = async () => {
     if (!phone.trim()) {
@@ -35,13 +46,18 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
     }
     setIsLoading(true);
     setError('');
+    setShowSignUpPrompt(false);
     try {
       const result = await authService.checkPhoneStatus(phone.trim(), role);
       if (result.success && result.status) {
         setTempParent({ name: result.name || 'User', img: result.img || null });
         setStep(result.status);
       } else {
-        setError(result.error || (t?.accountNotFoundPleaseContact || 'Account not found. Please contact support.'));
+        if (role === 'parent' && result.notFound) {
+          setShowSignUpPrompt(true);
+        } else {
+          setError(result.error || (t?.accountNotFoundPleaseContact || 'Account not found. Please contact support.'));
+        }
       }
     } catch (e) {
       setError(t?.networkErrorPleaseTryAgain || 'Network error. Please try again.');
@@ -251,6 +267,50 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
               </View>
             )}
 
+            {/* Account Not Found -> Smooth Sign Up Card */}
+            {showSignUpPrompt && role === 'parent' && (
+              <View
+                style={{
+                  backgroundColor: '#eff6ff',
+                  borderRadius: 16,
+                  borderWidth: 1.5,
+                  borderColor: '#bfdbfe',
+                  padding: 16,
+                  marginBottom: 16,
+                }}
+              >
+                <Text
+                  style={{
+                    color: '#1e40af',
+                    fontSize: 14,
+                    fontWeight: '700',
+                    textAlign: 'center',
+                    marginBottom: 10,
+                  }}
+                >
+                  {language === 'ar'
+                    ? 'هذا الرقم غير مسجل بعد في فضاء الأولياء.'
+                    : 'Ce numéro n’est pas encore associé à un compte parent.'}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => onNavigateToSignUp && onNavigateToSignUp(phone.trim())}
+                  style={{
+                    backgroundColor: '#0055d4',
+                    borderRadius: 12,
+                    paddingVertical: 12,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: 14 }}>
+                    {language === 'ar'
+                      ? 'إنشاء حساب وربط التلميذ الآن ←'
+                      : 'Créer mon compte et lier mon enfant →'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             {/* Button */}
             <TouchableOpacity
               onPress={(role === 'admin' || step !== 'PHONE') ? handleFinalAuth : handleCheckStatus}
@@ -269,6 +329,28 @@ export const SignInScreen = ({ role, onSignIn, onBack }: { role: 'parent' | 'tea
                 </>
               )}
             </TouchableOpacity>
+
+            {/* Sign Up Link for Parents (Inspired by Capture 2) */}
+            {role === 'parent' && step === 'PHONE' && onNavigateToSignUp && (
+              <View
+                style={{
+                  flexDirection: isRTL ? 'row-reverse' : 'row',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginTop: 22,
+                  gap: 6,
+                }}
+              >
+                <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '500' }}>
+                  {language === 'ar' ? 'جديد على التطبيق ؟' : 'Nouveau sur l’application ?'}
+                </Text>
+                <TouchableOpacity onPress={() => onNavigateToSignUp(phone.trim())}>
+                  <Text style={{ fontSize: 14, fontWeight: '800', color: '#0055d4' }}>
+                    {language === 'ar' ? 'تسجيل حساب' : 'S’inscrire'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             {/* Footer */}
             <View style={{ alignItems: 'center', marginTop: 32 }}>
