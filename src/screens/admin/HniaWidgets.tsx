@@ -1272,6 +1272,135 @@ export function tryParseReceiptWidget(text: string): PdfReceiptWidgetData | null
   };
 }
 
+export function tryParseActionCardWidget(
+  text: string,
+  defaultToolCallId?: string
+): ActionCardData | null {
+  if (!text) return null;
+
+  // Check if text represents a confirmation request, executed success, or cancellation
+  const hasConfirmPrompt =
+    /confirmer/i.test(text) ||
+    /souhaitez-vous confirmer/i.test(text) ||
+    /veuillez (?:vérifier et )?confirmer/i.test(text) ||
+    /❓/i.test(text);
+
+  const isExecuted =
+    /action.*exécutée avec succès/i.test(text) ||
+    /dépense ajoutée/i.test(text) ||
+    /paiement enregistré/i.test(text) ||
+    /élève inscrit/i.test(text) ||
+    /classe créée/i.test(text) ||
+    /✅.*(?:confirmé|enregistré|exécuté)/i.test(text);
+
+  const isRejected =
+    /action annulée/i.test(text) ||
+    /❌.*annulé/i.test(text);
+
+  if (!hasConfirmPrompt && !isExecuted && !isRejected) return null;
+
+  const toolCallId = defaultToolCallId || `parsed_action_${Date.now()}`;
+
+  const status: ActionCardData['status'] = isRejected
+    ? 'REJECTED'
+    : isExecuted
+    ? 'EXECUTED'
+    : 'PENDING';
+
+  const isExpense = /dépense/i.test(text);
+  const isPayment = /paiement/i.test(text) || /encaissement/i.test(text) || /encaisser/i.test(text);
+  const isStudent = /élève/i.test(text) || /inscrire/i.test(text) || /inscription/i.test(text);
+  const isClass = /classe/i.test(text) || /créer.*classe/i.test(text);
+
+  let actionType: ActionCardData['actionType'] = 'generic';
+  let actionTitle = 'Action à confirmer';
+  let toolName = 'generic_action';
+
+  if (isExpense) {
+    actionType = 'expense';
+    actionTitle = 'Ajouter une dépense';
+    toolName = 'add_expense';
+  } else if (isPayment) {
+    actionType = 'payment';
+    actionTitle = 'Encaisser un paiement';
+    toolName = 'record_payment';
+  } else if (isStudent) {
+    actionType = 'student';
+    actionTitle = 'Inscrire un nouvel élève';
+    toolName = 'create_student';
+  } else if (isClass) {
+    actionType = 'class';
+    actionTitle = 'Créer une nouvelle classe';
+    toolName = 'create_class';
+  }
+
+  // Extract structured fields from text
+  const fields: ActionCardField[] = [];
+
+  // Montant
+  const amountMatch =
+    text.match(/(?:montant)\s*[:\s]+\*?`?([0-9.,\s]+(?:\s*DT)?)/i) ||
+    text.match(/💰\s*\*?`?([0-9.,\s]+(?:\s*DT)?)/i) ||
+    text.match(/\b(\d+(?:[.,]\d+)?\s*DT)\b/i);
+  if (amountMatch) {
+    const rawAmt = amountMatch[1].replace(/DT/i, '').trim();
+    fields.push({ label: 'Montant', value: `${rawAmt} DT` });
+  }
+
+  // Intitulé / Titre / Description
+  const titleMatch =
+    text.match(/(?:intitulé|titre|description)\s*[:\s]+\*?`?([^\n*`]+)`?\*?/i) ||
+    text.match(/🏷️\s*\*?`?([^\n*`]+)`?\*?/i);
+  if (titleMatch) {
+    fields.push({ label: 'Description', value: titleMatch[1].trim() });
+  }
+
+  // Catégorie
+  const catMatch =
+    text.match(/(?:catégorie)\s*[:\s]+\*?`?([^\n*`([<]+)/i) ||
+    text.match(/📂\s*\*?`?([^\n*`([<]+)/i);
+  if (catMatch) {
+    fields.push({ label: 'Catégorie', value: catMatch[1].trim() });
+  }
+
+  // Date
+  const dateMatch =
+    text.match(/(?:date)\s*[:\s]+\*?`?([0-9/.\-\s\w]+)`?\*?/i) ||
+    text.match(/📅\s*\*?`?([0-9/.\-\s\w]+)`?\*?/i);
+  if (dateMatch) {
+    fields.push({ label: 'Date', value: dateMatch[1].trim() });
+  }
+
+  // Élève / Bénéficiaire / Nom
+  const nameMatch =
+    text.match(/(?:nom|prénom|élève|bénéficiaire)\s*[:\s]+\*?`?([^\n*`]+)`?\*?/i) ||
+    text.match(/👨‍🎓\s*\*?`?([^\n*`]+)`?\*?/i);
+  if (nameMatch && !isExpense) {
+    fields.push({ label: 'Nom & Prénom', value: nameMatch[1].trim() });
+  }
+
+  // Classe
+  const classMatch = text.match(/(?:classe)\s*[:\s]+\*?`?([^\n*`]+)`?\*?/i);
+  if (classMatch && !isExpense) {
+    fields.push({ label: 'Classe', value: classMatch[1].trim() });
+  }
+
+  // If no fields could be extracted and not already executed/rejected, do not falsely parse
+  if (fields.length === 0 && !isExecuted && !isRejected) {
+    return null;
+  }
+
+  return {
+    toolCallId,
+    toolName,
+    actionTitle,
+    actionType,
+    confirmText: 'Confirmer l\'enregistrement de cette action ?',
+    status,
+    fields,
+  };
+}
+
 // ============================================================================
 // 4. ActionCardWidget (SnapSchool-Native Interactive Action Execution Card)
 // ============================================================================

@@ -108,6 +108,7 @@ import {
   tryParseCaisseWidget,
   tryParseUnpaidWidget,
   tryParseReceiptWidget,
+  tryParseActionCardWidget,
 } from './HniaWidgets';
 
 const HNIA_STORAGE_KEY = '@hnia_chat_messages_v2';
@@ -736,13 +737,46 @@ export default function HniaChatScreen() {
         setConversationId(threadId);
         await AsyncStorage.setItem(HNIA_CONV_STORAGE_KEY, threadId).catch(() => null);
         if (Array.isArray(res.messages)) {
-          const loaded: ChatMessage[] = res.messages.map((m: any) => ({
-            id: m.id,
-            role: m.role,
-            content: m.content || '',
-            imageUri: m.imageUri,
-            createdAt: m.createdAt,
-          }));
+          const pendingList: any[] = Array.isArray(res.pendingConfirmations) ? res.pendingConfirmations : [];
+          const loaded: ChatMessage[] = res.messages.map((m: any, mIdx: number) => {
+            const content = m.content || '';
+            let pendingConfirmation = m.pendingConfirmation || null;
+            if (!pendingConfirmation && m.role === 'assistant') {
+              const matchedPending = pendingList.find((tc: any) =>
+                (tc.toolName && content.toLowerCase().includes(tc.toolName.replace(/_/g, ' '))) ||
+                content.includes('❓') ||
+                content.includes('Confirmer')
+              ) || (mIdx === res.messages.length - 1 && pendingList.length > 0 ? pendingList[0] : null);
+
+              const parsedCard = tryParseActionCardWidget(content, matchedPending?.toolCallId);
+              if (parsedCard) {
+                pendingConfirmation = {
+                  ...parsedCard,
+                  toolCallId: matchedPending?.toolCallId || parsedCard.toolCallId,
+                  arguments: matchedPending?.arguments || parsedCard.arguments,
+                };
+              } else if (matchedPending) {
+                pendingConfirmation = {
+                  toolCallId: matchedPending.toolCallId,
+                  toolName: matchedPending.toolName,
+                  actionTitle: matchedPending.toolName === 'add_expense' ? 'Ajouter une dépense' : 'Action en attente',
+                  actionType: matchedPending.toolName === 'add_expense' ? 'expense' : 'generic',
+                  confirmText: 'Confirmer l\'action ?',
+                  status: 'PENDING',
+                  arguments: matchedPending.arguments,
+                };
+              }
+            }
+
+            return {
+              id: m.id,
+              role: m.role,
+              content,
+              imageUri: m.imageUri,
+              pendingConfirmation,
+              createdAt: m.createdAt,
+            };
+          });
           setMessages(loaded);
           saveMessagesToLocal(loaded, threadId);
         }
@@ -843,7 +877,8 @@ export default function HniaChatScreen() {
           AsyncStorage.setItem(HNIA_CONV_STORAGE_KEY, res.conversationId).catch(() => null);
         }
         if (Array.isArray(res.messages) && res.messages.length > 0) {
-          const loaded: ChatMessage[] = res.messages.map((m: any) => {
+          const pendingList: any[] = Array.isArray(res.pendingConfirmations) ? res.pendingConfirmations : [];
+          const loaded: ChatMessage[] = res.messages.map((m: any, mIdx: number) => {
             let content = m.content || '';
             let imageUri = m.imageUri;
 
@@ -865,12 +900,42 @@ export default function HniaChatScreen() {
               content = merchant ? `📷 ${merchant}${amount ? ` (${amount})` : ''}` : '📷 Justificatif / Reçu envoyé';
             }
 
+            // Match pendingConfirmation if applicable
+            let pendingConfirmation = m.pendingConfirmation || null;
+            if (!pendingConfirmation && m.role === 'assistant') {
+              const matchedPending = pendingList.find((tc: any) =>
+                (tc.toolName && content.toLowerCase().includes(tc.toolName.replace(/_/g, ' '))) ||
+                content.includes('❓') ||
+                content.includes('Confirmer')
+              ) || (mIdx === res.messages.length - 1 && pendingList.length > 0 ? pendingList[0] : null);
+
+              const parsedCard = tryParseActionCardWidget(content, matchedPending?.toolCallId);
+              if (parsedCard) {
+                pendingConfirmation = {
+                  ...parsedCard,
+                  toolCallId: matchedPending?.toolCallId || parsedCard.toolCallId,
+                  arguments: matchedPending?.arguments || parsedCard.arguments,
+                };
+              } else if (matchedPending) {
+                pendingConfirmation = {
+                  toolCallId: matchedPending.toolCallId,
+                  toolName: matchedPending.toolName,
+                  actionTitle: matchedPending.toolName === 'add_expense' ? 'Ajouter une dépense' : 'Action en attente',
+                  actionType: matchedPending.toolName === 'add_expense' ? 'expense' : 'generic',
+                  confirmText: 'Confirmer l\'action ?',
+                  status: 'PENDING',
+                  arguments: matchedPending.arguments,
+                };
+              }
+            }
+
             return {
               id: m.id,
               role: m.role,
               content,
               imageUri,
               widget: m.widget || null,
+              pendingConfirmation,
               createdAt: m.createdAt,
             };
           });
@@ -1275,6 +1340,12 @@ export default function HniaChatScreen() {
   // Confirm or cancel action
   const handleConfirmation = async (toolCallId: string, action: 'confirm' | 'cancel') => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    if (!toolCallId || toolCallId.startsWith('fallback_') || toolCallId.startsWith('parsed_')) {
+      handleSendMessage(action === 'confirm' ? "Oui, je confirme l'enregistrement." : "Non, annule cette action.");
+      return;
+    }
+
     setConfirmingToolId(toolCallId);
 
     try {
@@ -1309,11 +1380,13 @@ export default function HniaChatScreen() {
           setMessages((prev) => [...prev, resultMsg]);
         }
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else if (res?.message?.includes('introuvable') || res?.message?.includes('expirée')) {
+        handleSendMessage(action === 'confirm' ? "Oui, je confirme l'enregistrement." : "Non, annule cette action.");
       } else {
         Alert.alert('Erreur', res?.message || "Impossible d'exécuter l'action.");
       }
     } catch (err: any) {
-      Alert.alert('Erreur', err.message || 'Erreur réseau');
+      handleSendMessage(action === 'confirm' ? "Oui, je confirme l'enregistrement." : "Non, annule cette action.");
     } finally {
       setConfirmingToolId(null);
     }
@@ -1544,32 +1617,49 @@ export default function HniaChatScreen() {
         );
       }
 
-      // 5. Metric Key-Value Row: e.g. "• 🟢 Présents : 498 / 498 élèves" or "• 📍 Géographie : ..."
-      const metricMatch = trimmed.match(
-        /^(?:[•*-]\s*)?([🟢🔴🟠🟡🔵⚪⚫📍🏛️🌾💰💳📋📞👤🏢])\s*(.+?)\s*:\s*(.+)$/
+      // 5. Metric Key-Value Row: e.g. "• 🟢 Présents : 498 / 498 élèves" or "💰 **Montant :** 10 DT"
+      const cleanMetricLine = trimmed.replace(/^[•*-]\s*/, '');
+      const emojiMatch = cleanMetricLine.match(
+        /^(\p{Extended_Pictographic}|\p{Emoji_Presentation}|[🟢🔴🟠🟡🔵⚪⚫📍🏛️🌾💰💳📋📞👤🏢🏷️📂📅⏱️⏳⌛❌✅❓ℹ️💡📊📈📉🎯])\s*/u
       );
-      if (metricMatch) {
-        const emoji = metricMatch[1];
-        const label = metricMatch[2].trim();
-        const value = metricMatch[3].trim();
+      if (emojiMatch) {
+        const emoji = emojiMatch[1];
+        const afterEmoji = cleanMetricLine.slice(emojiMatch[0].length).trim();
+        const colonIdx = afterEmoji.indexOf(':');
+        if (colonIdx > 0 && colonIdx < afterEmoji.length - 1) {
+          const rawLabel = afterEmoji.slice(0, colonIdx).trim();
+          const rawValue = afterEmoji.slice(colonIdx + 1).trim();
 
-        return (
-          <View key={idx} style={styles.metricCardRow}>
-            <View style={styles.metricIconBox}>
-              <Text style={styles.metricIconText}>{emoji}</Text>
+          // Strip orphaned bold/italic tags and whitespace around colon
+          const label = rawLabel
+            .replace(/^(\*\*|\*|__|_|<b>|<strong>)+/, '')
+            .replace(/(\*\*|\*|__|_|<\/b>|<\/strong>)+$/, '')
+            .trim();
+
+          const value = rawValue
+            .replace(/^(\*\*|\*|__|_|<\/b>|<\/strong>)+\s*/, '')
+            .trim();
+
+          return (
+            <View key={idx} style={styles.metricCardRow}>
+              <View style={styles.metricIconBox}>
+                <Text style={styles.metricIconText}>{emoji}</Text>
+              </View>
+              <View style={styles.metricBody}>
+                <Text style={styles.metricLabelText}>
+                  {renderRichText(label, styles.metricLabelText)}
+                </Text>
+                <Text style={styles.metricValueText}>
+                  {renderRichText(value, styles.metricValueText)}
+                </Text>
+              </View>
             </View>
-            <View style={styles.metricBody}>
-              <Text style={styles.metricLabelText}>{label}</Text>
-              <Text style={styles.metricValueText}>
-                {renderRichText(value, styles.metricValueText)}
-              </Text>
-            </View>
-          </View>
-        );
+          );
+        }
       }
 
       // 6. Section Subtitle with leading emoji: e.g. "📊 Assiduité du jour :" or "🇹🇳 Tajerouine (تاجروين)"
-      if (/^[📊📈📉📍👥📌🎯💼💰🇹🇳]\s*(.+)$/.test(trimmed) && trimmed.length < 50) {
+      if (/^[📊📈📉📍👥📌🎯💼💰🇹🇳]\s*(.+)$/u.test(trimmed) && trimmed.length < 50) {
         return (
           <Text key={idx} style={styles.sectionSubtitle}>
             {renderRichText(trimmed, styles.sectionSubtitle)}
@@ -1653,6 +1743,9 @@ export default function HniaChatScreen() {
 
     // 8. Strip any remaining HTML tags
     str = str.replace(/<[^>]+>/g, '');
+
+    // 8b. Strip any orphaned asterisks that were left unclosed
+    str = str.replace(/\*\*/g, '');
 
     // 9. Tokenize
     const tokens = str.split(/(\|\|\|[BIC]\|\|\|)/g);
@@ -1753,8 +1846,15 @@ export default function HniaChatScreen() {
     const financeData = !isUser && item.widget?.type === 'finance_summary' ? item.widget.data : null;
     const studentData = !isUser && item.widget?.type === 'student_card' ? item.widget.data : null;
     const attendanceData = !isUser && item.widget?.type === 'attendance_card' ? item.widget.data : null;
+    const pendingToolCall = messages
+      .slice()
+      .reverse()
+      .find((m) => m.pendingConfirmation?.status === 'PENDING')?.pendingConfirmation;
+
     const actionCardData = !isUser
-      ? (item.pendingConfirmation || (item.widget?.type === 'action_card' ? item.widget.data : null))
+      ? (item.pendingConfirmation ||
+         (item.widget?.type === 'action_card' ? item.widget.data : null) ||
+         tryParseActionCardWidget(item.content, pendingToolCall?.toolCallId))
       : null;
 
     const hasWidget = Boolean(
@@ -2004,7 +2104,7 @@ export default function HniaChatScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
         keyboardVerticalOffset={0}
       >
         <View style={{ flex: 1 }}>
@@ -2840,12 +2940,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   bubbleContainer: {
-    maxWidth: '82%',
     borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
   userBubble: {
+    maxWidth: '82%',
     backgroundColor: '#0055d4',
     borderBottomRightRadius: 4,
     shadowColor: '#0055d4',
@@ -2855,6 +2955,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   assistantBubble: {
+    flex: 1,
+    maxWidth: '88%',
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#e2e8f0',
@@ -2981,6 +3083,7 @@ const styles = StyleSheet.create({
 
   /* Enhanced Rich Message Components (Header pills, progress bar, insights, metrics) */
   cardHeaderBadge: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f0f7ff',
@@ -3023,6 +3126,7 @@ const styles = StyleSheet.create({
   },
 
   progressBarWrapper: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -3073,6 +3177,7 @@ const styles = StyleSheet.create({
   },
 
   insightCard: {
+    width: '100%',
     backgroundColor: '#f0f9ff',
     borderWidth: 1,
     borderColor: '#bae6fd',
@@ -3109,6 +3214,7 @@ const styles = StyleSheet.create({
   },
 
   metricCardRow: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f8fafc',
@@ -3138,8 +3244,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 4,
+    gap: 8,
   },
   metricLabelText: {
     fontSize: 13,
@@ -3150,6 +3255,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#0f172a',
+    flexShrink: 1,
+    textAlign: 'right',
   },
   sectionSubtitle: {
     fontSize: 14,
