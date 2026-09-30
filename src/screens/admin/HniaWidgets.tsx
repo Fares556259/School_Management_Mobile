@@ -554,8 +554,10 @@ export function UnpaidTuitionWidget({
   onSendBatchReminder?: (students: UnpaidStudentItem[]) => void;
 }) {
   const students = data.students || [];
-  const [expanded, setExpanded] = useState(false);
-  const visibleStudents = expanded ? students : students.slice(0, 4);
+  const totalCount = data.unpaidCount || students.length;
+  const [visibleCount, setVisibleCount] = useState(5);
+  const visibleStudents = students.slice(0, visibleCount);
+  const hasMore = visibleCount < students.length;
 
   return (
     <View style={unpaidStyles.card}>
@@ -573,7 +575,7 @@ export function UnpaidTuitionWidget({
           </View>
         </View>
         <View style={unpaidStyles.countBadge}>
-          <Text style={unpaidStyles.countText}>{students.length} élève(s)</Text>
+          <Text style={unpaidStyles.countText}>{totalCount} élève(s)</Text>
         </View>
       </View>
 
@@ -589,7 +591,7 @@ export function UnpaidTuitionWidget({
         >
           <Bell size={13} color="#ffffff" strokeWidth={2.4} />
           <Text style={unpaidStyles.batchReminderBtnText}>
-            Envoyer un rappel général ({students.length} parents)
+            Envoyer un rappel général ({totalCount} parents)
           </Text>
         </TouchableOpacity>
       )}
@@ -658,17 +660,56 @@ export function UnpaidTuitionWidget({
         })}
       </View>
 
-      {/* Show more toggle if list is long */}
-      {students.length > 4 && (
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={unpaidStyles.toggleBtn}
-          onPress={() => setExpanded(!expanded)}
-        >
-          <Text style={unpaidStyles.toggleBtnText}>
-            {expanded ? 'Voir moins' : `Voir les ${students.length - 4} autre(s) élève(s)`}
-          </Text>
-        </TouchableOpacity>
+      {/* Show more / show less pagination controls */}
+      {students.length > 5 && (
+        <View style={unpaidStyles.toggleRow}>
+          {hasMore ? (
+            <>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={unpaidStyles.toggleBtn}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setVisibleCount((prev) => Math.min(prev + 15, students.length));
+                }}
+              >
+                <Text style={unpaidStyles.toggleBtnText}>
+                  Voir plus (+{Math.min(15, students.length - visibleCount)})
+                </Text>
+              </TouchableOpacity>
+
+              {students.length - visibleCount > 15 && (
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={[unpaidStyles.toggleBtn, unpaidStyles.toggleAllBtn]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setVisibleCount(students.length);
+                  }}
+                >
+                  <Text style={[unpaidStyles.toggleBtnText, { color: '#0055d4' }]}>
+                    Tout afficher ({students.length})
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </>
+          ) : null}
+
+          {visibleCount > 5 && (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={[unpaidStyles.toggleBtn, unpaidStyles.toggleLessBtn]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setVisibleCount(5);
+              }}
+            >
+              <Text style={[unpaidStyles.toggleBtnText, { color: '#64748b' }]}>
+                Voir moins
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       )}
     </View>
   );
@@ -844,11 +885,31 @@ const unpaidStyles = StyleSheet.create({
   actionBtnText: {
     fontSize: 11,
   },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
   toggleBtn: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    marginTop: 6,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 8,
+  },
+  toggleAllBtn: {
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  toggleLessBtn: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   toggleBtnText: {
     fontSize: 12,

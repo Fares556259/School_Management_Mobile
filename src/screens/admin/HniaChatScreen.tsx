@@ -980,13 +980,13 @@ export default function HniaChatScreen() {
     );
   };
 
-  // Process, resize (max width 1200) and compress image for fast, reliable upload
+  // Process, resize (max width 1024) and compress image for fast, reliable upload
   const processAndSetImage = async (uri: string) => {
     try {
       const manipulated = await ImageManipulator.manipulateAsync(
         uri,
-        [{ resize: { width: 1200 } }],
-        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+        [{ resize: { width: 1024 } }],
+        { compress: 0.65, format: ImageManipulator.SaveFormat.JPEG, base64: true }
       );
       if (manipulated.base64) {
         setSelectedImage({
@@ -1957,6 +1957,22 @@ export default function HniaChatScreen() {
               });
               const filtered = lines.join('\n').trim();
               const textToRender = filtered || "Point de caisse d'aujourd'hui :";
+              return renderFormattedText(textToRender);
+            })()
+          ) : unpaidData ? (
+            (() => {
+              const lines = (item.content || '').split('\n').filter((line) => {
+                const l = line.trim();
+                return (
+                  !l.startsWith('•') &&
+                  !l.startsWith('-') &&
+                  !l.startsWith('*') &&
+                  !l.includes('autre(s) élève(s)') &&
+                  !l.includes('autre(s) élève')
+                );
+              });
+              const filtered = lines.join('\n').trim();
+              const textToRender = filtered || "💳 **Suivi des impayés :**";
               return renderFormattedText(textToRender);
             })()
           ) : (
