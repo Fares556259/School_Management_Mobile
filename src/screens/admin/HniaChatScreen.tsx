@@ -263,6 +263,8 @@ export default function HniaChatScreen() {
       layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
   }, []);
 
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState<boolean>(false);
+
   // Keyboard show/hide handling:
   // When keyboard opens: if user was at bottom, keep newest messages visible
   // When keyboard dismisses (e.g. back button on Android): blur input cleanly to prevent ghost focus
@@ -271,6 +273,7 @@ export default function HniaChatScreen() {
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
     const showSub = Keyboard.addListener(showEvent, () => {
+      setIsKeyboardVisible(true);
       if (isNearBottomRef.current && messages.length > 0) {
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: true });
@@ -279,6 +282,7 @@ export default function HniaChatScreen() {
     });
 
     const hideSub = Keyboard.addListener(hideEvent, () => {
+      setIsKeyboardVisible(false);
       if (inputRef.current?.isFocused()) {
         inputRef.current?.blur();
       }
@@ -716,33 +720,41 @@ export default function HniaChatScreen() {
         await AsyncStorage.setItem(HNIA_CONV_STORAGE_KEY, threadId).catch(() => null);
         if (Array.isArray(res.messages)) {
           const pendingList: any[] = Array.isArray(res.pendingConfirmations) ? res.pendingConfirmations : [];
+          const usedPendingIds = new Set<string>();
           const loaded: ChatMessage[] = res.messages.map((m: any, mIdx: number) => {
             const content = m.content || '';
             let pendingConfirmation = m.pendingConfirmation || null;
+            if (pendingConfirmation?.toolCallId) {
+              usedPendingIds.add(pendingConfirmation.toolCallId);
+            }
             if (!pendingConfirmation && m.role === 'assistant') {
               const matchedPending = pendingList.find((tc: any) =>
-                (tc.toolName && content.toLowerCase().includes(tc.toolName.replace(/_/g, ' '))) ||
-                content.includes('❓') ||
-                content.includes('Confirmer')
-              ) || (mIdx === res.messages.length - 1 && pendingList.length > 0 ? pendingList[0] : null);
+                !usedPendingIds.has(tc.toolCallId) &&
+                ((tc.toolName && content.toLowerCase().includes(tc.toolName.replace(/_/g, ' '))) ||
+                 content.includes('❓') ||
+                 content.includes('Confirmer'))
+              ) || (mIdx === res.messages.length - 1 ? pendingList.find((tc: any) => !usedPendingIds.has(tc.toolCallId)) : null);
 
-              const parsedCard = tryParseActionCardWidget(content, matchedPending?.toolCallId);
-              if (parsedCard) {
-                pendingConfirmation = {
-                  ...parsedCard,
-                  toolCallId: matchedPending?.toolCallId || parsedCard.toolCallId,
-                  arguments: matchedPending?.arguments || parsedCard.arguments,
-                };
-              } else if (matchedPending) {
-                pendingConfirmation = {
-                  toolCallId: matchedPending.toolCallId,
-                  toolName: matchedPending.toolName,
-                  actionTitle: matchedPending.toolName === 'add_expense' ? 'Ajouter une dépense' : 'Action en attente',
-                  actionType: matchedPending.toolName === 'add_expense' ? 'expense' : 'generic',
-                  confirmText: 'Confirmer l\'action ?',
-                  status: 'PENDING',
-                  arguments: matchedPending.arguments,
-                };
+              if (matchedPending) {
+                usedPendingIds.add(matchedPending.toolCallId);
+                const parsedCard = tryParseActionCardWidget(content, matchedPending.toolCallId);
+                if (parsedCard) {
+                  pendingConfirmation = {
+                    ...parsedCard,
+                    toolCallId: matchedPending.toolCallId || parsedCard.toolCallId,
+                    arguments: matchedPending.arguments || parsedCard.arguments,
+                  };
+                } else {
+                  pendingConfirmation = {
+                    toolCallId: matchedPending.toolCallId,
+                    toolName: matchedPending.toolName,
+                    actionTitle: matchedPending.toolName === 'add_expense' ? 'Ajouter une dépense' : 'Action en attente',
+                    actionType: matchedPending.toolName === 'add_expense' ? 'expense' : 'generic',
+                    confirmText: 'Confirmer l\'action ?',
+                    status: 'PENDING',
+                    arguments: matchedPending.arguments,
+                  };
+                }
               }
             }
 
@@ -874,6 +886,7 @@ export default function HniaChatScreen() {
         }
         if (Array.isArray(res.messages) && res.messages.length > 0) {
           const pendingList: any[] = Array.isArray(res.pendingConfirmations) ? res.pendingConfirmations : [];
+          const usedPendingIds = new Set<string>();
           const loaded: ChatMessage[] = res.messages.map((m: any, mIdx: number) => {
             let content = m.content || '';
             let imageUri = m.imageUri;
@@ -898,30 +911,37 @@ export default function HniaChatScreen() {
 
             // Match pendingConfirmation if applicable
             let pendingConfirmation = m.pendingConfirmation || null;
+            if (pendingConfirmation?.toolCallId) {
+              usedPendingIds.add(pendingConfirmation.toolCallId);
+            }
             if (!pendingConfirmation && m.role === 'assistant') {
               const matchedPending = pendingList.find((tc: any) =>
-                (tc.toolName && content.toLowerCase().includes(tc.toolName.replace(/_/g, ' '))) ||
-                content.includes('❓') ||
-                content.includes('Confirmer')
-              ) || (mIdx === res.messages.length - 1 && pendingList.length > 0 ? pendingList[0] : null);
+                !usedPendingIds.has(tc.toolCallId) &&
+                ((tc.toolName && content.toLowerCase().includes(tc.toolName.replace(/_/g, ' '))) ||
+                 content.includes('❓') ||
+                 content.includes('Confirmer'))
+              ) || (mIdx === res.messages.length - 1 ? pendingList.find((tc: any) => !usedPendingIds.has(tc.toolCallId)) : null);
 
-              const parsedCard = tryParseActionCardWidget(content, matchedPending?.toolCallId);
-              if (parsedCard) {
-                pendingConfirmation = {
-                  ...parsedCard,
-                  toolCallId: matchedPending?.toolCallId || parsedCard.toolCallId,
-                  arguments: matchedPending?.arguments || parsedCard.arguments,
-                };
-              } else if (matchedPending) {
-                pendingConfirmation = {
-                  toolCallId: matchedPending.toolCallId,
-                  toolName: matchedPending.toolName,
-                  actionTitle: matchedPending.toolName === 'add_expense' ? 'Ajouter une dépense' : 'Action en attente',
-                  actionType: matchedPending.toolName === 'add_expense' ? 'expense' : 'generic',
-                  confirmText: 'Confirmer l\'action ?',
-                  status: 'PENDING',
-                  arguments: matchedPending.arguments,
-                };
+              if (matchedPending) {
+                usedPendingIds.add(matchedPending.toolCallId);
+                const parsedCard = tryParseActionCardWidget(content, matchedPending.toolCallId);
+                if (parsedCard) {
+                  pendingConfirmation = {
+                    ...parsedCard,
+                    toolCallId: matchedPending.toolCallId || parsedCard.toolCallId,
+                    arguments: matchedPending.arguments || parsedCard.arguments,
+                  };
+                } else {
+                  pendingConfirmation = {
+                    toolCallId: matchedPending.toolCallId,
+                    toolName: matchedPending.toolName,
+                    actionTitle: matchedPending.toolName === 'add_expense' ? 'Ajouter une dépense' : 'Action en attente',
+                    actionType: matchedPending.toolName === 'add_expense' ? 'expense' : 'generic',
+                    confirmText: 'Confirmer l\'action ?',
+                    status: 'PENDING',
+                    arguments: matchedPending.arguments,
+                  };
+                }
               }
             }
 
@@ -1876,8 +1896,7 @@ export default function HniaChatScreen() {
 
     const actionCardData = !isUser
       ? (item.pendingConfirmation ||
-         (item.widget?.type === 'action_card' ? item.widget.data : null) ||
-         tryParseActionCardWidget(item.content, pendingToolCall?.toolCallId))
+         (item.widget?.type === 'action_card' ? item.widget.data : null))
       : null;
 
     const hasWidget = Boolean(
@@ -1885,7 +1904,7 @@ export default function HniaChatScreen() {
     );
 
     return (
-      <AnimatedMessageItem key={item.id}>
+      <AnimatedMessageItem>
         <View style={[styles.messageRow, isUser ? styles.userRow : styles.assistantRow]}>
         {!isUser && (
           <Image source={HNIA_AVATAR} style={styles.assistantAvatarSmall} />
@@ -1895,7 +1914,16 @@ export default function HniaChatScreen() {
           style={[
             styles.bubbleContainer,
             isUser ? styles.userBubble : styles.assistantBubble,
-            hasWidget && { maxWidth: '88%', minWidth: '78%' },
+            hasWidget && {
+              backgroundColor: 'transparent',
+              borderWidth: 0,
+              paddingHorizontal: 0,
+              paddingVertical: 0,
+              shadowOpacity: 0,
+              elevation: 0,
+              maxWidth: '92%',
+              minWidth: '85%',
+            },
           ]}
         >
           {/* Attached image preview */}
@@ -2037,7 +2065,7 @@ export default function HniaChatScreen() {
 
           {/* Assistant Action Footer: model tag + copy button */}
           {!isUser && item.content ? (
-            <View style={styles.assistantFooterRow}>
+            <View style={[styles.assistantFooterRow, hasWidget && { paddingHorizontal: 4, marginTop: 4 }]}>
               <View style={styles.assistantFooterLeft}>
                 <View style={styles.assistantFooterDot} />
                 <Text style={styles.assistantFooterModel}>Hnia IA</Text>
@@ -2145,7 +2173,7 @@ export default function HniaChatScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior="padding"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
         <View style={{ flex: 1 }}>
@@ -2205,7 +2233,8 @@ export default function HniaChatScreen() {
             <FlatList
               ref={flatListRef}
               data={messages}
-              keyExtractor={(item, index) => `${item.id}_${index}`}
+              keyExtractor={(item) => item.id}
+              extraData={messages.length + (isLoading ? 1 : 0) + (confirmingToolId || '')}
               renderItem={renderMessageItem}
               contentContainerStyle={styles.messagesList}
               showsVerticalScrollIndicator={false}
@@ -2310,7 +2339,7 @@ export default function HniaChatScreen() {
           <View
             style={[
               styles.bottomBarContainer,
-              { paddingBottom: 8 },
+              { paddingBottom: isKeyboardVisible ? 8 : Math.max(insets.bottom, 12) },
             ]}
           >
             {vocalError ? (
