@@ -53,6 +53,9 @@ import {
   Globe,
   Building2,
   BookOpen,
+  History,
+  Trash2,
+  MessageSquare,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -102,6 +105,7 @@ interface ChatMessage {
   imageUri?: string;
   isVoice?: boolean;
   transcription?: string;
+  isStreaming?: boolean;
   widget?: {
     type: 'caisse' | 'unpaid_tuition' | 'pdf_receipt';
     data: any;
@@ -117,6 +121,42 @@ interface ChatMessage {
   createdAt?: string;
 }
 
+interface ConversationThread {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  messageCount: number;
+  lastMessage: string | null;
+}
+
+// Performant smooth fade-in & slide-up animation for message bubbles (P4)
+function AnimatedMessageItem({ children }: { children: React.ReactNode }) {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(8)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+      {children}
+    </Animated.View>
+  );
+}
+
 export default function HniaChatScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
@@ -125,6 +165,16 @@ export default function HniaChatScreen() {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+
+  // Live Tool Steps (P1)
+  const [activeStatusStep, setActiveStatusStep] = useState<string | null>(null);
+  const [activeToolName, setActiveToolName] = useState<string | null>(null);
+
+  // Multi-Thread Conversation History (P2)
+  const [historyDrawerVisible, setHistoryDrawerVisible] = useState(false);
+  const [threads, setThreads] = useState<ConversationThread[]>([]);
+  const [isLoadingThreads, setIsLoadingThreads] = useState(false);
+
   const [selectedImage, setSelectedImage] = useState<{ uri: string; base64: string; mimeType: string } | null>(null);
   const [selectedAudio, setSelectedAudio] = useState<{ uri: string; base64: string; name: string } | null>(null);
   const [attachmentModalVisible, setAttachmentModalVisible] = useState(false);
@@ -515,6 +565,8 @@ export default function HniaChatScreen() {
       abortControllerRef.current = null;
     }
     setIsLoading(false);
+    setActiveStatusStep(null);
+    setActiveToolName(null);
   };
 
   // Pick audio note / vocal file (via DocumentPicker)
@@ -591,96 +643,114 @@ export default function HniaChatScreen() {
     }
   }, []);
 
-  // Send direct audio message
+  // Send direct audio message (delegates to handleSendMessage with streaming & live steps)
   const handleSendAudioMessage = async (
     audioBase64: string,
     audioMimeType: string,
     label = '🎙️ Message vocal'
   ) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await handleSendMessage('', audioBase64, audioMimeType);
+  };
 
-    const userMsgId = `user_${Date.now()}`;
-    const userMsg: ChatMessage = {
-      id: userMsgId,
-      role: 'user',
-      content: label,
-      isVoice: true,
-      createdAt: new Date().toISOString(),
-    };
-
-    setMessages((prev) => {
-      const next = [...prev, userMsg];
-      saveMessagesToLocal(next, conversationId);
-      return next;
-    });
-    setIsLoading(true);
-
+  // Load conversation threads for drawer (P2)
+  const loadThreads = async () => {
+    setIsLoadingThreads(true);
     try {
-      const res = await adminService.sendMessage({
-        message: '',
-        conversationId,
-        audioBase64,
-        audioMimeType,
-      });
-
-      const nextConvId = res?.conversationId || conversationId;
-      if (res && res.success) {
-        if (res.conversationId) setConversationId(res.conversationId);
-
-        const botMsg: ChatMessage = {
-          id: `bot_${Date.now()}`,
-          role: 'assistant',
-          content: res.message || 'C’est bon !',
-          transcription: res.transcription,
-          pendingConfirmation: res.pendingConfirmation,
-          widget: res.widget,
-          followUpSuggestions: res.followUpSuggestions,
-          createdAt: new Date().toISOString(),
-        };
-
-        setMessages((prev) => {
-          const next = [...prev, botMsg];
-          saveMessagesToLocal(next, nextConvId);
-          return next;
-        });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } else {
-        const errorMsg: ChatMessage = {
-          id: `bot_${Date.now()}`,
-          role: 'assistant',
-          content:
-            res?.message ||
-            res?.error ||
-            'Désolée, je n’ai pas pu transcrire votre message vocal.',
-          createdAt: new Date().toISOString(),
-        };
-        setMessages((prev) => {
-          const next = [...prev, errorMsg];
-          saveMessagesToLocal(next, conversationId);
-          return next;
-        });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      const res = await adminService.fetchThreads();
+      if (res && res.success && Array.isArray(res.threads)) {
+        setThreads(res.threads);
       }
-    } catch (err: any) {
-      console.error('[HniaChat] Audio send error:', err);
-      const errorMsg: ChatMessage = {
-        id: `bot_${Date.now()}`,
-        role: 'assistant',
-        content: '⚠️ Erreur lors de l’envoi du mémo vocal. Vérifiez votre connexion.',
-        createdAt: new Date().toISOString(),
-      };
-      setMessages((prev) => {
-        const next = [...prev, errorMsg];
-        saveMessagesToLocal(next, conversationId);
-        return next;
-      });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } catch (e) {
+      console.warn('[HniaChat] Load threads error:', e);
+    } finally {
+      setIsLoadingThreads(false);
+    }
+  };
+
+  const handleOpenHistoryDrawer = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setHistoryDrawerVisible(true);
+    loadThreads();
+  };
+
+  const handleSelectThread = async (threadId: string) => {
+    Haptics.selectionAsync();
+    setHistoryDrawerVisible(false);
+    if (threadId === conversationId) return;
+
+    setIsLoading(true);
+    try {
+      const res = await adminService.fetchChatHistory(threadId);
+      if (res && res.success) {
+        setConversationId(threadId);
+        await AsyncStorage.setItem(HNIA_CONV_STORAGE_KEY, threadId).catch(() => null);
+        if (Array.isArray(res.messages)) {
+          const loaded: ChatMessage[] = res.messages.map((m: any) => ({
+            id: m.id,
+            role: m.role,
+            content: m.content || '',
+            imageUri: m.imageUri,
+            createdAt: m.createdAt,
+          }));
+          setMessages(loaded);
+          saveMessagesToLocal(loaded, threadId);
+        }
+      }
+    } catch (err) {
+      console.warn('[HniaChat] Select thread error:', err);
     } finally {
       setIsLoading(false);
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
     }
+  };
+
+  const handleCreateNewThread = async () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setHistoryDrawerVisible(false);
+    try {
+      const res = await adminService.createThread();
+      if (res && res.success && res.conversationId) {
+        setConversationId(res.conversationId);
+        await AsyncStorage.setItem(HNIA_CONV_STORAGE_KEY, res.conversationId).catch(() => null);
+      } else {
+        setConversationId(undefined);
+      }
+      setMessages([]);
+      await AsyncStorage.removeItem(HNIA_STORAGE_KEY).catch(() => null);
+      loadThreads();
+    } catch (e) {
+      setConversationId(undefined);
+      setMessages([]);
+    }
+  };
+
+  const handleDeleteThread = (threadId: string, threadTitle: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      'Supprimer la discussion',
+      `Voulez-vous supprimer définitivement "${threadTitle}" ?`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await adminService.deleteThread(threadId);
+              setThreads((prev) => prev.filter((t) => t.id !== threadId));
+              if (threadId === conversationId) {
+                setConversationId(undefined);
+                setMessages([]);
+                await AsyncStorage.removeItem(HNIA_STORAGE_KEY).catch(() => null);
+                await AsyncStorage.removeItem(HNIA_CONV_STORAGE_KEY).catch(() => null);
+              }
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            } catch (delErr) {
+              console.warn('[HniaChat] Delete thread error:', delErr);
+            }
+          },
+        },
+      ]
+    );
   };
 
   // Load chat history: immediately from local cache, then sync from server
@@ -856,7 +926,7 @@ export default function HniaChatScreen() {
     }
   };
 
-  // Send message to Hnia
+  // Send message to Hnia with real-time SSE streaming (P1 + P3)
   const handleSendMessage = async (
     textToSend?: string,
     directAudioBase64?: string,
@@ -890,20 +960,29 @@ export default function HniaChatScreen() {
       saveMessagesToLocal(next, conversationId);
       return next;
     });
+
     setInputText('');
     const imagePayload = selectedImage;
     const audioPayload = selectedAudio;
     setSelectedImage(null);
     setSelectedAudio(null);
+
     const controller = new AbortController();
     abortControllerRef.current = controller;
     setIsLoading(true);
+    setActiveStatusStep('Analyse de la demande...');
+    setActiveToolName(null);
+
+    const botMsgId = `bot_${Date.now()}`;
+    let accumulatedText = '';
+    let isStreamStarted = false;
+    let receivedWidget: any = null;
+    let receivedConfirmation: any = null;
 
     try {
       const payload: any = {
         message: rawText,
         conversationId,
-        signal: controller.signal,
       };
 
       if (imagePayload) {
@@ -919,52 +998,159 @@ export default function HniaChatScreen() {
         payload.audioMimeType = 'audio/mp4';
       }
 
-      const res = await adminService.sendMessage(payload);
+      const res = await adminService.streamMessage(
+        payload,
+        {
+          onStatus: (status) => {
+            if (controller.signal.aborted) return;
+            setActiveStatusStep(status.step);
+            setActiveToolName(status.tool || null);
+          },
+          onToken: (delta) => {
+            if (controller.signal.aborted) return;
+            accumulatedText += delta;
+            setActiveStatusStep('Génération de la réponse...');
+
+            if (!isStreamStarted) {
+              isStreamStarted = true;
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: botMsgId,
+                  role: 'assistant',
+                  content: accumulatedText,
+                  isStreaming: true,
+                  createdAt: new Date().toISOString(),
+                },
+              ]);
+            } else {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === botMsgId
+                    ? { ...m, content: accumulatedText, isStreaming: true }
+                    : m
+                )
+              );
+            }
+
+            flatListRef.current?.scrollToEnd({ animated: false });
+          },
+          onWidget: (widget) => {
+            if (controller.signal.aborted) return;
+            receivedWidget = widget;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === botMsgId ? { ...m, widget } : m
+              )
+            );
+          },
+          onConfirmation: (pendingConfirmation) => {
+            if (controller.signal.aborted) return;
+            receivedConfirmation = pendingConfirmation;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === botMsgId ? { ...m, pendingConfirmation } : m
+              )
+            );
+          },
+          onDone: (result) => {
+            if (controller.signal.aborted) return;
+            setActiveStatusStep(null);
+            setActiveToolName(null);
+
+            const nextConvId = result?.conversationId || conversationId;
+            if (result?.conversationId) {
+              setConversationId(result.conversationId);
+              AsyncStorage.setItem(HNIA_CONV_STORAGE_KEY, result.conversationId).catch(() => null);
+            }
+
+            if (result?.transcription) {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === userMsg.id
+                    ? { ...m, content: `🎙️ "${result.transcription}"`, transcription: result.transcription }
+                    : m
+                )
+              );
+            }
+
+            if (result?.imageUrl || result?.analyzedDocument) {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === userMsg.id
+                    ? {
+                        ...m,
+                        imageUri: result.imageUrl || m.imageUri,
+                        content:
+                          rawText ||
+                          (result.analyzedDocument?.merchant || result.analyzedDocument?.title
+                            ? `📷 ${result.analyzedDocument.merchant || result.analyzedDocument?.title}${result.analyzedDocument.amount ? ` (${result.analyzedDocument.amount} DT)` : ''}`
+                            : m.content),
+                      }
+                    : m
+                )
+              );
+            }
+
+            const finalContent = result?.message || accumulatedText || 'C’est bon !';
+            const finalWidget = result?.widget || receivedWidget;
+            const finalConfirmation = result?.pendingConfirmation || receivedConfirmation;
+
+            setMessages((prev) => {
+              const exists = prev.some((m) => m.id === botMsgId);
+              let next: ChatMessage[];
+              if (exists) {
+                next = prev.map((m) =>
+                  m.id === botMsgId
+                    ? {
+                        ...m,
+                        content: finalContent,
+                        isStreaming: false,
+                        widget: finalWidget,
+                        pendingConfirmation: finalConfirmation,
+                        followUpSuggestions: result?.followUpSuggestions,
+                      }
+                    : m
+                );
+              } else {
+                next = [
+                  ...prev,
+                  {
+                    id: botMsgId,
+                    role: 'assistant',
+                    content: finalContent,
+                    isStreaming: false,
+                    widget: finalWidget,
+                    pendingConfirmation: finalConfirmation,
+                    followUpSuggestions: result?.followUpSuggestions,
+                    createdAt: new Date().toISOString(),
+                  },
+                ];
+              }
+              saveMessagesToLocal(next, nextConvId);
+              return next;
+            });
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          },
+          onError: (streamErr) => {
+            console.warn('[HniaChat] Stream error:', streamErr);
+          },
+        },
+        controller.signal
+      );
 
       // If user interrupted via Stop button (■), exit cleanly
       if (controller.signal.aborted || res?.aborted) {
         return;
       }
 
-      const nextConvId = res?.conversationId || conversationId;
-      if (res && res.success) {
+      // If stream didn't trigger onDone but finished successfully
+      if (res && res.success && !isStreamStarted) {
+        const nextConvId = res?.conversationId || conversationId;
         if (res.conversationId) setConversationId(res.conversationId);
 
-        if (res.transcription) {
-          setMessages((prev) => {
-            const next = prev.map((m) =>
-              m.id === userMsg.id
-                ? { ...m, content: `🎙️ "${res.transcription}"`, transcription: res.transcription }
-                : m
-            );
-            saveMessagesToLocal(next, nextConvId);
-            return next;
-          });
-        }
-
-        // Keep image attached and format clean caption if image was sent
-        if (res.imageUrl || res.analyzedDocument) {
-          setMessages((prev) => {
-            const next = prev.map((m) =>
-              m.id === userMsg.id
-                ? {
-                    ...m,
-                    imageUri: res.imageUrl || m.imageUri,
-                    content:
-                      rawText ||
-                      (res.analyzedDocument?.merchant || res.analyzedDocument?.title
-                        ? `📷 ${res.analyzedDocument.merchant || res.analyzedDocument?.title}${res.analyzedDocument.amount ? ` (${res.analyzedDocument.amount} DT)` : ''}`
-                        : m.content),
-                  }
-                : m
-            );
-            saveMessagesToLocal(next, nextConvId);
-            return next;
-          });
-        }
-
         const botMsg: ChatMessage = {
-          id: `bot_${Date.now()}`,
+          id: botMsgId,
           role: 'assistant',
           content: res.message || 'C’est bon !',
           transcription: res.transcription,
@@ -980,7 +1166,7 @@ export default function HniaChatScreen() {
           return next;
         });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } else {
+      } else if (res && !res.success && !isStreamStarted) {
         const isVocal = Boolean(audioPayload || directAudioBase64);
         if (isVocal) {
           setVocalError(res?.message || 'Erreur : message vocal non compris');
@@ -1026,6 +1212,8 @@ export default function HniaChatScreen() {
     } finally {
       setIsLoading(false);
       setIsProcessingVocal(false);
+      setActiveStatusStep(null);
+      setActiveToolName(null);
       abortControllerRef.current = null;
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
@@ -1510,7 +1698,8 @@ export default function HniaChatScreen() {
     const hasWidget = Boolean(caisseData || unpaidData || receiptData);
 
     return (
-      <View style={[styles.messageRow, isUser ? styles.userRow : styles.assistantRow]}>
+      <AnimatedMessageItem key={item.id}>
+        <View style={[styles.messageRow, isUser ? styles.userRow : styles.assistantRow]}>
         {!isUser && (
           <Image source={HNIA_AVATAR} style={styles.assistantAvatarSmall} />
         )}
@@ -1588,7 +1777,12 @@ export default function HniaChatScreen() {
               return renderFormattedText(textToRender);
             })()
           ) : (
-            renderFormattedText(item.content)
+            <View>
+              {renderFormattedText(item.content)}
+              {item.isStreaming && (
+                <Text style={styles.streamingCursor}>▋</Text>
+              )}
+            </View>
           )}
 
           {/* Interactive Visual Widgets */}
@@ -1720,7 +1914,8 @@ export default function HniaChatScreen() {
           )}
         </View>
       </View>
-    );
+    </AnimatedMessageItem>
+  );
   };
 
   return (
@@ -1730,6 +1925,14 @@ export default function HniaChatScreen() {
       {/* Top Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
+          <TouchableOpacity
+            style={styles.historyMenuButton}
+            onPress={handleOpenHistoryDrawer}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            activeOpacity={0.7}
+          >
+            <History size={20} color="#334155" />
+          </TouchableOpacity>
           <Image source={HNIA_AVATAR} style={styles.headerAvatar} />
           <View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -1745,16 +1948,17 @@ export default function HniaChatScreen() {
 
         <TouchableOpacity
           style={styles.newChatButton}
-          onPress={handleResetConversation}
+          onPress={handleCreateNewThread}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          activeOpacity={0.7}
         >
-          <RotateCcw size={18} color="#6b7280" />
+          <Plus size={19} color="#0055d4" strokeWidth={2.4} />
         </TouchableOpacity>
       </View>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior="padding"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
         <View style={{ flex: 1 }}>
@@ -1824,12 +2028,28 @@ export default function HniaChatScreen() {
               scrollEventThrottle={16}
               ListFooterComponent={
                 isLoading ? (
-                  <View style={styles.thinkingRow}>
+                  <View style={styles.liveStepCard}>
                     <Image source={HNIA_AVATAR} style={styles.assistantAvatarSmall} />
-                    <View style={styles.thinkingBubble}>
-                      <ActivityIndicator size="small" color="#0055d4" />
-                      <Text style={styles.thinkingText}>Hnia réfléchit...</Text>
+                    <View style={styles.liveStepContent}>
+                      <View style={styles.liveStepHeader}>
+                        <ActivityIndicator size="small" color="#0055d4" style={{ marginRight: 6 }} />
+                        <Text style={styles.liveStepTitle}>
+                          {activeStatusStep || 'Hnia prépare la réponse...'}
+                        </Text>
+                      </View>
+                      {activeToolName && (
+                        <Text style={styles.liveStepToolName}>Outil : {activeToolName}</Text>
+                      )}
                     </View>
+                    <TouchableOpacity
+                      style={styles.stopButtonPill}
+                      onPress={handleInterrupt}
+                      activeOpacity={0.8}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Square size={10} color="#dc2626" fill="#dc2626" />
+                      <Text style={styles.stopButtonText}>Arrêter</Text>
+                    </TouchableOpacity>
                   </View>
                 ) : null
               }
@@ -2240,6 +2460,126 @@ export default function HniaChatScreen() {
               )}
             </View>
           </TouchableOpacity>
+        </View>
+      </Modal>
+
+      {/* Conversation History Drawer Modal (P2) */}
+      <Modal
+        visible={historyDrawerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setHistoryDrawerVisible(false)}
+      >
+        <View style={styles.drawerOverlay}>
+          <TouchableOpacity
+            style={styles.drawerBackdropTouch}
+            activeOpacity={1}
+            onPress={() => setHistoryDrawerVisible(false)}
+          />
+          <SafeAreaView style={styles.drawerContainer}>
+            <View style={styles.drawerHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <History size={22} color="#0055d4" />
+                <Text style={styles.drawerTitle}>Discussions</Text>
+                {threads.length > 0 && (
+                  <View style={styles.threadCountBadge}>
+                    <Text style={styles.threadCountText}>{threads.length}</Text>
+                  </View>
+                )}
+              </View>
+              <TouchableOpacity
+                style={styles.drawerCloseButton}
+                onPress={() => setHistoryDrawerVisible(false)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <X size={20} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.drawerNewChatBtn}
+              onPress={handleCreateNewThread}
+              activeOpacity={0.85}
+            >
+              <Plus size={18} color="#ffffff" strokeWidth={2.6} />
+              <Text style={styles.drawerNewChatBtnText}>Nouvelle discussion</Text>
+            </TouchableOpacity>
+
+            {isLoadingThreads ? (
+              <View style={styles.drawerLoading}>
+                <ActivityIndicator size="small" color="#0055d4" />
+                <Text style={styles.drawerLoadingText}>Chargement des discussions...</Text>
+              </View>
+            ) : threads.length === 0 ? (
+              <View style={styles.drawerEmpty}>
+                <MessageSquare size={36} color="#94a3b8" />
+                <Text style={styles.drawerEmptyText}>Aucune discussion archivée</Text>
+                <Text style={styles.drawerEmptySubtext}>
+                  Vos futurs échanges avec Hnia apparaîtront automatiquement ici.
+                </Text>
+              </View>
+            ) : (
+              <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24, gap: 10 }}
+                showsVerticalScrollIndicator={false}
+              >
+                {threads.map((thread) => {
+                  const isActive = thread.id === conversationId;
+                  const dateStr = thread.updatedAt
+                    ? new Date(thread.updatedAt).toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    : '';
+
+                  return (
+                    <TouchableOpacity
+                      key={thread.id}
+                      style={[styles.threadItem, isActive && styles.threadItemActive]}
+                      onPress={() => handleSelectThread(thread.id)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[styles.threadIconBox, isActive && styles.threadIconBoxActive]}>
+                        <MessageSquare size={16} color={isActive ? '#0055d4' : '#64748b'} />
+                      </View>
+                      <View style={{ flex: 1, marginRight: 6 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Text
+                            style={[styles.threadTitle, isActive && styles.threadTitleActive]}
+                            numberOfLines={1}
+                          >
+                            {thread.title || 'Discussion avec Hnia'}
+                          </Text>
+                          {isActive && (
+                            <View style={styles.activePill}>
+                              <Text style={styles.activePillText}>Actif</Text>
+                            </View>
+                          )}
+                        </View>
+                        {thread.lastMessage ? (
+                          <Text style={styles.threadSnippet} numberOfLines={1}>
+                            {thread.lastMessage}
+                          </Text>
+                        ) : null}
+                        <Text style={styles.threadDate}>{dateStr}</Text>
+                      </View>
+
+                      <TouchableOpacity
+                        style={styles.threadDeleteBtn}
+                        onPress={() => handleDeleteThread(thread.id, thread.title || 'Discussion')}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Trash2 size={16} color="#94a3b8" />
+                      </TouchableOpacity>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </SafeAreaView>
         </View>
       </Modal>
     </View>
@@ -3471,5 +3811,234 @@ const styles = StyleSheet.create({
   fullscreenImage: {
     width: '100%',
     height: '100%',
+  },
+
+  historyMenuButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 2,
+  },
+
+  /* Live Tool Steps (P1) */
+  liveStepCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginVertical: 4,
+    gap: 10,
+  },
+  liveStepContent: {
+    flex: 1,
+  },
+  liveStepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  liveStepTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1e293b',
+  },
+  liveStepToolName: {
+    fontSize: 11,
+    color: '#64748b',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  stopButtonPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  stopButtonText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#dc2626',
+  },
+  streamingCursor: {
+    fontSize: 15,
+    color: '#0055d4',
+    fontWeight: '900',
+    marginLeft: 2,
+  },
+
+  /* Multi-Thread Drawer Modal (P2) */
+  drawerOverlay: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+  },
+  drawerBackdropTouch: {
+    flex: 1,
+  },
+  drawerContainer: {
+    width: '84%',
+    maxWidth: 360,
+    backgroundColor: '#ffffff',
+    height: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: -4, height: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 20,
+  },
+  drawerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  drawerTitle: {
+    fontSize: 19,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  threadCountBadge: {
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  threadCountText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0055d4',
+  },
+  drawerCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  drawerNewChatBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#0055d4',
+    marginHorizontal: 16,
+    marginVertical: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: '#0055d4',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  drawerNewChatBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  drawerLoading: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    gap: 12,
+  },
+  drawerLoadingText: {
+    fontSize: 13,
+    color: '#64748b',
+  },
+  drawerEmpty: {
+    paddingVertical: 50,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    gap: 10,
+  },
+  drawerEmptyText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#475569',
+    textAlign: 'center',
+  },
+  drawerEmptySubtext: {
+    fontSize: 12,
+    color: '#94a3b8',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  threadItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  threadItemActive: {
+    backgroundColor: '#f0f7ff',
+    borderColor: '#bfdbfe',
+  },
+  threadIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  threadIconBoxActive: {
+    backgroundColor: '#dbeafe',
+  },
+  threadTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1e293b',
+    flex: 1,
+  },
+  threadTitleActive: {
+    color: '#0055d4',
+  },
+  activePill: {
+    backgroundColor: '#dbeafe',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    marginLeft: 6,
+  },
+  activePillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0055d4',
+  },
+  threadSnippet: {
+    fontSize: 11,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  threadDate: {
+    fontSize: 10,
+    color: '#94a3b8',
+    marginTop: 3,
+  },
+  threadDeleteBtn: {
+    padding: 6,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

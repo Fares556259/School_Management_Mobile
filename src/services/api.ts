@@ -899,11 +899,140 @@ export const adminService = {
     });
   },
   
+  // Stream message from Hnia AI via SSE (word-by-word streaming & real-time status steps)
+  streamMessage: async (
+    data: {
+      message: string;
+      conversationId?: string;
+      audioBase64?: string;
+      audioMimeType?: string;
+      imageBase64?: string;
+      imageMimeType?: string;
+    },
+    callbacks: {
+      onStatus?: (status: { step: string; tool?: string }) => void;
+      onToken?: (delta: string) => void;
+      onWidget?: (widget: any) => void;
+      onConfirmation?: (pendingConfirmation: any) => void;
+      onDone?: (result: any) => void;
+      onError?: (error: any) => void;
+    },
+    signal?: AbortSignal
+  ): Promise<any> => {
+    const schoolId = await authStorage.getSchoolId();
+    const token = await authStorage.getToken();
+    const url = `${API_BASE_URL}/api/mobile/agent/chat`;
+
+    return new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', url, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('Accept', 'text/event-stream');
+      xhr.setRequestHeader('x-school-id', schoolId || 'default_school');
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+      let seenBytes = 0;
+      let finalResult: any = null;
+      let accumulatedBuffer = '';
+
+      if (signal) {
+        signal.addEventListener('abort', () => {
+          xhr.abort();
+          resolve({ aborted: true });
+        });
+      }
+
+      xhr.onprogress = () => {
+        try {
+          const newChunk = xhr.responseText.substring(seenBytes);
+          seenBytes = xhr.responseText.length;
+          accumulatedBuffer += newChunk;
+
+          const lines = accumulatedBuffer.split('\n');
+          accumulatedBuffer = lines.pop() || '';
+
+          let currentEvent = 'message';
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+            if (trimmed.startsWith('event:')) {
+              currentEvent = trimmed.replace(/^event:\s*/, '').trim();
+            } else if (trimmed.startsWith('data:')) {
+              const dataStr = trimmed.replace(/^data:\s*/, '').trim();
+              try {
+                const parsed = JSON.parse(dataStr);
+                if (currentEvent === 'status') {
+                  callbacks.onStatus?.(parsed);
+                } else if (currentEvent === 'token') {
+                  callbacks.onToken?.(parsed.delta || '');
+                } else if (currentEvent === 'widget') {
+                  callbacks.onWidget?.(parsed.widget);
+                } else if (currentEvent === 'confirmation') {
+                  callbacks.onConfirmation?.(parsed.pendingConfirmation);
+                } else if (currentEvent === 'done') {
+                  finalResult = parsed;
+                  callbacks.onDone?.(parsed);
+                } else if (currentEvent === 'error') {
+                  callbacks.onError?.(parsed);
+                }
+              } catch {}
+            }
+          }
+        } catch (e) {
+          console.warn('[SSE Stream] Progress parse error:', e);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          if (!finalResult && xhr.responseText) {
+            try {
+              const parsed = JSON.parse(xhr.responseText);
+              finalResult = parsed;
+              callbacks.onDone?.(parsed);
+            } catch {}
+          }
+          resolve(finalResult || { success: true });
+        } else {
+          callbacks.onError?.(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
+          resolve({ success: false, error: `HTTP ${xhr.status}` });
+        }
+      };
+
+      xhr.onerror = () => {
+        callbacks.onError?.(new Error('Network error on stream'));
+        resolve({ success: false, error: 'Network error' });
+      };
+
+      xhr.send(JSON.stringify({ ...data, stream: true }));
+    });
+  },
+
   // Fetch chat history
   fetchChatHistory: async (conversationId?: string, limit = 50) => {
     const params = new URLSearchParams({ limit: limit.toString() });
     if (conversationId) params.set('conversationId', conversationId);
     return apiFetch(`/api/mobile/agent/history?${params.toString()}`);
+  },
+
+  // Fetch all conversation threads for multi-thread drawer
+  fetchThreads: async () => {
+    return apiFetch('/api/mobile/agent/history?threads=true');
+  },
+
+  // Create a new conversation thread
+  createThread: async (title?: string) => {
+    return apiFetch('/api/mobile/agent/history', {
+      method: 'POST',
+      body: JSON.stringify({ title }),
+    });
+  },
+
+  // Archive / delete a conversation thread
+  deleteThread: async (conversationId: string) => {
+    return apiFetch(`/api/mobile/agent/history?conversationId=${encodeURIComponent(conversationId)}`, {
+      method: 'DELETE',
+    });
   },
 
   // Caisse & Financials
