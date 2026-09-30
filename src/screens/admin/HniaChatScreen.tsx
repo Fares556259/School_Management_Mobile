@@ -56,6 +56,7 @@ import {
   History,
   Trash2,
   MessageSquare,
+  TrendingUp,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -71,6 +72,14 @@ import {
   CaisseCardWidget,
   UnpaidTuitionWidget,
   PdfReceiptWidget,
+  ActionCardWidget,
+  FinanceSummaryWidget,
+  StudentProfileWidget,
+  AttendanceSummaryWidget,
+  ActionCardData,
+  FinanceSummaryData,
+  StudentProfileData,
+  AttendanceSummaryData,
   tryParseCaisseWidget,
   tryParseUnpaidWidget,
   tryParseReceiptWidget,
@@ -107,16 +116,10 @@ interface ChatMessage {
   transcription?: string;
   isStreaming?: boolean;
   widget?: {
-    type: 'caisse' | 'unpaid_tuition' | 'pdf_receipt';
+    type: 'caisse' | 'unpaid_tuition' | 'pdf_receipt' | 'finance_summary' | 'student_card' | 'attendance_card' | 'action_card';
     data: any;
   } | null;
-  pendingConfirmation?: {
-    toolCallId: string;
-    toolName: string;
-    confirmText: string;
-    arguments?: Record<string, any>;
-    status?: 'PENDING' | 'EXECUTING' | 'EXECUTED' | 'REJECTED';
-  } | null;
+  pendingConfirmation?: ActionCardData | null;
   followUpSuggestions?: string[];
   createdAt?: string;
 }
@@ -161,10 +164,21 @@ export default function HniaChatScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const userName = useAppStore((s) => s.userName) || 'Directeur';
+  const schoolName = useAppStore((s) => s.schoolName) || 'SnapSchool';
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+
+  // Dynamic Agent Status
+  const hasPendingAction = messages.some(
+    (m) => m.pendingConfirmation && m.pendingConfirmation.status === 'PENDING'
+  );
+  const agentStatus = hasPendingAction
+    ? { label: 'Action en attente', dotColor: '#f59e0b', textColor: '#b45309', bg: '#fef3c7' }
+    : isLoading
+    ? { label: 'Hnia travaille...', dotColor: '#2563eb', textColor: '#1d4ed8', bg: '#eff6ff' }
+    : { label: 'Hnia est prête', dotColor: '#10b981', textColor: '#059669', bg: '#ecfdf5' };
 
   // Live Tool Steps (P1)
   const [activeStatusStep, setActiveStatusStep] = useState<string | null>(null);
@@ -1238,6 +1252,8 @@ export default function HniaChatScreen() {
                 pendingConfirmation: {
                   ...m.pendingConfirmation,
                   status: action === 'confirm' ? 'EXECUTED' : 'REJECTED',
+                  reference: res.actionResult?.reference,
+                  resultMessage: res.actionResult?.summary || res.message,
                 },
               };
             }
@@ -1246,13 +1262,15 @@ export default function HniaChatScreen() {
         );
 
         // Add confirmation response bubble
-        const resultMsg: ChatMessage = {
-          id: `res_${Date.now()}`,
-          role: 'assistant',
-          content: res.message || (action === 'confirm' ? '✅ Action confirmée et enregistrée !' : '❌ Action annulée.'),
-          createdAt: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, resultMsg]);
+        if (action === 'confirm') {
+          const resultMsg: ChatMessage = {
+            id: `res_${Date.now()}`,
+            role: 'assistant',
+            content: res.message || '✅ Action confirmée et enregistrée avec succès !',
+            createdAt: new Date().toISOString(),
+          };
+          setMessages((prev) => [...prev, resultMsg]);
+        }
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
         Alert.alert('Erreur', res?.message || "Impossible d'exécuter l'action.");
@@ -1267,31 +1285,40 @@ export default function HniaChatScreen() {
   // Quick Action Prompts
   const QUICK_ACTIONS = [
     {
-      id: 'doc',
-      icon: Receipt,
-      color: '#0055d4',
-      bg: '#eff6ff',
-      title: 'Analyser document',
-      subtitle: 'Scanner reçu, facture ou justificatif',
-      onPress: () => setAttachmentModalVisible(true),
-    },
-    {
-      id: 'caisse',
+      id: 'depense',
       icon: Wallet,
       color: '#059669',
       bg: '#ecfdf5',
-      title: 'Clôture de Caisse',
-      subtitle: 'Bilan physique & encaissements du jour',
-      prompt: 'Fais le bilan officiel de clôture de caisse du jour (recettes, dépenses, solde physique).',
+      title: 'Ajouter une dépense',
+      subtitle: 'Ex: "Ajoute une dépense de 350 DT pour l\'électricité"',
+      prompt: "Ajoute une dépense de 350 DT pour l'électricité facture STEG",
+    },
+    {
+      id: 'impayes',
+      icon: CreditCard,
+      color: '#dc2626',
+      bg: '#fef2f2',
+      title: 'Vérifier les impayés',
+      subtitle: 'Ex: "Combien d\'élèves n\'ont pas encore payé ?"',
+      prompt: "Combien d'élèves n'ont pas encore payé ce mois-ci ?",
+    },
+    {
+      id: 'revenus',
+      icon: TrendingUp,
+      color: '#0284c7',
+      bg: '#e0f2fe',
+      title: 'Revenus du mois',
+      subtitle: 'Ex: "Donne-moi les revenus de ce mois"',
+      prompt: 'Donne-moi les revenus et le bilan financier de ce mois',
     },
     {
       id: 'absences',
       icon: Users,
       color: '#d97706',
       bg: '#fffbeb',
-      title: 'Absences du jour',
-      subtitle: 'Élèves et enseignants absents',
-      prompt: "Donne-moi la liste des absences et retards d'aujourd'hui dans toutes les classes.",
+      title: 'Appel & Absences',
+      subtitle: 'Ex: "Marque les absences de la 6ème B aujourd\'hui"',
+      prompt: "Marque les absences de la classe 6ème B aujourd'hui",
     },
     {
       id: 'timetable',
@@ -1299,36 +1326,27 @@ export default function HniaChatScreen() {
       color: '#7c3aed',
       bg: '#f5f3ff',
       title: 'Emploi du temps',
-      subtitle: 'Séances prévues aujourd’hui',
-      prompt: "Quel est l'emploi du temps des cours prévus aujourd'hui ?",
+      subtitle: 'Ex: "Montre-moi l\'emploi du temps de demain"',
+      prompt: "Montre-moi l'emploi du temps des cours prévus aujourd'hui.",
     },
     {
-      id: 'announcement',
-      icon: Bell,
-      color: '#ea580c',
-      bg: '#fff7ed',
-      title: 'Diffuser annonce',
-      subtitle: 'Notifier les parents d’une classe',
-      prompt: 'Je souhaite diffuser une annonce importante aux parents.',
-    },
-    {
-      id: 'impayes',
-      icon: CreditCard,
-      color: '#dc2626',
-      bg: '#fef2f2',
-      title: 'Impayés du mois',
-      subtitle: 'Liste des élèves avec reliquats',
-      prompt: 'Quels sont les élèves qui ont des impayés pour le mois en cours ?',
+      id: 'doc',
+      icon: Receipt,
+      color: '#0055d4',
+      bg: '#eff6ff',
+      title: 'Scanner un reçu',
+      subtitle: 'Photo de reçu ou facture avec pré-remplissage',
+      onPress: () => setAttachmentModalVisible(true),
     },
   ];
 
   const EXECUTIVE_QUICK_CHIPS = [
-    { label: '💰 Caisse du jour', prompt: 'Bilan officiel de clôture de caisse du jour (recettes, dépenses, solde physique net).' },
-    { label: '📋 Absences', prompt: "Quels sont les élèves et professeurs absents aujourd'hui ?" },
-    { label: '💳 Impayés', prompt: 'Donne-moi la liste des impayés et reliquats pour ce mois-ci.' },
-    { label: '💸 Noter dépense', prompt: 'Je veux enregistrer une dépense de caisse.' },
-    { label: '⏰ Planning', prompt: "Emploi du temps des cours prévus aujourd'hui." },
-    { label: '📢 Annonce', prompt: 'Je souhaite diffuser une annonce importante aux parents.' },
+    { label: '💰 Ajouter dépense', prompt: 'Je veux enregistrer une nouvelle dépense' },
+    { label: '👨‍🎓 Ajouter élève', prompt: 'Je veux inscrire un nouvel élève' },
+    { label: '💳 Vérifier impayés', prompt: "Quels sont les élèves qui ont des impayés ?" },
+    { label: '📊 Résumé financier', prompt: 'Donne-moi les revenus de ce mois' },
+    { label: '📋 Présences & Absences', prompt: "Quelles sont les absences d'aujourd'hui ?" },
+    { label: '📢 Annonce parents', prompt: 'Je souhaite diffuser une annonce importante aux parents' },
   ];
 
   // Markdown parser & renderer
@@ -1695,7 +1713,16 @@ export default function HniaChatScreen() {
     const receiptData = !isUser
       ? (item.widget?.type === 'pdf_receipt' ? item.widget.data : tryParseReceiptWidget(item.content))
       : null;
-    const hasWidget = Boolean(caisseData || unpaidData || receiptData);
+    const financeData = !isUser && item.widget?.type === 'finance_summary' ? item.widget.data : null;
+    const studentData = !isUser && item.widget?.type === 'student_card' ? item.widget.data : null;
+    const attendanceData = !isUser && item.widget?.type === 'attendance_card' ? item.widget.data : null;
+    const actionCardData = !isUser
+      ? (item.pendingConfirmation || (item.widget?.type === 'action_card' ? item.widget.data : null))
+      : null;
+
+    const hasWidget = Boolean(
+      caisseData || unpaidData || receiptData || financeData || studentData || attendanceData || actionCardData
+    );
 
     return (
       <AnimatedMessageItem key={item.id}>
@@ -1745,18 +1772,12 @@ export default function HniaChatScreen() {
                 ? '📷 Justificatif / Reçu envoyé'
                 : item.content?.replace(/\[IMAGE:https?:\/\/[^\]]+\]\n?/, '').trim() || (item.imageUri ? '📷 Document envoyé' : '')}
             </Text>
-          ) : item.pendingConfirmation ? (
-            // If message has a pending confirmation card, don't repeat duplicate confirmation prompt as regular message
-            item.content &&
-            !item.content.includes("Confirmation") &&
-            !item.content.includes("❓") &&
-            item.content !== item.pendingConfirmation.confirmText ? (
-              renderFormattedText(item.content)
-            ) : (
-              <Text style={[styles.normalText, { fontWeight: '600', color: '#0f172a', marginBottom: 4 }]}>
-                Veuillez vérifier et confirmer l'action suivante :
-              </Text>
-            )
+          ) : actionCardData && actionCardData.status === 'PENDING' ? (
+            <Text style={[styles.normalText, { fontWeight: '600', color: '#0f172a', marginBottom: 4 }]}>
+              {item.content && !item.content.includes("Confirmation") && !item.content.includes("❓")
+                ? renderFormattedText(item.content)
+                : "Veuillez vérifier et confirmer l'action ci-dessous :"}
+            </Text>
           ) : caisseData ? (
             (() => {
               const lines = (item.content || '').split('\n').filter((line) => {
@@ -1794,65 +1815,46 @@ export default function HniaChatScreen() {
           )}
 
           {unpaidData && (
-            <UnpaidTuitionWidget data={unpaidData} />
+            <UnpaidTuitionWidget
+              data={unpaidData}
+              onSendBatchReminder={(students) =>
+                handleSendMessage(`Envoie un rappel de paiement aux parents des ${students.length} élèves qui ont des impayés.`)
+              }
+            />
           )}
 
           {receiptData && (
             <PdfReceiptWidget data={receiptData} />
           )}
 
-          {/* Interactive Confirmation Card */}
-          {item.pendingConfirmation && (
-            <View style={styles.confirmationCard}>
-              <View style={styles.confirmationHeader}>
-                <AlertCircle size={18} color="#d97706" />
-                <Text style={styles.confirmationTitle}>Confirmation d'action requise</Text>
-              </View>
+          {financeData && (
+            <FinanceSummaryWidget
+              data={financeData}
+              onViewCaisse={() => navigation.navigate('Caisse')}
+            />
+          )}
 
-              {renderConfirmationCardContent(item.pendingConfirmation.confirmText)}
+          {studentData && (
+            <StudentProfileWidget student={studentData} />
+          )}
 
-              {item.pendingConfirmation.status === 'EXECUTED' ? (
-                <View style={[styles.actionStatusBadge, { backgroundColor: '#ecfdf5', marginTop: 10 }]}>
-                  <Check size={16} color="#059669" />
-                  <Text style={[styles.actionStatusText, { color: '#059669' }]}>
-                    Action confirmée et exécutée ✅
-                  </Text>
-                </View>
-              ) : item.pendingConfirmation.status === 'REJECTED' ? (
-                <View style={[styles.actionStatusBadge, { backgroundColor: '#fef2f2', marginTop: 10 }]}>
-                  <X size={16} color="#dc2626" />
-                  <Text style={[styles.actionStatusText, { color: '#dc2626' }]}>
-                    Action annulée ❌
-                  </Text>
-                </View>
-              ) : (
-                <View style={[styles.confirmationButtonsRow, { marginTop: 12 }]}>
-                  <TouchableOpacity
-                    style={[styles.confirmBtn, confirmingToolId === item.pendingConfirmation.toolCallId && styles.btnDisabled]}
-                    onPress={() => handleConfirmation(item.pendingConfirmation!.toolCallId, 'confirm')}
-                    disabled={confirmingToolId === item.pendingConfirmation.toolCallId}
-                  >
-                    {confirmingToolId === item.pendingConfirmation.toolCallId ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <>
-                        <Check size={16} color="#fff" />
-                        <Text style={styles.confirmBtnText}>Confirmer</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
+          {attendanceData && (
+            <AttendanceSummaryWidget
+              data={attendanceData}
+              onNotifyParents={() =>
+                handleSendMessage("Envoie un rappel d'absence aux parents des élèves absents d'aujourd'hui.")
+              }
+            />
+          )}
 
-                  <TouchableOpacity
-                    style={styles.cancelBtn}
-                    onPress={() => handleConfirmation(item.pendingConfirmation!.toolCallId, 'cancel')}
-                    disabled={confirmingToolId === item.pendingConfirmation.toolCallId}
-                  >
-                    <X size={16} color="#6b7280" />
-                    <Text style={styles.cancelBtnText}>Annuler</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
+          {/* Action Card Widget */}
+          {actionCardData && (
+            <ActionCardWidget
+              card={actionCardData}
+              onConfirm={(id) => handleConfirmation(id, 'confirm')}
+              onCancel={(id) => handleConfirmation(id, 'cancel')}
+              isExecuting={confirmingToolId === actionCardData.toolCallId}
+            />
           )}
 
           {/* Assistant Action Footer: model tag + copy button */}
@@ -1933,16 +1935,23 @@ export default function HniaChatScreen() {
           >
             <History size={20} color="#334155" />
           </TouchableOpacity>
-          <Image source={HNIA_AVATAR} style={styles.headerAvatar} />
-          <View>
+          <View style={styles.headerAvatarContainer}>
+            <Image source={HNIA_AVATAR} style={styles.headerAvatar} />
+            <View style={[styles.headerAvatarStatusDot, { backgroundColor: agentStatus.dotColor }]} />
+          </View>
+          <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={styles.headerTitle}>Hnia IA</Text>
-              <View style={styles.onlineBadge}>
-                <View style={styles.onlineDot} />
-                <Text style={styles.onlineText}>En ligne</Text>
+              <Text style={styles.headerTitle}>Hnia</Text>
+              <View style={[styles.agentStatusBadge, { backgroundColor: agentStatus.bg }]}>
+                <View style={[styles.onlineDot, { backgroundColor: agentStatus.dotColor }]} />
+                <Text style={[styles.agentStatusText, { color: agentStatus.textColor }]}>
+                  {agentStatus.label}
+                </Text>
               </View>
             </View>
-            <Text style={styles.headerSubtitle}>Assistante administrative & opérations</Text>
+            <Text style={styles.headerSubtitle} numberOfLines={1}>
+              Assistante IA • Connectée à {schoolName}
+            </Text>
           </View>
         </View>
 
@@ -1983,10 +1992,10 @@ export default function HniaChatScreen() {
               </View>
 
               <Text style={styles.welcomeTitle}>
-                Bienvenue, <Text style={{ color: '#0055d4' }}>{userName}</Text>
+                Bonjour 👋 Je suis <Text style={{ color: '#0055d4' }}>Hnia</Text>
               </Text>
               <Text style={styles.welcomeSubtitle}>
-                Que puis-je faire pour vous aujourd'hui ?
+                Je peux gérer votre école avec vous. Parlez-moi ou choisissez une action :
               </Text>
 
               {/* Quick Action Grid */}
@@ -2606,12 +2615,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  headerAvatarContainer: {
+    position: 'relative',
+  },
   headerAvatar: {
     width: 42,
     height: 42,
     borderRadius: 21,
     borderWidth: 1.5,
     borderColor: '#e0edff',
+  },
+  headerAvatarStatusDot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+  agentStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  agentStatusText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   headerTitle: {
     fontSize: 17,

@@ -222,6 +222,7 @@ export default function App() {
     setError, 
     setUserName, 
     setUserAvatarUrl,
+    setSchoolName,
     setUserRole,
     setUserId,
     userRole,
@@ -335,8 +336,10 @@ export default function App() {
             if (profile) {
               setUserName(profile.name || 'Admin');
               setUserAvatarUrl(profile.img || null);
+              setSchoolName(profile.schoolName || 'SnapSchool');
             } else {
               setUserName('Admin');
+              setSchoolName('SnapSchool');
             }
           }
 

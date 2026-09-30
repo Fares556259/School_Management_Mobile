@@ -13,11 +13,13 @@ interface AppState {
   unreadNotificationsCount: number;
   studentStatuses: Record<string, 'Present' | 'Absent' | 'Due'>;
   selectedTeacherClass: any | null;
+  schoolName: string | null;
   setChildren: (children: Student[]) => void;
   setUserRole: (role: 'parent' | 'teacher' | 'admin' | null) => void;
   setUserId: (id: string | null) => void;
   setUserName: (name: string) => void;
   setUserAvatarUrl: (url: string | null) => void;
+  setSchoolName: (name: string | null) => void;
   setSelectedChildId: (id: string) => void;
   setUnreadNotificationsCount: (count: number) => void;
   setStudentStatus: (childId: string, status: 'Present' | 'Absent' | 'Due') => void;
@@ -32,6 +34,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   userId: null,
   userName: 'User',
   userAvatarUrl: null,
+  schoolName: null,
   selectedChildId: null,
   unreadNotificationsCount: 0,
   studentStatuses: {},
@@ -43,6 +46,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setUserId: (userId) => set({ userId }),
   setUserName: (userName) => set({ userName }),
   setUserAvatarUrl: (userAvatarUrl) => set({ userAvatarUrl }),
+  setSchoolName: (schoolName) => set({ schoolName }),
   setSelectedChildId: (selectedChildId) => set({ selectedChildId }),
   setUnreadNotificationsCount: (unreadNotificationsCount) => set({ unreadNotificationsCount }),
   setStudentStatus: (childId, status) => set((state) => ({ 
