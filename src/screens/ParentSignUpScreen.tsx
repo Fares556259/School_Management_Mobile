@@ -31,6 +31,7 @@ import {
   ArrowRight,
   Check,
   X,
+  Sparkles,
 } from 'lucide-react-native';
 import { authService } from '../services/api';
 import { useAppStore } from '../store/useAppStore';
@@ -89,7 +90,7 @@ export const ParentSignUpScreen = ({
     };
   }, []);
 
-  const scrollToInput = (yOffset = 250) => {
+  const scrollToInput = (yOffset = 220) => {
     setTimeout(() => {
       scrollViewRef.current?.scrollTo({ y: yOffset, animated: true });
     }, 150);
@@ -116,10 +117,11 @@ export const ParentSignUpScreen = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
-  // Password strength helper
+  // Password strength calculation
   const getPasswordStrength = (pwd: string) => {
     if (!pwd) return { score: 0, label: '', color: '#e2e8f0' };
-    if (pwd.length < 6) return { score: 1, label: language === 'ar' ? 'ضعيفة جداً' : 'Trop court', color: '#ef4444' };
+    if (pwd.length < 6)
+      return { score: 1, label: language === 'ar' ? 'ضعيفة جداً' : 'Trop court', color: '#ef4444' };
     const hasLetters = /[a-zA-Z]/.test(pwd);
     const hasNumbers = /[0-9]/.test(pwd);
     const hasSpecial = /[^a-zA-Z0-9]/.test(pwd);
@@ -135,7 +137,7 @@ export const ParentSignUpScreen = ({
 
   const pwdStrength = getPasswordStrength(password);
 
-  // Translations dictionary for this screen
+  // Translations
   const txt = {
     fr: {
       screenTitle: 'Inscription Parents',
@@ -147,7 +149,7 @@ export const ParentSignUpScreen = ({
       studentSearchSubtitle:
         'Entrez le matricule ou المعرف التربوي fourni par l’école pour retrouver instantanément votre enfant.',
       nationalIdLabel: 'Matricule / المعرف التربوي de l’élève',
-      nationalIdPlaceholder: 'Ex: 118728385289 ou matricule',
+      nationalIdPlaceholder: 'Ex: 118728385289',
       btnVerify: 'Vérifier l’élève',
       verifiedBadge: 'Élève reconnu',
       school: 'Établissement',
@@ -168,7 +170,7 @@ export const ParentSignUpScreen = ({
       phone: 'Numéro de téléphone portable',
       phonePlaceholder: 'Ex: 22 345 678',
       phoneHint: 'Ce numéro sera votre identifiant permanent pour vous connecter.',
-      relationLabel: 'Lien avec l’élève',
+      relationLabel: 'Lien de parenté',
       father: 'Père',
       mother: 'Mère',
       guardian: 'Tuteur légal',
@@ -204,7 +206,7 @@ export const ParentSignUpScreen = ({
       studentSearchSubtitle:
         'أدخل المعرف الوحيد أو التربوي للتلميذ للتعرف على ملفه الدراسي وربطه بحسابك.',
       nationalIdLabel: 'المعرف التربوي / الوحيد للتلميذ',
-      nationalIdPlaceholder: 'مثال: 118728385289 أو المعرف',
+      nationalIdPlaceholder: 'مثال: 118728385289',
       btnVerify: 'التحقق من التلميذ',
       verifiedBadge: 'تم التعرف على التلميذ',
       school: 'المؤسسة',
@@ -261,7 +263,7 @@ export const ParentSignUpScreen = ({
       studentSearchSubtitle:
         'Enter the student ID or National educational ID provided by the school.',
       nationalIdLabel: 'Student ID / Matricule',
-      nationalIdPlaceholder: 'Ex: 118728385289 or Student ID',
+      nationalIdPlaceholder: 'Ex: 118728385289',
       btnVerify: 'Verify Student',
       verifiedBadge: 'Student Verified',
       school: 'School',
@@ -312,7 +314,7 @@ export const ParentSignUpScreen = ({
 
   const t = txt[language as 'fr' | 'ar' | 'en'] || txt.fr;
 
-  // Handle Verify Student
+  // Verify Student Action
   const handleVerify = async () => {
     Keyboard.dismiss();
     if (!nationalIdInput.trim()) {
@@ -324,7 +326,6 @@ export const ParentSignUpScreen = ({
       return;
     }
 
-    // Check if already in our verified list
     if (verifiedStudents.some((s) => s.nationalId === nationalIdInput.trim())) {
       setVerifyError(
         language === 'ar'
@@ -364,7 +365,6 @@ export const ParentSignUpScreen = ({
     setVerifiedStudents((prev) => prev.filter((s) => s.id !== id));
   };
 
-  // Step 1 -> Step 2 validation
   const handleGoToStep2 = () => {
     Keyboard.dismiss();
     if (verifiedStudents.length === 0) {
@@ -375,7 +375,6 @@ export const ParentSignUpScreen = ({
       );
       return;
     }
-    // Pre-fill parent surname from first student if empty
     if (!parentSurname && verifiedStudents[0]?.surname) {
       setParentSurname(verifiedStudents[0].surname);
     }
@@ -383,7 +382,6 @@ export const ParentSignUpScreen = ({
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
   };
 
-  // Step 2 -> Step 3 validation
   const handleGoToStep3 = () => {
     Keyboard.dismiss();
     if (!parentName.trim() || !parentSurname.trim() || !phone.trim()) {
@@ -399,7 +397,6 @@ export const ParentSignUpScreen = ({
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
   };
 
-  // Step 3: Final submit
   const handleFinalSubmit = async () => {
     Keyboard.dismiss();
     if (!password.trim() || password.length < 6) {
@@ -454,14 +451,14 @@ export const ParentSignUpScreen = ({
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+    <View style={{ flex: 1, backgroundColor: '#eef5ff' }}>
+      <StatusBar barStyle="dark-content" backgroundColor="#eef5ff" />
       <SafeAreaView style={{ flex: 1 }}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{ flex: 1 }}
         >
-          {/* TOP BAR: IDENTICAL TO SIGNIN SCREEN */}
+          {/* TOP BAR: BACK & LANGUAGE SELECTOR */}
           <View
             style={{
               flexDirection: 'row',
@@ -469,8 +466,7 @@ export const ParentSignUpScreen = ({
               justifyContent: 'space-between',
               paddingHorizontal: 20,
               paddingTop: 8,
-              paddingBottom: 12,
-              backgroundColor: '#ffffff',
+              paddingBottom: 10,
             }}
           >
             <TouchableOpacity
@@ -482,31 +478,41 @@ export const ParentSignUpScreen = ({
                 }
               }}
               style={{
-                width: 40,
-                height: 40,
+                width: 42,
+                height: 42,
                 borderRadius: 14,
-                backgroundColor: '#f1f4f6',
+                backgroundColor: '#ffffff',
                 alignItems: 'center',
                 justifyContent: 'center',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.05,
+                shadowRadius: 6,
+                elevation: 2,
               }}
             >
               <ChevronLeft
                 size={20}
-                color="#2b3437"
+                color="#1e293b"
                 strokeWidth={2.5}
                 style={{ transform: [{ rotate: isRTL ? '180deg' : '0deg' }] }}
               />
             </TouchableOpacity>
 
-            {/* Language Selector matching SignInScreen 1:1 */}
+            {/* Language Selector */}
             <View
               style={{
                 flexDirection: 'row',
-                backgroundColor: '#f8fafc',
+                backgroundColor: '#ffffff',
                 borderRadius: 16,
                 padding: 3,
                 borderWidth: 1,
                 borderColor: '#e2e8f0',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.04,
+                shadowRadius: 4,
+                elevation: 1,
               }}
             >
               {[
@@ -518,15 +524,15 @@ export const ParentSignUpScreen = ({
                   key={item.id}
                   onPress={() => setLanguage(item.id as Language)}
                   style={{
-                    paddingHorizontal: 10,
+                    paddingHorizontal: 11,
                     paddingVertical: 6,
-                    borderRadius: 12,
+                    borderRadius: 13,
                     backgroundColor: language === item.id ? '#0055d4' : 'transparent',
                   }}
                 >
                   <Text
                     style={{
-                      fontSize: 11,
+                      fontSize: 11.5,
                       fontWeight: '800',
                       color: language === item.id ? '#ffffff' : '#64748b',
                     }}
@@ -538,17 +544,39 @@ export const ParentSignUpScreen = ({
             </View>
           </View>
 
-          {/* SLEEK SEGMENTED STEP PROGRESS */}
-          <View
-            style={{
-              paddingHorizontal: 20,
-              paddingBottom: 16,
-              backgroundColor: '#ffffff',
-              borderBottomWidth: 1,
-              borderBottomColor: '#f1f5f9',
-            }}
-          >
-            <View style={{ flexDirection: 'row', gap: 8 }}>
+          {/* HERO PROGRESS & STEP INDICATOR */}
+          <View style={{ paddingHorizontal: 24, paddingTop: 6, paddingBottom: 18 }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 8,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 20,
+                  fontWeight: '900',
+                  color: '#0f172a',
+                  letterSpacing: -0.5,
+                }}
+              >
+                {t.screenTitle}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: '800',
+                  color: '#0055d4',
+                }}
+              >
+                {currentStep}/3
+              </Text>
+            </View>
+
+            {/* SLEEK PROGRESS BARS */}
+            <View style={{ flexDirection: 'row', gap: 6 }}>
               {[
                 { step: 1, label: t.step1Label },
                 { step: 2, label: t.step2Label },
@@ -562,19 +590,19 @@ export const ParentSignUpScreen = ({
                       style={{
                         height: 4,
                         borderRadius: 2,
-                        backgroundColor: isDone ? '#10b981' : isActive ? '#0055d4' : '#e2e8f0',
-                        marginBottom: 6,
+                        backgroundColor: isDone ? '#10b981' : isActive ? '#0055d4' : '#dbeafe',
+                        marginBottom: 4,
                       }}
                     />
                     <Text
                       style={{
-                        fontSize: 11.5,
+                        fontSize: 11,
                         fontWeight: isActive ? '800' : '600',
                         color: isActive ? '#0055d4' : isDone ? '#10b981' : '#94a3b8',
                         textAlign: isRTL ? 'right' : 'left',
                       }}
                     >
-                      {s.step}. {s.label}
+                      {s.label}
                     </Text>
                   </View>
                 );
@@ -582,379 +610,709 @@ export const ParentSignUpScreen = ({
             </View>
           </View>
 
-          {/* MAIN SCROLLABLE CONTENT */}
-          <ScrollView
-            ref={scrollViewRef}
-            style={{ flex: 1, backgroundColor: '#ffffff' }}
-            contentContainerStyle={{
-              flexGrow: 1,
-              paddingHorizontal: 20,
-              paddingTop: 16,
-              paddingBottom: keyboardOffset > 0 ? keyboardOffset + 40 : 40,
+          {/* CURVED WHITE BOTTOM SHEET (DRIBBLE STYLE) */}
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: '#ffffff',
+              borderTopLeftRadius: 32,
+              borderTopRightRadius: 32,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: -4 },
+              shadowOpacity: 0.06,
+              shadowRadius: 14,
+              elevation: 10,
+              overflow: 'hidden',
             }}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            automaticallyAdjustKeyboardInsets={true}
           >
-            {/* ================= STEP 1: STUDENT VERIFICATION ================= */}
-            {currentStep === 1 && (
-              <View>
-                {/* Header */}
-                <View style={{ marginBottom: 20 }}>
-                  <Text
-                    style={{
-                      fontSize: 22,
-                      fontWeight: '900',
-                      color: '#0f172a',
-                      letterSpacing: -0.5,
-                      textAlign: isRTL ? 'right' : 'left',
-                    }}
-                  >
-                    {t.studentSearchTitle}
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 13.5,
-                      color: '#64748b',
-                      marginTop: 6,
-                      lineHeight: 20,
-                      textAlign: isRTL ? 'right' : 'left',
-                    }}
-                  >
-                    {t.studentSearchSubtitle}
-                  </Text>
-                </View>
-
-                {/* VERIFIED STUDENTS CARDS (PREMIUM INSTITUTIONAL LOOK) */}
-                {verifiedStudents.map((st) => (
-                  <View
-                    key={st.id}
-                    style={{
-                      backgroundColor: '#ffffff',
-                      borderRadius: 18,
-                      padding: 16,
-                      marginBottom: 16,
-                      borderWidth: 1.5,
-                      borderColor: '#10b981',
-                      shadowColor: '#10b981',
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.1,
-                      shadowRadius: 10,
-                      elevation: 3,
-                    }}
-                  >
-                    {/* Status Pill & Remove Button */}
-                    <View
+            <ScrollView
+              ref={scrollViewRef}
+              style={{ flex: 1 }}
+              contentContainerStyle={{
+                flexGrow: 1,
+                paddingHorizontal: 24,
+                paddingTop: 26,
+                paddingBottom: keyboardOffset > 0 ? keyboardOffset + 40 : 40,
+              }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              automaticallyAdjustKeyboardInsets={true}
+            >
+              {/* ================= STEP 1: STUDENT IDENTIFICATION ================= */}
+              {currentStep === 1 && (
+                <View>
+                  <View style={{ marginBottom: 22 }}>
+                    <Text
                       style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: 12,
+                        fontSize: 24,
+                        fontWeight: '900',
+                        color: '#0f172a',
+                        letterSpacing: -0.5,
+                        textAlign: isRTL ? 'right' : 'left',
+                        marginBottom: 6,
+                      }}
+                    >
+                      {t.studentSearchTitle}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 13.5,
+                        color: '#64748b',
+                        lineHeight: 20,
+                        textAlign: isRTL ? 'right' : 'left',
+                      }}
+                    >
+                      {t.studentSearchSubtitle}
+                    </Text>
+                  </View>
+
+                  {/* VERIFIED STUDENTS CARD STACK */}
+                  {verifiedStudents.map((st) => (
+                    <View
+                      key={st.id}
+                      style={{
+                        backgroundColor: '#ffffff',
+                        borderRadius: 20,
+                        padding: 16,
+                        marginBottom: 16,
+                        borderWidth: 1.5,
+                        borderColor: '#10b981',
+                        shadowColor: '#10b981',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 10,
+                        elevation: 3,
                       }}
                     >
                       <View
                         style={{
                           flexDirection: 'row',
                           alignItems: 'center',
-                          backgroundColor: '#ecfdf5',
-                          paddingHorizontal: 10,
-                          paddingVertical: 4,
-                          borderRadius: 20,
+                          justifyContent: 'space-between',
+                          marginBottom: 12,
                         }}
                       >
-                        <CheckCircle2 size={13} color="#059669" />
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            fontWeight: '800',
-                            color: '#059669',
-                            marginLeft: 5,
-                          }}
-                        >
-                          {t.verifiedBadge}
-                        </Text>
-                      </View>
-
-                      {verifiedStudents.length > 1 && (
-                        <TouchableOpacity
-                          onPress={() => handleRemoveStudent(st.id)}
-                          style={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: 14,
-                            backgroundColor: '#fef2f2',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <Trash2 size={14} color="#ef4444" />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-
-                    {/* Student Info */}
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <View
-                        style={{
-                          width: 48,
-                          height: 48,
-                          borderRadius: 16,
-                          backgroundColor: '#eff6ff',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          marginRight: 14,
-                          borderWidth: 1,
-                          borderColor: '#dbeafe',
-                        }}
-                      >
-                        <GraduationCap size={24} color="#0055d4" />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          style={{
-                            fontSize: 18,
-                            fontWeight: '800',
-                            color: '#0f172a',
-                            textAlign: isRTL ? 'right' : 'left',
-                          }}
-                        >
-                          {st.name} {st.surname}
-                        </Text>
-
-                        {/* Pills for Class and Level */}
                         <View
                           style={{
                             flexDirection: 'row',
-                            flexWrap: 'wrap',
-                            gap: 6,
-                            marginTop: 6,
+                            alignItems: 'center',
+                            backgroundColor: '#ecfdf5',
+                            paddingHorizontal: 10,
+                            paddingVertical: 4,
+                            borderRadius: 20,
                           }}
                         >
-                          <View
+                          <CheckCircle2 size={13} color="#059669" />
+                          <Text
                             style={{
-                              backgroundColor: '#eff6ff',
-                              paddingHorizontal: 8,
-                              paddingVertical: 3,
-                              borderRadius: 6,
+                              fontSize: 12,
+                              fontWeight: '800',
+                              color: '#059669',
+                              marginLeft: 5,
                             }}
                           >
-                            <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#1e40af' }}>
-                              {st.levelName}
-                            </Text>
-                          </View>
-                          <View
-                            style={{
-                              backgroundColor: '#f1f5f9',
-                              paddingHorizontal: 8,
-                              paddingVertical: 3,
-                              borderRadius: 6,
-                            }}
-                          >
-                            <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#475569' }}>
-                              Classe {st.className}
-                            </Text>
-                          </View>
+                            {t.verifiedBadge}
+                          </Text>
                         </View>
 
-                        {/* National ID */}
+                        {verifiedStudents.length > 1 && (
+                          <TouchableOpacity
+                            onPress={() => handleRemoveStudent(st.id)}
+                            style={{
+                              width: 30,
+                              height: 30,
+                              borderRadius: 15,
+                              backgroundColor: '#fef2f2',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <Trash2 size={14} color="#ef4444" />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <View
+                          style={{
+                            width: 50,
+                            height: 50,
+                            borderRadius: 18,
+                            backgroundColor: '#eff6ff',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginRight: 14,
+                            borderWidth: 1,
+                            borderColor: '#dbeafe',
+                          }}
+                        >
+                          <GraduationCap size={26} color="#0055d4" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            style={{
+                              fontSize: 18,
+                              fontWeight: '900',
+                              color: '#0f172a',
+                              textAlign: isRTL ? 'right' : 'left',
+                            }}
+                          >
+                            {st.name} {st.surname}
+                          </Text>
+
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              flexWrap: 'wrap',
+                              gap: 6,
+                              marginTop: 6,
+                            }}
+                          >
+                            <View
+                              style={{
+                                backgroundColor: '#eff6ff',
+                                paddingHorizontal: 8,
+                                paddingVertical: 3,
+                                borderRadius: 8,
+                              }}
+                            >
+                              <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#1e40af' }}>
+                                {st.levelName}
+                              </Text>
+                            </View>
+                            <View
+                              style={{
+                                backgroundColor: '#f1f5f9',
+                                paddingHorizontal: 8,
+                                paddingVertical: 3,
+                                borderRadius: 8,
+                              }}
+                            >
+                              <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#475569' }}>
+                                Classe {st.className}
+                              </Text>
+                            </View>
+                          </View>
+
+                          <Text
+                            style={{
+                              fontSize: 11.5,
+                              color: '#64748b',
+                              marginTop: 6,
+                              fontWeight: '600',
+                              fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+                              textAlign: isRTL ? 'right' : 'left',
+                            }}
+                          >
+                            N° National : {st.nationalId}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+
+                  {/* INPUT BOX (DRIBBLE SQUIRCLE FORM) */}
+                  {(verifiedStudents.length === 0 || showAddSibling) && (
+                    <View style={{ marginBottom: 18 }}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          marginBottom: 8,
+                        }}
+                      >
                         <Text
                           style={{
-                            fontSize: 11.5,
-                            color: '#64748b',
-                            marginTop: 6,
-                            fontWeight: '600',
-                            fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+                            fontSize: 12.5,
+                            fontWeight: '800',
+                            color: '#475569',
                             textAlign: isRTL ? 'right' : 'left',
                           }}
                         >
-                          N° National : {st.nationalId}
+                          {t.nationalIdLabel}
                         </Text>
+                        {verifiedStudents.length > 0 && showAddSibling && (
+                          <TouchableOpacity onPress={() => setShowAddSibling(false)}>
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#ef4444' }}>
+                              {t.cancelSibling}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
-                    </View>
-                  </View>
-                ))}
 
-                {/* INPUT BOX: Shown ONLY if 0 students verified OR user clicked "+ Add sibling" */}
-                {(verifiedStudents.length === 0 || showAddSibling) && (
-                  <View
-                    style={{
-                      backgroundColor: '#ffffff',
-                      borderRadius: 18,
-                      padding: 20,
-                      borderWidth: 1,
-                      borderColor: '#e2e8f0',
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.04,
-                      shadowRadius: 8,
-                      elevation: 1,
-                      marginBottom: 16,
-                    }}
-                  >
-                    <View
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          backgroundColor: '#f8fafc',
+                          borderRadius: 16,
+                          borderWidth: 1.5,
+                          borderColor: '#e2e8f0',
+                          paddingHorizontal: 16,
+                          height: 54,
+                          marginBottom: 12,
+                        }}
+                      >
+                        <GraduationCap size={20} color="#94a3b8" />
+                        <View
+                          style={{
+                            width: 1,
+                            height: 20,
+                            backgroundColor: '#e2e8f0',
+                            marginHorizontal: 12,
+                          }}
+                        />
+                        <TextInput
+                          value={nationalIdInput}
+                          onChangeText={(val) => {
+                            setNationalIdInput(val);
+                            setVerifyError('');
+                          }}
+                          onFocus={() => scrollToInput(100)}
+                          placeholder={t.nationalIdPlaceholder}
+                          placeholderTextColor="#94a3b8"
+                          keyboardType="numeric"
+                          returnKeyType="done"
+                          onSubmitEditing={handleVerify}
+                          style={{
+                            flex: 1,
+                            fontSize: 16,
+                            color: '#0f172a',
+                            fontWeight: '700',
+                            textAlign: isRTL ? 'right' : 'left',
+                          }}
+                        />
+                      </View>
+
+                      {verifyError ? (
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            backgroundColor: '#fef2f2',
+                            padding: 12,
+                            borderRadius: 14,
+                            marginBottom: 12,
+                            borderWidth: 1,
+                            borderColor: '#fecaca',
+                          }}
+                        >
+                          <AlertCircle size={16} color="#ef4444" style={{ marginRight: 8 }} />
+                          <Text
+                            style={{
+                              fontSize: 13,
+                              color: '#b91c1c',
+                              fontWeight: '600',
+                              flex: 1,
+                            }}
+                          >
+                            {verifyError}
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      <TouchableOpacity
+                        onPress={handleVerify}
+                        disabled={isVerifying}
+                        style={{
+                          backgroundColor: '#0055d4',
+                          borderRadius: 16,
+                          height: 50,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexDirection: 'row',
+                          shadowColor: '#0055d4',
+                          shadowOffset: { width: 0, height: 4 },
+                          shadowOpacity: 0.22,
+                          shadowRadius: 8,
+                          elevation: 3,
+                        }}
+                      >
+                        {isVerifying ? (
+                          <ActivityIndicator size="small" color="#ffffff" />
+                        ) : (
+                          <Text style={{ fontSize: 15, fontWeight: '800', color: '#ffffff' }}>
+                            {t.btnVerify}
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                  {/* ADD SIBLING BUTTON */}
+                  {verifiedStudents.length > 0 && !showAddSibling && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        setShowAddSibling(true);
+                        scrollToInput(180);
+                      }}
                       style={{
-                        flexDirection: 'row',
+                        backgroundColor: '#f8fafc',
+                        borderWidth: 1.5,
+                        borderStyle: 'dashed',
+                        borderColor: '#cbd5e1',
+                        borderRadius: 16,
+                        padding: 14,
                         alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: 10,
+                        justifyContent: 'center',
+                        flexDirection: 'row',
+                        marginBottom: 20,
+                      }}
+                    >
+                      <Plus size={18} color="#0055d4" style={{ marginRight: 6 }} />
+                      <Text style={{ fontSize: 14, fontWeight: '800', color: '#0055d4' }}>
+                        {t.btnAddSibling}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* MAIN CONTINUE BUTTON */}
+                  {verifiedStudents.length > 0 && (
+                    <TouchableOpacity
+                      onPress={handleGoToStep2}
+                      style={{
+                        backgroundColor: '#0055d4',
+                        borderRadius: 18,
+                        height: 54,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexDirection: 'row',
+                        shadowColor: '#0055d4',
+                        shadowOffset: { width: 0, height: 6 },
+                        shadowOpacity: 0.28,
+                        shadowRadius: 10,
+                        elevation: 4,
+                        marginTop: 4,
                       }}
                     >
                       <Text
                         style={{
-                          fontSize: 13,
+                          fontSize: 16,
                           fontWeight: '800',
-                          color: '#334155',
-                          textAlign: isRTL ? 'right' : 'left',
+                          color: '#ffffff',
+                          marginRight: 6,
                         }}
                       >
-                        {t.nationalIdLabel}
+                        {t.btnContinueToParent}
                       </Text>
+                      <ArrowRight size={18} color="#ffffff" strokeWidth={2.5} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
 
-                      {verifiedStudents.length > 0 && showAddSibling && (
-                        <TouchableOpacity onPress={() => setShowAddSibling(false)}>
-                          <Text style={{ fontSize: 12, fontWeight: '700', color: '#ef4444' }}>
-                            {t.cancelSibling}
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
+              {/* ================= STEP 2: PARENT DETAILS ================= */}
+              {currentStep === 2 && (
+                <View>
+                  <View style={{ marginBottom: 22 }}>
+                    <Text
+                      style={{
+                        fontSize: 24,
+                        fontWeight: '900',
+                        color: '#0f172a',
+                        letterSpacing: -0.5,
+                        textAlign: isRTL ? 'right' : 'left',
+                        marginBottom: 6,
+                      }}
+                    >
+                      {t.parentTitle}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 13.5,
+                        color: '#64748b',
+                        lineHeight: 20,
+                        textAlign: isRTL ? 'right' : 'left',
+                      }}
+                    >
+                      {t.parentSubtitle}
+                    </Text>
+                  </View>
 
+                  {/* First Name */}
+                  <View style={{ marginBottom: 16 }}>
+                    <Text
+                      style={{
+                        fontSize: 12.5,
+                        fontWeight: '800',
+                        color: '#475569',
+                        marginBottom: 7,
+                        textAlign: isRTL ? 'right' : 'left',
+                      }}
+                    >
+                      {t.firstName} *
+                    </Text>
                     <View
                       style={{
                         flexDirection: 'row',
                         alignItems: 'center',
                         backgroundColor: '#f8fafc',
-                        borderRadius: 14,
+                        borderRadius: 16,
                         borderWidth: 1.5,
-                        borderColor: '#cbd5e1',
-                        paddingHorizontal: 14,
-                        height: 52,
-                        marginBottom: 14,
+                        borderColor: '#e2e8f0',
+                        paddingHorizontal: 16,
+                        height: 54,
                       }}
                     >
-                      <GraduationCap size={20} color="#64748b" />
-                      <TextInput
-                        value={nationalIdInput}
-                        onChangeText={(val) => {
-                          setNationalIdInput(val);
-                          setVerifyError('');
+                      <User size={20} color="#94a3b8" />
+                      <View
+                        style={{
+                          width: 1,
+                          height: 20,
+                          backgroundColor: '#e2e8f0',
+                          marginHorizontal: 12,
                         }}
-                        onFocus={() => scrollToInput(120)}
-                        placeholder={t.nationalIdPlaceholder}
+                      />
+                      <TextInput
+                        value={parentName}
+                        onChangeText={setParentName}
+                        onFocus={() => scrollToInput(60)}
+                        placeholder={t.firstNamePlaceholder}
                         placeholderTextColor="#94a3b8"
-                        keyboardType="numeric"
-                        returnKeyType="done"
-                        onSubmitEditing={handleVerify}
                         style={{
                           flex: 1,
-                          fontSize: 16,
+                          fontSize: 15,
                           color: '#0f172a',
-                          marginLeft: 10,
                           fontWeight: '700',
                           textAlign: isRTL ? 'right' : 'left',
                         }}
                       />
                     </View>
+                  </View>
 
-                    {verifyError ? (
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          backgroundColor: '#fef2f2',
-                          padding: 12,
-                          borderRadius: 10,
-                          marginBottom: 14,
-                          borderWidth: 1,
-                          borderColor: '#fecaca',
-                        }}
-                      >
-                        <AlertCircle size={16} color="#ef4444" style={{ marginRight: 8 }} />
-                        <Text
-                          style={{
-                            fontSize: 13,
-                            color: '#b91c1c',
-                            fontWeight: '600',
-                            flex: 1,
-                          }}
-                        >
-                          {verifyError}
-                        </Text>
-                      </View>
-                    ) : null}
-
-                    <TouchableOpacity
-                      onPress={handleVerify}
-                      disabled={isVerifying}
+                  {/* Last Name */}
+                  <View style={{ marginBottom: 16 }}>
+                    <Text
                       style={{
-                        backgroundColor: '#0055d4',
-                        borderRadius: 14,
-                        height: 48,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexDirection: 'row',
-                        shadowColor: '#0055d4',
-                        shadowOffset: { width: 0, height: 4 },
-                        shadowOpacity: 0.2,
-                        shadowRadius: 8,
-                        elevation: 3,
+                        fontSize: 12.5,
+                        fontWeight: '800',
+                        color: '#475569',
+                        marginBottom: 7,
+                        textAlign: isRTL ? 'right' : 'left',
                       }}
                     >
-                      {isVerifying ? (
-                        <ActivityIndicator size="small" color="#ffffff" />
-                      ) : (
-                        <Text style={{ fontSize: 15, fontWeight: '800', color: '#ffffff' }}>
-                          {t.btnVerify}
-                        </Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                {/* ADD SIBLING BUTTON */}
-                {verifiedStudents.length > 0 && !showAddSibling && (
-                  <TouchableOpacity
-                    onPress={() => {
-                      setShowAddSibling(true);
-                      scrollToInput(180);
-                    }}
-                    style={{
-                      backgroundColor: '#f8fafc',
-                      borderWidth: 1.5,
-                      borderStyle: 'dashed',
-                      borderColor: '#cbd5e1',
-                      borderRadius: 14,
-                      padding: 14,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexDirection: 'row',
-                      marginBottom: 20,
-                    }}
-                  >
-                    <Plus size={18} color="#0055d4" style={{ marginRight: 6 }} />
-                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#0055d4' }}>
-                      {t.btnAddSibling}
+                      {t.lastName} *
                     </Text>
-                  </TouchableOpacity>
-                )}
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: '#f8fafc',
+                        borderRadius: 16,
+                        borderWidth: 1.5,
+                        borderColor: '#e2e8f0',
+                        paddingHorizontal: 16,
+                        height: 54,
+                      }}
+                    >
+                      <User size={20} color="#94a3b8" />
+                      <View
+                        style={{
+                          width: 1,
+                          height: 20,
+                          backgroundColor: '#e2e8f0',
+                          marginHorizontal: 12,
+                        }}
+                      />
+                      <TextInput
+                        value={parentSurname}
+                        onChangeText={setParentSurname}
+                        onFocus={() => scrollToInput(120)}
+                        placeholder={t.lastNamePlaceholder}
+                        placeholderTextColor="#94a3b8"
+                        style={{
+                          flex: 1,
+                          fontSize: 15,
+                          color: '#0f172a',
+                          fontWeight: '700',
+                          textAlign: isRTL ? 'right' : 'left',
+                        }}
+                      />
+                    </View>
+                  </View>
 
-                {/* MAIN NEXT BUTTON */}
-                {verifiedStudents.length > 0 && (
+                  {/* Phone */}
+                  <View style={{ marginBottom: 16 }}>
+                    <Text
+                      style={{
+                        fontSize: 12.5,
+                        fontWeight: '800',
+                        color: '#475569',
+                        marginBottom: 7,
+                        textAlign: isRTL ? 'right' : 'left',
+                      }}
+                    >
+                      {t.phone} *
+                    </Text>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: '#f8fafc',
+                        borderRadius: 16,
+                        borderWidth: 1.5,
+                        borderColor: '#e2e8f0',
+                        paddingHorizontal: 16,
+                        height: 54,
+                        marginBottom: 6,
+                      }}
+                    >
+                      <Phone size={20} color="#94a3b8" />
+                      <View
+                        style={{
+                          width: 1,
+                          height: 20,
+                          backgroundColor: '#e2e8f0',
+                          marginHorizontal: 12,
+                        }}
+                      />
+                      <TextInput
+                        value={phone}
+                        onChangeText={setPhone}
+                        onFocus={() => scrollToInput(180)}
+                        placeholder={t.phonePlaceholder}
+                        placeholderTextColor="#94a3b8"
+                        keyboardType="phone-pad"
+                        style={{
+                          flex: 1,
+                          fontSize: 15,
+                          color: '#0f172a',
+                          fontWeight: '700',
+                          textAlign: isRTL ? 'right' : 'left',
+                        }}
+                      />
+                    </View>
+                    <Text
+                      style={{
+                        fontSize: 11.5,
+                        color: '#64748b',
+                        textAlign: isRTL ? 'right' : 'left',
+                      }}
+                    >
+                      {t.phoneHint}
+                    </Text>
+                  </View>
+
+                  {/* Relationship Segmented Pills */}
+                  <View style={{ marginBottom: 16 }}>
+                    <Text
+                      style={{
+                        fontSize: 12.5,
+                        fontWeight: '800',
+                        color: '#475569',
+                        marginBottom: 8,
+                        textAlign: isRTL ? 'right' : 'left',
+                      }}
+                    >
+                      {t.relationLabel}
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      {[
+                        { key: 'Père', label: t.father },
+                        { key: 'Mère', label: t.mother },
+                        { key: 'Tuteur', label: t.guardian },
+                      ].map((rel) => {
+                        const isSel = relation === rel.key;
+                        return (
+                          <TouchableOpacity
+                            key={rel.key}
+                            onPress={() => setRelation(rel.key as any)}
+                            style={{
+                              flex: 1,
+                              height: 44,
+                              borderRadius: 14,
+                              backgroundColor: isSel ? '#0055d4' : '#f8fafc',
+                              borderWidth: 1.5,
+                              borderColor: isSel ? '#0055d4' : '#e2e8f0',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              shadowColor: isSel ? '#0055d4' : 'transparent',
+                              shadowOpacity: isSel ? 0.2 : 0,
+                              shadowRadius: 4,
+                              elevation: isSel ? 2 : 0,
+                            }}
+                          >
+                            <Text
+                              style={{
+                                fontSize: 13,
+                                fontWeight: isSel ? '800' : '600',
+                                color: isSel ? '#ffffff' : '#475569',
+                              }}
+                            >
+                              {rel.label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+
+                  {/* Address */}
+                  <View style={{ marginBottom: 22 }}>
+                    <Text
+                      style={{
+                        fontSize: 12.5,
+                        fontWeight: '800',
+                        color: '#475569',
+                        marginBottom: 7,
+                        textAlign: isRTL ? 'right' : 'left',
+                      }}
+                    >
+                      {t.addressLabel}
+                    </Text>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: '#f8fafc',
+                        borderRadius: 16,
+                        borderWidth: 1.5,
+                        borderColor: '#e2e8f0',
+                        paddingHorizontal: 16,
+                        height: 54,
+                      }}
+                    >
+                      <MapPin size={20} color="#94a3b8" />
+                      <View
+                        style={{
+                          width: 1,
+                          height: 20,
+                          backgroundColor: '#e2e8f0',
+                          marginHorizontal: 12,
+                        }}
+                      />
+                      <TextInput
+                        value={address}
+                        onChangeText={setAddress}
+                        onFocus={() => scrollToInput(240)}
+                        placeholder={t.addressPlaceholder}
+                        placeholderTextColor="#94a3b8"
+                        style={{
+                          flex: 1,
+                          fontSize: 14,
+                          color: '#0f172a',
+                          textAlign: isRTL ? 'right' : 'left',
+                        }}
+                      />
+                    </View>
+                  </View>
+
+                  {/* NEXT BUTTON */}
                   <TouchableOpacity
-                    onPress={handleGoToStep2}
+                    onPress={handleGoToStep3}
                     style={{
                       backgroundColor: '#0055d4',
-                      borderRadius: 14,
-                      height: 52,
+                      borderRadius: 18,
+                      height: 54,
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexDirection: 'row',
                       shadowColor: '#0055d4',
                       shadowOffset: { width: 0, height: 6 },
-                      shadowOpacity: 0.25,
+                      shadowOpacity: 0.28,
                       shadowRadius: 10,
                       elevation: 4,
-                      marginTop: 4,
                     }}
                   >
                     <Text
@@ -965,738 +1323,426 @@ export const ParentSignUpScreen = ({
                         marginRight: 6,
                       }}
                     >
-                      {t.btnContinueToParent}
+                      {t.btnContinueToPassword}
                     </Text>
-                    <ArrowRight size={18} color="#ffffff" />
+                    <ArrowRight size={18} color="#ffffff" strokeWidth={2.5} />
                   </TouchableOpacity>
-                )}
-              </View>
-            )}
-
-            {/* ================= STEP 2: PARENT CONTACT (NO HEALTH FICHE) ================= */}
-            {currentStep === 2 && (
-              <View>
-                {/* Header */}
-                <View style={{ marginBottom: 20 }}>
-                  <Text
-                    style={{
-                      fontSize: 22,
-                      fontWeight: '900',
-                      color: '#0f172a',
-                      letterSpacing: -0.5,
-                      textAlign: isRTL ? 'right' : 'left',
-                    }}
-                  >
-                    {t.parentTitle}
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 13.5,
-                      color: '#64748b',
-                      marginTop: 6,
-                      lineHeight: 20,
-                      textAlign: isRTL ? 'right' : 'left',
-                    }}
-                  >
-                    {t.parentSubtitle}
-                  </Text>
                 </View>
+              )}
 
-                {/* PARENT DETAILS FORM */}
-                <View
-                  style={{
-                    backgroundColor: '#ffffff',
-                    borderRadius: 18,
-                    padding: 20,
-                    borderWidth: 1,
-                    borderColor: '#e2e8f0',
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.04,
-                    shadowRadius: 8,
-                    elevation: 1,
-                    marginBottom: 20,
-                  }}
-                >
-                  {/* First Name */}
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: '800',
-                      color: '#334155',
-                      marginBottom: 6,
-                      textAlign: isRTL ? 'right' : 'left',
-                    }}
-                  >
-                    {t.firstName} *
-                  </Text>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      backgroundColor: '#f8fafc',
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      borderColor: '#cbd5e1',
-                      paddingHorizontal: 12,
-                      height: 48,
-                      marginBottom: 14,
-                    }}
-                  >
-                    <User size={18} color="#64748b" />
-                    <TextInput
-                      value={parentName}
-                      onChangeText={setParentName}
-                      onFocus={() => scrollToInput(60)}
-                      placeholder={t.firstNamePlaceholder}
-                      placeholderTextColor="#94a3b8"
+              {/* ================= STEP 3: SECURITY & RECAP PASS ================= */}
+              {currentStep === 3 && (
+                <View>
+                  <View style={{ marginBottom: 22 }}>
+                    <Text
                       style={{
-                        flex: 1,
-                        fontSize: 15,
+                        fontSize: 24,
+                        fontWeight: '900',
                         color: '#0f172a',
-                        marginLeft: 10,
-                        fontWeight: '600',
+                        letterSpacing: -0.5,
                         textAlign: isRTL ? 'right' : 'left',
+                        marginBottom: 6,
                       }}
-                    />
-                  </View>
-
-                  {/* Last Name */}
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: '800',
-                      color: '#334155',
-                      marginBottom: 6,
-                      textAlign: isRTL ? 'right' : 'left',
-                    }}
-                  >
-                    {t.lastName} *
-                  </Text>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      backgroundColor: '#f8fafc',
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      borderColor: '#cbd5e1',
-                      paddingHorizontal: 12,
-                      height: 48,
-                      marginBottom: 14,
-                    }}
-                  >
-                    <User size={18} color="#64748b" />
-                    <TextInput
-                      value={parentSurname}
-                      onChangeText={setParentSurname}
-                      onFocus={() => scrollToInput(120)}
-                      placeholder={t.lastNamePlaceholder}
-                      placeholderTextColor="#94a3b8"
-                      style={{
-                        flex: 1,
-                        fontSize: 15,
-                        color: '#0f172a',
-                        marginLeft: 10,
-                        fontWeight: '600',
-                        textAlign: isRTL ? 'right' : 'left',
-                      }}
-                    />
-                  </View>
-
-                  {/* Phone Number */}
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: '800',
-                      color: '#334155',
-                      marginBottom: 6,
-                      textAlign: isRTL ? 'right' : 'left',
-                    }}
-                  >
-                    {t.phone} *
-                  </Text>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      backgroundColor: '#f8fafc',
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      borderColor: '#cbd5e1',
-                      paddingHorizontal: 12,
-                      height: 48,
-                      marginBottom: 4,
-                    }}
-                  >
-                    <Phone size={18} color="#64748b" />
-                    <TextInput
-                      value={phone}
-                      onChangeText={setPhone}
-                      onFocus={() => scrollToInput(180)}
-                      placeholder={t.phonePlaceholder}
-                      placeholderTextColor="#94a3b8"
-                      keyboardType="phone-pad"
-                      style={{
-                        flex: 1,
-                        fontSize: 15,
-                        color: '#0f172a',
-                        marginLeft: 10,
-                        fontWeight: '700',
-                        textAlign: isRTL ? 'right' : 'left',
-                      }}
-                    />
-                  </View>
-                  <Text
-                    style={{
-                      fontSize: 11.5,
-                      color: '#64748b',
-                      marginBottom: 16,
-                      textAlign: isRTL ? 'right' : 'left',
-                    }}
-                  >
-                    {t.phoneHint}
-                  </Text>
-
-                  {/* Relationship Segmented Pills */}
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: '800',
-                      color: '#334155',
-                      marginBottom: 8,
-                      textAlign: isRTL ? 'right' : 'left',
-                    }}
-                  >
-                    {t.relationLabel}
-                  </Text>
-                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
-                    {[
-                      { key: 'Père', label: t.father },
-                      { key: 'Mère', label: t.mother },
-                      { key: 'Tuteur', label: t.guardian },
-                    ].map((rel) => {
-                      const isSel = relation === rel.key;
-                      return (
-                        <TouchableOpacity
-                          key={rel.key}
-                          onPress={() => setRelation(rel.key as any)}
-                          style={{
-                            flex: 1,
-                            height: 42,
-                            borderRadius: 10,
-                            backgroundColor: isSel ? '#0055d4' : '#f1f5f9',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            shadowColor: isSel ? '#0055d4' : 'transparent',
-                            shadowOpacity: isSel ? 0.2 : 0,
-                            shadowRadius: 4,
-                            elevation: isSel ? 2 : 0,
-                          }}
-                        >
-                          <Text
-                            style={{
-                              fontSize: 13,
-                              fontWeight: isSel ? '800' : '600',
-                              color: isSel ? '#ffffff' : '#475569',
-                            }}
-                          >
-                            {rel.label}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-
-                  {/* Optional Address */}
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: '800',
-                      color: '#334155',
-                      marginBottom: 6,
-                      textAlign: isRTL ? 'right' : 'left',
-                    }}
-                  >
-                    {t.addressLabel}
-                  </Text>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      backgroundColor: '#f8fafc',
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      borderColor: '#cbd5e1',
-                      paddingHorizontal: 12,
-                      height: 48,
-                    }}
-                  >
-                    <MapPin size={18} color="#64748b" />
-                    <TextInput
-                      value={address}
-                      onChangeText={setAddress}
-                      onFocus={() => scrollToInput(240)}
-                      placeholder={t.addressPlaceholder}
-                      placeholderTextColor="#94a3b8"
-                      style={{
-                        flex: 1,
-                        fontSize: 14,
-                        color: '#0f172a',
-                        marginLeft: 10,
-                        textAlign: isRTL ? 'right' : 'left',
-                      }}
-                    />
-                  </View>
-                </View>
-
-                {/* NEXT BUTTON */}
-                <TouchableOpacity
-                  onPress={handleGoToStep3}
-                  style={{
-                    backgroundColor: '#0055d4',
-                    borderRadius: 14,
-                    height: 52,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexDirection: 'row',
-                    shadowColor: '#0055d4',
-                    shadowOffset: { width: 0, height: 6 },
-                    shadowOpacity: 0.25,
-                    shadowRadius: 10,
-                    elevation: 4,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 16,
-                      fontWeight: '800',
-                      color: '#ffffff',
-                      marginRight: 6,
-                    }}
-                  >
-                    {t.btnContinueToPassword}
-                  </Text>
-                  <ArrowRight size={18} color="#ffffff" />
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* ================= STEP 3: SECURITY & FINAL PASS (SUBLIMATED UI) ================= */}
-            {currentStep === 3 && (
-              <View>
-                {/* Header */}
-                <View style={{ marginBottom: 20 }}>
-                  <Text
-                    style={{
-                      fontSize: 22,
-                      fontWeight: '900',
-                      color: '#0f172a',
-                      letterSpacing: -0.5,
-                      textAlign: isRTL ? 'right' : 'left',
-                    }}
-                  >
-                    {t.passwordTitle}
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 13.5,
-                      color: '#64748b',
-                      marginTop: 6,
-                      lineHeight: 20,
-                      textAlign: isRTL ? 'right' : 'left',
-                    }}
-                  >
-                    {t.passwordSubtitle}
-                  </Text>
-                </View>
-
-                {/* PASSWORD CARD */}
-                <View
-                  style={{
-                    backgroundColor: '#ffffff',
-                    borderRadius: 18,
-                    padding: 20,
-                    borderWidth: 1,
-                    borderColor: '#e2e8f0',
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.04,
-                    shadowRadius: 8,
-                    elevation: 1,
-                    marginBottom: 20,
-                  }}
-                >
-                  {/* Password Input */}
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: '800',
-                      color: '#334155',
-                      marginBottom: 6,
-                      textAlign: isRTL ? 'right' : 'left',
-                    }}
-                  >
-                    {t.pwdLabel} *
-                  </Text>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      backgroundColor: '#f8fafc',
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      borderColor: '#cbd5e1',
-                      paddingHorizontal: 12,
-                      height: 50,
-                      marginBottom: 8,
-                    }}
-                  >
-                    <Lock size={18} color="#64748b" />
-                    <TextInput
-                      value={password}
-                      onChangeText={(val) => {
-                        setPassword(val);
-                        setSubmitError('');
-                      }}
-                      onFocus={() => scrollToInput(60)}
-                      placeholder={t.pwdPlaceholder}
-                      placeholderTextColor="#94a3b8"
-                      secureTextEntry={!showPassword}
-                      style={{
-                        flex: 1,
-                        fontSize: 16,
-                        color: '#0f172a',
-                        marginLeft: 10,
-                        fontWeight: '700',
-                        textAlign: isRTL ? 'right' : 'left',
-                      }}
-                    />
-                    <TouchableOpacity
-                      onPress={() => setShowPassword(!showPassword)}
-                      style={{ padding: 6 }}
                     >
-                      {showPassword ? (
-                        <EyeOff size={18} color="#64748b" />
-                      ) : (
-                        <Eye size={18} color="#64748b" />
-                      )}
-                    </TouchableOpacity>
+                      {t.passwordTitle}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 13.5,
+                        color: '#64748b',
+                        lineHeight: 20,
+                        textAlign: isRTL ? 'right' : 'left',
+                      }}
+                    >
+                      {t.passwordSubtitle}
+                    </Text>
                   </View>
 
-                  {/* Password Strength Meter */}
-                  {password.length > 0 && (
-                    <View style={{ marginBottom: 16 }}>
-                      <View style={{ flexDirection: 'row', gap: 4, marginBottom: 4 }}>
-                        {[1, 2, 3, 4].map((seg) => (
-                          <View
-                            key={seg}
-                            style={{
-                              flex: 1,
-                              height: 4,
-                              borderRadius: 2,
-                              backgroundColor:
-                                pwdStrength.score >= seg ? pwdStrength.color : '#e2e8f0',
-                            }}
-                          />
-                        ))}
-                      </View>
-                      <Text
+                  {/* Password Input */}
+                  <View style={{ marginBottom: 16 }}>
+                    <Text
+                      style={{
+                        fontSize: 12.5,
+                        fontWeight: '800',
+                        color: '#475569',
+                        marginBottom: 7,
+                        textAlign: isRTL ? 'right' : 'left',
+                      }}
+                    >
+                      {t.pwdLabel} *
+                    </Text>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: '#f8fafc',
+                        borderRadius: 16,
+                        borderWidth: 1.5,
+                        borderColor: '#e2e8f0',
+                        paddingHorizontal: 16,
+                        height: 54,
+                        marginBottom: 8,
+                      }}
+                    >
+                      <Lock size={20} color="#94a3b8" />
+                      <View
                         style={{
-                          fontSize: 11.5,
+                          width: 1,
+                          height: 20,
+                          backgroundColor: '#e2e8f0',
+                          marginHorizontal: 12,
+                        }}
+                      />
+                      <TextInput
+                        value={password}
+                        onChangeText={(val) => {
+                          setPassword(val);
+                          setSubmitError('');
+                        }}
+                        onFocus={() => scrollToInput(60)}
+                        placeholder={t.pwdPlaceholder}
+                        placeholderTextColor="#94a3b8"
+                        secureTextEntry={!showPassword}
+                        style={{
+                          flex: 1,
+                          fontSize: 16,
+                          color: '#0f172a',
                           fontWeight: '700',
-                          color: pwdStrength.color,
                           textAlign: isRTL ? 'right' : 'left',
                         }}
+                      />
+                      <TouchableOpacity
+                        onPress={() => setShowPassword(!showPassword)}
+                        style={{ padding: 6 }}
                       >
-                        {pwdStrength.label}
-                      </Text>
+                        {showPassword ? (
+                          <EyeOff size={19} color="#94a3b8" />
+                        ) : (
+                          <Eye size={19} color="#94a3b8" />
+                        )}
+                      </TouchableOpacity>
                     </View>
-                  )}
 
-                  {/* Confirm Password Input */}
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: '800',
-                      color: '#334155',
-                      marginBottom: 6,
-                      marginTop: 4,
-                      textAlign: isRTL ? 'right' : 'left',
-                    }}
-                  >
-                    {t.confirmPwdLabel} *
-                  </Text>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      backgroundColor: '#f8fafc',
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      borderColor:
-                        confirmPassword.length > 0
-                          ? confirmPassword === password
-                            ? '#10b981'
-                            : '#ef4444'
-                          : '#cbd5e1',
-                      paddingHorizontal: 12,
-                      height: 50,
-                      marginBottom: 6,
-                    }}
-                  >
-                    <Lock size={18} color="#64748b" />
-                    <TextInput
-                      value={confirmPassword}
-                      onChangeText={(val) => {
-                        setConfirmPassword(val);
-                        setSubmitError('');
-                      }}
-                      onFocus={() => scrollToInput(120)}
-                      placeholder={t.confirmPwdPlaceholder}
-                      placeholderTextColor="#94a3b8"
-                      secureTextEntry={!showPassword}
-                      style={{
-                        flex: 1,
-                        fontSize: 16,
-                        color: '#0f172a',
-                        marginLeft: 10,
-                        fontWeight: '700',
-                        textAlign: isRTL ? 'right' : 'left',
-                      }}
-                    />
-                    {confirmPassword.length > 0 && (
-                      confirmPassword === password ? (
-                        <Check size={18} color="#10b981" />
-                      ) : (
-                        <X size={18} color="#ef4444" />
-                      )
-                    )}
-                  </View>
-
-                  {confirmPassword.length > 0 && (
-                    <Text
-                      style={{
-                        fontSize: 11.5,
-                        fontWeight: '600',
-                        color: confirmPassword === password ? '#10b981' : '#ef4444',
-                        textAlign: isRTL ? 'right' : 'left',
-                      }}
-                    >
-                      {confirmPassword === password ? t.pwdMatch : t.pwdMismatch}
-                    </Text>
-                  )}
-                </View>
-
-                {/* RECAP PASS / VERIFIED INSTITUTIONAL BADGE */}
-                <View
-                  style={{
-                    backgroundColor: '#f8fafc',
-                    borderRadius: 18,
-                    padding: 16,
-                    borderWidth: 1,
-                    borderColor: '#e2e8f0',
-                    marginBottom: 20,
-                  }}
-                >
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      marginBottom: 12,
-                      paddingBottom: 10,
-                      borderBottomWidth: 1,
-                      borderBottomColor: '#e2e8f0',
-                    }}
-                  >
-                    <ShieldCheck size={18} color="#0055d4" style={{ marginRight: 8 }} />
-                    <Text style={{ fontSize: 13.5, fontWeight: '800', color: '#0f172a' }}>
-                      {t.recapTitle}
-                    </Text>
-                  </View>
-
-                  {/* Row: Login Phone */}
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: 8,
-                    }}
-                  >
-                    <Text style={{ fontSize: 12.5, color: '#64748b', fontWeight: '600' }}>
-                      {t.loginId}
-                    </Text>
-                    <Text style={{ fontSize: 13, fontWeight: '800', color: '#0055d4' }}>
-                      {phone}
-                    </Text>
-                  </View>
-
-                  {/* Row: Parent Name */}
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: 10,
-                    }}
-                  >
-                    <Text style={{ fontSize: 12.5, color: '#64748b', fontWeight: '600' }}>
-                      {t.parentHolder}
-                    </Text>
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#0f172a' }}>
-                      {parentName} {parentSurname} ({relation})
-                    </Text>
-                  </View>
-
-                  {/* Row: Children list */}
-                  <View style={{ marginTop: 4 }}>
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        color: '#64748b',
-                        fontWeight: '700',
-                        marginBottom: 6,
-                        textAlign: isRTL ? 'right' : 'left',
-                      }}
-                    >
-                      {t.linkedChildren}
-                    </Text>
-                    {verifiedStudents.map((child) => (
-                      <View
-                        key={child.id}
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          backgroundColor: '#ffffff',
-                          borderRadius: 10,
-                          padding: 10,
-                          marginBottom: 6,
-                          borderWidth: 1,
-                          borderColor: '#e2e8f0',
-                        }}
-                      >
-                        <GraduationCap size={16} color="#0055d4" style={{ marginRight: 8 }} />
+                    {/* Strength bars */}
+                    {password.length > 0 && (
+                      <View style={{ marginBottom: 6 }}>
+                        <View style={{ flexDirection: 'row', gap: 4, marginBottom: 4 }}>
+                          {[1, 2, 3, 4].map((seg) => (
+                            <View
+                              key={seg}
+                              style={{
+                                flex: 1,
+                                height: 4,
+                                borderRadius: 2,
+                                backgroundColor:
+                                  pwdStrength.score >= seg ? pwdStrength.color : '#e2e8f0',
+                              }}
+                            />
+                          ))}
+                        </View>
                         <Text
                           style={{
-                            fontSize: 13,
+                            fontSize: 11.5,
                             fontWeight: '700',
-                            color: '#0f172a',
-                            flex: 1,
+                            color: pwdStrength.color,
                             textAlign: isRTL ? 'right' : 'left',
                           }}
                         >
-                          {child.name} {child.surname}
+                          {pwdStrength.label}
                         </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Confirm Password Input */}
+                  <View style={{ marginBottom: 20 }}>
+                    <Text
+                      style={{
+                        fontSize: 12.5,
+                        fontWeight: '800',
+                        color: '#475569',
+                        marginBottom: 7,
+                        textAlign: isRTL ? 'right' : 'left',
+                      }}
+                    >
+                      {t.confirmPwdLabel} *
+                    </Text>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: '#f8fafc',
+                        borderRadius: 16,
+                        borderWidth: 1.5,
+                        borderColor:
+                          confirmPassword.length > 0
+                            ? confirmPassword === password
+                              ? '#10b981'
+                              : '#ef4444'
+                            : '#e2e8f0',
+                        paddingHorizontal: 16,
+                        height: 54,
+                        marginBottom: 6,
+                      }}
+                    >
+                      <Lock size={20} color="#94a3b8" />
+                      <View
+                        style={{
+                          width: 1,
+                          height: 20,
+                          backgroundColor: '#e2e8f0',
+                          marginHorizontal: 12,
+                        }}
+                      />
+                      <TextInput
+                        value={confirmPassword}
+                        onChangeText={(val) => {
+                          setConfirmPassword(val);
+                          setSubmitError('');
+                        }}
+                        onFocus={() => scrollToInput(120)}
+                        placeholder={t.confirmPwdPlaceholder}
+                        placeholderTextColor="#94a3b8"
+                        secureTextEntry={!showPassword}
+                        style={{
+                          flex: 1,
+                          fontSize: 16,
+                          color: '#0f172a',
+                          fontWeight: '700',
+                          textAlign: isRTL ? 'right' : 'left',
+                        }}
+                      />
+                      {confirmPassword.length > 0 &&
+                        (confirmPassword === password ? (
+                          <Check size={18} color="#10b981" />
+                        ) : (
+                          <X size={18} color="#ef4444" />
+                        ))}
+                    </View>
+
+                    {confirmPassword.length > 0 && (
+                      <Text
+                        style={{
+                          fontSize: 11.5,
+                          fontWeight: '600',
+                          color: confirmPassword === password ? '#10b981' : '#ef4444',
+                          textAlign: isRTL ? 'right' : 'left',
+                        }}
+                      >
+                        {confirmPassword === password ? t.pwdMatch : t.pwdMismatch}
+                      </Text>
+                    )}
+                  </View>
+
+                  {/* RECAP CARD (PREMIUM INSTITUTIONAL PASS) */}
+                  <View
+                    style={{
+                      backgroundColor: '#f8fafc',
+                      borderRadius: 20,
+                      padding: 16,
+                      borderWidth: 1.5,
+                      borderColor: '#e2e8f0',
+                      marginBottom: 20,
+                    }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        marginBottom: 12,
+                        paddingBottom: 10,
+                        borderBottomWidth: 1,
+                        borderBottomColor: '#e2e8f0',
+                      }}
+                    >
+                      <ShieldCheck size={18} color="#0055d4" style={{ marginRight: 8 }} />
+                      <Text style={{ fontSize: 13.5, fontWeight: '800', color: '#0f172a' }}>
+                        {t.recapTitle}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: 8,
+                      }}
+                    >
+                      <Text style={{ fontSize: 12.5, color: '#64748b', fontWeight: '600' }}>
+                        {t.loginId}
+                      </Text>
+                      <Text style={{ fontSize: 13.5, fontWeight: '800', color: '#0055d4' }}>
+                        {phone}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: 10,
+                      }}
+                    >
+                      <Text style={{ fontSize: 12.5, color: '#64748b', fontWeight: '600' }}>
+                        {t.parentHolder}
+                      </Text>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#0f172a' }}>
+                        {parentName} {parentSurname} ({relation})
+                      </Text>
+                    </View>
+
+                    <View style={{ marginTop: 4 }}>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          color: '#64748b',
+                          fontWeight: '700',
+                          marginBottom: 6,
+                          textAlign: isRTL ? 'right' : 'left',
+                        }}
+                      >
+                        {t.linkedChildren}
+                      </Text>
+                      {verifiedStudents.map((child) => (
                         <View
+                          key={child.id}
                           style={{
-                            backgroundColor: '#eff6ff',
-                            paddingHorizontal: 8,
-                            paddingVertical: 3,
-                            borderRadius: 6,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            backgroundColor: '#ffffff',
+                            borderRadius: 12,
+                            padding: 10,
+                            marginBottom: 6,
+                            borderWidth: 1,
+                            borderColor: '#e2e8f0',
                           }}
                         >
-                          <Text style={{ fontSize: 11, fontWeight: '700', color: '#0055d4' }}>
-                            {child.levelName} • {child.className}
+                          <GraduationCap size={16} color="#0055d4" style={{ marginRight: 8 }} />
+                          <Text
+                            style={{
+                              fontSize: 13,
+                              fontWeight: '700',
+                              color: '#0f172a',
+                              flex: 1,
+                              textAlign: isRTL ? 'right' : 'left',
+                            }}
+                          >
+                            {child.name} {child.surname}
                           </Text>
+                          <View
+                            style={{
+                              backgroundColor: '#eff6ff',
+                              paddingHorizontal: 8,
+                              paddingVertical: 3,
+                              borderRadius: 6,
+                            }}
+                          >
+                            <Text style={{ fontSize: 11, fontWeight: '700', color: '#0055d4' }}>
+                              {child.levelName} • {child.className}
+                            </Text>
+                          </View>
                         </View>
-                      </View>
-                    ))}
+                      ))}
+                    </View>
                   </View>
-                </View>
 
-                {submitError ? (
+                  {submitError ? (
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: '#fef2f2',
+                        padding: 12,
+                        borderRadius: 14,
+                        marginBottom: 16,
+                        borderWidth: 1,
+                        borderColor: '#fecaca',
+                      }}
+                    >
+                      <AlertCircle size={18} color="#ef4444" style={{ marginRight: 8 }} />
+                      <Text style={{ fontSize: 13, color: '#b91c1c', fontWeight: '600', flex: 1 }}>
+                        {submitError}
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  {/* FINAL ACTIVATION BUTTON */}
+                  <TouchableOpacity
+                    onPress={handleFinalSubmit}
+                    disabled={isSubmitting}
+                    style={{
+                      backgroundColor: '#0055d4',
+                      borderRadius: 18,
+                      height: 54,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexDirection: 'row',
+                      shadowColor: '#0055d4',
+                      shadowOffset: { width: 0, height: 6 },
+                      shadowOpacity: 0.3,
+                      shadowRadius: 10,
+                      elevation: 4,
+                      marginBottom: 14,
+                    }}
+                  >
+                    {isSubmitting ? (
+                      <ActivityIndicator size="small" color="#ffffff" />
+                    ) : (
+                      <>
+                        <Text
+                          style={{
+                            fontSize: 16,
+                            fontWeight: '800',
+                            color: '#ffffff',
+                            marginRight: 6,
+                          }}
+                        >
+                          {t.btnFinish}
+                        </Text>
+                        <ArrowRight size={18} color="#ffffff" strokeWidth={2.5} />
+                      </>
+                    )}
+                  </TouchableOpacity>
+
+                  {/* Security Reassurance */}
                   <View
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
-                      backgroundColor: '#fef2f2',
-                      padding: 12,
-                      borderRadius: 10,
-                      marginBottom: 16,
-                      borderWidth: 1,
-                      borderColor: '#fecaca',
+                      justifyContent: 'center',
+                      marginBottom: 10,
                     }}
                   >
-                    <AlertCircle size={18} color="#ef4444" style={{ marginRight: 8 }} />
-                    <Text style={{ fontSize: 13, color: '#b91c1c', fontWeight: '600', flex: 1 }}>
-                      {submitError}
+                    <ShieldCheck size={14} color="#94a3b8" style={{ marginRight: 6 }} />
+                    <Text style={{ fontSize: 11.5, color: '#94a3b8', fontWeight: '600' }}>
+                      {t.securityBanner}
                     </Text>
                   </View>
-                ) : null}
-
-                {/* FINAL SUBMIT BUTTON */}
-                <TouchableOpacity
-                  onPress={handleFinalSubmit}
-                  disabled={isSubmitting}
-                  style={{
-                    backgroundColor: '#0055d4',
-                    borderRadius: 14,
-                    height: 54,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexDirection: 'row',
-                    shadowColor: '#0055d4',
-                    shadowOffset: { width: 0, height: 6 },
-                    shadowOpacity: 0.3,
-                    shadowRadius: 10,
-                    elevation: 4,
-                    marginBottom: 14,
-                  }}
-                >
-                  {isSubmitting ? (
-                    <ActivityIndicator size="small" color="#ffffff" />
-                  ) : (
-                    <>
-                      <Text
-                        style={{
-                          fontSize: 16,
-                          fontWeight: '800',
-                          color: '#ffffff',
-                          marginRight: 6,
-                        }}
-                      >
-                        {t.btnFinish}
-                      </Text>
-                      <ArrowRight size={18} color="#ffffff" />
-                    </>
-                  )}
-                </TouchableOpacity>
-
-                {/* Security Reassurance Banner */}
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: 10,
-                  }}
-                >
-                  <ShieldCheck size={14} color="#64748b" style={{ marginRight: 6 }} />
-                  <Text style={{ fontSize: 11.5, color: '#64748b', fontWeight: '600' }}>
-                    {t.securityBanner}
-                  </Text>
                 </View>
-              </View>
-            )}
+              )}
 
-            {/* BOTTOM LINK TO SIGN IN */}
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'center',
-                alignItems: 'center',
-                marginTop: 10,
-              }}
-            >
-              <Text style={{ fontSize: 13.5, color: '#64748b' }}>{t.alreadyHaveAccount} </Text>
-              <TouchableOpacity onPress={onBack}>
-                <Text style={{ fontSize: 13.5, fontWeight: '800', color: '#0055d4' }}>
-                  {t.signInLink}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
+              {/* BOTTOM LINK TO SIGN IN */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginTop: 14,
+                  paddingBottom: 10,
+                  gap: 6,
+                }}
+              >
+                <Text style={{ fontSize: 13.5, color: '#64748b' }}>{t.alreadyHaveAccount} </Text>
+                <TouchableOpacity onPress={onBack}>
+                  <Text style={{ fontSize: 13.5, fontWeight: '800', color: '#0055d4' }}>
+                    {t.signInLink}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
