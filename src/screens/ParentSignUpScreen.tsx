@@ -31,7 +31,6 @@ import {
   ArrowRight,
   Check,
   X,
-  Sparkles,
 } from 'lucide-react-native';
 import { authService } from '../services/api';
 import { useAppStore } from '../store/useAppStore';
@@ -130,7 +129,7 @@ export const ParentSignUpScreen = ({
       return { score: 4, label: language === 'ar' ? 'ممتازة' : 'Excellent', color: '#10b981' };
     }
     if (pwd.length >= 8 && ((hasLetters && hasNumbers) || hasSpecial)) {
-      return { score: 3, label: language === 'ar' ? 'قوية' : 'Sécurisé', color: '#0055d4' };
+      return { score: 3, label: language === 'ar' ? 'قوية' : 'Sécurisé', color: '#3B7BEA' };
     }
     return { score: 2, label: language === 'ar' ? 'متوسطة' : 'Moyen', color: '#f59e0b' };
   };
@@ -451,17 +450,40 @@ export const ParentSignUpScreen = ({
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#eef5ff' }}>
-      <StatusBar barStyle="dark-content" backgroundColor="#eef5ff" />
+    <View style={{ flex: 1, backgroundColor: '#EAF1FD' }}>
+      <StatusBar barStyle="dark-content" backgroundColor="#8FB4F0" />
       <SafeAreaView style={{ flex: 1 }}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{ flex: 1 }}
         >
-          {/* TOP BAR: BACK & LANGUAGE SELECTOR */}
+          {/* Atmospheric sky background blobs */}
           <View
             style={{
-              flexDirection: 'row',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 280,
+              backgroundColor: '#8FB4F0',
+            }}
+          />
+          <View
+            style={{
+              position: 'absolute',
+              top: -50,
+              right: -40,
+              width: 240,
+              height: 240,
+              borderRadius: 120,
+              backgroundColor: 'rgba(255, 255, 255, 0.32)',
+            }}
+          />
+
+          {/* TOP BAR: CIRCULAR GLASS BACK & LANGUAGE SELECTOR */}
+          <View
+            style={{
+              flexDirection: isRTL ? 'row-reverse' : 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
               paddingHorizontal: 20,
@@ -478,41 +500,43 @@ export const ParentSignUpScreen = ({
                 }
               }}
               style={{
-                width: 42,
-                height: 42,
-                borderRadius: 14,
-                backgroundColor: '#ffffff',
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: 'rgba(255, 255, 255, 0.88)',
                 alignItems: 'center',
                 justifyContent: 'center',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.05,
-                shadowRadius: 6,
-                elevation: 2,
+                borderWidth: 1.5,
+                borderColor: 'rgba(255, 255, 255, 0.95)',
+                shadowColor: '#3B7BEA',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 8,
+                elevation: 3,
               }}
             >
               <ChevronLeft
-                size={20}
-                color="#1e293b"
-                strokeWidth={2.5}
+                size={22}
+                color="#0F1B3D"
+                strokeWidth={2.8}
                 style={{ transform: [{ rotate: isRTL ? '180deg' : '0deg' }] }}
               />
             </TouchableOpacity>
 
-            {/* Language Selector */}
+            {/* Language Selector Pill */}
             <View
               style={{
-                flexDirection: 'row',
-                backgroundColor: '#ffffff',
-                borderRadius: 16,
+                flexDirection: isRTL ? 'row-reverse' : 'row',
+                backgroundColor: 'rgba(255, 255, 255, 0.88)',
+                borderRadius: 999,
                 padding: 3,
-                borderWidth: 1,
-                borderColor: '#e2e8f0',
-                shadowColor: '#000',
+                borderWidth: 1.5,
+                borderColor: 'rgba(255, 255, 255, 0.95)',
+                shadowColor: '#3B7BEA',
                 shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.04,
-                shadowRadius: 4,
-                elevation: 1,
+                shadowOpacity: 0.08,
+                shadowRadius: 6,
+                elevation: 2,
               }}
             >
               {[
@@ -526,15 +550,15 @@ export const ParentSignUpScreen = ({
                   style={{
                     paddingHorizontal: 11,
                     paddingVertical: 6,
-                    borderRadius: 13,
-                    backgroundColor: language === item.id ? '#0055d4' : 'transparent',
+                    borderRadius: 999,
+                    backgroundColor: language === item.id ? '#3B7BEA' : 'transparent',
                   }}
                 >
                   <Text
                     style={{
                       fontSize: 11.5,
                       fontWeight: '800',
-                      color: language === item.id ? '#ffffff' : '#64748b',
+                      color: language === item.id ? '#ffffff' : '#5B6B8C',
                     }}
                   >
                     {item.label}
@@ -544,39 +568,56 @@ export const ParentSignUpScreen = ({
             </View>
           </View>
 
-          {/* HERO PROGRESS & STEP INDICATOR */}
-          <View style={{ paddingHorizontal: 24, paddingTop: 6, paddingBottom: 18 }}>
+          {/* HERO PROGRESS & STEP INDICATOR (CRITICAL FIX: 1 SINGLE LINE FOR ARABIC TITLE) */}
+          <View style={{ paddingHorizontal: 24, paddingTop: 4, paddingBottom: 16 }}>
             <View
               style={{
-                flexDirection: 'row',
+                flexDirection: isRTL ? 'row-reverse' : 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 marginBottom: 8,
+                gap: 12,
               }}
             >
+              {/* Force strictly ONE line so "تسجيل حساب ولي أمر" NEVER breaks */}
               <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit={true}
+                minimumFontScale={0.8}
                 style={{
-                  fontSize: 20,
+                  flex: 1,
+                  fontSize: 18.5,
                   fontWeight: '900',
-                  color: '#0f172a',
-                  letterSpacing: -0.5,
+                  color: '#0F1B3D',
+                  letterSpacing: -0.4,
+                  textAlign: isRTL ? 'right' : 'left',
                 }}
               >
                 {t.screenTitle}
               </Text>
-              <Text
+
+              <View
                 style={{
-                  fontSize: 12,
-                  fontWeight: '800',
-                  color: '#0055d4',
+                  backgroundColor: 'rgba(59, 123, 234, 0.14)',
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 999,
                 }}
               >
-                {currentStep}/3
-              </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: '900',
+                    color: '#3B7BEA',
+                  }}
+                >
+                  {currentStep} / 3
+                </Text>
+              </View>
             </View>
 
-            {/* SLEEK PROGRESS BARS */}
-            <View style={{ flexDirection: 'row', gap: 6 }}>
+            {/* SLEEK SEGMENTED BARS */}
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 6 }}>
               {[
                 { step: 1, label: t.step1Label },
                 { step: 2, label: t.step2Label },
@@ -590,15 +631,16 @@ export const ParentSignUpScreen = ({
                       style={{
                         height: 4,
                         borderRadius: 2,
-                        backgroundColor: isDone ? '#10b981' : isActive ? '#0055d4' : '#dbeafe',
+                        backgroundColor: isDone ? '#10b981' : isActive ? '#3B7BEA' : 'rgba(255, 255, 255, 0.7)',
                         marginBottom: 4,
                       }}
                     />
                     <Text
+                      numberOfLines={1}
                       style={{
                         fontSize: 11,
                         fontWeight: isActive ? '800' : '600',
-                        color: isActive ? '#0055d4' : isDone ? '#10b981' : '#94a3b8',
+                        color: isActive ? '#0F1B3D' : isDone ? '#059669' : '#5B6B8C',
                         textAlign: isRTL ? 'right' : 'left',
                       }}
                     >
@@ -614,13 +656,15 @@ export const ParentSignUpScreen = ({
           <View
             style={{
               flex: 1,
-              backgroundColor: '#ffffff',
+              backgroundColor: 'rgba(255, 255, 255, 0.94)',
               borderTopLeftRadius: 32,
               borderTopRightRadius: 32,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: -4 },
-              shadowOpacity: 0.06,
-              shadowRadius: 14,
+              borderWidth: 1.5,
+              borderColor: 'rgba(255, 255, 255, 0.95)',
+              shadowColor: '#3B7BEA',
+              shadowOffset: { width: 0, height: -6 },
+              shadowOpacity: 0.1,
+              shadowRadius: 16,
               elevation: 10,
               overflow: 'hidden',
             }}
@@ -646,7 +690,7 @@ export const ParentSignUpScreen = ({
                       style={{
                         fontSize: 24,
                         fontWeight: '900',
-                        color: '#0f172a',
+                        color: '#0F1B3D',
                         letterSpacing: -0.5,
                         textAlign: isRTL ? 'right' : 'left',
                         marginBottom: 6,
@@ -657,7 +701,7 @@ export const ParentSignUpScreen = ({
                     <Text
                       style={{
                         fontSize: 13.5,
-                        color: '#64748b',
+                        color: '#5B6B8C',
                         lineHeight: 20,
                         textAlign: isRTL ? 'right' : 'left',
                       }}
@@ -672,8 +716,8 @@ export const ParentSignUpScreen = ({
                       key={st.id}
                       style={{
                         backgroundColor: '#ffffff',
-                        borderRadius: 20,
-                        padding: 16,
+                        borderRadius: 24,
+                        padding: 18,
                         marginBottom: 16,
                         borderWidth: 1.5,
                         borderColor: '#10b981',
@@ -686,7 +730,7 @@ export const ParentSignUpScreen = ({
                     >
                       <View
                         style={{
-                          flexDirection: 'row',
+                          flexDirection: isRTL ? 'row-reverse' : 'row',
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           marginBottom: 12,
@@ -694,12 +738,13 @@ export const ParentSignUpScreen = ({
                       >
                         <View
                           style={{
-                            flexDirection: 'row',
+                            flexDirection: isRTL ? 'row-reverse' : 'row',
                             alignItems: 'center',
                             backgroundColor: '#ecfdf5',
-                            paddingHorizontal: 10,
-                            paddingVertical: 4,
-                            borderRadius: 20,
+                            paddingHorizontal: 12,
+                            paddingVertical: 5,
+                            borderRadius: 999,
+                            gap: 5,
                           }}
                         >
                           <CheckCircle2 size={13} color="#059669" />
@@ -708,7 +753,6 @@ export const ParentSignUpScreen = ({
                               fontSize: 12,
                               fontWeight: '800',
                               color: '#059669',
-                              marginLeft: 5,
                             }}
                           >
                             {t.verifiedBadge}
@@ -719,9 +763,9 @@ export const ParentSignUpScreen = ({
                           <TouchableOpacity
                             onPress={() => handleRemoveStudent(st.id)}
                             style={{
-                              width: 30,
-                              height: 30,
-                              borderRadius: 15,
+                              width: 32,
+                              height: 32,
+                              borderRadius: 16,
                               backgroundColor: '#fef2f2',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -732,28 +776,34 @@ export const ParentSignUpScreen = ({
                         )}
                       </View>
 
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <View
+                        style={{
+                          flexDirection: isRTL ? 'row-reverse' : 'row',
+                          alignItems: 'center',
+                        }}
+                      >
                         <View
                           style={{
-                            width: 50,
-                            height: 50,
-                            borderRadius: 18,
-                            backgroundColor: '#eff6ff',
+                            width: 52,
+                            height: 52,
+                            borderRadius: 20,
+                            backgroundColor: '#EFF6FF',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            marginRight: 14,
-                            borderWidth: 1,
-                            borderColor: '#dbeafe',
+                            marginRight: isRTL ? 0 : 14,
+                            marginLeft: isRTL ? 14 : 0,
+                            borderWidth: 1.5,
+                            borderColor: 'rgba(59, 123, 234, 0.25)',
                           }}
                         >
-                          <GraduationCap size={26} color="#0055d4" />
+                          <GraduationCap size={28} color="#3B7BEA" />
                         </View>
-                        <View style={{ flex: 1 }}>
+                        <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
                           <Text
                             style={{
                               fontSize: 18,
                               fontWeight: '900',
-                              color: '#0f172a',
+                              color: '#0F1B3D',
                               textAlign: isRTL ? 'right' : 'left',
                             }}
                           >
@@ -762,7 +812,7 @@ export const ParentSignUpScreen = ({
 
                           <View
                             style={{
-                              flexDirection: 'row',
+                              flexDirection: isRTL ? 'row-reverse' : 'row',
                               flexWrap: 'wrap',
                               gap: 6,
                               marginTop: 6,
@@ -770,22 +820,22 @@ export const ParentSignUpScreen = ({
                           >
                             <View
                               style={{
-                                backgroundColor: '#eff6ff',
-                                paddingHorizontal: 8,
-                                paddingVertical: 3,
-                                borderRadius: 8,
+                                backgroundColor: 'rgba(59, 123, 234, 0.12)',
+                                paddingHorizontal: 10,
+                                paddingVertical: 4,
+                                borderRadius: 999,
                               }}
                             >
-                              <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#1e40af' }}>
+                              <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#1E40AF' }}>
                                 {st.levelName}
                               </Text>
                             </View>
                             <View
                               style={{
-                                backgroundColor: '#f1f5f9',
-                                paddingHorizontal: 8,
-                                paddingVertical: 3,
-                                borderRadius: 8,
+                                backgroundColor: '#F1F5F9',
+                                paddingHorizontal: 10,
+                                paddingVertical: 4,
+                                borderRadius: 999,
                               }}
                             >
                               <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#475569' }}>
@@ -797,9 +847,9 @@ export const ParentSignUpScreen = ({
                           <Text
                             style={{
                               fontSize: 11.5,
-                              color: '#64748b',
+                              color: '#5B6B8C',
                               marginTop: 6,
-                              fontWeight: '600',
+                              fontWeight: '700',
                               fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
                               textAlign: isRTL ? 'right' : 'left',
                             }}
@@ -811,12 +861,12 @@ export const ParentSignUpScreen = ({
                     </View>
                   ))}
 
-                  {/* INPUT BOX (DRIBBLE SQUIRCLE FORM) */}
+                  {/* INPUT BOX (DRIBBLE PILL SQUIRCLE) */}
                   {(verifiedStudents.length === 0 || showAddSibling) && (
                     <View style={{ marginBottom: 18 }}>
                       <View
                         style={{
-                          flexDirection: 'row',
+                          flexDirection: isRTL ? 'row-reverse' : 'row',
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           marginBottom: 8,
@@ -843,23 +893,23 @@ export const ParentSignUpScreen = ({
 
                       <View
                         style={{
-                          flexDirection: 'row',
+                          flexDirection: isRTL ? 'row-reverse' : 'row',
                           alignItems: 'center',
-                          backgroundColor: '#f8fafc',
-                          borderRadius: 16,
+                          backgroundColor: 'rgba(248, 250, 252, 0.95)',
+                          borderRadius: 999,
                           borderWidth: 1.5,
-                          borderColor: '#e2e8f0',
-                          paddingHorizontal: 16,
+                          borderColor: '#E2E8F0',
+                          paddingHorizontal: 18,
                           height: 54,
                           marginBottom: 12,
                         }}
                       >
-                        <GraduationCap size={20} color="#94a3b8" />
+                        <GraduationCap size={20} color="#8FA3C7" />
                         <View
                           style={{
                             width: 1,
                             height: 20,
-                            backgroundColor: '#e2e8f0',
+                            backgroundColor: '#E2E8F0',
                             marginHorizontal: 12,
                           }}
                         />
@@ -871,14 +921,14 @@ export const ParentSignUpScreen = ({
                           }}
                           onFocus={() => scrollToInput(100)}
                           placeholder={t.nationalIdPlaceholder}
-                          placeholderTextColor="#94a3b8"
+                          placeholderTextColor="#94A3B8"
                           keyboardType="numeric"
                           returnKeyType="done"
                           onSubmitEditing={handleVerify}
                           style={{
                             flex: 1,
                             fontSize: 16,
-                            color: '#0f172a',
+                            color: '#0F1B3D',
                             fontWeight: '700',
                             textAlign: isRTL ? 'right' : 'left',
                           }}
@@ -888,23 +938,25 @@ export const ParentSignUpScreen = ({
                       {verifyError ? (
                         <View
                           style={{
-                            flexDirection: 'row',
+                            flexDirection: isRTL ? 'row-reverse' : 'row',
                             alignItems: 'center',
-                            backgroundColor: '#fef2f2',
+                            backgroundColor: '#FEF2F2',
                             padding: 12,
-                            borderRadius: 14,
+                            borderRadius: 16,
                             marginBottom: 12,
-                            borderWidth: 1,
-                            borderColor: '#fecaca',
+                            borderWidth: 1.5,
+                            borderColor: '#FECACA',
+                            gap: 8,
                           }}
                         >
-                          <AlertCircle size={16} color="#ef4444" style={{ marginRight: 8 }} />
+                          <AlertCircle size={16} color="#EF4444" />
                           <Text
                             style={{
                               fontSize: 13,
-                              color: '#b91c1c',
+                              color: '#B91C1C',
                               fontWeight: '600',
                               flex: 1,
+                              textAlign: isRTL ? 'right' : 'left',
                             }}
                           >
                             {verifyError}
@@ -916,15 +968,15 @@ export const ParentSignUpScreen = ({
                         onPress={handleVerify}
                         disabled={isVerifying}
                         style={{
-                          backgroundColor: '#0055d4',
-                          borderRadius: 16,
+                          backgroundColor: '#3B7BEA',
+                          borderRadius: 999,
                           height: 50,
                           alignItems: 'center',
                           justifyContent: 'center',
                           flexDirection: 'row',
-                          shadowColor: '#0055d4',
+                          shadowColor: '#3B7BEA',
                           shadowOffset: { width: 0, height: 4 },
-                          shadowOpacity: 0.22,
+                          shadowOpacity: 0.25,
                           shadowRadius: 8,
                           elevation: 3,
                         }}
@@ -948,20 +1000,21 @@ export const ParentSignUpScreen = ({
                         scrollToInput(180);
                       }}
                       style={{
-                        backgroundColor: '#f8fafc',
+                        backgroundColor: 'rgba(248, 250, 252, 0.8)',
                         borderWidth: 1.5,
                         borderStyle: 'dashed',
-                        borderColor: '#cbd5e1',
-                        borderRadius: 16,
+                        borderColor: '#CBD5E1',
+                        borderRadius: 999,
                         padding: 14,
                         alignItems: 'center',
                         justifyContent: 'center',
-                        flexDirection: 'row',
+                        flexDirection: isRTL ? 'row-reverse' : 'row',
                         marginBottom: 20,
+                        gap: 6,
                       }}
                     >
-                      <Plus size={18} color="#0055d4" style={{ marginRight: 6 }} />
-                      <Text style={{ fontSize: 14, fontWeight: '800', color: '#0055d4' }}>
+                      <Plus size={18} color="#3B7BEA" />
+                      <Text style={{ fontSize: 14, fontWeight: '800', color: '#3B7BEA' }}>
                         {t.btnAddSibling}
                       </Text>
                     </TouchableOpacity>
@@ -971,19 +1024,21 @@ export const ParentSignUpScreen = ({
                   {verifiedStudents.length > 0 && (
                     <TouchableOpacity
                       onPress={handleGoToStep2}
+                      activeOpacity={0.88}
                       style={{
-                        backgroundColor: '#0055d4',
-                        borderRadius: 18,
+                        backgroundColor: '#3B7BEA',
+                        borderRadius: 999,
                         height: 54,
                         alignItems: 'center',
                         justifyContent: 'center',
-                        flexDirection: 'row',
-                        shadowColor: '#0055d4',
+                        flexDirection: isRTL ? 'row-reverse' : 'row',
+                        shadowColor: '#3B7BEA',
                         shadowOffset: { width: 0, height: 6 },
-                        shadowOpacity: 0.28,
+                        shadowOpacity: 0.3,
                         shadowRadius: 10,
                         elevation: 4,
                         marginTop: 4,
+                        gap: 6,
                       }}
                     >
                       <Text
@@ -991,12 +1046,16 @@ export const ParentSignUpScreen = ({
                           fontSize: 16,
                           fontWeight: '800',
                           color: '#ffffff',
-                          marginRight: 6,
                         }}
                       >
                         {t.btnContinueToParent}
                       </Text>
-                      <ArrowRight size={18} color="#ffffff" strokeWidth={2.5} />
+                      <ArrowRight
+                        size={18}
+                        color="#ffffff"
+                        strokeWidth={2.6}
+                        style={{ transform: [{ rotate: isRTL ? '180deg' : '0deg' }] }}
+                      />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -1010,7 +1069,7 @@ export const ParentSignUpScreen = ({
                       style={{
                         fontSize: 24,
                         fontWeight: '900',
-                        color: '#0f172a',
+                        color: '#0F1B3D',
                         letterSpacing: -0.5,
                         textAlign: isRTL ? 'right' : 'left',
                         marginBottom: 6,
@@ -1021,7 +1080,7 @@ export const ParentSignUpScreen = ({
                     <Text
                       style={{
                         fontSize: 13.5,
-                        color: '#64748b',
+                        color: '#5B6B8C',
                         lineHeight: 20,
                         textAlign: isRTL ? 'right' : 'left',
                       }}
@@ -1045,22 +1104,22 @@ export const ParentSignUpScreen = ({
                     </Text>
                     <View
                       style={{
-                        flexDirection: 'row',
+                        flexDirection: isRTL ? 'row-reverse' : 'row',
                         alignItems: 'center',
-                        backgroundColor: '#f8fafc',
-                        borderRadius: 16,
+                        backgroundColor: 'rgba(248, 250, 252, 0.95)',
+                        borderRadius: 999,
                         borderWidth: 1.5,
-                        borderColor: '#e2e8f0',
-                        paddingHorizontal: 16,
+                        borderColor: '#E2E8F0',
+                        paddingHorizontal: 18,
                         height: 54,
                       }}
                     >
-                      <User size={20} color="#94a3b8" />
+                      <User size={20} color="#8FA3C7" />
                       <View
                         style={{
                           width: 1,
                           height: 20,
-                          backgroundColor: '#e2e8f0',
+                          backgroundColor: '#E2E8F0',
                           marginHorizontal: 12,
                         }}
                       />
@@ -1069,11 +1128,11 @@ export const ParentSignUpScreen = ({
                         onChangeText={setParentName}
                         onFocus={() => scrollToInput(60)}
                         placeholder={t.firstNamePlaceholder}
-                        placeholderTextColor="#94a3b8"
+                        placeholderTextColor="#94A3B8"
                         style={{
                           flex: 1,
                           fontSize: 15,
-                          color: '#0f172a',
+                          color: '#0F1B3D',
                           fontWeight: '700',
                           textAlign: isRTL ? 'right' : 'left',
                         }}
@@ -1096,22 +1155,22 @@ export const ParentSignUpScreen = ({
                     </Text>
                     <View
                       style={{
-                        flexDirection: 'row',
+                        flexDirection: isRTL ? 'row-reverse' : 'row',
                         alignItems: 'center',
-                        backgroundColor: '#f8fafc',
-                        borderRadius: 16,
+                        backgroundColor: 'rgba(248, 250, 252, 0.95)',
+                        borderRadius: 999,
                         borderWidth: 1.5,
-                        borderColor: '#e2e8f0',
-                        paddingHorizontal: 16,
+                        borderColor: '#E2E8F0',
+                        paddingHorizontal: 18,
                         height: 54,
                       }}
                     >
-                      <User size={20} color="#94a3b8" />
+                      <User size={20} color="#8FA3C7" />
                       <View
                         style={{
                           width: 1,
                           height: 20,
-                          backgroundColor: '#e2e8f0',
+                          backgroundColor: '#E2E8F0',
                           marginHorizontal: 12,
                         }}
                       />
@@ -1120,11 +1179,11 @@ export const ParentSignUpScreen = ({
                         onChangeText={setParentSurname}
                         onFocus={() => scrollToInput(120)}
                         placeholder={t.lastNamePlaceholder}
-                        placeholderTextColor="#94a3b8"
+                        placeholderTextColor="#94A3B8"
                         style={{
                           flex: 1,
                           fontSize: 15,
-                          color: '#0f172a',
+                          color: '#0F1B3D',
                           fontWeight: '700',
                           textAlign: isRTL ? 'right' : 'left',
                         }}
@@ -1147,23 +1206,23 @@ export const ParentSignUpScreen = ({
                     </Text>
                     <View
                       style={{
-                        flexDirection: 'row',
+                        flexDirection: isRTL ? 'row-reverse' : 'row',
                         alignItems: 'center',
-                        backgroundColor: '#f8fafc',
-                        borderRadius: 16,
+                        backgroundColor: 'rgba(248, 250, 252, 0.95)',
+                        borderRadius: 999,
                         borderWidth: 1.5,
-                        borderColor: '#e2e8f0',
-                        paddingHorizontal: 16,
+                        borderColor: '#E2E8F0',
+                        paddingHorizontal: 18,
                         height: 54,
                         marginBottom: 6,
                       }}
                     >
-                      <Phone size={20} color="#94a3b8" />
+                      <Phone size={20} color="#8FA3C7" />
                       <View
                         style={{
                           width: 1,
                           height: 20,
-                          backgroundColor: '#e2e8f0',
+                          backgroundColor: '#E2E8F0',
                           marginHorizontal: 12,
                         }}
                       />
@@ -1172,12 +1231,12 @@ export const ParentSignUpScreen = ({
                         onChangeText={setPhone}
                         onFocus={() => scrollToInput(180)}
                         placeholder={t.phonePlaceholder}
-                        placeholderTextColor="#94a3b8"
+                        placeholderTextColor="#94A3B8"
                         keyboardType="phone-pad"
                         style={{
                           flex: 1,
                           fontSize: 15,
-                          color: '#0f172a',
+                          color: '#0F1B3D',
                           fontWeight: '700',
                           textAlign: isRTL ? 'right' : 'left',
                         }}
@@ -1186,7 +1245,7 @@ export const ParentSignUpScreen = ({
                     <Text
                       style={{
                         fontSize: 11.5,
-                        color: '#64748b',
+                        color: '#5B6B8C',
                         textAlign: isRTL ? 'right' : 'left',
                       }}
                     >
@@ -1207,7 +1266,7 @@ export const ParentSignUpScreen = ({
                     >
                       {t.relationLabel}
                     </Text>
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 8 }}>
                       {[
                         { key: 'Père', label: t.father },
                         { key: 'Mère', label: t.mother },
@@ -1221,13 +1280,13 @@ export const ParentSignUpScreen = ({
                             style={{
                               flex: 1,
                               height: 44,
-                              borderRadius: 14,
-                              backgroundColor: isSel ? '#0055d4' : '#f8fafc',
+                              borderRadius: 999,
+                              backgroundColor: isSel ? '#3B7BEA' : 'rgba(248, 250, 252, 0.95)',
                               borderWidth: 1.5,
-                              borderColor: isSel ? '#0055d4' : '#e2e8f0',
+                              borderColor: isSel ? '#3B7BEA' : '#E2E8F0',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              shadowColor: isSel ? '#0055d4' : 'transparent',
+                              shadowColor: isSel ? '#3B7BEA' : 'transparent',
                               shadowOpacity: isSel ? 0.2 : 0,
                               shadowRadius: 4,
                               elevation: isSel ? 2 : 0,
@@ -1263,22 +1322,22 @@ export const ParentSignUpScreen = ({
                     </Text>
                     <View
                       style={{
-                        flexDirection: 'row',
+                        flexDirection: isRTL ? 'row-reverse' : 'row',
                         alignItems: 'center',
-                        backgroundColor: '#f8fafc',
-                        borderRadius: 16,
+                        backgroundColor: 'rgba(248, 250, 252, 0.95)',
+                        borderRadius: 999,
                         borderWidth: 1.5,
-                        borderColor: '#e2e8f0',
-                        paddingHorizontal: 16,
+                        borderColor: '#E2E8F0',
+                        paddingHorizontal: 18,
                         height: 54,
                       }}
                     >
-                      <MapPin size={20} color="#94a3b8" />
+                      <MapPin size={20} color="#8FA3C7" />
                       <View
                         style={{
                           width: 1,
                           height: 20,
-                          backgroundColor: '#e2e8f0',
+                          backgroundColor: '#E2E8F0',
                           marginHorizontal: 12,
                         }}
                       />
@@ -1287,11 +1346,11 @@ export const ParentSignUpScreen = ({
                         onChangeText={setAddress}
                         onFocus={() => scrollToInput(240)}
                         placeholder={t.addressPlaceholder}
-                        placeholderTextColor="#94a3b8"
+                        placeholderTextColor="#94A3B8"
                         style={{
                           flex: 1,
                           fontSize: 14,
-                          color: '#0f172a',
+                          color: '#0F1B3D',
                           textAlign: isRTL ? 'right' : 'left',
                         }}
                       />
@@ -1301,18 +1360,20 @@ export const ParentSignUpScreen = ({
                   {/* NEXT BUTTON */}
                   <TouchableOpacity
                     onPress={handleGoToStep3}
+                    activeOpacity={0.88}
                     style={{
-                      backgroundColor: '#0055d4',
-                      borderRadius: 18,
+                      backgroundColor: '#3B7BEA',
+                      borderRadius: 999,
                       height: 54,
                       alignItems: 'center',
                       justifyContent: 'center',
-                      flexDirection: 'row',
-                      shadowColor: '#0055d4',
+                      flexDirection: isRTL ? 'row-reverse' : 'row',
+                      shadowColor: '#3B7BEA',
                       shadowOffset: { width: 0, height: 6 },
-                      shadowOpacity: 0.28,
+                      shadowOpacity: 0.3,
                       shadowRadius: 10,
                       elevation: 4,
+                      gap: 6,
                     }}
                   >
                     <Text
@@ -1320,12 +1381,16 @@ export const ParentSignUpScreen = ({
                         fontSize: 16,
                         fontWeight: '800',
                         color: '#ffffff',
-                        marginRight: 6,
                       }}
                     >
                       {t.btnContinueToPassword}
                     </Text>
-                    <ArrowRight size={18} color="#ffffff" strokeWidth={2.5} />
+                    <ArrowRight
+                      size={18}
+                      color="#ffffff"
+                      strokeWidth={2.6}
+                      style={{ transform: [{ rotate: isRTL ? '180deg' : '0deg' }] }}
+                    />
                   </TouchableOpacity>
                 </View>
               )}
@@ -1338,7 +1403,7 @@ export const ParentSignUpScreen = ({
                       style={{
                         fontSize: 24,
                         fontWeight: '900',
-                        color: '#0f172a',
+                        color: '#0F1B3D',
                         letterSpacing: -0.5,
                         textAlign: isRTL ? 'right' : 'left',
                         marginBottom: 6,
@@ -1349,7 +1414,7 @@ export const ParentSignUpScreen = ({
                     <Text
                       style={{
                         fontSize: 13.5,
-                        color: '#64748b',
+                        color: '#5B6B8C',
                         lineHeight: 20,
                         textAlign: isRTL ? 'right' : 'left',
                       }}
@@ -1373,23 +1438,23 @@ export const ParentSignUpScreen = ({
                     </Text>
                     <View
                       style={{
-                        flexDirection: 'row',
+                        flexDirection: isRTL ? 'row-reverse' : 'row',
                         alignItems: 'center',
-                        backgroundColor: '#f8fafc',
-                        borderRadius: 16,
+                        backgroundColor: 'rgba(248, 250, 252, 0.95)',
+                        borderRadius: 999,
                         borderWidth: 1.5,
-                        borderColor: '#e2e8f0',
-                        paddingHorizontal: 16,
+                        borderColor: '#E2E8F0',
+                        paddingHorizontal: 18,
                         height: 54,
                         marginBottom: 8,
                       }}
                     >
-                      <Lock size={20} color="#94a3b8" />
+                      <Lock size={20} color="#8FA3C7" />
                       <View
                         style={{
                           width: 1,
                           height: 20,
-                          backgroundColor: '#e2e8f0',
+                          backgroundColor: '#E2E8F0',
                           marginHorizontal: 12,
                         }}
                       />
@@ -1401,12 +1466,12 @@ export const ParentSignUpScreen = ({
                         }}
                         onFocus={() => scrollToInput(60)}
                         placeholder={t.pwdPlaceholder}
-                        placeholderTextColor="#94a3b8"
+                        placeholderTextColor="#94A3B8"
                         secureTextEntry={!showPassword}
                         style={{
                           flex: 1,
                           fontSize: 16,
-                          color: '#0f172a',
+                          color: '#0F1B3D',
                           fontWeight: '700',
                           textAlign: isRTL ? 'right' : 'left',
                         }}
@@ -1416,9 +1481,9 @@ export const ParentSignUpScreen = ({
                         style={{ padding: 6 }}
                       >
                         {showPassword ? (
-                          <EyeOff size={19} color="#94a3b8" />
+                          <EyeOff size={19} color="#8FA3C7" />
                         ) : (
-                          <Eye size={19} color="#94a3b8" />
+                          <Eye size={19} color="#8FA3C7" />
                         )}
                       </TouchableOpacity>
                     </View>
@@ -1426,7 +1491,7 @@ export const ParentSignUpScreen = ({
                     {/* Strength bars */}
                     {password.length > 0 && (
                       <View style={{ marginBottom: 6 }}>
-                        <View style={{ flexDirection: 'row', gap: 4, marginBottom: 4 }}>
+                        <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 4, marginBottom: 4 }}>
                           {[1, 2, 3, 4].map((seg) => (
                             <View
                               key={seg}
@@ -1469,10 +1534,10 @@ export const ParentSignUpScreen = ({
                     </Text>
                     <View
                       style={{
-                        flexDirection: 'row',
+                        flexDirection: isRTL ? 'row-reverse' : 'row',
                         alignItems: 'center',
-                        backgroundColor: '#f8fafc',
-                        borderRadius: 16,
+                        backgroundColor: 'rgba(248, 250, 252, 0.95)',
+                        borderRadius: 999,
                         borderWidth: 1.5,
                         borderColor:
                           confirmPassword.length > 0
@@ -1480,17 +1545,17 @@ export const ParentSignUpScreen = ({
                               ? '#10b981'
                               : '#ef4444'
                             : '#e2e8f0',
-                        paddingHorizontal: 16,
+                        paddingHorizontal: 18,
                         height: 54,
                         marginBottom: 6,
                       }}
                     >
-                      <Lock size={20} color="#94a3b8" />
+                      <Lock size={20} color="#8FA3C7" />
                       <View
                         style={{
                           width: 1,
                           height: 20,
-                          backgroundColor: '#e2e8f0',
+                          backgroundColor: '#E2E8F0',
                           marginHorizontal: 12,
                         }}
                       />
@@ -1502,21 +1567,21 @@ export const ParentSignUpScreen = ({
                         }}
                         onFocus={() => scrollToInput(120)}
                         placeholder={t.confirmPwdPlaceholder}
-                        placeholderTextColor="#94a3b8"
+                        placeholderTextColor="#94A3B8"
                         secureTextEntry={!showPassword}
                         style={{
                           flex: 1,
                           fontSize: 16,
-                          color: '#0f172a',
+                          color: '#0F1B3D',
                           fontWeight: '700',
                           textAlign: isRTL ? 'right' : 'left',
                         }}
                       />
                       {confirmPassword.length > 0 &&
                         (confirmPassword === password ? (
-                          <Check size={18} color="#10b981" />
+                          <Check size={18} color="#10b981" strokeWidth={2.6} />
                         ) : (
-                          <X size={18} color="#ef4444" />
+                          <X size={18} color="#ef4444" strokeWidth={2.6} />
                         ))}
                     </View>
 
@@ -1524,7 +1589,7 @@ export const ParentSignUpScreen = ({
                       <Text
                         style={{
                           fontSize: 11.5,
-                          fontWeight: '600',
+                          fontWeight: '700',
                           color: confirmPassword === password ? '#10b981' : '#ef4444',
                           textAlign: isRTL ? 'right' : 'left',
                         }}
@@ -1537,58 +1602,59 @@ export const ParentSignUpScreen = ({
                   {/* RECAP CARD (PREMIUM INSTITUTIONAL PASS) */}
                   <View
                     style={{
-                      backgroundColor: '#f8fafc',
-                      borderRadius: 20,
-                      padding: 16,
+                      backgroundColor: 'rgba(248, 250, 252, 0.95)',
+                      borderRadius: 22,
+                      padding: 18,
                       borderWidth: 1.5,
-                      borderColor: '#e2e8f0',
+                      borderColor: '#E2E8F0',
                       marginBottom: 20,
                     }}
                   >
                     <View
                       style={{
-                        flexDirection: 'row',
+                        flexDirection: isRTL ? 'row-reverse' : 'row',
                         alignItems: 'center',
                         marginBottom: 12,
                         paddingBottom: 10,
                         borderBottomWidth: 1,
-                        borderBottomColor: '#e2e8f0',
+                        borderBottomColor: '#E2E8F0',
+                        gap: 8,
                       }}
                     >
-                      <ShieldCheck size={18} color="#0055d4" style={{ marginRight: 8 }} />
-                      <Text style={{ fontSize: 13.5, fontWeight: '800', color: '#0f172a' }}>
+                      <ShieldCheck size={18} color="#3B7BEA" />
+                      <Text style={{ fontSize: 13.5, fontWeight: '800', color: '#0F1B3D' }}>
                         {t.recapTitle}
                       </Text>
                     </View>
 
                     <View
                       style={{
-                        flexDirection: 'row',
+                        flexDirection: isRTL ? 'row-reverse' : 'row',
                         justifyContent: 'space-between',
                         alignItems: 'center',
                         marginBottom: 8,
                       }}
                     >
-                      <Text style={{ fontSize: 12.5, color: '#64748b', fontWeight: '600' }}>
+                      <Text style={{ fontSize: 12.5, color: '#5B6B8C', fontWeight: '600' }}>
                         {t.loginId}
                       </Text>
-                      <Text style={{ fontSize: 13.5, fontWeight: '800', color: '#0055d4' }}>
+                      <Text style={{ fontSize: 13.5, fontWeight: '800', color: '#3B7BEA' }}>
                         {phone}
                       </Text>
                     </View>
 
                     <View
                       style={{
-                        flexDirection: 'row',
+                        flexDirection: isRTL ? 'row-reverse' : 'row',
                         justifyContent: 'space-between',
                         alignItems: 'center',
                         marginBottom: 10,
                       }}
                     >
-                      <Text style={{ fontSize: 12.5, color: '#64748b', fontWeight: '600' }}>
+                      <Text style={{ fontSize: 12.5, color: '#5B6B8C', fontWeight: '600' }}>
                         {t.parentHolder}
                       </Text>
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#0f172a' }}>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F1B3D' }}>
                         {parentName} {parentSurname} ({relation})
                       </Text>
                     </View>
@@ -1597,7 +1663,7 @@ export const ParentSignUpScreen = ({
                       <Text
                         style={{
                           fontSize: 12,
-                          color: '#64748b',
+                          color: '#5B6B8C',
                           fontWeight: '700',
                           marginBottom: 6,
                           textAlign: isRTL ? 'right' : 'left',
@@ -1609,22 +1675,23 @@ export const ParentSignUpScreen = ({
                         <View
                           key={child.id}
                           style={{
-                            flexDirection: 'row',
+                            flexDirection: isRTL ? 'row-reverse' : 'row',
                             alignItems: 'center',
                             backgroundColor: '#ffffff',
-                            borderRadius: 12,
+                            borderRadius: 14,
                             padding: 10,
                             marginBottom: 6,
                             borderWidth: 1,
-                            borderColor: '#e2e8f0',
+                            borderColor: '#E2E8F0',
+                            gap: 8,
                           }}
                         >
-                          <GraduationCap size={16} color="#0055d4" style={{ marginRight: 8 }} />
+                          <GraduationCap size={16} color="#3B7BEA" />
                           <Text
                             style={{
                               fontSize: 13,
                               fontWeight: '700',
-                              color: '#0f172a',
+                              color: '#0F1B3D',
                               flex: 1,
                               textAlign: isRTL ? 'right' : 'left',
                             }}
@@ -1633,13 +1700,13 @@ export const ParentSignUpScreen = ({
                           </Text>
                           <View
                             style={{
-                              backgroundColor: '#eff6ff',
+                              backgroundColor: 'rgba(59, 123, 234, 0.12)',
                               paddingHorizontal: 8,
                               paddingVertical: 3,
-                              borderRadius: 6,
+                              borderRadius: 999,
                             }}
                           >
-                            <Text style={{ fontSize: 11, fontWeight: '700', color: '#0055d4' }}>
+                            <Text style={{ fontSize: 11, fontWeight: '700', color: '#1E40AF' }}>
                               {child.levelName} • {child.className}
                             </Text>
                           </View>
@@ -1651,18 +1718,27 @@ export const ParentSignUpScreen = ({
                   {submitError ? (
                     <View
                       style={{
-                        flexDirection: 'row',
+                        flexDirection: isRTL ? 'row-reverse' : 'row',
                         alignItems: 'center',
-                        backgroundColor: '#fef2f2',
+                        backgroundColor: '#FEF2F2',
                         padding: 12,
-                        borderRadius: 14,
+                        borderRadius: 16,
                         marginBottom: 16,
-                        borderWidth: 1,
-                        borderColor: '#fecaca',
+                        borderWidth: 1.5,
+                        borderColor: '#FECACA',
+                        gap: 8,
                       }}
                     >
-                      <AlertCircle size={18} color="#ef4444" style={{ marginRight: 8 }} />
-                      <Text style={{ fontSize: 13, color: '#b91c1c', fontWeight: '600', flex: 1 }}>
+                      <AlertCircle size={18} color="#EF4444" />
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          color: '#B91C1C',
+                          fontWeight: '600',
+                          flex: 1,
+                          textAlign: isRTL ? 'right' : 'left',
+                        }}
+                      >
                         {submitError}
                       </Text>
                     </View>
@@ -1672,19 +1748,21 @@ export const ParentSignUpScreen = ({
                   <TouchableOpacity
                     onPress={handleFinalSubmit}
                     disabled={isSubmitting}
+                    activeOpacity={0.88}
                     style={{
-                      backgroundColor: '#0055d4',
-                      borderRadius: 18,
+                      backgroundColor: '#3B7BEA',
+                      borderRadius: 999,
                       height: 54,
                       alignItems: 'center',
                       justifyContent: 'center',
-                      flexDirection: 'row',
-                      shadowColor: '#0055d4',
+                      flexDirection: isRTL ? 'row-reverse' : 'row',
+                      shadowColor: '#3B7BEA',
                       shadowOffset: { width: 0, height: 6 },
-                      shadowOpacity: 0.3,
+                      shadowOpacity: 0.32,
                       shadowRadius: 10,
                       elevation: 4,
                       marginBottom: 14,
+                      gap: 6,
                     }}
                   >
                     {isSubmitting ? (
@@ -1696,12 +1774,16 @@ export const ParentSignUpScreen = ({
                             fontSize: 16,
                             fontWeight: '800',
                             color: '#ffffff',
-                            marginRight: 6,
                           }}
                         >
                           {t.btnFinish}
                         </Text>
-                        <ArrowRight size={18} color="#ffffff" strokeWidth={2.5} />
+                        <ArrowRight
+                          size={18}
+                          color="#ffffff"
+                          strokeWidth={2.6}
+                          style={{ transform: [{ rotate: isRTL ? '180deg' : '0deg' }] }}
+                        />
                       </>
                     )}
                   </TouchableOpacity>
@@ -1709,14 +1791,15 @@ export const ParentSignUpScreen = ({
                   {/* Security Reassurance */}
                   <View
                     style={{
-                      flexDirection: 'row',
+                      flexDirection: isRTL ? 'row-reverse' : 'row',
                       alignItems: 'center',
                       justifyContent: 'center',
                       marginBottom: 10,
+                      gap: 6,
                     }}
                   >
-                    <ShieldCheck size={14} color="#94a3b8" style={{ marginRight: 6 }} />
-                    <Text style={{ fontSize: 11.5, color: '#94a3b8', fontWeight: '600' }}>
+                    <ShieldCheck size={14} color="#8FA3C7" />
+                    <Text style={{ fontSize: 11.5, color: '#8FA3C7', fontWeight: '600' }}>
                       {t.securityBanner}
                     </Text>
                   </View>
@@ -1726,7 +1809,7 @@ export const ParentSignUpScreen = ({
               {/* BOTTOM LINK TO SIGN IN */}
               <View
                 style={{
-                  flexDirection: 'row',
+                  flexDirection: isRTL ? 'row-reverse' : 'row',
                   justifyContent: 'center',
                   alignItems: 'center',
                   marginTop: 14,
@@ -1734,9 +1817,9 @@ export const ParentSignUpScreen = ({
                   gap: 6,
                 }}
               >
-                <Text style={{ fontSize: 13.5, color: '#64748b' }}>{t.alreadyHaveAccount} </Text>
+                <Text style={{ fontSize: 13.5, color: '#5B6B8C' }}>{t.alreadyHaveAccount} </Text>
                 <TouchableOpacity onPress={onBack}>
-                  <Text style={{ fontSize: 13.5, fontWeight: '800', color: '#0055d4' }}>
+                  <Text style={{ fontSize: 13.5, fontWeight: '800', color: '#3B7BEA' }}>
                     {t.signInLink}
                   </Text>
                 </TouchableOpacity>

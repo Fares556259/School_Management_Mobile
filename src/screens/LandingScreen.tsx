@@ -1,51 +1,142 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StatusBar, Alert, Dimensions, Modal } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  StatusBar,
+  Dimensions,
+  Modal,
+  Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GraduationCap, ArrowRight, ChevronRight, Globe, Check, Building2 } from 'lucide-react-native';
+import { GraduationCap, ChevronRight, Globe, Check } from 'lucide-react-native';
 import { useLanguage, Language } from '../context/LanguageContext';
-import Constants from 'expo-constants';
-import * as Updates from 'expo-updates';
 
 const { width } = Dimensions.get('window');
 
-const RoleCard = ({ title, description, image, onPress }: any) => (
-  <TouchableOpacity 
+interface RoleCardProps {
+  title: string;
+  description: string;
+  image: any;
+  isPrimary?: boolean;
+  isRTL?: boolean;
+  onPress: () => void;
+}
+
+const RoleCard = ({
+  title,
+  description,
+  image,
+  isPrimary = false,
+  isRTL = false,
+  onPress,
+}: RoleCardProps) => (
+  <TouchableOpacity
     onPress={onPress}
-    activeOpacity={0.9}
+    activeOpacity={0.88}
     style={{
-      backgroundColor: 'white',
-      borderRadius: 32,
-      padding: 20,
-      flexDirection: 'row',
+      backgroundColor: 'rgba(255, 255, 255, 0.88)',
+      borderRadius: 26,
+      padding: 16,
+      flexDirection: isRTL ? 'row-reverse' : 'row',
       alignItems: 'center',
-      marginBottom: 20,
-      shadowColor: '#0055d4',
-      shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: 0.05,
-      shadowRadius: 20,
-      elevation: 5,
-      borderWidth: 1,
-      borderColor: '#f1f4f6',
+      marginBottom: 16,
+      borderWidth: isPrimary ? 2 : 1.5,
+      borderColor: isPrimary ? '#3B7BEA' : 'rgba(255, 255, 255, 0.95)',
+      shadowColor: isPrimary ? '#3B7BEA' : '#0F1B3D',
+      shadowOffset: { width: 0, height: isPrimary ? 8 : 4 },
+      shadowOpacity: isPrimary ? 0.16 : 0.06,
+      shadowRadius: isPrimary ? 16 : 12,
+      elevation: isPrimary ? 6 : 3,
     }}
   >
-    <View style={{
-      width: 80,
-      height: 80,
-      borderRadius: 24,
-      backgroundColor: '#f8fbff',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: 20,
-      overflow: 'hidden'
-    }}>
-      <Image source={image} style={{ width: '120%', height: '120%' }} resizeMode="contain" />
+    {/* 3D Illustration tile */}
+    <View
+      style={{
+        width: 76,
+        height: 76,
+        borderRadius: 22,
+        backgroundColor: isPrimary ? '#EFF6FF' : '#F8FAFC',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: isRTL ? 0 : 16,
+        marginLeft: isRTL ? 16 : 0,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: isPrimary ? 'rgba(59, 123, 234, 0.2)' : 'rgba(226, 232, 240, 0.8)',
+      }}
+    >
+      <Image
+        source={image}
+        style={{ width: '100%', height: '100%' }}
+        resizeMode="cover"
+      />
     </View>
-    <View style={{ flex: 1 }}>
-      <Text style={{ fontSize: 20, fontWeight: '900', color: '#2b3437', marginBottom: 4, fontFamily: 'Jakarta-Bold' }}>{title}</Text>
-      <Text style={{ fontSize: 13, color: '#737c7f', lineHeight: 18, fontWeight: '500' }}>{description}</Text>
+
+    {/* Text info */}
+    <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 6 }}>
+        <Text
+          style={{
+            fontSize: 18,
+            fontWeight: '900',
+            color: '#0F1B3D',
+            marginBottom: 3,
+            letterSpacing: -0.3,
+            textAlign: isRTL ? 'right' : 'left',
+          }}
+        >
+          {title}
+        </Text>
+        {isPrimary && (
+          <View
+            style={{
+              backgroundColor: 'rgba(59, 123, 234, 0.12)',
+              paddingHorizontal: 7,
+              paddingVertical: 2,
+              borderRadius: 6,
+              marginBottom: 3,
+            }}
+          >
+            <Text style={{ fontSize: 10, fontWeight: '800', color: '#3B7BEA' }}>★</Text>
+          </View>
+        )}
+      </View>
+      <Text
+        numberOfLines={2}
+        style={{
+          fontSize: 12.5,
+          color: '#5B6B8C',
+          lineHeight: 17,
+          fontWeight: '500',
+          textAlign: isRTL ? 'right' : 'left',
+        }}
+      >
+        {description}
+      </Text>
     </View>
-    <View style={{ width: 36, height: 36, borderRadius: 14, backgroundColor: '#f1f4f6', alignItems: 'center', justifyContent: 'center' }}>
-      <ChevronRight size={18} color="#0055d4" strokeWidth={3} />
+
+    {/* Circular chevron */}
+    <View
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: isPrimary ? 'rgba(59, 123, 234, 0.12)' : 'rgba(241, 245, 249, 0.9)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: isRTL ? 4 : 0,
+        marginLeft: isRTL ? 0 : 4,
+      }}
+    >
+      <ChevronRight
+        size={18}
+        color={isPrimary ? '#3B7BEA' : '#5B6B8C'}
+        strokeWidth={2.8}
+        style={{ transform: [{ rotate: isRTL ? '180deg' : '0deg' }] }}
+      />
     </View>
   </TouchableOpacity>
 );
@@ -57,16 +148,8 @@ export const LandingScreen = ({
   onSelectRole: (role: 'parent' | 'teacher' | 'admin') => void;
   onViewOnboarding?: () => void;
 }) => {
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage, t, isRTL } = useLanguage();
   const [langModalVisible, setLangModalVisible] = useState(false);
-
-  const handleFutureRole = (role: string) => {
-    Alert.alert(
-      "Feature Coming Soon", 
-      `We are currently working on the ${role} portal! This feature will be added in a future update. Please use the Parent or Teacher profile for now.`,
-      [{ text: "OK", style: "default" }]
-    );
-  };
 
   const getLangBadge = () => {
     if (language === 'ar') return 'العربية 🇹🇳';
@@ -75,210 +158,305 @@ export const LandingScreen = ({
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f8fbff' }}>
-      <StatusBar barStyle="dark-content" />
-      
-      {/* Decorative Background Blob */}
-      <View style={{ 
-        position: 'absolute', 
-        top: -150, 
-        right: -100, 
-        width: 400, 
-        height: 400, 
-        borderRadius: 200, 
-        backgroundColor: '#0055d408' 
-      }} />
+    <View style={{ flex: 1, backgroundColor: '#EAF1FD' }}>
+      <StatusBar barStyle="dark-content" backgroundColor="#8FB4F0" />
+
+      {/* Atmospheric sky background with blurred cloud blobs */}
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 340,
+          backgroundColor: '#8FB4F0',
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          top: -60,
+          right: -50,
+          width: 280,
+          height: 280,
+          borderRadius: 140,
+          backgroundColor: 'rgba(255, 255, 255, 0.35)',
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          top: 140,
+          left: -80,
+          width: 220,
+          height: 220,
+          borderRadius: 110,
+          backgroundColor: 'rgba(255, 255, 255, 0.28)',
+        }}
+      />
 
       <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView 
-          contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40 }}
+        <ScrollView
+          contentContainerStyle={{
+            paddingHorizontal: 22,
+            paddingTop: 8,
+            paddingBottom: 36,
+          }}
           showsVerticalScrollIndicator={false}
         >
-          {/* Top Language Button */}
-          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 16 }}>
+          {/* Top Glass Pill Language Switcher (aligned to trailing edge) */}
+          <View
+            style={{
+              flexDirection: isRTL ? 'row-reverse' : 'row',
+              justifyContent: isRTL ? 'flex-start' : 'flex-end',
+              marginBottom: 12,
+            }}
+          >
             <TouchableOpacity
               onPress={() => setLangModalVisible(true)}
+              activeOpacity={0.8}
               style={{
-                flexDirection: 'row',
+                flexDirection: isRTL ? 'row-reverse' : 'row',
                 alignItems: 'center',
-                backgroundColor: 'white',
+                backgroundColor: 'rgba(255, 255, 255, 0.85)',
                 paddingHorizontal: 14,
-                paddingVertical: 8,
-                borderRadius: 20,
-                gap: 8,
-                borderWidth: 1,
-                borderColor: '#e2e8f0',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.05,
-                shadowRadius: 4,
-                elevation: 2,
+                paddingVertical: 7,
+                borderRadius: 999,
+                gap: 7,
+                borderWidth: 1.5,
+                borderColor: 'rgba(255, 255, 255, 0.95)',
+                shadowColor: '#3B7BEA',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 8,
+                elevation: 3,
               }}
             >
-              <Globe size={18} color="#0055d4" />
-              <Text style={{ fontSize: 13, fontWeight: '800', color: '#1e293b' }}>{getLangBadge()}</Text>
+              <Globe size={16} color="#3B7BEA" />
+              <Text style={{ fontSize: 12.5, fontWeight: '800', color: '#0F1B3D' }}>
+                {getLangBadge()}
+              </Text>
             </TouchableOpacity>
           </View>
 
-          {/* Header */}
-          <View style={{ alignItems: 'center', marginBottom: 36 }}>
-            <View style={{ 
-              width: 80, 
-              height: 80, 
-              borderRadius: 24, 
-              backgroundColor: '#0055d4', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              marginBottom: 20,
-              shadowColor: '#0055d4',
-              shadowOffset: { width: 0, height: 10 },
-              shadowOpacity: 0.2,
-              shadowRadius: 15,
-              elevation: 8
-            }}>
-              <GraduationCap color="white" size={40} />
+          {/* Center: App Logo in a rounded glass square with soft glow */}
+          <View style={{ alignItems: 'center', marginBottom: 28 }}>
+            <View
+              style={{
+                width: 74,
+                height: 74,
+                borderRadius: 24,
+                backgroundColor: '#3B7BEA',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 14,
+                shadowColor: '#3B7BEA',
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.38,
+                shadowRadius: 18,
+                elevation: 10,
+                borderWidth: 2,
+                borderColor: 'rgba(255, 255, 255, 0.4)',
+              }}
+            >
+              <GraduationCap color="#ffffff" size={38} strokeWidth={2.3} />
             </View>
-            
-            <Text style={{ fontSize: 36, fontWeight: '900', color: '#2b3437', letterSpacing: -1 }}>
-              Snap<Text style={{ color: '#0055d4' }}>School</Text>
+
+            <Text
+              style={{
+                fontSize: 32,
+                fontWeight: '900',
+                color: '#0F1B3D',
+                letterSpacing: -0.8,
+              }}
+            >
+              Snap<Text style={{ color: '#3B7BEA' }}>School</Text>
             </Text>
-            
-            <View style={{ marginTop: 20, alignItems: 'center' }}>
-              <Text style={{ fontSize: 24, fontWeight: '800', color: '#2b3437' }}>
-                {(t?.welcome || 'Welcome')}
+
+            <View style={{ marginTop: 10, alignItems: 'center', paddingHorizontal: 16 }}>
+              <Text
+                style={{
+                  fontSize: 22,
+                  fontWeight: '900',
+                  color: '#0F1B3D',
+                  letterSpacing: -0.4,
+                  textAlign: 'center',
+                }}
+              >
+                {t?.welcome || (language === 'ar' ? 'مرحباً بكم' : 'Bienvenue')}
               </Text>
-              <Text style={{ fontSize: 14, color: '#737c7f', marginTop: 6, textAlign: 'center', fontWeight: '600' }}>
-                {(t?.pleaseSelectYourProfileTo || 'Please select your profile to continue to your account')}
+              <Text
+                style={{
+                  fontSize: 13.5,
+                  color: '#5B6B8C',
+                  marginTop: 4,
+                  textAlign: 'center',
+                  fontWeight: '600',
+                  lineHeight: 18,
+                }}
+              >
+                {t?.pleaseSelectYourProfileTo ||
+                  (language === 'ar'
+                    ? 'اختر حسابك للمتابعة والدخول للتطبيق'
+                    : 'Choisissez votre profil pour continuer')}
               </Text>
             </View>
           </View>
 
-          {/* Role Cards */}
+          {/* Role Cards: EXACTLY 3 ROLES (Student removed completely) */}
           <View>
-            <RoleCard 
-              title={(t?.parent || 'Parent')}
-              description={(t?.monitorProgressGradesAndSchool || 'Monitor progress, grades, and school schedule.')}
+            {/* 1. PARENT (Primary Highlighted) */}
+            <RoleCard
+              title={t?.parent || (language === 'ar' ? 'ولي الأمر' : 'Parent')}
+              description={
+                language === 'ar'
+                  ? 'متابعة أعداد ومواظبة وجدول الأبناء'
+                  : 'Suivez les notes, absences et la vie scolaire de vos enfants.'
+              }
               image={require('../../assets/3d/parent.jpg')}
+              isPrimary={true}
+              isRTL={isRTL}
               onPress={() => onSelectRole('parent')}
             />
-            
-            <RoleCard 
-              title={(t?.teacher || 'Teacher')}
-              description={(t?.manageLessonsAttendanceAndStudent || 'Manage lessons, attendance, and student performance.')}
+
+            {/* 2. TEACHER */}
+            <RoleCard
+              title={t?.teacher || (language === 'ar' ? 'المدرس' : 'Enseignant')}
+              description={
+                language === 'ar'
+                  ? 'إدارة الدروس والواجبات والغيابات'
+                  : 'Saisie des notes, appel et cahier de texte en direct.'
+              }
               image={require('../../assets/3d/teacher.jpg')}
+              isPrimary={false}
+              isRTL={isRTL}
               onPress={() => onSelectRole('teacher')}
             />
 
-            <TouchableOpacity 
+            {/* 3. ADMINISTRATION (3D School Building Image) */}
+            <RoleCard
+              title={language === 'ar' ? 'الإدارة' : language === 'fr' ? 'Direction' : 'Admin'}
+              description={
+                language === 'ar'
+                  ? 'أدِر مدرستك مع هنيّة الذكية'
+                  : 'Pilotez l’école, les finances et la vie scolaire avec Hnia.'
+              }
+              image={require('../../assets/3d/admin.jpg')}
+              isPrimary={false}
+              isRTL={isRTL}
               onPress={() => onSelectRole('admin')}
-              activeOpacity={0.9}
-              style={{
-                backgroundColor: 'white',
-                borderRadius: 32,
-                padding: 20,
-                flexDirection: 'row',
-                alignItems: 'center',
-                marginBottom: 20,
-                shadowColor: '#1e3a5f',
-                shadowOffset: { width: 0, height: 10 },
-                shadowOpacity: 0.05,
-                shadowRadius: 20,
-                elevation: 5,
-                borderWidth: 1,
-                borderColor: '#f1f4f6',
-              }}
-            >
-              <View style={{
-                width: 80,
-                height: 80,
-                borderRadius: 24,
-                backgroundColor: '#1e3a5f',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: 20,
-              }}>
-                <Building2 size={36} color="white" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 20, fontWeight: '900', color: '#2b3437', marginBottom: 4, fontFamily: 'Jakarta-Bold' }}>
-                  {language === 'ar' ? 'الإدارة' : language === 'fr' ? 'Direction' : 'Admin'}
-                </Text>
-                <Text style={{ fontSize: 13, color: '#737c7f', lineHeight: 18, fontWeight: '500' }}>
-                  {language === 'ar' ? 'أدِر مدرستك مع هنيّة' : language === 'fr' ? 'Pilotez votre école avec Hnia IA' : 'Manage your school with Hnia AI'}
-                </Text>
-              </View>
-              <View style={{ width: 36, height: 36, borderRadius: 14, backgroundColor: '#f1f4f6', alignItems: 'center', justifyContent: 'center' }}>
-                <ChevronRight size={18} color="#1e3a5f" strokeWidth={3} />
-              </View>
-            </TouchableOpacity>
-            
-            <RoleCard 
-              title={(t?.student || 'Student')}
-              description={language === 'ar' ? 'متابعة الدروس والروض والإعلانات' : language === 'fr' ? 'Accès aux devoirs et annonces de l\'école' : 'Access homework, attendance, and official announcements.'}
-              image={require('../../assets/3d/student.jpg')}
-              onPress={() => handleFutureRole('Student')}
             />
           </View>
 
-          {/* Language Selection Modal */}
-          <Modal visible={langModalVisible} transparent animationType="fade" onRequestClose={() => setLangModalVisible(false)}>
-            <TouchableOpacity 
-              activeOpacity={1} 
-              onPress={() => setLangModalVisible(false)} 
-              style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 }}
+          {/* Footer note */}
+          <View style={{ alignItems: 'center', marginTop: 14 }}>
+            <Text
+              style={{
+                fontSize: 11,
+                color: '#8FA3C7',
+                fontWeight: '700',
+                letterSpacing: 0.8,
+                textTransform: 'uppercase',
+              }}
             >
-              <View style={{ width: '100%', backgroundColor: 'white', borderRadius: 28, padding: 24, elevation: 10 }}>
-                <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', marginBottom: 16, textAlign: 'center' }}>
-                  {t.selectLanguageTitle || 'Select App Language'}
-                </Text>
-
-                {[
-                  { id: 'ar', name: 'العربية', flag: '🇹🇳' },
-                  { id: 'fr', name: 'Français', flag: '🇫🇷' },
-                  { id: 'en', name: 'English', flag: '🇬🇧' },
-                ].map((item) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    onPress={async () => {
-                      await setLanguage(item.id as Language);
-                      setLangModalVisible(false);
-                    }}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      paddingVertical: 16,
-                      paddingHorizontal: 20,
-                      borderRadius: 18,
-                      backgroundColor: language === item.id ? '#eff6ff' : '#f8fafc',
-                      marginBottom: 10,
-                      borderWidth: 1,
-                      borderColor: language === item.id ? '#0055d4' : '#e2e8f0',
-                    }}
-                  >
-                    <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e293b' }}>
-                      {item.flag}  {item.name}
-                    </Text>
-                    {language === item.id && <Check size={20} color="#0055d4" strokeWidth={3} />}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </TouchableOpacity>
-          </Modal>
-
-
-
-          {/* Footer Info */}
-          <View style={{ marginTop: 24, alignItems: 'center' }}>
-             <Text style={{ fontSize: 12, color: '#bdc3c7', fontWeight: 'bold', letterSpacing: 1, textTransform: 'uppercase' }}>
-               Powered by SnapSchool
-             </Text>
-             <Text style={{ fontSize: 11, color: '#94a3b8', marginTop: 4, fontWeight: '600' }}>
-               v{Constants.expoConfig?.version || '1.0.3'} {Updates.channel ? `(${Updates.channel})` : ''}
-             </Text>
+              Powered by SnapSchool
+            </Text>
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      {/* Language Selection Modal (Frosted Glass) */}
+      <Modal
+        visible={langModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLangModalVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setLangModalVisible(false)}
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(15, 27, 61, 0.45)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: 24,
+          }}
+        >
+          <View
+            style={{
+              width: '100%',
+              maxWidth: 340,
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              borderRadius: 28,
+              padding: 24,
+              borderWidth: 1.5,
+              borderColor: 'rgba(255, 255, 255, 0.9)',
+              shadowColor: '#3B7BEA',
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.2,
+              shadowRadius: 20,
+              elevation: 10,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: '900',
+                color: '#0F1B3D',
+                marginBottom: 16,
+                textAlign: 'center',
+              }}
+            >
+              {t.selectLanguageTitle || 'Choisir la langue'}
+            </Text>
+
+            {[
+              { id: 'ar', name: 'العربية', flag: '🇹🇳' },
+              { id: 'fr', name: 'Français', flag: '🇫🇷' },
+              { id: 'en', name: 'English', flag: '🇬🇧' },
+            ].map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                onPress={async () => {
+                  await setLanguage(item.id as Language);
+                  setLangModalVisible(false);
+                }}
+                style={{
+                  flexDirection: isRTL ? 'row-reverse' : 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingVertical: 14,
+                  paddingHorizontal: 16,
+                  borderRadius: 16,
+                  backgroundColor: language === item.id ? 'rgba(59, 123, 234, 0.1)' : 'transparent',
+                  marginBottom: 6,
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: isRTL ? 'row-reverse' : 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                  }}
+                >
+                  <Text style={{ fontSize: 20 }}>{item.flag}</Text>
+                  <Text
+                    style={{
+                      fontSize: 15,
+                      fontWeight: language === item.id ? '800' : '600',
+                      color: language === item.id ? '#3B7BEA' : '#0F1B3D',
+                    }}
+                  >
+                    {item.name}
+                  </Text>
+                </View>
+                {language === item.id && <Check size={18} color="#3B7BEA" strokeWidth={3} />}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };

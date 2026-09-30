@@ -12,7 +12,19 @@ import {
   Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GraduationCap, Phone, Lock, ChevronLeft, ArrowRight, Mail, Eye, EyeOff, ShieldCheck } from 'lucide-react-native';
+import {
+  GraduationCap,
+  Phone,
+  Lock,
+  ChevronLeft,
+  ArrowRight,
+  Mail,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  User,
+  Building2,
+} from 'lucide-react-native';
 import { authService } from '../services/api';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage, Language } from '../context/LanguageContext';
@@ -28,7 +40,8 @@ export const SignInScreen = ({
   onBack: () => void;
   onNavigateToSignUp?: (phone?: string) => void;
 }) => {
-  const { setUserName, setUserAvatarUrl, setChildren, setSelectedChildId, setUserId, setUserRole } = useAppStore();
+  const { setUserName, setUserAvatarUrl, setChildren, setSelectedChildId, setUserId, setUserRole } =
+    useAppStore();
   const { language, setLanguage, t, isRTL } = useLanguage();
 
   const scrollViewRef = useRef<ScrollView>(null);
@@ -62,7 +75,11 @@ export const SignInScreen = ({
   const handleCheckStatus = async () => {
     Keyboard.dismiss();
     if (!phone.trim()) {
-      setError(t?.pleaseEnterYourPhoneNumber || 'Veuillez entrer votre numéro de téléphone.');
+      setError(
+        language === 'ar'
+          ? 'الرجاء إدخال رقم الهاتف للمتابعة'
+          : 'Veuillez entrer votre numéro de téléphone.'
+      );
       return;
     }
     setIsLoading(true);
@@ -77,11 +94,18 @@ export const SignInScreen = ({
         if (role === 'parent' && result.notFound) {
           setShowSignUpPrompt(true);
         } else {
-          setError(result.error || (t?.accountNotFoundPleaseContact || 'Compte introuvable. Veuillez contacter l’administration.'));
+          setError(
+            result.error ||
+              (language === 'ar'
+                ? 'الحساب غير موجود. تواصل مع إدارة المدرسة.'
+                : 'Compte introuvable. Veuillez contacter l’administration.')
+          );
         }
       }
     } catch (e) {
-      setError(t?.networkErrorPleaseTryAgain || 'Erreur réseau. Veuillez réessayer.');
+      setError(
+        language === 'ar' ? 'خطأ في الشبكة. يرجى المحاولة لاحقاً.' : 'Erreur réseau. Veuillez réessayer.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -94,7 +118,7 @@ export const SignInScreen = ({
       return;
     }
     if (!password.trim()) {
-      setError(t?.pleaseEnterYourPassword || 'Veuillez entrer votre mot de passe.');
+      setError(language === 'ar' ? 'الرجاء إدخال كلمة المرور' : 'Veuillez entrer votre mot de passe.');
       return;
     }
     setIsLoading(true);
@@ -104,7 +128,11 @@ export const SignInScreen = ({
       const result = await authService.authenticate(phone.trim(), password, action, role);
       if (result.success) {
         if (step === 'NEEDS_SETUP') {
-          setHint(t?.passwordSetPleaseSignIn || 'Mot de passe configuré ! Veuillez vous connecter.');
+          setHint(
+            language === 'ar'
+              ? 'تم تعيين كلمة المرور بنجاح ! يمكنك الآن الدخول.'
+              : 'Mot de passe configuré ! Veuillez vous connecter.'
+          );
           setPassword('');
           setStep('NEEDS_PASSWORD');
           setIsLoading(false);
@@ -124,7 +152,11 @@ export const SignInScreen = ({
       } else {
         const errorMessage = result.error || 'Échec de la connexion.';
         if (errorMessage.toLowerCase().includes('password not set')) {
-          setHint(t?.accountResetByAdminPlease || 'Mot de passe réinitialisé. Veuillez en choisir un nouveau.');
+          setHint(
+            language === 'ar'
+              ? 'تمت إعادة ضبط الحساب. يرجى تعيين كلمة مرور جديدة.'
+              : 'Mot de passe réinitialisé. Veuillez en choisir un nouveau.'
+          );
           setPassword('');
           setStep('NEEDS_SETUP');
           setIsLoading(false);
@@ -134,7 +166,9 @@ export const SignInScreen = ({
         setIsLoading(false);
       }
     } catch (e) {
-      setError(t?.authenticationFailedPleaseCheckYour || 'Erreur d’authentification. Vérifiez votre connexion.');
+      setError(
+        language === 'ar' ? 'فشل التحقق من البيانات' : 'Erreur d’authentification. Vérifiez votre connexion.'
+      );
       setIsLoading(false);
     }
   };
@@ -150,194 +184,267 @@ export const SignInScreen = ({
     }
   };
 
-  const stepTitle = role === 'admin' 
-    ? (language === 'ar' ? 'تسجيل دخول الإدارة' : 'Connexion Direction') 
-    : step === 'PHONE'
-    ? (language === 'ar' ? 'مرحباً بك مجدداً !' : 'Bon retour parmi nous !')
-    : step === 'NEEDS_SETUP'
-    ? (t?.createYourPassword || 'Créez votre mot de passe')
-    : (language === 'ar' ? `مرحباً، ${tempParent?.name?.split(' ')[0]} 👋` : `Bonjour, ${tempParent?.name?.split(' ')[0]} 👋`);
+  const stepTitle =
+    role === 'admin'
+      ? language === 'ar'
+        ? 'تسجيل دخول الإدارة'
+        : 'Connexion Direction'
+      : step === 'PHONE'
+      ? language === 'ar'
+        ? 'مرحباً بك مجدداً !'
+        : 'Bon retour parmi nous !'
+      : step === 'NEEDS_SETUP'
+      ? language === 'ar'
+        ? 'تعيين كلمة المرور'
+        : 'Créez votre mot de passe'
+      : language === 'ar'
+      ? `مرحباً، ${tempParent?.name?.split(' ')[0]} 👋`
+      : `Bonjour, ${tempParent?.name?.split(' ')[0]} 👋`;
 
-  const stepSub = role === 'admin' 
-    ? (language === 'ar' ? 'أدخل بريدك الإلكتروني وكلمة السر' : 'Entrez vos identifiants pour continuer') 
-    : step === 'PHONE'
-    ? (language === 'ar' ? 'أدخل رقم هاتفك للوصول إلى متابعة أبنائك' : 'Entrez votre numéro pour accéder au suivi scolaire')
-    : step === 'NEEDS_SETUP'
-    ? (t?.chooseAStrongPasswordFor || 'Choisissez un mot de passe pour votre premier accès')
-    : (language === 'ar' ? 'أدخل كلمة السر للمتابعة' : 'Entrez votre mot de passe pour continuer');
+  const stepSub =
+    role === 'admin'
+      ? language === 'ar'
+        ? 'أدخل بيانات الدخول المعتمدة من المدرسة'
+        : 'Entrez vos identifiants administrateur'
+      : step === 'PHONE'
+      ? language === 'ar'
+        ? 'أدخل رقم هاتفك للوصول ومتابعة الأبناء'
+        : 'Entrez votre numéro pour accéder au suivi scolaire'
+      : step === 'NEEDS_SETUP'
+      ? language === 'ar'
+        ? 'اختر كلمة مرور آمنة لحسابك'
+        : 'Choisissez un mot de passe pour votre premier accès'
+      : language === 'ar'
+      ? 'أدخل كلمة المرور للمتابعة'
+      : 'Entrez votre mot de passe pour continuer';
 
-  const loadingLabel = (role === 'admin' || step !== 'PHONE' && step !== 'NEEDS_SETUP') 
-    ? (language === 'ar' ? 'جاري الدخول...' : 'Connexion...') 
-    : step === 'PHONE'
-    ? (language === 'ar' ? 'جاري التحقق...' : 'Vérification...')
-    : (language === 'ar' ? 'جاري التفعيل...' : 'Activation...');
+  const loadingLabel =
+    role === 'admin' || (step !== 'PHONE' && step !== 'NEEDS_SETUP')
+      ? language === 'ar'
+        ? 'جاري الدخول...'
+        : 'Connexion...'
+      : step === 'PHONE'
+      ? language === 'ar'
+        ? 'جاري التحقق...'
+        : 'Vérification...'
+      : language === 'ar'
+      ? 'جاري التفعيل...'
+      : 'Activation...';
 
-  const btnLabel = role === 'admin' 
-    ? (t?.signIn || 'Se connecter') 
-    : step === 'PHONE'
-    ? (language === 'ar' ? 'متابعة' : 'Continuer')
-    : step === 'NEEDS_SETUP'
-    ? (t?.setPassword || 'Définir le mot de passe')
-    : (t?.signIn || 'Se connecter');
+  const btnLabel =
+    role === 'admin'
+      ? language === 'ar'
+        ? 'تسجيل الدخول'
+        : 'Se connecter'
+      : step === 'PHONE'
+      ? language === 'ar'
+        ? 'متابعة'
+        : 'Continuer'
+      : step === 'NEEDS_SETUP'
+      ? language === 'ar'
+        ? 'تأكيد كلمة المرور'
+        : 'Définir le mot de passe'
+      : language === 'ar'
+      ? 'تسجيل الدخول'
+      : 'Se connecter';
 
-  const portalLabel = role === 'parent' 
-    ? (language === 'ar' ? 'فضاء الأولياء' : 'ESPACE PARENTS') 
-    : role === 'teacher' 
-    ? (language === 'ar' ? 'فضاء الأساتذة' : 'ESPACE ENSEIGNANTS') 
-    : (language === 'ar' ? 'بوابة الإدارة' : 'ESPACE DIRECTION');
+  const roleChip =
+    role === 'parent'
+      ? {
+          title: language === 'ar' ? 'فضاء الأولياء' : 'Espace Parents',
+          icon: User,
+        }
+      : role === 'teacher'
+      ? {
+          title: language === 'ar' ? 'فضاء الأساتذة' : 'Espace Enseignants',
+          icon: GraduationCap,
+        }
+      : {
+          title: language === 'ar' ? 'إدارة المؤسسة' : 'Direction de l’école',
+          icon: Building2,
+        };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#eef5ff' }}>
-      <StatusBar barStyle="dark-content" backgroundColor="#eef5ff" />
+    <View style={{ flex: 1, backgroundColor: '#EAF1FD' }}>
+      <StatusBar barStyle="dark-content" backgroundColor="#8FB4F0" />
+
+      {/* Atmospheric sky background with soft blurred cloud circles */}
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 320,
+          backgroundColor: '#8FB4F0',
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          top: -50,
+          right: -40,
+          width: 260,
+          height: 260,
+          borderRadius: 130,
+          backgroundColor: 'rgba(255, 255, 255, 0.35)',
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          top: 120,
+          left: -70,
+          width: 200,
+          height: 200,
+          borderRadius: 100,
+          backgroundColor: 'rgba(255, 255, 255, 0.28)',
+        }}
+      />
 
       <SafeAreaView style={{ flex: 1 }}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{ flex: 1 }}
         >
-          {/* TOP BAR: BACK & LANGUAGE SELECTOR */}
+          {/* Top Bar: Circular Glass Back Button + Role Chip */}
           <View
             style={{
-              flexDirection: 'row',
+              flexDirection: isRTL ? 'row-reverse' : 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
               paddingHorizontal: 20,
               paddingTop: 8,
-              paddingBottom: 10,
+              paddingBottom: 12,
             }}
           >
             <TouchableOpacity
               onPress={handleBack}
               style={{
-                width: 42,
-                height: 42,
-                borderRadius: 14,
-                backgroundColor: '#ffffff',
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: 'rgba(255, 255, 255, 0.88)',
                 alignItems: 'center',
                 justifyContent: 'center',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.05,
-                shadowRadius: 6,
-                elevation: 2,
+                borderWidth: 1.5,
+                borderColor: 'rgba(255, 255, 255, 0.95)',
+                shadowColor: '#3B7BEA',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 8,
+                elevation: 3,
               }}
             >
               <ChevronLeft
-                size={20}
-                color="#1e293b"
-                strokeWidth={2.5}
+                size={22}
+                color="#0F1B3D"
+                strokeWidth={2.8}
                 style={{ transform: [{ rotate: isRTL ? '180deg' : '0deg' }] }}
               />
             </TouchableOpacity>
 
-            {/* Language Selector matching Dribbble aesthetic */}
+            {/* Glass Role Chip */}
             <View
               style={{
-                flexDirection: 'row',
-                backgroundColor: '#ffffff',
-                borderRadius: 16,
-                padding: 3,
-                borderWidth: 1,
-                borderColor: '#e2e8f0',
-                shadowColor: '#000',
+                flexDirection: isRTL ? 'row-reverse' : 'row',
+                alignItems: 'center',
+                backgroundColor: 'rgba(255, 255, 255, 0.88)',
+                paddingHorizontal: 14,
+                paddingVertical: 7,
+                borderRadius: 999,
+                borderWidth: 1.5,
+                borderColor: 'rgba(255, 255, 255, 0.95)',
+                shadowColor: '#3B7BEA',
                 shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.04,
-                shadowRadius: 4,
-                elevation: 1,
+                shadowOpacity: 0.08,
+                shadowRadius: 6,
+                elevation: 2,
+                gap: 6,
               }}
             >
-              {[
-                { id: 'ar', label: 'العربية 🇹🇳' },
-                { id: 'fr', label: 'Français 🇫🇷' },
-                { id: 'en', label: 'English 🇬🇧' },
-              ].map((item) => (
+              <roleChip.icon size={15} color="#3B7BEA" strokeWidth={2.5} />
+              <Text style={{ fontSize: 12, fontWeight: '800', color: '#0F1B3D' }}>
+                {roleChip.title}
+              </Text>
+            </View>
+
+            {/* Language Switcher Pill */}
+            <View
+              style={{
+                flexDirection: isRTL ? 'row-reverse' : 'row',
+                backgroundColor: 'rgba(255, 255, 255, 0.88)',
+                borderRadius: 999,
+                padding: 3,
+                borderWidth: 1.5,
+                borderColor: 'rgba(255, 255, 255, 0.95)',
+              }}
+            >
+              {(['ar', 'fr', 'en'] as const).map((l) => (
                 <TouchableOpacity
-                  key={item.id}
-                  onPress={() => setLanguage(item.id as Language)}
+                  key={l}
+                  onPress={() => setLanguage(l)}
                   style={{
-                    paddingHorizontal: 11,
-                    paddingVertical: 6,
-                    borderRadius: 13,
-                    backgroundColor: language === item.id ? '#0055d4' : 'transparent',
+                    paddingHorizontal: 8,
+                    paddingVertical: 4,
+                    borderRadius: 999,
+                    backgroundColor: language === l ? '#3B7BEA' : 'transparent',
                   }}
                 >
                   <Text
                     style={{
-                      fontSize: 11.5,
+                      fontSize: 10.5,
                       fontWeight: '800',
-                      color: language === item.id ? '#ffffff' : '#64748b',
+                      color: language === l ? '#ffffff' : '#5B6B8C',
                     }}
                   >
-                    {item.label}
+                    {l === 'ar' ? 'ع' : l === 'fr' ? 'FR' : 'EN'}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
 
-          {/* HERO BRAND ICON & TITLE (AIRY, FLOATING) */}
-          <View style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 22 }}>
-            <View
-              style={{
-                width: 72,
-                height: 72,
-                borderRadius: 24,
-                backgroundColor: '#0055d4',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 12,
-                shadowColor: '#0055d4',
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.28,
-                shadowRadius: 14,
-                elevation: 8,
-              }}
-            >
-              <GraduationCap size={36} color="#ffffff" strokeWidth={2.2} />
-            </View>
+          {/* Heading area over the sky gradient */}
+          <View style={{ paddingHorizontal: 26, paddingTop: 10, paddingBottom: 22 }}>
             <Text
               style={{
                 fontSize: 28,
                 fontWeight: '900',
-                color: '#0f172a',
-                letterSpacing: -0.8,
+                color: '#0F1B3D',
+                letterSpacing: -0.6,
+                marginBottom: 4,
+                textAlign: isRTL ? 'right' : 'left',
               }}
             >
-              Snap<Text style={{ color: '#0055d4' }}>School</Text>
+              {stepTitle}
             </Text>
-            <View
+            <Text
               style={{
-                backgroundColor: 'rgba(0, 85, 212, 0.08)',
-                paddingHorizontal: 10,
-                paddingVertical: 4,
-                borderRadius: 8,
-                marginTop: 6,
+                fontSize: 14,
+                color: '#33486F',
+                fontWeight: '600',
+                lineHeight: 20,
+                textAlign: isRTL ? 'right' : 'left',
               }}
             >
-              <Text
-                style={{
-                  fontSize: 11,
-                  color: '#0055d4',
-                  fontWeight: '800',
-                  letterSpacing: 0.8,
-                }}
-              >
-                {portalLabel}
-              </Text>
-            </View>
+              {stepSub}
+            </Text>
           </View>
 
-          {/* CURVED WHITE BOTTOM SHEET FORM (DRIBBLE SIGNATURE STYLE) */}
+          {/* Frosted Glass Form Card Sheet */}
           <View
             style={{
               flex: 1,
-              backgroundColor: '#ffffff',
+              backgroundColor: 'rgba(255, 255, 255, 0.94)',
               borderTopLeftRadius: 32,
               borderTopRightRadius: 32,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: -4 },
-              shadowOpacity: 0.06,
-              shadowRadius: 14,
+              borderWidth: 1.5,
+              borderColor: 'rgba(255, 255, 255, 0.95)',
+              shadowColor: '#3B7BEA',
+              shadowOffset: { width: 0, height: -6 },
+              shadowOpacity: 0.1,
+              shadowRadius: 16,
               elevation: 10,
               overflow: 'hidden',
             }}
@@ -355,34 +462,7 @@ export const SignInScreen = ({
               showsVerticalScrollIndicator={false}
               automaticallyAdjustKeyboardInsets={true}
             >
-              {/* Heading */}
-              <View style={{ marginBottom: 24 }}>
-                <Text
-                  style={{
-                    fontSize: 24,
-                    fontWeight: '900',
-                    color: '#0f172a',
-                    letterSpacing: -0.5,
-                    marginBottom: 6,
-                    textAlign: isRTL ? 'right' : 'left',
-                  }}
-                >
-                  {stepTitle}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 13.5,
-                    color: '#64748b',
-                    fontWeight: '500',
-                    lineHeight: 20,
-                    textAlign: isRTL ? 'right' : 'left',
-                  }}
-                >
-                  {stepSub}
-                </Text>
-              </View>
-
-              {/* PHONE / EMAIL INPUT (DRIBBLE PILL/SQUIRCLE) */}
+              {/* Phone / Email Input (Pill Shaped radius 999) */}
               {(role === 'admin' || step === 'PHONE') && (
                 <View style={{ marginBottom: 18 }}>
                   <Text
@@ -395,31 +475,35 @@ export const SignInScreen = ({
                     }}
                   >
                     {role === 'admin'
-                      ? (language === 'ar' ? 'البريد الإلكتروني' : 'Adresse Email')
-                      : (language === 'ar' ? 'رقم الهاتف الجوال' : 'Numéro de téléphone')}
+                      ? language === 'ar'
+                        ? 'البريد الإلكتروني'
+                        : 'Adresse Email'
+                      : language === 'ar'
+                      ? 'رقم الهاتف الجوال'
+                      : 'Numéro de téléphone'}
                   </Text>
                   <View
                     style={{
-                      flexDirection: 'row',
+                      flexDirection: isRTL ? 'row-reverse' : 'row',
                       alignItems: 'center',
-                      backgroundColor: '#f8fafc',
-                      borderRadius: 16,
+                      backgroundColor: 'rgba(248, 250, 252, 0.95)',
+                      borderRadius: 999,
                       borderWidth: 1.5,
-                      borderColor: '#e2e8f0',
-                      paddingHorizontal: 16,
+                      borderColor: '#E2E8F0',
+                      paddingHorizontal: 18,
                       height: 54,
                     }}
                   >
                     {role === 'admin' ? (
-                      <Mail size={20} color="#94a3b8" />
+                      <Mail size={20} color="#8FA3C7" />
                     ) : (
-                      <Phone size={20} color="#94a3b8" />
+                      <Phone size={20} color="#8FA3C7" />
                     )}
                     <View
                       style={{
                         width: 1,
                         height: 20,
-                        backgroundColor: '#e2e8f0',
+                        backgroundColor: '#E2E8F0',
                         marginHorizontal: 12,
                       }}
                     />
@@ -432,15 +516,17 @@ export const SignInScreen = ({
                       placeholder={
                         role === 'admin'
                           ? 'directeur@ecole.tn'
-                          : (t?.eg55666777 || 'ex: 22 345 678')
+                          : language === 'ar'
+                          ? 'مثال: 22 345 678'
+                          : 'ex: 22 345 678'
                       }
-                      placeholderTextColor="#94a3b8"
+                      placeholderTextColor="#94A3B8"
                       keyboardType={role === 'admin' ? 'email-address' : 'phone-pad'}
                       autoCapitalize={role === 'admin' ? 'none' : undefined}
                       autoComplete={role === 'admin' ? 'email' : undefined}
                       style={{
                         flex: 1,
-                        color: '#0f172a',
+                        color: '#0F1B3D',
                         fontSize: 16,
                         fontWeight: '700',
                         textAlign: isRTL ? 'right' : 'left',
@@ -450,7 +536,7 @@ export const SignInScreen = ({
                 </View>
               )}
 
-              {/* PASSWORD INPUT (DRIBBLE PILL/SQUIRCLE) */}
+              {/* Password Input (Pill Shaped radius 999) */}
               {(role === 'admin' || step !== 'PHONE') && (
                 <View style={{ marginBottom: 18 }}>
                   <Text
@@ -466,22 +552,22 @@ export const SignInScreen = ({
                   </Text>
                   <View
                     style={{
-                      flexDirection: 'row',
+                      flexDirection: isRTL ? 'row-reverse' : 'row',
                       alignItems: 'center',
-                      backgroundColor: '#f8fafc',
-                      borderRadius: 16,
+                      backgroundColor: 'rgba(248, 250, 252, 0.95)',
+                      borderRadius: 999,
                       borderWidth: 1.5,
-                      borderColor: '#e2e8f0',
-                      paddingHorizontal: 16,
+                      borderColor: '#E2E8F0',
+                      paddingHorizontal: 18,
                       height: 54,
                     }}
                   >
-                    <Lock size={20} color="#94a3b8" />
+                    <Lock size={20} color="#8FA3C7" />
                     <View
                       style={{
                         width: 1,
                         height: 20,
-                        backgroundColor: '#e2e8f0',
+                        backgroundColor: '#E2E8F0',
                         marginHorizontal: 12,
                       }}
                     />
@@ -493,14 +579,16 @@ export const SignInScreen = ({
                       }}
                       placeholder={
                         step === 'NEEDS_SETUP'
-                          ? (t?.createAStrongPassword || 'Au moins 6 caractères')
+                          ? language === 'ar'
+                            ? '6 أحرف على الأقل'
+                            : 'Au moins 6 caractères'
                           : '••••••••'
                       }
-                      placeholderTextColor="#94a3b8"
+                      placeholderTextColor="#94A3B8"
                       secureTextEntry={!showPassword}
                       style={{
                         flex: 1,
-                        color: '#0f172a',
+                        color: '#0F1B3D',
                         fontSize: 16,
                         fontWeight: '700',
                         textAlign: isRTL ? 'right' : 'left',
@@ -511,30 +599,30 @@ export const SignInScreen = ({
                       style={{ padding: 6 }}
                     >
                       {showPassword ? (
-                        <EyeOff size={19} color="#94a3b8" />
+                        <EyeOff size={19} color="#8FA3C7" />
                       ) : (
-                        <Eye size={19} color="#94a3b8" />
+                        <Eye size={19} color="#8FA3C7" />
                       )}
                     </TouchableOpacity>
                   </View>
                 </View>
               )}
 
-              {/* ERROR BANNER */}
+              {/* Error Banner */}
               {!!error && (
                 <View
                   style={{
-                    backgroundColor: '#fef2f2',
-                    borderRadius: 14,
-                    borderWidth: 1,
-                    borderColor: '#fecaca',
+                    backgroundColor: '#FEF2F2',
+                    borderRadius: 16,
+                    borderWidth: 1.5,
+                    borderColor: '#FECACA',
                     padding: 12,
                     marginBottom: 16,
                   }}
                 >
                   <Text
                     style={{
-                      color: '#b91c1c',
+                      color: '#B91C1C',
                       fontSize: 13.5,
                       fontWeight: '700',
                       textAlign: 'center',
@@ -545,14 +633,14 @@ export const SignInScreen = ({
                 </View>
               )}
 
-              {/* HINT BANNER */}
+              {/* Hint Banner */}
               {!!hint && (
                 <View
                   style={{
-                    backgroundColor: '#ecfdf5',
-                    borderRadius: 14,
-                    borderWidth: 1,
-                    borderColor: '#a7f3d0',
+                    backgroundColor: '#ECFDF5',
+                    borderRadius: 16,
+                    borderWidth: 1.5,
+                    borderColor: '#A7F3D0',
                     padding: 12,
                     marginBottom: 16,
                   }}
@@ -570,21 +658,21 @@ export const SignInScreen = ({
                 </View>
               )}
 
-              {/* UNASSOCIATED NUMBER -> SMOOTH SIGN UP CARD */}
+              {/* Unregistered Parent Number -> Prompt to Sign Up */}
               {showSignUpPrompt && role === 'parent' && (
                 <View
                   style={{
-                    backgroundColor: '#eff6ff',
-                    borderRadius: 18,
+                    backgroundColor: '#EFF6FF',
+                    borderRadius: 20,
                     borderWidth: 1.5,
-                    borderColor: '#bfdbfe',
+                    borderColor: '#BFDBFE',
                     padding: 16,
                     marginBottom: 16,
                   }}
                 >
                   <Text
                     style={{
-                      color: '#1e40af',
+                      color: '#1E40AF',
                       fontSize: 13.5,
                       fontWeight: '700',
                       textAlign: 'center',
@@ -599,8 +687,8 @@ export const SignInScreen = ({
                   <TouchableOpacity
                     onPress={() => onNavigateToSignUp && onNavigateToSignUp(phone.trim())}
                     style={{
-                      backgroundColor: '#0055d4',
-                      borderRadius: 14,
+                      backgroundColor: '#3B7BEA',
+                      borderRadius: 999,
                       paddingVertical: 12,
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -615,92 +703,99 @@ export const SignInScreen = ({
                 </View>
               )}
 
-              {/* MAIN SUBMIT BUTTON */}
+              {/* Large Solid Royal Blue Login Button (Pill shaped radius 999) */}
               <TouchableOpacity
-                onPress={(role === 'admin' || step !== 'PHONE') ? handleFinalAuth : handleCheckStatus}
+                onPress={
+                  role === 'admin' || step !== 'PHONE' ? handleFinalAuth : handleCheckStatus
+                }
                 disabled={isLoading}
+                activeOpacity={0.88}
                 style={{
-                  backgroundColor: '#0055d4',
-                  borderRadius: 18,
+                  backgroundColor: '#3B7BEA',
+                  borderRadius: 999,
                   height: 54,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  flexDirection: 'row',
-                  shadowColor: '#0055d4',
+                  flexDirection: isRTL ? 'row-reverse' : 'row',
+                  shadowColor: '#3B7BEA',
                   shadowOffset: { width: 0, height: 6 },
-                  shadowOpacity: 0.28,
-                  shadowRadius: 10,
-                  elevation: 4,
+                  shadowOpacity: 0.3,
+                  shadowRadius: 12,
+                  elevation: 5,
                   marginTop: 6,
                   opacity: isLoading ? 0.85 : 1,
+                  gap: 8,
                 }}
               >
                 {isLoading ? (
                   <>
-                    <ActivityIndicator color="#ffffff" size="small" style={{ marginRight: 8 }} />
+                    <ActivityIndicator color="#ffffff" size="small" />
                     <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: 16 }}>
                       {loadingLabel}
                     </Text>
                   </>
                 ) : (
                   <>
-                    <Text
-                      style={{
-                        color: '#ffffff',
-                        fontWeight: '800',
-                        fontSize: 16,
-                        marginRight: 6,
-                      }}
-                    >
+                    <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: 16 }}>
                       {btnLabel}
                     </Text>
                     <ArrowRight
                       size={18}
                       color="#ffffff"
-                      strokeWidth={2.5}
+                      strokeWidth={2.6}
                       style={{ transform: [{ rotate: isRTL ? '180deg' : '0deg' }] }}
                     />
                   </>
                 )}
               </TouchableOpacity>
 
-              {/* SIGN UP LINK FOR PARENTS */}
-              {role === 'parent' && step === 'PHONE' && onNavigateToSignUp && (
+              {/* Bottom Navigation Link: For PARENT ONLY */}
+              {role === 'parent' ? (
                 <View
                   style={{
-                    flexDirection: 'row',
+                    flexDirection: isRTL ? 'row-reverse' : 'row',
                     justifyContent: 'center',
                     alignItems: 'center',
                     marginTop: 22,
                     gap: 6,
                   }}
                 >
-                  <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '500' }}>
+                  <Text style={{ fontSize: 14, color: '#5B6B8C', fontWeight: '500' }}>
                     {language === 'ar' ? 'جديد على التطبيق ؟' : 'Nouveau sur l’application ?'}
                   </Text>
-                  <TouchableOpacity onPress={() => onNavigateToSignUp(phone.trim())}>
-                    <Text style={{ fontSize: 14, fontWeight: '800', color: '#0055d4' }}>
+                  <TouchableOpacity onPress={() => onNavigateToSignUp && onNavigateToSignUp(phone.trim())}>
+                    <Text style={{ fontSize: 14, fontWeight: '800', color: '#3B7BEA' }}>
                       {language === 'ar' ? 'تسجيل حساب' : 'S’inscrire'}
                     </Text>
                   </TouchableOpacity>
                 </View>
+              ) : (
+                /* For Teacher and Admin: Hide self sign-up and show administrative notice */
+                <View style={{ alignItems: 'center', marginTop: 24 }}>
+                  <Text style={{ fontSize: 12, color: '#8FA3C7', fontWeight: '600', textAlign: 'center' }}>
+                    {language === 'ar'
+                      ? '🔒 حساب مخصص للطاقم التربوي والإداري. يتم تفعيله من إدارة المؤسسة.'
+                      : '🔒 Accès réservé au personnel. Compte créé par l’administration.'}
+                  </Text>
+                </View>
               )}
 
-              {/* INSTITUTIONAL REASSURANCE FOOTER */}
+              {/* Institutional Footer */}
               <View style={{ alignItems: 'center', marginTop: 28, paddingBottom: 10 }}>
                 <View
                   style={{
-                    flexDirection: 'row',
+                    flexDirection: isRTL ? 'row-reverse' : 'row',
                     alignItems: 'center',
                     justifyContent: 'center',
                     marginBottom: 4,
+                    gap: 5,
                   }}
                 >
-                  <ShieldCheck size={14} color="#94a3b8" style={{ marginRight: 5 }} />
+                  <ShieldCheck size={14} color="#8FA3C7" />
                   <Text
                     style={{
                       fontSize: 11,
-                      color: '#94a3b8',
+                      color: '#8FA3C7',
                       fontWeight: '800',
                       letterSpacing: 0.8,
                       textTransform: 'uppercase',
@@ -712,7 +807,7 @@ export const SignInScreen = ({
                 <Text
                   style={{
                     fontSize: 11.5,
-                    color: '#94a3b8',
+                    color: '#8FA3C7',
                     fontWeight: '500',
                     textAlign: 'center',
                     lineHeight: 16,
