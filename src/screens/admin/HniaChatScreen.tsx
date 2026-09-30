@@ -63,11 +63,36 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
-import * as Clipboard from 'expo-clipboard';
-import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { adminService } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
+
+function copyToClipboard(text: string): Promise<void> {
+  try {
+    const { requireOptionalNativeModule } = require('expo-modules-core');
+    if (requireOptionalNativeModule('ExpoClipboard')) {
+      const Clipboard = require('expo-clipboard');
+      return Clipboard.setStringAsync(text);
+    }
+  } catch {}
+  try {
+    const { Clipboard } = require('react-native');
+    if (Clipboard?.setString) {
+      Clipboard.setString(text);
+    }
+  } catch {}
+  return Promise.resolve();
+}
+
+function getNativeAudioModule(): any {
+  try {
+    const { requireOptionalNativeModule } = require('expo-modules-core');
+    if (!requireOptionalNativeModule('ExponentAV')) return null;
+    return require('expo-av').Audio;
+  } catch {
+    return null;
+  }
+}
 import {
   CaisseCardWidget,
   UnpaidTuitionWidget,
@@ -200,7 +225,7 @@ export default function HniaChatScreen() {
   const handleCopyMessage = async (msgId: string, textToCopy: string) => {
     try {
       const cleanText = textToCopy.replace(/\[IMAGE:https?:\/\/[^\]]+\]\n?/g, '').trim();
-      await Clipboard.setStringAsync(cleanText);
+      await copyToClipboard(cleanText);
       await Haptics.selectionAsync();
       setCopiedMessageId(msgId);
       setTimeout(() => setCopiedMessageId(null), 2000);
@@ -406,6 +431,12 @@ export default function HniaChatScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setVocalError(null);
 
+    const Audio = getNativeAudioModule();
+    if (!Audio) {
+      setApkUpdateModalVisible(true);
+      return;
+    }
+
     try {
       const permission = await Audio.requestPermissionsAsync();
       if (!permission.granted) {
@@ -450,7 +481,7 @@ export default function HniaChatScreen() {
         },
       });
       recording.setProgressUpdateInterval(40);
-      recording.setOnRecordingStatusUpdate((status) => {
+      recording.setOnRecordingStatusUpdate((status: any) => {
         if (status.isRecording && typeof status.metering === 'number') {
           handleAudioMetering(status.metering);
         }
@@ -513,10 +544,13 @@ export default function HniaChatScreen() {
       try {
         const uri = recording.getURI();
         await recording.stopAndUnloadAsync();
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: false,
-          playsInSilentModeIOS: true,
-        }).catch(() => null);
+        const Audio = getNativeAudioModule();
+        if (Audio) {
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+            playsInSilentModeIOS: true,
+          }).catch(() => null);
+        }
 
         const finalUri = uri || recording.getURI();
         if (finalUri && (elapsedMs >= 400 || duration >= 1)) {
@@ -562,10 +596,13 @@ export default function HniaChatScreen() {
     if (recording) {
       try {
         await recording.stopAndUnloadAsync();
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: false,
-          playsInSilentModeIOS: true,
-        }).catch(() => null);
+        const Audio = getNativeAudioModule();
+        if (Audio) {
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+            playsInSilentModeIOS: true,
+          }).catch(() => null);
+        }
       } catch (err) {
         console.warn('[HniaChat] Cancel error:', err);
       }
