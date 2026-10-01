@@ -153,7 +153,7 @@ export default function AdminDashboardScreen() {
     try {
       const res = await adminService.fetchDashboard(targetM, targetY);
       if (res && res.success) {
-        setData(res.data);
+        setData(res.data || res);
       }
     } catch (err: any) {
       console.warn('[AdminDashboard] Fetch error:', err.message);
