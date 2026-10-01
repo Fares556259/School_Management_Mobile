@@ -1121,6 +1121,14 @@ export const adminService = {
     });
   },
 
+  // Rename a conversation thread
+  renameThread: async (conversationId: string, title: string) => {
+    return apiFetch('/api/mobile/agent/history', {
+      method: 'PATCH',
+      body: JSON.stringify({ conversationId, title }),
+    });
+  },
+
   // Caisse & Financials
   fetchCaisse: async (month?: number, year?: number) => {
     const params = new URLSearchParams();
