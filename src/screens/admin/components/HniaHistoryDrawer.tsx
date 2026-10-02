@@ -12,7 +12,16 @@ import {
   Platform,
   StatusBar,
   Image,
+  Dimensions,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+  runOnJS,
+  Easing,
+} from 'react-native-reanimated';
 import {
   Search,
   X,
@@ -101,6 +110,45 @@ export default function HniaHistoryDrawer({
 }: HniaHistoryDrawerProps) {
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 0) + 12;
+
+  const DRAWER_WIDTH = Math.min(Dimensions.get('window').width * 0.82, 320);
+  const translateX = useSharedValue(-DRAWER_WIDTH);
+  const backdropOpacity = useSharedValue(0);
+
+  // Animate in when visible becomes true
+  React.useEffect(() => {
+    if (visible) {
+      translateX.value = -DRAWER_WIDTH;
+      backdropOpacity.value = 0;
+      translateX.value = withSpring(0, {
+        damping: 22,
+        stiffness: 200,
+        mass: 0.8,
+      });
+      backdropOpacity.value = withTiming(1, { duration: 250 });
+    }
+  }, [visible, DRAWER_WIDTH]);
+
+  const animatedDrawerStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  const animatedBackdropStyle = useAnimatedStyle(() => ({
+    opacity: backdropOpacity.value,
+  }));
+
+  // Animated close with slide-out
+  const handleAnimatedClose = React.useCallback(() => {
+    translateX.value = withTiming(-DRAWER_WIDTH, {
+      duration: 200,
+      easing: Easing.out(Easing.cubic),
+    });
+    backdropOpacity.value = withTiming(0, { duration: 200 }, (finished) => {
+      if (finished) {
+        runOnJS(onClose)();
+      }
+    });
+  }, [onClose, DRAWER_WIDTH]);
 
   const userName = useAppStore((s) => s.userName) || 'Admin';
   const userAvatarUrl = useAppStore((s) => s.userAvatarUrl);
@@ -266,12 +314,27 @@ export default function HniaHistoryDrawer({
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
-      onRequestClose={onClose}
+      animationType="none"
+      onRequestClose={handleAnimatedClose}
     >
       <View style={styles.overlay}>
+        {/* Animated Backdrop */}
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: 'rgba(0, 0, 0, 0.45)' },
+            animatedBackdropStyle,
+          ]}
+        >
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={handleAnimatedClose}
+          />
+        </Animated.View>
+
         {/* 1. DRAWER ON THE LEFT (ChatGPT layout) */}
-        <View style={styles.drawerContainer}>
+        <Animated.View style={[styles.drawerContainer, animatedDrawerStyle]}>
           {/* Top Header: "Hnia" on left, search icon & close button on right */}
           <View style={[styles.header, { paddingTop: topPadding }]}>
             <Text style={styles.headerTitle}>Hnia</Text>
@@ -288,7 +351,7 @@ export default function HniaHistoryDrawer({
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.headerIconBtn}
-                onPress={onClose}
+                onPress={handleAnimatedClose}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <X size={18} color="#64748b" strokeWidth={2} />
@@ -516,14 +579,7 @@ export default function HniaHistoryDrawer({
               )}
             </View>
           </View>
-        </View>
-
-        {/* 2. BACKDROP ON THE RIGHT (tapping closes the drawer) */}
-        <TouchableOpacity
-          style={styles.backdrop}
-          activeOpacity={1}
-          onPress={onClose}
-        />
+        </Animated.View>
       </View>
 
       {/* Rename Modal */}
@@ -584,7 +640,6 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
   },
   // Drawer panel sits strictly on the LEFT
   drawerContainer: {

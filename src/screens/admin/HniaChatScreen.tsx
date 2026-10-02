@@ -219,12 +219,6 @@ export default function HniaChatScreen() {
       setIsKeyboardVisible(true);
       const kh = e?.endCoordinates?.height || 0;
       setKeyboardHeight(kh);
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 50);
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 250);
     });
 
     const hideSub = Keyboard.addListener(hideEvent, () => {
@@ -244,18 +238,8 @@ export default function HniaChatScreen() {
     };
   }, [navigation]);
 
-  // Auto-scroll on new messages (only if user is already looking at latest messages and not dragging)
-  const prevMessagesLengthRef = useRef(messages.length);
-  useEffect(() => {
-    if (messages.length > prevMessagesLengthRef.current) {
-      if (isNearBottomRef.current && !userIsDraggingRef.current) {
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 80);
-      }
-    }
-    prevMessagesLengthRef.current = messages.length;
-  }, [messages.length]);
+  // With inverted FlatList, new messages auto-appear at the top (visual bottom)
+  // No manual scrollToEnd needed
 
   // Audio recording timer
   useEffect(() => {
@@ -459,10 +443,7 @@ export default function HniaChatScreen() {
 
           setMessages(loaded);
           saveMessagesToLocal(loaded, res.conversationId);
-          // Scroll to bottom after loading — use a progressive retry to handle slow layout
-          setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 150);
-          setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 400);
-          setTimeout(() => { flatListRef.current?.scrollToEnd({ animated: false }); isInitialLoadRef.current = false; }, 800);
+          isInitialLoadRef.current = false;
         }
       }
     } catch (err) {
@@ -507,8 +488,7 @@ export default function HniaChatScreen() {
       await loadChatHistory(threadId);
     } finally {
       setIsLoading(false);
-      // Extra scroll after thread switch since loadChatHistory's scrolls may fire before layout
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 500);
+      // Inverted FlatList auto-shows latest messages
     }
   };
 
@@ -751,7 +731,7 @@ export default function HniaChatScreen() {
         },
       });
 
-      recording.setProgressUpdateInterval(40);
+      recording.setProgressUpdateInterval(120);
       recording.setOnRecordingStatusUpdate((status: any) => {
         if (status.isRecording && typeof status.metering === 'number') {
           handleAudioMetering(status.metering);
@@ -899,13 +879,7 @@ export default function HniaChatScreen() {
     setMessages((prev) => [...prev, userMsg]);
     saveMessagesToLocal([...messages, userMsg], conversationId);
 
-    // Guarantee the sent message is scrolled into full view immediately
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 50);
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 200);
+    // Inverted FlatList auto-shows new messages at visual bottom
 
     setInputText('');
     const imagePayload = stagedImage;
@@ -978,7 +952,35 @@ export default function HniaChatScreen() {
             if (controller.signal.aborted) return;
             accumulatedText += delta;
             streamingTextRef.current = accumulatedText;
-            setActiveStatusStep('Rédaction de la réponse...');
+
+            // Update the bot message in the FlatList so streaming text renders live
+            if (!isStreamStarted) {
+              isStreamStarted = true;
+              setActiveStatusStep(null);
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: botMsgId,
+                  role: 'assistant' as const,
+                  content: accumulatedText,
+                  isStreaming: true,
+                  createdAt: new Date().toISOString(),
+                },
+              ]);
+            } else {
+              // Throttle updates to ~60ms to avoid excessive re-renders
+              if (tokenFlushTimerRef.current) return;
+              tokenFlushTimerRef.current = setTimeout(() => {
+                tokenFlushTimerRef.current = null;
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === botMsgId
+                      ? { ...m, content: streamingTextRef.current }
+                      : m
+                  )
+                );
+              }, 60);
+            }
           },
           onWidget: (widget) => {
             if (controller.signal.aborted) return;
@@ -1152,11 +1154,7 @@ export default function HniaChatScreen() {
       setActiveStatusStep(null);
       abortControllerRef.current = null;
       isSendingRef.current = false;
-      if (isNearBottomRef.current && !userIsDraggingRef.current) {
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: false });
-        }, 80);
-      }
+      // No manual scroll needed with inverted FlatList
     }
   };
 
@@ -1325,14 +1323,19 @@ export default function HniaChatScreen() {
             /* Message List */
             <FlatList
               ref={flatListRef}
-              data={messages}
+              data={[...messages].reverse()}
+              inverted={true}
               keyExtractor={(item) => item.id}
               extraData={confirmingToolId || (isLoading ? 'loading' : 'idle')}
+              windowSize={7}
+              maxToRenderPerBatch={10}
+              initialNumToRender={15}
+              removeClippedSubviews={Platform.OS === 'android'}
               onScroll={(e) => {
-                const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-                const distanceFromBottom = contentSize.height - contentOffset.y - layoutMeasurement.height;
-                isNearBottomRef.current = distanceFromBottom < 80;
-                setShowScrollToBottom(distanceFromBottom > 200);
+                const { contentOffset } = e.nativeEvent;
+                // In inverted list, offset 0 = bottom (latest messages)
+                isNearBottomRef.current = contentOffset.y < 80;
+                setShowScrollToBottom(contentOffset.y > 200);
               }}
               onScrollBeginDrag={() => {
                 userIsDraggingRef.current = true;
@@ -1346,14 +1349,6 @@ export default function HniaChatScreen() {
                 userIsDraggingRef.current = false;
               }}
               scrollEventThrottle={100}
-              onContentSizeChange={() => {
-                if (isInitialLoadRef.current) {
-                  flatListRef.current?.scrollToEnd({ animated: false });
-                  setTimeout(() => {
-                    isInitialLoadRef.current = false;
-                  }, 250);
-                }
-              }}
               keyboardDismissMode="none"
               renderItem={({ item }) => (
                 <HniaMessageBubble
@@ -1378,7 +1373,7 @@ export default function HniaChatScreen() {
               contentContainerStyle={styles.messagesList}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
-              ListFooterComponent={
+              ListHeaderComponent={
                 isLoading && !messages.some((m) => m.isStreaming) ? (
                   <View style={styles.typingCard}>
                     <Image source={HNIA_AVATAR} style={styles.typingAvatar} />
@@ -1415,7 +1410,7 @@ export default function HniaChatScreen() {
             <TouchableOpacity
               style={styles.scrollToBottomBtn}
               onPress={() => {
-                flatListRef.current?.scrollToEnd({ animated: true });
+                flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
                 setShowScrollToBottom(false);
               }}
               activeOpacity={0.8}
@@ -1476,12 +1471,7 @@ export default function HniaChatScreen() {
             bottomInset={insets.bottom}
             isKeyboardVisible={isKeyboardVisible}
             onFocus={() => {
-              setTimeout(() => {
-                flatListRef.current?.scrollToEnd({ animated: true });
-              }, 100);
-              setTimeout(() => {
-                flatListRef.current?.scrollToEnd({ animated: true });
-              }, 300);
+              // Inverted FlatList handles keyboard naturally
             }}
           />
         </View>

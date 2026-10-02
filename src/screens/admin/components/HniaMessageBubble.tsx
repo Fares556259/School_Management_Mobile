@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -274,6 +274,10 @@ function HniaMessageBubble({
     return elements;
   };
 
+  const renderedContent = useMemo(() => {
+    return renderFormattedContent(message.content);
+  }, [message.content]);
+
   return (
     <View style={[styles.messageRow, isUser ? styles.userRow : styles.assistantRow]}>
       {/* Assistant Avatar */}
@@ -331,7 +335,7 @@ function HniaMessageBubble({
               !message.content.includes('❓') &&
               !/^veuillez vérifier et confirmer/i.test(message.content.trim()) && (
                 <View style={{ marginBottom: 8 }}>
-                  {renderFormattedContent(message.content)}
+                  {renderedContent}
                 </View>
               )}
             {actionCards.map((card, idx) => (
@@ -348,7 +352,7 @@ function HniaMessageBubble({
         ) : (
           /* Standard Assistant Markdown Response */
           <View style={{ width: '100%' }}>
-            {renderFormattedContent(message.content)}
+            {renderedContent}
           </View>
         )}
 
