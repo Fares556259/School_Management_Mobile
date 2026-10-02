@@ -80,14 +80,18 @@ function getNativeAudioModule(): any {
 
 async function readAudioAsBase64(uri: string): Promise<string> {
   try {
-    return await FileSystem.readAsStringAsync(uri, {
+    const data = await FileSystem.readAsStringAsync(uri, {
       encoding: 'base64' as any,
     });
+    console.log('[Audio] Successfully read audio base64, chars:', data?.length);
+    return data;
   } catch (legacyErr) {
     try {
       const { File } = require('expo-file-system');
       const file = new File(uri);
-      return await file.base64();
+      const data = await file.base64();
+      console.log('[Audio] Successfully read via new File base64, chars:', data?.length);
+      return data;
     } catch (newErr) {
       console.error('[HniaChat] Audio base64 conversion failed:', legacyErr, newErr);
       throw legacyErr;
@@ -676,32 +680,32 @@ export default function HniaChatScreen() {
 
       recordingStartTimeRef.current = Date.now();
       const recording = new Audio.Recording();
-      // High-speed speech audio profile (16kHz / 32kbps mono AAC):
-      // 4x smaller payload, instant base64 conversion & ultra-fast ~1s transcription
+      // High-compatibility speech audio profile (44.1kHz / 128kbps mono AAC):
+      // Full compatibility with Android hardware encoders (Samsung, Xiaomi...) & high acoustic clarity
       await recording.prepareToRecordAsync({
         isMeteringEnabled: true,
         android: {
           extension: '.m4a',
           outputFormat: Audio.AndroidOutputFormat.MPEG_4,
           audioEncoder: Audio.AndroidAudioEncoder.AAC,
-          sampleRate: 16000,
+          sampleRate: 44100,
           numberOfChannels: 1,
-          bitRate: 32000,
+          bitRate: 128000,
         },
         ios: {
           extension: '.m4a',
           outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
-          audioQuality: Audio.IOSAudioQuality.MEDIUM,
-          sampleRate: 16000,
+          audioQuality: Audio.IOSAudioQuality.HIGH,
+          sampleRate: 44100,
           numberOfChannels: 1,
-          bitRate: 32000,
+          bitRate: 128000,
           linearPCMBitDepth: 16,
           linearPCMIsBigEndian: false,
           linearPCMIsFloat: false,
         },
         web: {
           mimeType: 'audio/webm',
-          bitsPerSecond: 32000,
+          bitsPerSecond: 128000,
         },
       });
 
@@ -764,9 +768,14 @@ export default function HniaChatScreen() {
 
         if (uri && (elapsedMs >= 400 || duration >= 1)) {
           const base64 = await readAudioAsBase64(uri);
-          if (base64) {
+          if (base64 && base64.length > 50) {
+            console.log(`[Audio] Sending voice note: duration=${duration}s, size=${base64.length} chars`);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             handleSendMessage(undefined, base64, 'audio/mp4');
+            return;
+          } else {
+            console.warn('[Audio] Audio base64 was empty or too small');
+            setVocalError('Message vocal vide');
             return;
           }
         }
