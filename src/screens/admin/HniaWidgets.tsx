@@ -44,6 +44,7 @@ import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as WebBrowser from 'expo-web-browser';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { adminService, authStorage } from '../../services/api';
 
 // ============================================================================
@@ -60,7 +61,7 @@ export interface ActionCardData {
   toolCallId: string;
   toolName: string;
   actionTitle: string;
-  actionType?: 'expense' | 'payment' | 'student' | 'class' | 'attendance' | 'announcement' | 'generic';
+  actionType?: 'expense' | 'income' | 'payment' | 'student' | 'class' | 'attendance' | 'announcement' | 'generic';
   confirmText: string;
   fields?: ActionCardField[];
   status?: 'PENDING' | 'EXECUTING' | 'EXECUTED' | 'REJECTED';
@@ -1376,6 +1377,7 @@ export function tryParseActionCardWidget(
     : 'PENDING';
 
   const isExpense = /dépense/i.test(text);
+  const isIncome = /recette/i.test(text) || /entrée.*caisse/i.test(text) || /add_income/i.test(text) || /دخلنا/i.test(text) || /مداخيل/i.test(text);
   const isPayment = /paiement/i.test(text) || /encaissement/i.test(text) || /encaisser/i.test(text);
   const isStudent = /élève/i.test(text) || /inscrire/i.test(text) || /inscription/i.test(text);
   const isClass = /classe/i.test(text) || /créer.*classe/i.test(text);
@@ -1388,6 +1390,10 @@ export function tryParseActionCardWidget(
     actionType = 'expense';
     actionTitle = 'Ajouter une dépense';
     toolName = 'add_expense';
+  } else if (isIncome) {
+    actionType = 'income';
+    actionTitle = 'Encaisser une recette';
+    toolName = 'add_income';
   } else if (isPayment) {
     actionType = 'payment';
     actionTitle = 'Encaisser un paiement';
@@ -1487,6 +1493,16 @@ export function ActionCardWidget({
   const card: ActionCardData = Array.isArray(rawCard) ? rawCard[0] : rawCard;
   if (!card) return null;
 
+  const insets = useSafeAreaInsets();
+  const bottomSafePadding = Platform.OS === 'ios'
+    ? Math.max(insets.bottom, 20) + 16
+    : Math.max(insets.bottom || 0, 48) + 24;
+
+  const isIncome = card.toolName === 'add_income' || card.actionType === 'income';
+  const isExpense = card.toolName === 'add_expense' || card.actionType === 'expense';
+  const isPayment = card.toolName === 'record_payment' || card.toolName === 'record_parent_payment' || card.actionType === 'payment';
+  const isStudent = card.toolName === 'create_student' || card.actionType === 'student';
+
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [localOverrides, setLocalOverrides] = useState<Record<string, any> | null>(null);
 
@@ -1580,9 +1596,12 @@ export function ActionCardWidget({
   };
 
   const getActionIcon = () => {
+    if (isIncome) return <TrendingUp size={16} color="#059669" />;
     switch (card.actionType) {
       case 'expense':
         return <Wallet size={16} color="#059669" />;
+      case 'income':
+        return <TrendingUp size={16} color="#059669" />;
       case 'payment':
         return <FileText size={16} color="#0284c7" />;
       case 'student':
@@ -1599,8 +1618,11 @@ export function ActionCardWidget({
   };
 
   const getActionThemeColor = () => {
+    if (isIncome) return '#059669';
     switch (card.actionType) {
       case 'expense':
+        return '#059669';
+      case 'income':
         return '#059669';
       case 'payment':
         return '#0284c7';
@@ -1624,6 +1646,14 @@ export function ActionCardWidget({
       card.fields?.map((f) => f.value).slice(0, 2).join(' • ') ||
       'Enregistré dans SnapSchool';
 
+    const executedHeading = isIncome
+      ? 'Recette enregistrée'
+      : isExpense
+      ? 'Dépense enregistrée'
+      : card.actionTitle
+      ? card.actionTitle.replace(/^(Ajouter|Créer|Encaisser|Marquer)\s*/i, '') + ' enregistré(e)'
+      : 'Action exécutée avec succès';
+
     return (
       <View style={actionStyles.executedCard}>
         <View style={actionStyles.executedHeader}>
@@ -1632,9 +1662,7 @@ export function ActionCardWidget({
           </View>
           <View style={{ flex: 1 }}>
             <Text style={actionStyles.executedTitle}>
-              {card.actionTitle
-                ? card.actionTitle.replace(/^(Ajouter|Créer|Encaisser|Marquer)\s*/i, '') + ' enregistré(e)'
-                : 'Action exécutée avec succès'}
+              {executedHeading}
             </Text>
             <Text style={actionStyles.executedSummary} numberOfLines={2}>
               {summary}
@@ -1685,12 +1713,12 @@ export function ActionCardWidget({
   let fields: ActionCardField[] = card.fields && card.fields.length > 0 ? [...card.fields] : [];
   if (fields.length === 0 && card.arguments) {
     const args = card.arguments;
-    if (card.toolName === 'add_expense' || card.actionType === 'expense') {
+    if (isExpense || isIncome) {
       if (args.amount !== undefined) fields.push({ label: 'Montant', value: `${args.amount} DT` });
       if (args.title || args.description) fields.push({ label: 'Description', value: String(args.title || args.description) });
       if (args.category) fields.push({ label: 'Catégorie', value: String(args.category) });
       if (args.date) fields.push({ label: 'Date', value: String(args.date) });
-    } else if (card.toolName === 'record_payment' || card.toolName === 'record_parent_payment' || card.actionType === 'payment') {
+    } else if (isPayment) {
       if (args.amount !== undefined) fields.push({ label: 'Montant', value: `${args.amount} DT` });
       if (args.studentNameOrId || args.parentNameOrId) fields.push({ label: 'Bénéficiaire', value: String(args.studentNameOrId || args.parentNameOrId) });
       if (args.feePeriod) fields.push({ label: 'Période', value: String(args.feePeriod) });
@@ -1741,16 +1769,20 @@ export function ActionCardWidget({
     }
   }
 
-  const displayTitle =
-    card.actionTitle && card.actionTitle !== 'Action en attente'
-      ? card.actionTitle
-      : card.toolName === 'add_expense' || card.actionType === 'expense'
-      ? 'Ajouter une dépense'
-      : card.toolName === 'record_payment' || card.actionType === 'payment'
-      ? 'Encaisser un paiement'
-      : card.toolName === 'create_student' || card.actionType === 'student'
-      ? 'Inscrire un élève'
-      : 'Action à vérifier';
+  let displayTitle = card.actionTitle || 'Action à vérifier';
+  if (/add_income/i.test(displayTitle) || isIncome) {
+    displayTitle = 'Encaisser une recette';
+  } else if (/add_expense/i.test(displayTitle) || isExpense) {
+    displayTitle = 'Ajouter une dépense';
+  } else if (/record_payment/i.test(displayTitle) || isPayment) {
+    displayTitle = 'Encaisser un paiement';
+  } else if (/create_student/i.test(displayTitle) || isStudent) {
+    displayTitle = 'Inscrire un élève';
+  } else if (/create_class/i.test(displayTitle) || card.toolName === 'create_class' || card.actionType === 'class') {
+    displayTitle = 'Créer une classe';
+  } else if (displayTitle.startsWith('Confirmer l\'action : ')) {
+    displayTitle = displayTitle.replace('Confirmer l\'action : ', '');
+  }
 
   return (
     <View style={actionStyles.card}>
@@ -1841,7 +1873,12 @@ export function ActionCardWidget({
             style={actionStyles.modalDismissArea}
             onPress={() => setIsEditModalVisible(false)}
           />
-          <View style={actionStyles.modalSheet}>
+          <View
+            style={[
+              actionStyles.modalSheet,
+              { paddingBottom: bottomSafePadding },
+            ]}
+          >
             {/* Modal Header */}
             <View style={actionStyles.modalHeader}>
               <View style={actionStyles.modalHeaderIconWrap}>
@@ -1868,52 +1905,69 @@ export function ActionCardWidget({
               style={actionStyles.modalScroll}
             >
               {/* Montant */}
-              <View style={actionStyles.inputBlock}>
-                <Text style={actionStyles.inputLabel}>Montant</Text>
-                <View style={actionStyles.amountInputRow}>
-                  <TextInput
-                    style={actionStyles.amountTextInput}
-                    value={editAmount}
-                    onChangeText={setEditAmount}
-                    placeholder="0"
-                    placeholderTextColor="#94a3b8"
-                    keyboardType="decimal-pad"
-                    selectTextOnFocus
-                  />
-                  <View style={actionStyles.currencyBadge}>
-                    <Text style={actionStyles.currencyBadgeText}>DT</Text>
+              {(Boolean(getInitialAmount()) || isExpense || isIncome || isPayment) && (
+                <View style={actionStyles.inputBlock}>
+                  <Text style={actionStyles.inputLabel}>Montant</Text>
+                  <View style={actionStyles.amountInputRow}>
+                    <TextInput
+                      style={actionStyles.amountTextInput}
+                      value={editAmount}
+                      onChangeText={setEditAmount}
+                      placeholder="0"
+                      placeholderTextColor="#94a3b8"
+                      keyboardType="decimal-pad"
+                      selectTextOnFocus
+                    />
+                    <View style={actionStyles.currencyBadge}>
+                      <Text style={actionStyles.currencyBadgeText}>DT</Text>
+                    </View>
                   </View>
                 </View>
-              </View>
+              )}
 
               {/* Titre / Description */}
               <View style={actionStyles.inputBlock}>
                 <Text style={actionStyles.inputLabel}>
-                  {card.actionType === 'expense' ? 'Intitulé / Justification' : 'Description'}
+                  {isIncome ? 'Intitulé de la recette' : isExpense ? 'Intitulé / Justification' : 'Description'}
                 </Text>
                 <TextInput
                   style={actionStyles.standardTextInput}
                   value={editTitle}
                   onChangeText={setEditTitle}
-                  placeholder={card.actionType === 'expense' ? 'Ex: Matériel de bureau, Pain, Facture...' : 'Description'}
+                  placeholder={
+                    isIncome
+                      ? 'Ex: Recette du jour, Paiement cantine, Don...'
+                      : isExpense
+                      ? 'Ex: Matériel de bureau, Pain, Facture...'
+                      : 'Description'
+                  }
                   placeholderTextColor="#94a3b8"
                 />
               </View>
 
-              {/* Catégorie pour dépenses */}
-              {(card.actionType === 'expense' || Boolean(getInitialCategory()) || card.toolName === 'add_expense') && (
+              {/* Catégorie */}
+              {(isExpense || isIncome || Boolean(getInitialCategory()) || card.toolName === 'add_expense' || card.toolName === 'add_income') && (
                 <View style={actionStyles.inputBlock}>
-                  <Text style={actionStyles.inputLabel}>Catégorie</Text>
+                  <Text style={actionStyles.inputLabel}>
+                    {isIncome ? 'Catégorie de recette' : 'Catégorie'}
+                  </Text>
                   <TextInput
                     style={actionStyles.standardTextInput}
                     value={editCategory}
                     onChangeText={setEditCategory}
-                    placeholder="Ex: Fournitures, Cantine, Transport..."
+                    placeholder={
+                      isIncome
+                        ? 'Ex: Scolarité, Inscription, Cantine, Activités...'
+                        : 'Ex: Fournitures, Cantine, Transport...'
+                    }
                     placeholderTextColor="#94a3b8"
                   />
                   {/* Category Chips */}
                   <View style={actionStyles.categoryChipsRow}>
-                    {['Fournitures', 'Cantine', 'Transport', 'Maintenance', 'Factures'].map((cat) => (
+                    {(isIncome
+                      ? ['Scolarité', 'Inscription', 'Cantine', 'Transport', 'Activités', 'Autre']
+                      : ['Fournitures', 'Cantine', 'Transport', 'Maintenance', 'Factures']
+                    ).map((cat) => (
                       <TouchableOpacity
                         key={cat}
                         style={[
@@ -1940,7 +1994,7 @@ export function ActionCardWidget({
               )}
 
               {/* Bénéficiaire pour paiement ou élève */}
-              {(card.actionType === 'payment' || card.actionType === 'student' || Boolean(getInitialBeneficiary())) && (
+              {(isPayment || isStudent || Boolean(getInitialBeneficiary())) && (
                 <View style={actionStyles.inputBlock}>
                   <Text style={actionStyles.inputLabel}>Élève / Bénéficiaire</Text>
                   <TextInput
@@ -2462,7 +2516,7 @@ const actionStyles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 18,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 22,
+    maxHeight: '85%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.15,
@@ -2502,7 +2556,7 @@ const actionStyles = StyleSheet.create({
     backgroundColor: '#f8fafc',
   },
   modalScroll: {
-    maxHeight: 340,
+    maxHeight: 280,
   },
   inputBlock: {
     marginBottom: 14,
