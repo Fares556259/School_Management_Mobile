@@ -67,7 +67,7 @@ interface HniaMessageBubbleProps {
   onNavigateToCaisse?: () => void;
 }
 
-export default function HniaMessageBubble({
+function HniaMessageBubble({
   message,
   onPreviewImage,
   onCopyText,
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
     maxWidth: '89%',
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#f1f5f9',
     borderBottomLeftRadius: 4,
     shadowColor: '#0f172a',
     shadowOpacity: 0.03,
@@ -716,4 +716,19 @@ const styles = StyleSheet.create({
     color: '#0f172a',
     minWidth: 80,
   },
+});
+
+export default React.memo(HniaMessageBubble, (prev, next) => {
+  return (
+    prev.message.id === next.message.id &&
+    prev.message.content === next.message.content &&
+    prev.message.isStreaming === next.message.isStreaming &&
+    prev.isCopied === next.isCopied &&
+    prev.isActionExecuting === next.isActionExecuting &&
+    prev.message.widget === next.message.widget &&
+    prev.message.pendingConfirmation?.status === next.message.pendingConfirmation?.status &&
+    prev.message.pendingConfirmation?.toolCallId === next.message.pendingConfirmation?.toolCallId &&
+    prev.message.followUpSuggestions === next.message.followUpSuggestions &&
+    prev.message.imageUri === next.message.imageUri
+  );
 });

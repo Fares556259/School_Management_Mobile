@@ -110,9 +110,7 @@ export default function HniaComposer({
       style={[
         styles.container,
         {
-          paddingBottom: isKeyboardVisible
-            ? 8
-            : Math.max(bottomInset, 12),
+          paddingBottom: 8,
         },
       ]}
     >

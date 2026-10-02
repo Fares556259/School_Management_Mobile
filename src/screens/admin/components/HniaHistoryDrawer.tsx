@@ -3,7 +3,6 @@ import {
   View,
   Text,
   Modal,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   TextInput,
@@ -11,19 +10,22 @@ import {
   Alert,
   StyleSheet,
   Platform,
+  StatusBar,
+  Image,
 } from 'react-native';
 import {
+  Search,
   X,
-  Plus,
-  MessageSquare,
   Trash2,
   Edit3,
-  Search,
   Check,
-  Calendar,
-  Sparkles,
+  FileText,
+  Wallet,
+  Users,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppStore } from '../../../store/useAppStore';
 
 export interface ConversationThread {
   id: string;
@@ -46,6 +48,46 @@ interface HniaHistoryDrawerProps {
   onRenameThread: (threadId: string, newTitle: string) => Promise<void>;
 }
 
+export function formatThreadTitle(title: string | null | undefined): string {
+  if (!title) return 'Nouvelle discussion';
+  let clean = title.trim();
+
+  // Strip technical document analysis tags and map them nicely
+  if (clean.includes('[DOCUMENT ANALYSÉ]') || clean.includes('[DOCUMENT NUMÉRISÉ]')) {
+    const lower = clean.toLowerCase();
+    if (lower.includes('bordereau') || lower.includes('bancaire')) return '📄 Bordereau bancaire';
+    if (lower.includes('reçu') || lower.includes('recu') || lower.includes('paiement')) return '🧾 Reçu de paiement';
+    if (lower.includes('facture')) return '🧾 Facture';
+    if (lower.includes('bulletin') || lower.includes('note')) return '📊 Relevé de notes';
+    if (lower.includes('chèque') || lower.includes('cheque')) return '🏦 Chèque';
+    return '📄 Document analysé';
+  }
+
+  // Strip technical bracket tags like [SOMETHING]
+  clean = clean.replace(/^\[.*?\]\s*/g, '');
+  // Strip markdown formatting characters
+  clean = clean.replace(/[#*_`]/g, '');
+  // Strip bullet points or dashes at start
+  clean = clean.replace(/^\s*[-•]\s*/, '');
+  clean = clean.trim();
+
+  if (!clean) return 'Discussion';
+  return clean.charAt(0).toUpperCase() + clean.slice(1);
+}
+
+export function formatThreadSnippet(snippet: string | null | undefined): string {
+  if (!snippet) return '';
+  let clean = snippet.trim();
+  if (clean.includes('[DOCUMENT ANALYSÉ]') || clean.includes('[DOCUMENT NUMÉRISÉ]')) {
+    return 'Document analysé par Hnia';
+  }
+  clean = clean.replace(/^\[IMAGE:.*?\]\s*/g, '📷 Image ');
+  clean = clean.replace(/[#*_`]/g, '');
+  clean = clean.replace(/<[^>]*>/g, '');
+  clean = clean.replace(/\s+/g, ' ').trim();
+  return clean;
+}
+
 export default function HniaHistoryDrawer({
   visible,
   onClose,
@@ -57,37 +99,100 @@ export default function HniaHistoryDrawer({
   onDeleteThread,
   onRenameThread,
 }: HniaHistoryDrawerProps) {
+  const insets = useSafeAreaInsets();
+  const topPadding = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 0) + 12;
+
+  const userName = useAppStore((s) => s.userName) || 'Admin';
+  const userAvatarUrl = useAppStore((s) => s.userAvatarUrl);
+
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'docs' | 'caisse' | 'students'>('all');
+
   const [renameModalVisible, setRenameModalVisible] = useState(false);
   const [renamingThread, setRenamingThread] = useState<{ id: string; title: string } | null>(null);
   const [newTitleInput, setNewTitleInput] = useState('');
   const [isRenaming, setIsRenaming] = useState(false);
 
-  // Group threads by relative date
+  // User 2-letter initials (like "SE" in ChatGPT)
+  const initials = useMemo(() => {
+    const parts = (userName || 'Admin').trim().split(/\s+/);
+    if (parts.length >= 2 && parts[0] && parts[1]) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return (userName || 'AD').slice(0, 2).toUpperCase();
+  }, [userName]);
+
+  // Filter threads by category and search query
   const groupedThreads = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
+
     const filtered = threads.filter((t) => {
+      // Category quick filter
+      if (activeFilter === 'docs') {
+        const titleLower = (t.title || '').toLowerCase();
+        const msgLower = (t.lastMessage || '').toLowerCase();
+        const isDoc =
+          titleLower.includes('document') ||
+          titleLower.includes('bordereau') ||
+          titleLower.includes('reçu') ||
+          titleLower.includes('facture') ||
+          titleLower.includes('chèque') ||
+          titleLower.includes('bulletin') ||
+          msgLower.includes('document') ||
+          msgLower.includes('[image:');
+        if (!isDoc) return false;
+      } else if (activeFilter === 'caisse') {
+        const titleLower = (t.title || '').toLowerCase();
+        const msgLower = (t.lastMessage || '').toLowerCase();
+        const isCaisse =
+          titleLower.includes('caisse') ||
+          titleLower.includes('recette') ||
+          titleLower.includes('dépense') ||
+          titleLower.includes('solde') ||
+          titleLower.includes('payer') ||
+          titleLower.includes('impayé') ||
+          msgLower.includes('caisse') ||
+          msgLower.includes('recette') ||
+          msgLower.includes('dépense');
+        if (!isCaisse) return false;
+      } else if (activeFilter === 'students') {
+        const titleLower = (t.title || '').toLowerCase();
+        const msgLower = (t.lastMessage || '').toLowerCase();
+        const isStudent =
+          titleLower.includes('élève') ||
+          titleLower.includes('absence') ||
+          titleLower.includes('présence') ||
+          titleLower.includes('classe') ||
+          titleLower.includes('retard') ||
+          msgLower.includes('élève') ||
+          msgLower.includes('absence');
+        if (!isStudent) return false;
+      }
+
+      // Text query match
       if (!query) return true;
-      const titleMatch = (t.title || '').toLowerCase().includes(query);
+      const formattedTitle = formatThreadTitle(t.title).toLowerCase();
+      const rawTitle = (t.title || '').toLowerCase();
       const snippetMatch = (t.lastMessage || '').toLowerCase().includes(query);
-      return titleMatch || snippetMatch;
+      return formattedTitle.includes(query) || rawTitle.includes(query) || snippetMatch;
     });
 
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    const oneWeekAgo = new Date(today);
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    const oneMonthAgo = new Date(today);
-    oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const groups: { [key: string]: ConversationThread[] } = {
       "Aujourd'hui": [],
       'Hier': [],
-      'Cette semaine': [],
+      '7 derniers jours': [],
       'Ce mois-ci': [],
-      'Plus ancien': [],
+      'Précédents': [],
     };
 
     filtered.forEach((thread) => {
@@ -96,22 +201,28 @@ export default function HniaHistoryDrawer({
         groups["Aujourd'hui"].push(thread);
       } else if (threadDate >= yesterday) {
         groups['Hier'].push(thread);
-      } else if (threadDate >= oneWeekAgo) {
-        groups['Cette semaine'].push(thread);
-      } else if (threadDate >= oneMonthAgo) {
+      } else if (threadDate >= sevenDaysAgo) {
+        groups['7 derniers jours'].push(thread);
+      } else if (threadDate >= thirtyDaysAgo) {
         groups['Ce mois-ci'].push(thread);
       } else {
-        groups['Plus ancien'].push(thread);
+        groups['Précédents'].push(thread);
       }
     });
 
     return Object.entries(groups).filter(([_, items]) => items.length > 0);
-  }, [threads, searchQuery]);
+  }, [threads, searchQuery, activeFilter]);
+
+  const toggleCategoryFilter = (cat: 'docs' | 'caisse' | 'students') => {
+    Haptics.selectionAsync();
+    setActiveFilter((prev) => (prev === cat ? 'all' : cat));
+  };
 
   const openRenameModal = (thread: ConversationThread) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setRenamingThread({ id: thread.id, title: thread.title });
-    setNewTitleInput(thread.title || '');
+    const cleanTitle = formatThreadTitle(thread.title);
+    setRenamingThread({ id: thread.id, title: cleanTitle });
+    setNewTitleInput(cleanTitle);
     setRenameModalVisible(true);
   };
 
@@ -132,8 +243,9 @@ export default function HniaHistoryDrawer({
 
   const handleThreadLongPress = (thread: ConversationThread) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const cleanTitle = formatThreadTitle(thread.title);
     Alert.alert(
-      thread.title || 'Discussion',
+      cleanTitle,
       'Choisissez une action pour cette discussion :',
       [
         { text: 'Annuler', style: 'cancel' },
@@ -144,7 +256,7 @@ export default function HniaHistoryDrawer({
         {
           text: '🗑️ Supprimer',
           style: 'destructive',
-          onPress: () => onDeleteThread(thread.id, thread.title || 'Discussion'),
+          onPress: () => onDeleteThread(thread.id, cleanTitle),
         },
       ]
     );
@@ -158,51 +270,35 @@ export default function HniaHistoryDrawer({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        {/* Backdrop touch */}
-        <TouchableOpacity
-          style={styles.backdrop}
-          activeOpacity={1}
-          onPress={onClose}
-        />
-
-        {/* Drawer Content */}
-        <SafeAreaView style={styles.drawerContainer}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <View style={styles.hniaIconMini}>
-                <Sparkles size={16} color="#0055d4" />
-              </View>
-              <Text style={styles.headerTitle}>Historique Hnia</Text>
-              {threads.length > 0 && (
-                <View style={styles.countBadge}>
-                  <Text style={styles.countBadgeText}>{threads.length}</Text>
-                </View>
-              )}
+        {/* 1. DRAWER ON THE LEFT (ChatGPT layout) */}
+        <View style={styles.drawerContainer}>
+          {/* Top Header: "Hnia" on left, search icon & close button on right */}
+          <View style={[styles.header, { paddingTop: topPadding }]}>
+            <Text style={styles.headerTitle}>Hnia</Text>
+            <View style={styles.headerRightActions}>
+              <TouchableOpacity
+                style={[styles.headerIconBtn, showSearch && styles.headerIconBtnActive]}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setShowSearch((prev) => !prev);
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Search size={18} color={showSearch ? '#0055d4' : '#334155'} strokeWidth={2.2} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.headerIconBtn}
+                onPress={onClose}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <X size={18} color="#64748b" strokeWidth={2} />
+              </TouchableOpacity>
             </View>
-
-            <TouchableOpacity
-              style={styles.closeBtn}
-              onPress={onClose}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <X size={19} color="#64748b" />
-            </TouchableOpacity>
           </View>
 
-          {/* New Chat Button */}
-          <TouchableOpacity
-            style={styles.newChatBtn}
-            activeOpacity={0.85}
-            onPress={onCreateNewThread}
-          >
-            <Plus size={18} color="#ffffff" strokeWidth={2.6} />
-            <Text style={styles.newChatBtnText}>Nouvelle discussion</Text>
-          </TouchableOpacity>
-
-          {/* Search Bar */}
-          {threads.length > 3 && (
-            <View style={styles.searchContainer}>
+          {/* Search Bar Input (toggled via Search icon) */}
+          {showSearch && (
+            <View style={styles.searchBarContainer}>
               <Search size={15} color="#94a3b8" />
               <TextInput
                 style={styles.searchInput}
@@ -210,136 +306,224 @@ export default function HniaHistoryDrawer({
                 placeholderTextColor="#94a3b8"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
+                autoFocus
                 clearButtonMode="while-editing"
               />
               {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <TouchableOpacity
+                  onPress={() => setSearchQuery('')}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
                   <X size={14} color="#94a3b8" />
                 </TouchableOpacity>
               )}
             </View>
           )}
 
-          {/* Threads List */}
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#0055d4" />
-              <Text style={styles.loadingText}>Chargement des discussions...</Text>
+          {/* Scrollable Content */}
+          <ScrollView
+            style={styles.scrollList}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* ChatGPT-style Shortcuts: Images, Bibliothèque, Projets equivalent */}
+            <View style={styles.shortcutsSection}>
+              <TouchableOpacity
+                style={[
+                  styles.shortcutRow,
+                  activeFilter === 'docs' && styles.shortcutRowActive,
+                ]}
+                activeOpacity={0.6}
+                onPress={() => toggleCategoryFilter('docs')}
+              >
+                <FileText
+                  size={18}
+                  color={activeFilter === 'docs' ? '#0055d4' : '#0f172a'}
+                  strokeWidth={2}
+                />
+                <Text
+                  style={[
+                    styles.shortcutLabel,
+                    activeFilter === 'docs' && styles.shortcutLabelActive,
+                  ]}
+                >
+                  Justificatifs & Reçus
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.shortcutRow,
+                  activeFilter === 'caisse' && styles.shortcutRowActive,
+                ]}
+                activeOpacity={0.6}
+                onPress={() => toggleCategoryFilter('caisse')}
+              >
+                <Wallet
+                  size={18}
+                  color={activeFilter === 'caisse' ? '#0055d4' : '#0f172a'}
+                  strokeWidth={2}
+                />
+                <Text
+                  style={[
+                    styles.shortcutLabel,
+                    activeFilter === 'caisse' && styles.shortcutLabelActive,
+                  ]}
+                >
+                  Caisse & Dépenses
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.shortcutRow,
+                  activeFilter === 'students' && styles.shortcutRowActive,
+                ]}
+                activeOpacity={0.6}
+                onPress={() => toggleCategoryFilter('students')}
+              >
+                <Users
+                  size={18}
+                  color={activeFilter === 'students' ? '#0055d4' : '#0f172a'}
+                  strokeWidth={2}
+                />
+                <Text
+                  style={[
+                    styles.shortcutLabel,
+                    activeFilter === 'students' && styles.shortcutLabelActive,
+                  ]}
+                >
+                  Élèves & Présences
+                </Text>
+              </TouchableOpacity>
             </View>
-          ) : threads.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <View style={styles.emptyIconBox}>
-                <MessageSquare size={32} color="#94a3b8" />
+
+            {/* Subtle Divider (ChatGPT style) */}
+            <View style={styles.divider} />
+
+            {/* Active filter banner (if selected) */}
+            {activeFilter !== 'all' && (
+              <View style={styles.filterBanner}>
+                <Text style={styles.filterBannerText}>
+                  Filtre : {activeFilter === 'docs' ? 'Documents' : activeFilter === 'caisse' ? 'Caisse' : 'Élèves'}
+                </Text>
+                <TouchableOpacity onPress={() => setActiveFilter('all')}>
+                  <Text style={styles.filterBannerClear}>Effacer</Text>
+                </TouchableOpacity>
               </View>
-              <Text style={styles.emptyTitle}>Aucune discussion archivée</Text>
-              <Text style={styles.emptySubtitle}>
-                Vos échanges avec Hnia apparaîtront automatiquement ici au fil de votre travail.
-              </Text>
-            </View>
-          ) : (
-            <ScrollView
-              style={styles.scrollList}
-              contentContainerStyle={styles.scrollContent}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-            >
-              {groupedThreads.map(([groupLabel, items]) => (
+            )}
+
+            {/* Discussion Threads List */}
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#0055d4" />
+              </View>
+            ) : threads.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyTitle}>Aucune discussion</Text>
+                <Text style={styles.emptySubtitle}>
+                  Vos échanges avec Hnia apparaîtront ici.
+                </Text>
+              </View>
+            ) : groupedThreads.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyTitle}>Aucun résultat</Text>
+                <Text style={styles.emptySubtitle}>
+                  Aucune discussion ne correspond à vos filtres.
+                </Text>
+              </View>
+            ) : (
+              groupedThreads.map(([groupLabel, items]) => (
                 <View key={groupLabel} style={styles.groupSection}>
-                  <View style={styles.groupHeaderRow}>
-                    <Calendar size={12} color="#64748b" />
-                    <Text style={styles.groupHeader}>{groupLabel}</Text>
-                  </View>
+                  <Text style={styles.groupHeader}>{groupLabel}</Text>
 
-                  <View style={styles.groupList}>
-                    {items.map((thread) => {
-                      const isActive = thread.id === activeConversationId;
-                      const timeStr = thread.updatedAt
-                        ? new Date(thread.updatedAt).toLocaleTimeString('fr-FR', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })
-                        : '';
+                  {items.map((thread) => {
+                    const isActive = thread.id === activeConversationId;
+                    const displayTitle = formatThreadTitle(thread.title);
 
-                      return (
-                        <TouchableOpacity
-                          key={thread.id}
-                          style={[styles.threadItem, isActive && styles.threadItemActive]}
-                          activeOpacity={0.7}
-                          onPress={() => onSelectThread(thread.id)}
-                          onLongPress={() => handleThreadLongPress(thread)}
+                    return (
+                      <TouchableOpacity
+                        key={thread.id}
+                        style={[
+                          styles.threadRow,
+                          isActive && styles.threadRowActive,
+                        ]}
+                        activeOpacity={0.6}
+                        onPress={() => onSelectThread(thread.id)}
+                        onLongPress={() => handleThreadLongPress(thread)}
+                      >
+                        <Text
+                          style={[
+                            styles.threadTitle,
+                            isActive && styles.threadTitleActive,
+                          ]}
+                          numberOfLines={1}
                         >
-                          <View
-                            style={[
-                              styles.threadIconBox,
-                              isActive && styles.threadIconBoxActive,
-                            ]}
-                          >
-                            <MessageSquare
-                              size={15}
-                              color={isActive ? '#0055d4' : '#64748b'}
-                            />
-                          </View>
+                          {displayTitle}
+                        </Text>
 
-                          <View style={styles.threadContent}>
-                            <View style={styles.threadTopRow}>
-                              <Text
-                                style={[
-                                  styles.threadTitle,
-                                  isActive && styles.threadTitleActive,
-                                ]}
-                                numberOfLines={1}
-                              >
-                                {thread.title || 'Discussion sans titre'}
-                              </Text>
-
-                              {isActive ? (
-                                <View style={styles.activePill}>
-                                  <Text style={styles.activePillText}>Actif</Text>
-                                </View>
-                              ) : timeStr ? (
-                                <Text style={styles.threadTime}>{timeStr}</Text>
-                              ) : null}
-                            </View>
-
-                            {thread.lastMessage ? (
-                              <Text style={styles.threadSnippet} numberOfLines={1}>
-                                {thread.lastMessage}
-                              </Text>
-                            ) : null}
-                          </View>
-
-                          {/* Quick Actions (Rename / Delete) */}
-                          <View style={styles.actionButtonsRow}>
+                        {/* Action buttons on active thread */}
+                        {isActive && (
+                          <View style={styles.threadActions}>
                             <TouchableOpacity
-                              style={styles.actionBtn}
-                              hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                              style={styles.actionIconBtn}
+                              hitSlop={{ top: 8, bottom: 8, left: 6, right: 4 }}
                               onPress={() => openRenameModal(thread)}
                             >
-                              <Edit3 size={14} color="#94a3b8" />
+                              <Edit3 size={13} color="#0055d4" />
                             </TouchableOpacity>
-
                             <TouchableOpacity
-                              style={styles.actionBtn}
-                              hitSlop={{ top: 8, bottom: 8, left: 6, right: 8 }}
+                              style={styles.actionIconBtn}
+                              hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
                               onPress={() =>
-                                onDeleteThread(
-                                  thread.id,
-                                  thread.title || 'Discussion'
-                                )
+                                onDeleteThread(thread.id, displayTitle)
                               }
                             >
-                              <Trash2 size={14} color="#94a3b8" />
+                              <Trash2 size={13} color="#ef4444" />
                             </TouchableOpacity>
                           </View>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
-              ))}
-            </ScrollView>
-          )}
-        </SafeAreaView>
+              ))
+            )}
+          </ScrollView>
+
+          {/* 3. PINNED BOTTOM BAR (ChatGPT Signature layout) */}
+          <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 14) + 6 }]}>
+            {/* Blue "Chat" pill button (bottom left) */}
+            <TouchableOpacity
+              style={styles.newChatPill}
+              activeOpacity={0.8}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                onCreateNewThread();
+              }}
+            >
+              <Edit3 size={16} color="#ffffff" strokeWidth={2.4} />
+              <Text style={styles.newChatPillText}>Chat</Text>
+            </TouchableOpacity>
+
+            {/* Admin Avatar Circle (bottom right - like [SE] in ChatGPT) */}
+            <View style={styles.userAvatarCircle}>
+              {userAvatarUrl ? (
+                <Image source={{ uri: userAvatarUrl }} style={styles.userAvatarImg} />
+              ) : (
+                <Text style={styles.userAvatarInitials}>{initials}</Text>
+              )}
+            </View>
+          </View>
+        </View>
+
+        {/* 2. BACKDROP ON THE RIGHT (tapping closes the drawer) */}
+        <TouchableOpacity
+          style={styles.backdrop}
+          activeOpacity={1}
+          onPress={onClose}
+        />
       </View>
 
       {/* Rename Modal */}
@@ -352,8 +536,8 @@ export default function HniaHistoryDrawer({
         <View style={styles.renameOverlay}>
           <View style={styles.renameCard}>
             <View style={styles.renameHeader}>
-              <Edit3 size={18} color="#0055d4" />
-              <Text style={styles.renameTitle}>Renommer la discussion</Text>
+              <Edit3 size={17} color="#0055d4" />
+              <Text style={styles.renameTitle}>Renommer</Text>
             </View>
 
             <TextInput
@@ -361,7 +545,7 @@ export default function HniaHistoryDrawer({
               value={newTitleInput}
               onChangeText={setNewTitleInput}
               placeholder="Nouveau titre..."
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="#9ca3af"
               autoFocus
               maxLength={50}
             />
@@ -383,7 +567,7 @@ export default function HniaHistoryDrawer({
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
                   <>
-                    <Check size={16} color="#ffffff" strokeWidth={2.4} />
+                    <Check size={15} color="#ffffff" strokeWidth={2.4} />
                     <Text style={styles.renameSaveText}>Enregistrer</Text>
                   </>
                 )}
@@ -400,252 +584,275 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
   },
-  backdrop: {
-    flex: 1,
-  },
+  // Drawer panel sits strictly on the LEFT
   drawerContainer: {
-    width: '84%',
-    maxWidth: 360,
+    width: '82%',
+    maxWidth: 320,
     backgroundColor: '#ffffff',
     height: '100%',
     shadowColor: '#000',
-    shadowOffset: { width: -4, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 20,
+    shadowOffset: { width: 6, height: 0 },
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+    elevation: 24,
   },
+  // Backdrop sits on the RIGHT
+  backdrop: {
+    flex: 1,
+  },
+
+  // Header (ChatGPT style)
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingTop: 16,
+    paddingHorizontal: 20,
     paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  hniaIconMini: {
-    width: 26,
-    height: 26,
-    borderRadius: 7,
-    backgroundColor: '#eff6ff',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#0f172a',
-    letterSpacing: -0.2,
-  },
-  countBadge: {
-    backgroundColor: '#eff6ff',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  countBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#0055d4',
-  },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#f1f5f9',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  newChatBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#0055d4',
-    marginHorizontal: 16,
-    marginTop: 14,
-    marginBottom: 8,
-    paddingVertical: 12,
-    borderRadius: 12,
-    shadowColor: '#0055d4',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  newChatBtnText: {
-    fontSize: 14,
+    fontSize: 22,
     fontWeight: '700',
-    color: '#ffffff',
+    color: '#0f172a',
+    letterSpacing: -0.4,
   },
-  searchContainer: {
+  headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  headerIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#f8fafc',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerIconBtnActive: {
+    backgroundColor: '#eff6ff',
+  },
+
+  // Search input bar
+  searchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f1f5f9',
     borderRadius: 10,
     marginHorizontal: 16,
     marginBottom: 10,
     paddingHorizontal: 12,
     paddingVertical: Platform.OS === 'ios' ? 8 : 4,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    gap: 8,
   },
   searchInput: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 13.5,
     color: '#0f172a',
     padding: 0,
   },
-  loadingContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
-    gap: 10,
-  },
-  loadingText: {
-    fontSize: 13,
-    color: '#64748b',
-  },
-  emptyContainer: {
-    paddingVertical: 50,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    gap: 12,
-  },
-  emptyIconBox: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#f8fafc',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#334155',
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    fontSize: 12.5,
-    color: '#94a3b8',
-    textAlign: 'center',
-    lineHeight: 18,
-  },
+
+  // Scrollable list
   scrollList: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-    gap: 16,
+    paddingBottom: 90, // Space for the pinned bottom bar
   },
-  groupSection: {
-    gap: 6,
+
+  // Shortcuts section (ChatGPT Images, Bibliothèque, Projets...)
+  shortcutsSection: {
+    paddingHorizontal: 8,
+    paddingTop: 4,
   },
-  groupHeaderRow: {
+  shortcutRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 4,
-    marginBottom: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    gap: 14,
   },
-  groupHeader: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    color: '#64748b',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  groupList: {
-    gap: 8,
-  },
-  threadItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 13,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  threadItemActive: {
+  shortcutRowActive: {
     backgroundColor: '#eff6ff',
-    borderColor: '#bfdbfe',
   },
-  threadIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 9,
-    backgroundColor: '#f8fafc',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
+  shortcutLabel: {
+    fontSize: 14.5,
+    fontWeight: '500',
+    color: '#0f172a',
   },
-  threadIconBoxActive: {
-    backgroundColor: '#dbeafe',
+  shortcutLabelActive: {
+    fontWeight: '600',
+    color: '#0055d4',
   },
-  threadContent: {
-    flex: 1,
-    marginRight: 6,
+
+  // Divider (ChatGPT style)
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#e2e8f0',
+    marginVertical: 10,
+    marginHorizontal: 16,
   },
-  threadTopRow: {
+
+  // Filter banner
+  filterBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 6,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 8,
   },
-  threadTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#1e293b',
-    flex: 1,
+  filterBannerText: {
+    fontSize: 12,
+    color: '#475569',
+    fontWeight: '500',
   },
-  threadTitleActive: {
+  filterBannerClear: {
+    fontSize: 12,
     color: '#0055d4',
+    fontWeight: '600',
   },
-  activePill: {
-    backgroundColor: '#dbeafe',
-    borderRadius: 6,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
+
+  // Group sections
+  groupSection: {
+    marginBottom: 8,
   },
-  activePillText: {
-    fontSize: 9.5,
-    fontWeight: '800',
-    color: '#0055d4',
-  },
-  threadTime: {
-    fontSize: 10,
+  groupHeader: {
+    fontSize: 11.5,
+    fontWeight: '600',
     color: '#94a3b8',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 4,
   },
-  threadSnippet: {
-    fontSize: 11,
-    color: '#64748b',
-    marginTop: 2,
-  },
-  actionButtonsRow: {
+
+  // Thread rows (Pure ChatGPT: single line, elegant typography)
+  threadRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginHorizontal: 8,
+    borderRadius: 10,
   },
-  actionBtn: {
-    padding: 5,
+  threadRowActive: {
+    backgroundColor: '#f1f5f9',
+  },
+  threadTitle: {
+    flex: 1,
+    fontSize: 14.5,
+    color: '#334155',
+    lineHeight: 20,
+  },
+  threadTitleActive: {
+    color: '#0f172a',
+    fontWeight: '600',
+  },
+  threadActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginLeft: 8,
+  },
+  actionIconBtn: {
+    width: 26,
+    height: 26,
     borderRadius: 6,
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
+
+  // Empty & loading
+  loadingContainer: {
+    paddingVertical: 48,
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    paddingVertical: 36,
+    paddingHorizontal: 24,
+    alignItems: 'flex-start',
+    gap: 4,
+  },
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  emptySubtitle: {
+    fontSize: 12.5,
+    color: '#94a3b8',
+    lineHeight: 18,
+  },
+
+  // PINNED BOTTOM BAR (ChatGPT signature layout)
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    backgroundColor: '#ffffff',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#f1f5f9',
+  },
+  // Blue Chat pill button (bottom left)
+  newChatPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#0055d4',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    shadowColor: '#0055d4',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  newChatPillText: {
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  // User Avatar circle (bottom right)
+  userAvatarCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#475569',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  userAvatarImg: {
+    width: '100%',
+    height: '100%',
+  },
+  userAvatarInitials: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 0.5,
+  },
+
+  // Rename modal
   renameOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
@@ -654,12 +861,12 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 340,
     backgroundColor: '#ffffff',
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
-    shadowRadius: 16,
+    shadowRadius: 12,
     elevation: 8,
   },
   renameHeader: {
@@ -670,13 +877,13 @@ const styles = StyleSheet.create({
   },
   renameTitle: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#0f172a',
   },
   renameInput: {
     backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: '#e2e8f0',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -699,14 +906,14 @@ const styles = StyleSheet.create({
   renameCancelText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: '#64748b',
   },
   renameSaveBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 9,
     borderRadius: 8,
     backgroundColor: '#0055d4',
   },

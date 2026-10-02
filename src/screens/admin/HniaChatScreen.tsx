@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import Reanimated, { useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
 import {
   History,
   Plus,
@@ -128,6 +129,7 @@ export default function HniaChatScreen() {
   const recordingRef = useRef<any>(null);
   const recordingStartTimeRef = useRef<number>(0);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const isSendingRef = useRef(false);
 
   // 20 Sound wave bars for recording visualization
   const bottomBarAnims = useRef<Animated.Value[]>(
@@ -135,9 +137,27 @@ export default function HniaChatScreen() {
   ).current;
 
   const flatListRef = useRef<FlatList>(null);
+  const isInitialLoadRef = useRef(true);
+  const lastScrollTimeRef = useRef(0);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const userIsDraggingRef = useRef(false);
+  const tokenFlushTimerRef = useRef<any>(null);
+  const streamingTextRef = useRef('');
+
+  // Reanimated native keyboard tracking:
+  // On iOS, apply paddingBottom dynamically.
+  // On Android, edge-to-edge / adjustResize already resizes the window, so paddingBottom must be 0 to prevent double-height flashing.
+  const keyboard = useAnimatedKeyboard({
+    isStatusBarTranslucentAndroid: true,
+    isNavigationBarTranslucentAndroid: true,
+  });
+  const animatedKeyboardStyle = useAnimatedStyle(() => ({
+    paddingBottom: Platform.OS === 'ios' ? keyboard.height.value : 0,
+  }));
 
   // Keyboard state
   const [isKeyboardVisible, setIsKeyboardVisible] = useState<boolean>(false);
+  const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
   const isNearBottomRef = useRef(true);
 
   // Agent Status in Header
@@ -166,17 +186,23 @@ export default function HniaChatScreen() {
           recordingRef.current.stopAndUnloadAsync();
         } catch {}
       }
+      if (tokenFlushTimerRef.current) {
+        clearTimeout(tokenFlushTimerRef.current);
+      }
+      abortControllerRef.current?.abort();
     };
   }, []);
 
-  // Keyboard listeners
+  // Keyboard listeners - tracks keyboard visibility without jittering or forcing scroll
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
-    const showSub = Keyboard.addListener(showEvent, () => {
+    const showSub = Keyboard.addListener(showEvent, (e) => {
       setIsKeyboardVisible(true);
-      if (isNearBottomRef.current && messages.length > 0) {
+      const kh = e?.endCoordinates?.height || 0;
+      setKeyboardHeight(kh);
+      if (isNearBottomRef.current && !userIsDraggingRef.current) {
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: true });
         }, 120);
@@ -185,21 +211,30 @@ export default function HniaChatScreen() {
 
     const hideSub = Keyboard.addListener(hideEvent, () => {
       setIsKeyboardVisible(false);
+      setKeyboardHeight(0);
+    });
+
+    const blurSub = navigation.addListener('blur', () => {
+      setIsKeyboardVisible(false);
+      setKeyboardHeight(0);
     });
 
     return () => {
       showSub.remove();
       hideSub.remove();
+      blurSub();
     };
-  }, [messages.length]);
+  }, [navigation]);
 
-  // Auto-scroll on new messages
+  // Auto-scroll on new messages (only if user is already looking at latest messages and not dragging)
   const prevMessagesLengthRef = useRef(messages.length);
   useEffect(() => {
     if (messages.length > prevMessagesLengthRef.current) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 80);
+      if (isNearBottomRef.current && !userIsDraggingRef.current) {
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 80);
+      }
     }
     prevMessagesLengthRef.current = messages.length;
   }, [messages.length]);
@@ -244,13 +279,17 @@ export default function HniaChatScreen() {
   useEffect(() => {
     let isMounted = true;
     (async () => {
+      let foundConvId: string | undefined = undefined;
       try {
         const [cachedRaw, cachedConvId] = await Promise.all([
           AsyncStorage.getItem(HNIA_STORAGE_KEY),
           AsyncStorage.getItem(HNIA_CONV_STORAGE_KEY),
         ]);
         if (!isMounted) return;
-        if (cachedConvId) setConversationId(cachedConvId);
+        if (cachedConvId) {
+          setConversationId(cachedConvId);
+          foundConvId = cachedConvId;
+        }
         if (cachedRaw) {
           const parsed = JSON.parse(cachedRaw);
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -262,7 +301,7 @@ export default function HniaChatScreen() {
         console.warn('[HniaChat] Read cache error:', cacheErr);
       }
       if (isMounted) {
-        await loadChatHistory();
+        await loadChatHistory(foundConvId || undefined);
       }
     })();
     return () => {
@@ -270,9 +309,10 @@ export default function HniaChatScreen() {
     };
   }, []);
 
-  const loadChatHistory = async (convId?: string) => {
+  const loadChatHistory = async (overrideConvId?: string) => {
+    const idToUse = overrideConvId || conversationId;
     try {
-      const res = await adminService.fetchChatHistory(convId);
+      const res = await adminService.fetchChatHistory(idToUse);
       if (res && res.success) {
         if (res.conversationId) {
           setConversationId(res.conversationId);
@@ -293,34 +333,50 @@ export default function HniaChatScreen() {
               content = content.replace(/\[IMAGE:https?:\/\/[^\]]+\]\n?/, '').trim();
             }
 
-            // Match pendingConfirmation
+            // Match pendingConfirmation only if the message is genuinely an action confirmation prompt
             let pendingConfirmation = m.pendingConfirmation || null;
             if (pendingConfirmation?.toolCallId) {
               usedPendingIds.add(pendingConfirmation.toolCallId);
             }
             if (!pendingConfirmation && m.role === 'assistant') {
-              const matchedPending = pendingList.find(
-                (tc: any) =>
-                  !usedPendingIds.has(tc.toolCallId) &&
-                  ((tc.toolName && content.toLowerCase().includes(tc.toolName.replace(/_/g, ' '))) ||
-                    content.includes('❓') ||
-                    content.includes('Confirmer'))
-              ) || (mIdx === res.messages.length - 1 ? pendingList.find((tc: any) => !usedPendingIds.has(tc.toolCallId)) : null);
+              const parsedCard = tryParseActionCardWidget(content);
+              const isConfirmationPrompt =
+                Boolean(parsedCard) ||
+                content.includes('❓') ||
+                content.includes('Confirmer') ||
+                content.toLowerCase().includes('souhaitez-vous confirmer');
 
-              if (matchedPending) {
-                usedPendingIds.add(matchedPending.toolCallId);
-                const parsedCard = tryParseActionCardWidget(content, matchedPending.toolCallId);
-                pendingConfirmation = parsedCard
-                  ? { ...parsedCard, toolCallId: matchedPending.toolCallId, arguments: matchedPending.arguments }
-                  : {
+              if (isConfirmationPrompt) {
+                const matchedPending = pendingList.find(
+                  (tc: any) =>
+                    !usedPendingIds.has(tc.toolCallId) &&
+                    (!tc.toolName || content.toLowerCase().includes(tc.toolName.replace(/_/g, ' ')))
+                ) || pendingList.find((tc: any) => !usedPendingIds.has(tc.toolCallId));
+
+                if (matchedPending) {
+                  usedPendingIds.add(matchedPending.toolCallId);
+                  const fullParsed = tryParseActionCardWidget(content, matchedPending.toolCallId);
+                  if (fullParsed) {
+                    pendingConfirmation = {
+                      ...fullParsed,
+                      toolCallId: matchedPending.toolCallId,
+                      arguments: matchedPending.arguments,
+                    };
+                  } else if (content.includes('❓') || content.includes('Confirmer')) {
+                    pendingConfirmation = {
                       toolCallId: matchedPending.toolCallId,
                       toolName: matchedPending.toolName,
-                      actionTitle: 'Action en attente',
-                      actionType: 'generic',
+                      actionTitle:
+                        matchedPending.toolName === 'add_expense'
+                          ? 'Ajouter une dépense'
+                          : 'Action en attente',
+                      actionType: matchedPending.toolName === 'add_expense' ? 'expense' : 'generic',
                       confirmText: 'Confirmer l’action ?',
                       status: 'PENDING',
                       arguments: matchedPending.arguments,
                     };
+                  }
+                }
               }
             }
 
@@ -337,6 +393,10 @@ export default function HniaChatScreen() {
 
           setMessages(loaded);
           saveMessagesToLocal(loaded, res.conversationId);
+          // Scroll to bottom after loading — use a progressive retry to handle slow layout
+          setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 150);
+          setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 400);
+          setTimeout(() => { flatListRef.current?.scrollToEnd({ animated: false }); isInitialLoadRef.current = false; }, 800);
         }
       }
     } catch (err) {
@@ -374,10 +434,13 @@ export default function HniaChatScreen() {
 
     setIsLoading(true);
     setMessages([]);
+    isInitialLoadRef.current = true;
     try {
       await loadChatHistory(threadId);
     } finally {
       setIsLoading(false);
+      // Extra scroll after thread switch since loadChatHistory's scrolls may fire before layout
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 500);
     }
   };
 
@@ -490,7 +553,7 @@ export default function HniaChatScreen() {
   const handlePickDocument = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: ['application/pdf', 'image/*'],
+        type: ['image/*'],
         copyToCacheDirectory: true,
       });
       if (!result.canceled && result.assets && result.assets[0]) {
@@ -703,10 +766,17 @@ export default function HniaChatScreen() {
 
   const handleInterrupt = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (tokenFlushTimerRef.current) {
+      clearTimeout(tokenFlushTimerRef.current);
+      tokenFlushTimerRef.current = null;
+    }
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
+    setMessages(prev => prev.map(m => 
+      m.isStreaming ? { ...m, isStreaming: false, content: streamingTextRef.current || m.content } : m
+    ));
     setIsLoading(false);
     setActiveStatusStep(null);
   };
@@ -719,6 +789,8 @@ export default function HniaChatScreen() {
   ) => {
     const rawText = (textToSend ?? inputText).trim();
     if (!rawText && !stagedImage && !stagedAudio && !directAudioBase64) return;
+    if (isSendingRef.current) return; // Prevent double-send on rapid tap
+    isSendingRef.current = true;
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setLastFailedMessage(null);
@@ -741,11 +813,16 @@ export default function HniaChatScreen() {
       createdAt: new Date().toISOString(),
     };
 
-    setMessages((prev) => {
-      const next = [...prev, userMsg];
-      saveMessagesToLocal(next, conversationId);
-      return next;
-    });
+    setMessages((prev) => [...prev, userMsg]);
+    saveMessagesToLocal([...messages, userMsg], conversationId);
+
+    // Guarantee the sent message is scrolled into full view immediately
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 50);
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 200);
 
     setInputText('');
     const imagePayload = stagedImage;
@@ -795,6 +872,7 @@ export default function HniaChatScreen() {
           onToken: (delta) => {
             if (controller.signal.aborted) return;
             accumulatedText += delta;
+            streamingTextRef.current = accumulatedText;
             setActiveStatusStep('Rédaction de la réponse...');
 
             if (!isStreamStarted) {
@@ -809,12 +887,26 @@ export default function HniaChatScreen() {
                   createdAt: new Date().toISOString(),
                 },
               ]);
+              if (isNearBottomRef.current && !userIsDraggingRef.current) {
+                flatListRef.current?.scrollToEnd({ animated: false });
+              }
             } else {
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === botMsgId ? { ...m, content: accumulatedText, isStreaming: true } : m
-                )
-              );
+              // Throttled token flush every 60ms (~16fps) prevents UI lockup and layout bouncing
+              if (!tokenFlushTimerRef.current) {
+                tokenFlushTimerRef.current = setTimeout(() => {
+                  tokenFlushTimerRef.current = null;
+                  if (controller.signal.aborted) return;
+                  const currentText = streamingTextRef.current;
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === botMsgId ? { ...m, content: currentText, isStreaming: true } : m
+                    )
+                  );
+                  if (isNearBottomRef.current && !userIsDraggingRef.current) {
+                    flatListRef.current?.scrollToEnd({ animated: false });
+                  }
+                }, 60);
+              }
             }
           },
           onWidget: (widget) => {
@@ -826,13 +918,17 @@ export default function HniaChatScreen() {
           },
           onConfirmation: (pendingConfirmation) => {
             if (controller.signal.aborted) return;
+            if (tokenFlushTimerRef.current) {
+              clearTimeout(tokenFlushTimerRef.current);
+              tokenFlushTimerRef.current = null;
+            }
             isStreamStarted = true;
             receivedConfirmation = pendingConfirmation;
             setMessages((prev) => {
               const exists = prev.some((m) => m.id === botMsgId);
               if (exists) {
                 return prev.map((m) =>
-                  m.id === botMsgId ? { ...m, pendingConfirmation } : m
+                  m.id === botMsgId ? { ...m, pendingConfirmation, content: streamingTextRef.current || m.content } : m
                 );
               }
               return [
@@ -850,6 +946,10 @@ export default function HniaChatScreen() {
           },
           onDone: (result) => {
             if (controller.signal.aborted) return;
+            if (tokenFlushTimerRef.current) {
+              clearTimeout(tokenFlushTimerRef.current);
+              tokenFlushTimerRef.current = null;
+            }
             isDoneTriggered = true;
             isStreamStarted = true;
             setActiveStatusStep(null);
@@ -916,6 +1016,9 @@ export default function HniaChatScreen() {
           },
           onError: (streamErr) => {
             console.warn('[HniaChat] Stream error:', streamErr);
+            setMessages(prev => prev.map(m => 
+              m.isStreaming ? { ...m, isStreaming: false, content: streamingTextRef.current || m.content } : m
+            ));
           },
         },
         controller.signal
@@ -964,15 +1067,25 @@ export default function HniaChatScreen() {
         content: "Je n'arrive pas à contacter SnapSchool pour le moment.",
         createdAt: new Date().toISOString(),
       };
-      setMessages((prev) => [...prev, errorMsg]);
+      setMessages((prev) => {
+        const cleanPrev = prev.map(m => m.isStreaming ? { ...m, isStreaming: false, content: streamingTextRef.current || m.content } : m);
+        return [...cleanPrev, errorMsg];
+      });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
+      if (tokenFlushTimerRef.current) {
+        clearTimeout(tokenFlushTimerRef.current);
+        tokenFlushTimerRef.current = null;
+      }
       setIsLoading(false);
       setActiveStatusStep(null);
       abortControllerRef.current = null;
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      isSendingRef.current = false;
+      if (isNearBottomRef.current && !userIsDraggingRef.current) {
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: false });
+        }, 80);
+      }
     }
   };
 
@@ -1087,10 +1200,11 @@ export default function HniaChatScreen() {
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      <Reanimated.View
+        style={[
+          { flex: 1 },
+          animatedKeyboardStyle,
+        ]}
       >
         <View style={{ flex: 1 }}>
           {/* Main Area */}
@@ -1112,7 +1226,34 @@ export default function HniaChatScreen() {
               ref={flatListRef}
               data={messages}
               keyExtractor={(item) => item.id}
-              extraData={messages.length + (isLoading ? 1 : 0) + (confirmingToolId || '')}
+              extraData={confirmingToolId || (isLoading ? 'loading' : 'idle')}
+              onScroll={(e) => {
+                const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+                const distanceFromBottom = contentSize.height - contentOffset.y - layoutMeasurement.height;
+                isNearBottomRef.current = distanceFromBottom < 80;
+                setShowScrollToBottom(distanceFromBottom > 200);
+              }}
+              onScrollBeginDrag={() => {
+                userIsDraggingRef.current = true;
+              }}
+              onScrollEndDrag={() => {
+                setTimeout(() => {
+                  userIsDraggingRef.current = false;
+                }, 200);
+              }}
+              onMomentumScrollEnd={() => {
+                userIsDraggingRef.current = false;
+              }}
+              scrollEventThrottle={100}
+              onContentSizeChange={() => {
+                if (isInitialLoadRef.current) {
+                  flatListRef.current?.scrollToEnd({ animated: false });
+                  setTimeout(() => {
+                    isInitialLoadRef.current = false;
+                  }, 250);
+                }
+              }}
+              keyboardDismissMode="none"
               renderItem={({ item }) => (
                 <HniaMessageBubble
                   message={item}
@@ -1130,7 +1271,7 @@ export default function HniaChatScreen() {
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               ListFooterComponent={
-                isLoading ? (
+                isLoading && !messages.some((m) => m.isStreaming) ? (
                   <View style={styles.typingCard}>
                     <Image source={HNIA_AVATAR} style={styles.typingAvatar} />
                     <View style={styles.typingContent}>
@@ -1161,8 +1302,22 @@ export default function HniaChatScreen() {
             />
           )}
 
-          {/* Quick Action Suggestion Chips (when chatting) */}
-          {messages.length > 0 && !isRecording && (
+          {/* Scroll-to-bottom floating button */}
+          {showScrollToBottom && (
+            <TouchableOpacity
+              style={styles.scrollToBottomBtn}
+              onPress={() => {
+                flatListRef.current?.scrollToEnd({ animated: true });
+                setShowScrollToBottom(false);
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.scrollToBottomIcon}>↓</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Quick Action Suggestion Chips (when chatting - hidden while typing to maximize message visibility) */}
+          {messages.length > 0 && !isRecording && !isKeyboardVisible && (
             <View style={styles.quickChipsBar}>
               <FlatList
                 horizontal
@@ -1214,7 +1369,7 @@ export default function HniaChatScreen() {
             isKeyboardVisible={isKeyboardVisible}
           />
         </View>
-      </KeyboardAvoidingView>
+      </Reanimated.View>
 
       {/* History Drawer Modal */}
       <HniaHistoryDrawer
@@ -1468,5 +1623,27 @@ const styles = StyleSheet.create({
   fullscreenImage: {
     width: '100%',
     height: '85%',
+  },
+  scrollToBottomBtn: {
+    position: 'absolute',
+    bottom: 12,
+    right: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#0055d4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  scrollToBottomIcon: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+    lineHeight: 20,
   },
 });

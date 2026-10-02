@@ -114,22 +114,21 @@ function BottomTabsContent({ onSignOut }: { onSignOut: () => void }) {
             tabBarStyle: {
               backgroundColor: '#ffffff',
               borderTopWidth: 1,
-              borderTopColor: '#e2e8f0',
+              borderTopColor: '#f1f5f9',
               height: 60 + insets.bottom,
               paddingBottom: 10 + insets.bottom,
               paddingTop: 8,
               elevation: 0,
-              shadowOpacity: 0
+              shadowOpacity: 0,
             },
-            tabBarActiveTintColor: '#0072e6',
+            tabBarActiveTintColor: '#0055d4',
             tabBarInactiveTintColor: '#94a3b8',
             tabBarLabelStyle: {
-              fontWeight: '800',
-              fontSize: 10,
+              fontWeight: '700',
+              fontSize: 10.5,
               marginTop: 2,
-              fontFamily: 'PlusJakartaSans-ExtraBold',
-              letterSpacing: 0.2
-            }
+              letterSpacing: 0.1,
+            },
           }}
         >
           <Tab.Screen name="Dashboard" component={AdminDashboardScreen} options={{ tabBarLabel: (t as any).adminDashboard || 'Dashboard', tabBarIcon: ({ color, focused }) => <LayoutDashboard size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} /> }} />

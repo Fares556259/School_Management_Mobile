@@ -1020,9 +1020,12 @@ export const adminService = {
       let seenBytes = 0;
       let finalResult: any = null;
       let accumulatedBuffer = '';
+      let currentEvent = 'message';
+      let inactivityTimer: ReturnType<typeof setTimeout> | null = null;
 
       if (signal) {
         signal.addEventListener('abort', () => {
+          if (inactivityTimer) clearTimeout(inactivityTimer);
           xhr.abort();
           resolve({ aborted: true });
         });
@@ -1030,6 +1033,13 @@ export const adminService = {
 
       xhr.onprogress = () => {
         try {
+          if (inactivityTimer) clearTimeout(inactivityTimer);
+          inactivityTimer = setTimeout(() => {
+            xhr.abort();
+            callbacks.onError?.(new Error('Aucune réponse reçue depuis 30 secondes.'));
+            resolve({ success: false, error: 'Inactivity timeout' });
+          }, 30000);
+
           const newChunk = xhr.responseText.substring(seenBytes);
           seenBytes = xhr.responseText.length;
           accumulatedBuffer += newChunk;
@@ -1037,7 +1047,6 @@ export const adminService = {
           const lines = accumulatedBuffer.split('\n');
           accumulatedBuffer = lines.pop() || '';
 
-          let currentEvent = 'message';
           for (const line of lines) {
             const trimmed = line.trim();
             if (!trimmed) continue;
@@ -1070,6 +1079,7 @@ export const adminService = {
       };
 
       xhr.onload = () => {
+        if (inactivityTimer) clearTimeout(inactivityTimer);
         if (xhr.status >= 200 && xhr.status < 300) {
           if (!finalResult && xhr.responseText) {
             try {
@@ -1086,8 +1096,16 @@ export const adminService = {
       };
 
       xhr.onerror = () => {
+        if (inactivityTimer) clearTimeout(inactivityTimer);
         callbacks.onError?.(new Error('Network error on stream'));
         resolve({ success: false, error: 'Network error' });
+      };
+
+      xhr.timeout = 90000; // 90 second total timeout
+      xhr.ontimeout = () => {
+        if (inactivityTimer) clearTimeout(inactivityTimer);
+        callbacks.onError?.(new Error('La requête a expiré. Veuillez réessayer.'));
+        resolve({ success: false, error: 'Request timeout' });
       };
 
       xhr.send(JSON.stringify({ ...data, stream: true }));
