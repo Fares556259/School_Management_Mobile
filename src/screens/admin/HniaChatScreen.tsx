@@ -730,24 +730,24 @@ export default function HniaChatScreen() {
           extension: '.m4a',
           outputFormat: Audio.AndroidOutputFormat.MPEG_4,
           audioEncoder: Audio.AndroidAudioEncoder.AAC,
-          sampleRate: 44100,
+          sampleRate: 24000,
           numberOfChannels: 1,
-          bitRate: 128000,
+          bitRate: 48000,
         },
         ios: {
           extension: '.m4a',
           outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
-          audioQuality: Audio.IOSAudioQuality.HIGH,
-          sampleRate: 44100,
+          audioQuality: Audio.IOSAudioQuality.MEDIUM,
+          sampleRate: 24000,
           numberOfChannels: 1,
-          bitRate: 128000,
+          bitRate: 48000,
           linearPCMBitDepth: 16,
           linearPCMIsBigEndian: false,
           linearPCMIsFloat: false,
         },
         web: {
           mimeType: 'audio/webm',
-          bitsPerSecond: 128000,
+          bitsPerSecond: 64000,
         },
       });
 
@@ -885,7 +885,7 @@ export default function HniaChatScreen() {
       content:
         rawText ||
         (directAudioBase64
-          ? '🎙️ Message vocal enregistré'
+          ? '🎙️ Transcription en cours...'
           : stagedAudio
           ? `🎙️ ${stagedAudio.name}`
           : stagedImage
@@ -916,7 +916,13 @@ export default function HniaChatScreen() {
     const controller = new AbortController();
     abortControllerRef.current = controller;
     setIsLoading(true);
-    setActiveStatusStep('Analyse de la demande...');
+    setActiveStatusStep(
+      directAudioBase64 || audioPayload
+        ? 'Transcription du message vocal...'
+        : imagePayload
+        ? 'Analyse du document...'
+        : 'Analyse de la demande...'
+    );
 
     const botMsgId = `bot_${Date.now()}`;
     let accumulatedText = '';
@@ -951,6 +957,22 @@ export default function HniaChatScreen() {
             if (controller.signal.aborted) return;
             // Clean status step without exposing raw tool names
             setActiveStatusStep(status.step || 'Traitement en cours...');
+          },
+          onTranscription: (transcription) => {
+            if (controller.signal.aborted || !transcription) return;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === userMsg.id
+                  ? {
+                      ...m,
+                      content: `🎙️ "${transcription}"`,
+                      transcription,
+                    }
+                  : m
+              )
+            );
+            setActiveStatusStep('Hnia prépare votre réponse...');
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           },
           onToken: (delta) => {
             if (controller.signal.aborted) return;

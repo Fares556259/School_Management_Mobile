@@ -997,6 +997,7 @@ export const adminService = {
     },
     callbacks: {
       onStatus?: (status: { step: string; tool?: string }) => void;
+      onTranscription?: (transcription: string) => void;
       onToken?: (delta: string) => void;
       onWidget?: (widget: any) => void;
       onConfirmation?: (pendingConfirmation: any) => void;
@@ -1058,6 +1059,8 @@ export const adminService = {
                 const parsed = JSON.parse(dataStr);
                 if (currentEvent === 'status') {
                   callbacks.onStatus?.(parsed);
+                } else if (currentEvent === 'transcription') {
+                  callbacks.onTranscription?.(parsed.transcription || '');
                 } else if (currentEvent === 'token') {
                   callbacks.onToken?.(parsed.delta || '');
                 } else if (currentEvent === 'widget') {
