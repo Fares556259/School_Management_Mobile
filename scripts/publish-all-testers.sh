@@ -16,6 +16,35 @@ echo "========================================================"
 
 MESSAGE="${1:-feat: admin portal, hnia chat, caisse & auto-update}"
 
+restore_version() {
+  node -e "
+    const fs = require('fs');
+    const p = './app.json';
+    const j = JSON.parse(fs.readFileSync(p, 'utf8'));
+    j.expo.version = '1.0.3';
+    fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');
+  "
+}
+trap restore_version EXIT INT TERM
+
+retry_eas_update() {
+  local max_attempts=3
+  local attempt=1
+  local delay=4
+  while [ $attempt -le $max_attempts ]; do
+    if "$@"; then
+      return 0
+    else
+      echo "⚠️ Requête échouée (tentative $attempt/$max_attempts). Réessai dans ${delay}s..."
+      sleep $delay
+      attempt=$((attempt + 1))
+      delay=$((delay * 2))
+    fi
+  done
+  echo "❌ Échec définitif après $max_attempts tentatives."
+  return 1
+}
+
 publish_for_version() {
   local VER=$1
   echo ""
@@ -33,10 +62,10 @@ publish_for_version() {
   "
   
   echo "📡 1/2 Diffusion sur le canal 'main' (APKs de prévisualisation)..."
-  eas update --channel main --message "$MESSAGE [v$VER]" --non-interactive
+  retry_eas_update eas update --channel main --message "$MESSAGE [v$VER]" --non-interactive
 
   echo "📡 2/2 Diffusion sur le canal 'production' (Google Play Closed Testing)..."
-  eas update --channel production --message "$MESSAGE [v$VER]" --non-interactive
+  retry_eas_update eas update --channel production --message "$MESSAGE [v$VER]" --non-interactive
 
   echo "✅ Runtime $VER mis à jour avec succès sur main & production !"
 }
