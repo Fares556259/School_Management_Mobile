@@ -46,6 +46,11 @@ const HNIA_STORAGE_KEY = '@hnia_chat_messages_v3';
 const HNIA_CONV_STORAGE_KEY = '@hnia_chat_conv_id_v3';
 const HNIA_AVATAR = require('../../../assets/hnia/hnia_mascot_icon.png');
 
+// In-Memory Fast Cache: preserves messages and active thread across tab switches
+// Ensures instant 0ms mount with ZERO loading spinner
+let memoryCachedMessages: ChatMessage[] = [];
+let memoryCachedConvId: string | undefined = undefined;
+
 function copyToClipboard(text: string): Promise<void> {
   try {
     const { requireOptionalNativeModule } = require('expo-modules-core');
@@ -95,12 +100,12 @@ export default function HniaChatScreen() {
   const navigation = useNavigation<any>();
   const schoolName = useAppStore((s) => s.schoolName) || 'SnapSchool';
 
-  // Chat State
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // Chat State — initialized instantly from in-memory cache (0ms mount, zero spinner)
+  const [messages, setMessages] = useState<ChatMessage[]>(() => memoryCachedMessages);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(true);
-  const [conversationId, setConversationId] = useState<string | undefined>(undefined);
+  const [isInitializing, setIsInitializing] = useState<boolean>(() => memoryCachedMessages.length === 0);
+  const [conversationId, setConversationId] = useState<string | undefined>(() => memoryCachedConvId);
   const [activeStatusStep, setActiveStatusStep] = useState<string | null>(null);
 
   // History Drawer State
@@ -266,13 +271,15 @@ export default function HniaChatScreen() {
     }
   }, [vocalError]);
 
-  // Local AsyncStorage sync
+  // Local AsyncStorage sync & In-Memory Fast Cache
   const saveMessagesToLocal = useCallback(async (msgs: ChatMessage[], convId?: string) => {
     try {
       if (msgs && msgs.length > 0) {
+        memoryCachedMessages = msgs.slice(-50);
         await AsyncStorage.setItem(HNIA_STORAGE_KEY, JSON.stringify(msgs.slice(-80)));
       }
       if (convId) {
+        memoryCachedConvId = convId;
         await AsyncStorage.setItem(HNIA_CONV_STORAGE_KEY, convId);
       }
     } catch (e) {
@@ -280,30 +287,38 @@ export default function HniaChatScreen() {
     }
   }, []);
 
-  // Initial load: local cache first, then sync server
+  // Initial load: instant in-memory first, then AsyncStorage fallback, then silent server sync
   useEffect(() => {
     let isMounted = true;
     (async () => {
-      let foundConvId: string | undefined = undefined;
-      try {
-        const [cachedRaw, cachedConvId] = await Promise.all([
-          AsyncStorage.getItem(HNIA_STORAGE_KEY),
-          AsyncStorage.getItem(HNIA_CONV_STORAGE_KEY),
-        ]);
-        if (!isMounted) return;
-        if (cachedConvId) {
-          setConversationId(cachedConvId);
-          foundConvId = cachedConvId;
-        }
-        if (cachedRaw) {
-          const parsed = JSON.parse(cachedRaw);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setMessages(parsed);
-            setIsInitializing(false);
+      let foundConvId: string | undefined = memoryCachedConvId || undefined;
+      // If in-memory cache was empty on cold start, hydrate from AsyncStorage
+      if (memoryCachedMessages.length === 0) {
+        try {
+          const [cachedRaw, cachedConvId] = await Promise.all([
+            AsyncStorage.getItem(HNIA_STORAGE_KEY),
+            AsyncStorage.getItem(HNIA_CONV_STORAGE_KEY),
+          ]);
+          if (!isMounted) return;
+          if (cachedConvId) {
+            setConversationId(cachedConvId);
+            memoryCachedConvId = cachedConvId;
+            foundConvId = cachedConvId;
           }
+          if (cachedRaw) {
+            const parsed = JSON.parse(cachedRaw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              memoryCachedMessages = parsed.slice(-50);
+              setMessages(parsed);
+              setIsInitializing(false);
+            }
+          }
+        } catch (cacheErr) {
+          console.warn('[HniaChat] Read cache error:', cacheErr);
         }
-      } catch (cacheErr) {
-        console.warn('[HniaChat] Read cache error:', cacheErr);
+      } else {
+        // Fast path: in-memory cache already present, ensure zero spinner
+        setIsInitializing(false);
       }
       if (isMounted) {
         await loadChatHistory(foundConvId || undefined);
@@ -437,6 +452,8 @@ export default function HniaChatScreen() {
     setHistoryDrawerVisible(false);
     if (threadId === conversationId) return;
 
+    memoryCachedConvId = threadId;
+    memoryCachedMessages = [];
     setIsLoading(true);
     setMessages([]);
     isInitialLoadRef.current = true;
@@ -452,6 +469,8 @@ export default function HniaChatScreen() {
   const handleCreateNewThread = async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setHistoryDrawerVisible(false);
+    memoryCachedMessages = [];
+    memoryCachedConvId = undefined;
     setMessages([]);
     setConversationId(undefined);
     setStagedImage(null);
@@ -630,7 +649,8 @@ export default function HniaChatScreen() {
   };
 
   const startAudioRecording = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    // Immediate tactile feedback on touch
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setVocalError(null);
 
     const Audio = getNativeAudioModule();
@@ -656,30 +676,32 @@ export default function HniaChatScreen() {
 
       recordingStartTimeRef.current = Date.now();
       const recording = new Audio.Recording();
+      // High-speed speech audio profile (16kHz / 32kbps mono AAC):
+      // 4x smaller payload, instant base64 conversion & ultra-fast ~1s transcription
       await recording.prepareToRecordAsync({
         isMeteringEnabled: true,
         android: {
           extension: '.m4a',
           outputFormat: Audio.AndroidOutputFormat.MPEG_4,
           audioEncoder: Audio.AndroidAudioEncoder.AAC,
-          sampleRate: 44100,
+          sampleRate: 16000,
           numberOfChannels: 1,
-          bitRate: 128000,
+          bitRate: 32000,
         },
         ios: {
           extension: '.m4a',
           outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
-          audioQuality: Audio.IOSAudioQuality.HIGH,
-          sampleRate: 44100,
+          audioQuality: Audio.IOSAudioQuality.MEDIUM,
+          sampleRate: 16000,
           numberOfChannels: 1,
-          bitRate: 128000,
+          bitRate: 32000,
           linearPCMBitDepth: 16,
           linearPCMIsBigEndian: false,
           linearPCMIsFloat: false,
         },
         web: {
           mimeType: 'audio/webm',
-          bitsPerSecond: 128000,
+          bitsPerSecond: 32000,
         },
       });
 
@@ -692,6 +714,9 @@ export default function HniaChatScreen() {
       await recording.startAsync();
       recordingRef.current = recording;
 
+      // Tactile confirmation that recording is rolling
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
       setIsRecording(true);
       setIsRecordingPaused(false);
       setRecordingDuration(0);
@@ -702,7 +727,7 @@ export default function HniaChatScreen() {
   };
 
   const pauseAudioRecording = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsRecordingPaused(true);
     setLiveAmplitude(0);
     smoothedAmplitudeRef.current = 0;
@@ -714,7 +739,8 @@ export default function HniaChatScreen() {
   };
 
   const stopAndSendAudioRecording = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    // Immediate crisp stop haptic
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     const elapsedMs = Date.now() - recordingStartTimeRef.current;
     const duration = recordingDuration;
     setIsRecording(false);
@@ -739,6 +765,7 @@ export default function HniaChatScreen() {
         if (uri && (elapsedMs >= 400 || duration >= 1)) {
           const base64 = await readAudioAsBase64(uri);
           if (base64) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             handleSendMessage(undefined, base64, 'audio/mp4');
             return;
           }

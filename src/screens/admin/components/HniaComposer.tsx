@@ -234,6 +234,7 @@ export default function HniaComposer({
           {/* Send audio button */}
           <TouchableOpacity
             style={styles.recordingSendBtn}
+            onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
             onPress={onStopAndSendRecording}
             activeOpacity={0.85}
           >
@@ -288,6 +289,7 @@ export default function HniaComposer({
             ) : (
               <TouchableOpacity
                 style={styles.micButton}
+                onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)}
                 onPress={onStartRecording}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 activeOpacity={0.75}
