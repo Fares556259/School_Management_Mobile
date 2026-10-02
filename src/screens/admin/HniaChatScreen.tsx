@@ -33,6 +33,8 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { useQueryClient } from '@tanstack/react-query';
+
 import { adminService } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
 
@@ -102,6 +104,7 @@ async function readAudioAsBase64(uri: string): Promise<string> {
 export default function HniaChatScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
+  const queryClient = useQueryClient();
   const schoolName = useAppStore((s) => s.schoolName) || 'SnapSchool';
 
   // Chat State — initialized instantly from in-memory cache (0ms mount, zero spinner)
@@ -1085,6 +1088,7 @@ export default function HniaChatScreen() {
               saveMessagesToLocal(next, nextConvId);
               return next;
             });
+            queryClient.invalidateQueries({ queryKey: ['admin'] });
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           },
           onError: (streamErr) => {
@@ -1119,6 +1123,7 @@ export default function HniaChatScreen() {
           saveMessagesToLocal(next, nextConvId);
           return next;
         });
+        queryClient.invalidateQueries({ queryKey: ['admin'] });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else if (res && !res.success && !isStreamStarted && !isDoneTriggered) {
         setLastFailedMessage(rawText);
@@ -1221,6 +1226,7 @@ export default function HniaChatScreen() {
           saveMessagesToLocal(next, conversationId);
           return next;
         });
+        queryClient.invalidateQueries({ queryKey: ['admin'] });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
         handleSendMessage(action === 'confirm' ? "Oui, je confirme l'action." : 'Non, annule cette action.');

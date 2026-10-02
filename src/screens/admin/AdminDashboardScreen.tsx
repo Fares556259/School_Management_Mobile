@@ -14,7 +14,8 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
   GraduationCap,
   Users,
@@ -124,9 +125,49 @@ export default function AdminDashboardScreen() {
   const selectedMonth = currentMonthNum;
   const selectedYear = currentYearNum;
 
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  // ── REACT QUERY DATA FETCHING ─────────────────────────────────────────────
+  const {
+    data: queryData,
+    isLoading: isQueryLoading,
+    refetch,
+  } = useQuery<DashboardData>({
+    queryKey: ['admin', 'dashboard', selectedMonth, selectedYear],
+    queryFn: async () => {
+      const res = await adminService.fetchDashboard(selectedMonth, selectedYear);
+      if (res && res.success) {
+        return (res.data || res) as DashboardData;
+      }
+      throw new Error(res?.error || 'Failed to load dashboard');
+    },
+    staleTime: 30_000,
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours persistent cache
+    placeholderData: keepPreviousData,
+    retry: 1,
+  });
+
+  const data = queryData || null;
+  const loading = isQueryLoading && !data;
   const [refreshing, setRefreshing] = useState(false);
-  const [data, setData] = useState<DashboardData | null>(null);
+
+  // Background revalidation on tab focus if data is stale (>30s)
+  useFocusEffect(
+    useCallback(() => {
+      const state = queryClient.getQueryState(['admin', 'dashboard', selectedMonth, selectedYear]);
+      const isStale = !state?.dataUpdatedAt || Date.now() - state.dataUpdatedAt > 30_000;
+      if (isStale) {
+        refetch();
+      }
+    }, [queryClient, selectedMonth, selectedYear, refetch])
+  );
+
+  const onRefresh = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
 
   // Unpaid section filtering state
   const [unpaidCategory, setUnpaidCategory] = useState<'STUDENT' | 'TEACHER' | 'STAFF' | 'ALL'>('STUDENT');
@@ -144,34 +185,6 @@ export default function AdminDashboardScreen() {
     title: string;
     message: string;
   } | null>(null);
-
-  // ── DATA FETCHING ──────────────────────────────────────────────────────────
-  const loadDashboard = useCallback(async (m?: number, y?: number, isRefresh = false) => {
-    if (!isRefresh) setLoading(true);
-    const targetM = m !== undefined ? m : selectedMonth;
-    const targetY = y !== undefined ? y : selectedYear;
-    try {
-      const res = await adminService.fetchDashboard(targetM, targetY);
-      if (res && res.success) {
-        setData(res.data || res);
-      }
-    } catch (err: any) {
-      console.warn('[AdminDashboard] Fetch error:', err.message);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [selectedMonth, selectedYear]);
-
-  useEffect(() => {
-    loadDashboard(selectedMonth, selectedYear);
-  }, [loadDashboard, selectedMonth, selectedYear]);
-
-  const onRefresh = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setRefreshing(true);
-    loadDashboard(selectedMonth, selectedYear, true);
-  }, [loadDashboard, selectedMonth, selectedYear]);
 
   // ── UNPAID DATA DERIVATION ────────────────────────────────────────────────
   const allUnpaid = useMemo(() => {
@@ -319,7 +332,8 @@ export default function AdminDashboardScreen() {
             title: 'Encaissement validé !',
             message: res.message || `✓ Encaissé ${amt} DT pour ${payModalItem.name}.`,
           });
-          loadDashboard(selectedMonth, selectedYear, true);
+          queryClient.invalidateQueries({ queryKey: ['admin'] });
+          refetch();
         } else {
           throw new Error(res?.error || "Échec de l'encaissement");
         }
@@ -348,7 +362,8 @@ export default function AdminDashboardScreen() {
             title: 'Rémunération validée !',
             message: res.message || `✓ Rémunération de ${amt} DT versée à ${payModalItem.name}.`,
           });
-          loadDashboard(selectedMonth, selectedYear, true);
+          queryClient.invalidateQueries({ queryKey: ['admin'] });
+          refetch();
         } else {
           throw new Error(res?.error || 'Échec du versement');
         }

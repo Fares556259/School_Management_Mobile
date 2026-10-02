@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,8 @@ import {
   Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
   Wallet,
   ArrowDownLeft,
@@ -61,6 +62,16 @@ interface CaisseSummary {
   monthExpense: number;
 }
 
+interface CaisseResponse {
+  success: boolean;
+  summary: CaisseSummary;
+  todayTransactions: Transaction[];
+  monthLabel?: string;
+  incomeCategories?: string[];
+  expenseCategories?: string[];
+  error?: string;
+}
+
 interface CustomFeedback {
   visible: boolean;
   type: 'success' | 'error';
@@ -72,18 +83,58 @@ export default function AdminCaisseScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 0);
+  const queryClient = useQueryClient();
 
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [summary, setSummary] = useState<CaisseSummary>({
+  // ── REACT QUERY CAISSE DATA FETCHING ─────────────────────────────────────
+  const {
+    data: caisseData,
+    isLoading: isQueryLoading,
+    refetch,
+  } = useQuery<CaisseResponse>({
+    queryKey: ['admin', 'caisse'],
+    queryFn: async () => {
+      const res = await adminService.fetchCaisse();
+      if (res && res.success) {
+        return res as CaisseResponse;
+      }
+      throw new Error(res?.error || 'Failed to load caisse data');
+    },
+    staleTime: 30_000,
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours persistent cache
+    placeholderData: keepPreviousData,
+    retry: 1,
+  });
+
+  const summary: CaisseSummary = caisseData?.summary || {
     todayIncome: 0,
     todayExpense: 0,
     todayNet: 0,
     monthIncome: 0,
     monthExpense: 0,
-  });
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [monthLabel, setMonthLabel] = useState('Ce mois');
+  };
+  const transactions: Transaction[] = caisseData?.todayTransactions || [];
+  const monthLabel: string = caisseData?.monthLabel || 'Ce mois';
+
+  const loading = isQueryLoading && !caisseData;
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Background revalidation on tab focus if data is stale (>30s)
+  useFocusEffect(
+    useCallback(() => {
+      const state = queryClient.getQueryState(['admin', 'caisse']);
+      const isStale = !state?.dataUpdatedAt || Date.now() - state.dataUpdatedAt > 30_000;
+      if (isStale) {
+        refetch();
+      }
+    }, [queryClient, refetch])
+  );
+
+  const onRefresh = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
 
   // Dynamic Categories from Server
   const [incomeCategories, setIncomeCategories] = useState<string[]>([
@@ -105,6 +156,25 @@ export default function AdminCaisseScreen() {
     'Salaires',
     'Divers',
   ]);
+
+  // Sync server categories into local selectable list
+  useEffect(() => {
+    if (caisseData?.incomeCategories && caisseData.incomeCategories.length > 0) {
+      const filtered = caisseData.incomeCategories.filter(
+        (c: string) => !['scolarité', 'scolarite', 'tuition'].includes(c.toLowerCase())
+      );
+      setIncomeCategories((prev) => Array.from(new Set([...filtered, ...prev])));
+      if (filtered.length > 0 && !collectCategory) {
+        setCollectCategory(filtered[0]);
+      }
+    }
+  }, [caisseData?.incomeCategories]);
+
+  useEffect(() => {
+    if (caisseData?.expenseCategories && caisseData.expenseCategories.length > 0) {
+      setExpenseCategories((prev) => Array.from(new Set([...caisseData.expenseCategories!, ...prev])));
+    }
+  }, [caisseData?.expenseCategories]);
 
   // Print & Share loading
   const [printing, setPrinting] = useState(false);
@@ -145,41 +215,6 @@ export default function AdminCaisseScreen() {
   const [submittingExpense, setSubmittingExpense] = useState(false);
   const [expenseError, setExpenseError] = useState('');
 
-  // ── DATA FETCHING ──────────────────────────────────────────────────────────
-  const loadCaisseData = useCallback(async (isRefresh = false) => {
-    if (!isRefresh) setLoading(true);
-    try {
-      const data = await adminService.fetchCaisse();
-      if (data && data.success) {
-        setSummary(data.summary || { todayIncome: 0, todayExpense: 0, todayNet: 0, monthIncome: 0, monthExpense: 0 });
-        setTransactions(data.todayTransactions || []);
-        if (data.monthLabel) setMonthLabel(data.monthLabel);
-        if (Array.isArray(data.incomeCategories) && data.incomeCategories.length > 0) {
-          // Exclude 'Scolarité' / 'Tuition' from general caisse receipts since it lives in Dashboard
-          const filtered = data.incomeCategories.filter((c: string) => !['scolarité', 'scolarite', 'tuition'].includes(c.toLowerCase()));
-          setIncomeCategories(filtered);
-          if (filtered.length > 0) setCollectCategory(filtered[0]);
-        }
-        if (Array.isArray(data.expenseCategories) && data.expenseCategories.length > 0) {
-          setExpenseCategories(data.expenseCategories);
-        }
-      }
-    } catch (err: any) {
-      console.error('Failed to load caisse data:', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadCaisseData();
-  }, [loadCaisseData]);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadCaisseData(true);
-  };
 
   // ── PHOTO PICKER HELPERS ───────────────────────────────────────────────────
   const openGallery = async (onSelected: (uri: string) => void) => {
@@ -294,7 +329,8 @@ export default function AdminCaisseScreen() {
           title: 'Recette Encaissée',
           message: `✓ ${amt} DT encaissés avec succès pour "${collectTitle}".`,
         });
-        loadCaisseData(true);
+        queryClient.invalidateQueries({ queryKey: ['admin'] });
+        refetch();
       } else {
         throw new Error(res?.error || "Échec de l'enregistrement");
       }
@@ -359,7 +395,8 @@ export default function AdminCaisseScreen() {
           title: 'Dépense Enregistrée',
           message: `✓ ${amt} DT décaissés pour "${expenseTitle}".`,
         });
-        loadCaisseData(true);
+        queryClient.invalidateQueries({ queryKey: ['admin'] });
+        refetch();
       } else {
         throw new Error(res?.error || "Échec de l'enregistrement");
       }
