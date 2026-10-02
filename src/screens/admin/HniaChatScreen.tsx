@@ -40,7 +40,7 @@ import HniaEmptyState from './components/HniaEmptyState';
 import HniaHistoryDrawer, { ConversationThread } from './components/HniaHistoryDrawer';
 import HniaComposer from './components/HniaComposer';
 import HniaMessageBubble, { ChatMessage } from './components/HniaMessageBubble';
-import { tryParseActionCardWidget } from './HniaWidgets';
+import { tryParseActionCardWidget, ActionCardField, ActionCardData } from './HniaWidgets';
 
 const HNIA_STORAGE_KEY = '@hnia_chat_messages_v3';
 const HNIA_CONV_STORAGE_KEY = '@hnia_chat_conv_id_v3';
@@ -174,9 +174,13 @@ export default function HniaChatScreen() {
   }, [isKeyboardVisible, keyboardHeight]);
 
   // Agent Status in Header
-  const hasPendingAction = messages.some(
-    (m) => m.pendingConfirmation && m.pendingConfirmation.status === 'PENDING'
-  );
+  const hasPendingAction = messages.some((m) => {
+    if (!m.pendingConfirmation) return false;
+    if (Array.isArray(m.pendingConfirmation)) {
+      return m.pendingConfirmation.some((c: any) => c.status === 'PENDING');
+    }
+    return m.pendingConfirmation.status === 'PENDING';
+  });
   const agentStatus = hasPendingAction
     ? { label: 'Action requise', dotColor: '#f59e0b', textColor: '#b45309', bg: '#fef3c7' }
     : isLoading
@@ -367,8 +371,9 @@ export default function HniaChatScreen() {
               const isConfirmationPrompt =
                 Boolean(parsedCard) ||
                 content.includes('❓') ||
-                content.includes('Confirmer') ||
-                content.toLowerCase().includes('souhaitez-vous confirmer');
+                /confirmer/i.test(content) ||
+                /vérifier/i.test(content) ||
+                content.toLowerCase().includes('souhaitez-vous');
 
               if (isConfirmationPrompt) {
                 const matchedPending = pendingList.find(
@@ -380,22 +385,59 @@ export default function HniaChatScreen() {
                 if (matchedPending) {
                   usedPendingIds.add(matchedPending.toolCallId);
                   const fullParsed = tryParseActionCardWidget(content, matchedPending.toolCallId);
+
+                  const args = matchedPending.arguments || {};
+                  const argFields: ActionCardField[] = [];
+                  if (matchedPending.toolName === 'add_expense' || /dépense|expense/i.test(matchedPending.toolName || '')) {
+                    if (args.amount !== undefined) argFields.push({ label: 'Montant', value: `${args.amount} DT` });
+                    if (args.title || args.description) argFields.push({ label: 'Description', value: String(args.title || args.description) });
+                    if (args.category) argFields.push({ label: 'Catégorie', value: String(args.category) });
+                    if (args.date) argFields.push({ label: 'Date', value: String(args.date) });
+                  } else if (matchedPending.toolName?.includes('payment')) {
+                    if (args.amount !== undefined) argFields.push({ label: 'Montant', value: `${args.amount} DT` });
+                    if (args.studentNameOrId || args.parentNameOrId) argFields.push({ label: 'Bénéficiaire', value: String(args.studentNameOrId || args.parentNameOrId) });
+                    if (args.feePeriod) argFields.push({ label: 'Période', value: String(args.feePeriod) });
+                    if (args.paymentMethod) argFields.push({ label: 'Règlement', value: String(args.paymentMethod) });
+                  } else {
+                    Object.entries(args)
+                      .filter(([k]) => !k.startsWith('_') && k !== 'schoolId' && k !== 'adminId')
+                      .forEach(([k, v]) => {
+                        argFields.push({
+                          label: k.charAt(0).toUpperCase() + k.slice(1),
+                          value: String(v) + (k.toLowerCase().includes('amount') ? ' DT' : ''),
+                        });
+                      });
+                  }
+
                   if (fullParsed) {
                     pendingConfirmation = {
                       ...fullParsed,
                       toolCallId: matchedPending.toolCallId,
                       arguments: matchedPending.arguments,
+                      fields: fullParsed.fields && fullParsed.fields.length > 0 ? fullParsed.fields : argFields,
                     };
-                  } else if (content.includes('❓') || content.includes('Confirmer')) {
+                  } else {
                     pendingConfirmation = {
                       toolCallId: matchedPending.toolCallId,
                       toolName: matchedPending.toolName,
                       actionTitle:
                         matchedPending.toolName === 'add_expense'
                           ? 'Ajouter une dépense'
+                          : matchedPending.toolName?.includes('payment')
+                          ? 'Encaisser un paiement'
+                          : matchedPending.toolName === 'create_student'
+                          ? 'Inscrire un élève'
                           : 'Action en attente',
-                      actionType: matchedPending.toolName === 'add_expense' ? 'expense' : 'generic',
+                      actionType:
+                        matchedPending.toolName === 'add_expense'
+                          ? 'expense'
+                          : matchedPending.toolName?.includes('payment')
+                          ? 'payment'
+                          : matchedPending.toolName === 'create_student'
+                          ? 'student'
+                          : 'generic',
                       confirmText: 'Confirmer l’action ?',
+                      fields: argFields,
                       status: 'PENDING',
                       arguments: matchedPending.arguments,
                     };
@@ -1113,7 +1155,24 @@ export default function HniaChatScreen() {
         const newStatus: 'EXECUTED' | 'REJECTED' = action === 'confirm' ? 'EXECUTED' : 'REJECTED';
         setMessages((prev) => {
           const next: ChatMessage[] = prev.map((m) => {
-            if (m.pendingConfirmation?.toolCallId === toolCallId) {
+            if (Array.isArray(m.pendingConfirmation)) {
+              const hasCard = m.pendingConfirmation.some((c: any) => c.toolCallId === toolCallId);
+              if (hasCard) {
+                return {
+                  ...m,
+                  pendingConfirmation: m.pendingConfirmation.map((c: any) =>
+                    c.toolCallId === toolCallId
+                      ? {
+                          ...c,
+                          status: newStatus,
+                          reference: res.actionResult?.reference,
+                          resultMessage: res.actionResult?.summary || res.message,
+                        }
+                      : c
+                  ),
+                };
+              }
+            } else if (m.pendingConfirmation?.toolCallId === toolCallId) {
               return {
                 ...m,
                 pendingConfirmation: {
@@ -1269,7 +1328,14 @@ export default function HniaChatScreen() {
                   isCopied={copiedMessageId === item.id}
                   onConfirmAction={(id) => handleConfirmation(id, 'confirm')}
                   onCancelAction={(id) => handleConfirmation(id, 'cancel')}
-                  isActionExecuting={confirmingToolId === item.pendingConfirmation?.toolCallId}
+                  isActionExecuting={
+                    Boolean(
+                      confirmingToolId &&
+                        (Array.isArray(item.pendingConfirmation)
+                          ? item.pendingConfirmation.some((c: any) => c.toolCallId === confirmingToolId)
+                          : item.pendingConfirmation?.toolCallId === confirmingToolId)
+                    )
+                  }
                   onSelectSuggestion={(sug) => handleSendMessage(sug)}
                   onNavigateToCaisse={() => navigation.navigate('Caisse')}
                 />

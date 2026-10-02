@@ -1467,16 +1467,19 @@ export function tryParseActionCardWidget(
 // ============================================================================
 
 export function ActionCardWidget({
-  card,
+  card: rawCard,
   onConfirm,
   onCancel,
   isExecuting,
 }: {
-  card: ActionCardData;
+  card: any;
   onConfirm: (toolCallId: string) => void;
   onCancel: (toolCallId: string) => void;
   isExecuting?: boolean;
 }) {
+  const card: ActionCardData = Array.isArray(rawCard) ? rawCard[0] : rawCard;
+  if (!card) return null;
+
   const getActionIcon = () => {
     switch (card.actionType) {
       case 'expense':
@@ -1580,7 +1583,41 @@ export function ActionCardWidget({
   }
 
   // 4. PENDING State -> Clean Interactive Action Card with review fields
-  const fields = card.fields || [];
+  let fields: ActionCardField[] = card.fields && card.fields.length > 0 ? card.fields : [];
+  if (fields.length === 0 && card.arguments) {
+    const args = card.arguments;
+    if (card.toolName === 'add_expense' || card.actionType === 'expense') {
+      if (args.amount !== undefined) fields.push({ label: 'Montant', value: `${args.amount} DT` });
+      if (args.title || args.description) fields.push({ label: 'Description', value: String(args.title || args.description) });
+      if (args.category) fields.push({ label: 'Catégorie', value: String(args.category) });
+      if (args.date) fields.push({ label: 'Date', value: String(args.date) });
+    } else if (card.toolName === 'record_payment' || card.toolName === 'record_parent_payment' || card.actionType === 'payment') {
+      if (args.amount !== undefined) fields.push({ label: 'Montant', value: `${args.amount} DT` });
+      if (args.studentNameOrId || args.parentNameOrId) fields.push({ label: 'Bénéficiaire', value: String(args.studentNameOrId || args.parentNameOrId) });
+      if (args.feePeriod) fields.push({ label: 'Période', value: String(args.feePeriod) });
+      if (args.paymentMethod) fields.push({ label: 'Règlement', value: String(args.paymentMethod) });
+    } else {
+      Object.entries(args)
+        .filter(([k]) => !k.startsWith('_') && k !== 'schoolId' && k !== 'adminId')
+        .forEach(([k, v]) => {
+          fields.push({
+            label: k.charAt(0).toUpperCase() + k.slice(1),
+            value: String(v) + (k.toLowerCase().includes('amount') ? ' DT' : ''),
+          });
+        });
+    }
+  }
+
+  const displayTitle =
+    card.actionTitle && card.actionTitle !== 'Action en attente'
+      ? card.actionTitle
+      : card.toolName === 'add_expense' || card.actionType === 'expense'
+      ? 'Ajouter une dépense'
+      : card.toolName === 'record_payment' || card.actionType === 'payment'
+      ? 'Encaisser un paiement'
+      : card.toolName === 'create_student' || card.actionType === 'student'
+      ? 'Inscrire un élève'
+      : 'Action à vérifier';
 
   return (
     <View style={actionStyles.card}>
@@ -1590,7 +1627,7 @@ export function ActionCardWidget({
           <View style={[actionStyles.iconBox, { backgroundColor: `${getActionThemeColor()}15` }]}>
             {getActionIcon()}
           </View>
-          <Text style={actionStyles.headerTitle}>{card.actionTitle || 'Action en attente'}</Text>
+          <Text style={actionStyles.headerTitle}>{displayTitle}</Text>
         </View>
         <View style={actionStyles.pendingBadge}>
           <Text style={actionStyles.pendingBadgeText}>À vérifier</Text>
@@ -1607,9 +1644,13 @@ export function ActionCardWidget({
             </View>
           ))}
         </View>
-      ) : (
+      ) : card.confirmText ? (
         <View style={actionStyles.fallbackBox}>
           <Text style={actionStyles.fallbackText}>{card.confirmText}</Text>
+        </View>
+      ) : (
+        <View style={actionStyles.fallbackBox}>
+          <Text style={actionStyles.fallbackText}>Veuillez vérifier et confirmer cette action.</Text>
         </View>
       )}
 

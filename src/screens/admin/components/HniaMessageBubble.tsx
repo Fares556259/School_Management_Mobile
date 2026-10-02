@@ -50,7 +50,7 @@ export interface ChatMessage {
     type: 'caisse' | 'unpaid_tuition' | 'pdf_receipt' | 'finance_summary' | 'student_card' | 'attendance_card' | 'action_card';
     data: any;
   } | null;
-  pendingConfirmation?: ActionCardData | null;
+  pendingConfirmation?: ActionCardData | ActionCardData[] | null;
   followUpSuggestions?: string[];
   createdAt?: string;
 }
@@ -94,12 +94,16 @@ function HniaMessageBubble({
   const studentData = !isUser && message.widget?.type === 'student_card' ? message.widget.data : null;
   const attendanceData = !isUser && message.widget?.type === 'attendance_card' ? message.widget.data : null;
 
-  const actionCardData = !isUser
+  const rawActionCard = !isUser
     ? (message.pendingConfirmation || (message.widget?.type === 'action_card' ? message.widget.data : null))
     : null;
+  const actionCards: ActionCardData[] = Array.isArray(rawActionCard)
+    ? rawActionCard
+    : rawActionCard ? [rawActionCard] : [];
+  const actionCardData = actionCards[0] || null;
 
   const hasWidget = Boolean(
-    caisseData || unpaidData || receiptData || financeData || studentData || attendanceData || actionCardData
+    caisseData || unpaidData || receiptData || financeData || studentData || attendanceData || actionCards.length > 0
   );
 
   // Markdown line-by-line parser
@@ -320,20 +324,26 @@ function HniaMessageBubble({
               : message.content?.replace(/\[IMAGE:https?:\/\/[^\]]+\]\n?/, '').trim() ||
                 (message.imageUri ? '📷 Document envoyé' : '')}
           </Text>
-        ) : actionCardData ? (
+        ) : actionCards.length > 0 ? (
           /* Native Action Card Rendering */
           <View style={{ width: '100%' }}>
-            {message.content && !message.content.includes('❓') && !message.content.includes('Confirmer') && (
-              <View style={{ marginBottom: 8 }}>
-                {renderFormattedContent(message.content)}
+            {message.content &&
+              !message.content.includes('❓') &&
+              !/^veuillez vérifier et confirmer/i.test(message.content.trim()) && (
+                <View style={{ marginBottom: 8 }}>
+                  {renderFormattedContent(message.content)}
+                </View>
+              )}
+            {actionCards.map((card, idx) => (
+              <View key={card.toolCallId || idx} style={{ marginTop: idx > 0 ? 10 : 0 }}>
+                <ActionCardWidget
+                  card={card}
+                  onConfirm={onConfirmAction}
+                  onCancel={onCancelAction}
+                  isExecuting={isActionExecuting}
+                />
               </View>
-            )}
-            <ActionCardWidget
-              card={actionCardData}
-              onConfirm={onConfirmAction}
-              onCancel={onCancelAction}
-              isExecuting={isActionExecuting}
-            />
+            ))}
           </View>
         ) : (
           /* Standard Assistant Markdown Response */
@@ -716,6 +726,13 @@ const styles = StyleSheet.create({
 });
 
 export default React.memo(HniaMessageBubble, (prev, next) => {
+  const prevCard = Array.isArray(prev.message.pendingConfirmation)
+    ? prev.message.pendingConfirmation[0]
+    : prev.message.pendingConfirmation;
+  const nextCard = Array.isArray(next.message.pendingConfirmation)
+    ? next.message.pendingConfirmation[0]
+    : next.message.pendingConfirmation;
+
   return (
     prev.message.id === next.message.id &&
     prev.message.content === next.message.content &&
@@ -723,8 +740,8 @@ export default React.memo(HniaMessageBubble, (prev, next) => {
     prev.isCopied === next.isCopied &&
     prev.isActionExecuting === next.isActionExecuting &&
     prev.message.widget === next.message.widget &&
-    prev.message.pendingConfirmation?.status === next.message.pendingConfirmation?.status &&
-    prev.message.pendingConfirmation?.toolCallId === next.message.pendingConfirmation?.toolCallId &&
+    prevCard?.status === nextCard?.status &&
+    prevCard?.toolCallId === nextCard?.toolCallId &&
     prev.message.followUpSuggestions === next.message.followUpSuggestions &&
     prev.message.imageUri === next.message.imageUri
   );
