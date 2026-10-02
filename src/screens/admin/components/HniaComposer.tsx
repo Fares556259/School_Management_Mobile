@@ -61,6 +61,7 @@ interface HniaComposerProps {
   onDismissVocalError: () => void;
   bottomInset: number;
   isKeyboardVisible: boolean;
+  onFocus?: () => void;
 }
 
 export default function HniaComposer({
@@ -91,6 +92,7 @@ export default function HniaComposer({
   onDismissVocalError,
   bottomInset,
   isKeyboardVisible,
+  onFocus,
 }: HniaComposerProps) {
   const [attachmentSheetVisible, setAttachmentSheetVisible] = useState(false);
   const inputRef = useRef<TextInput>(null);
@@ -260,6 +262,7 @@ export default function HniaComposer({
               placeholderTextColor="#94a3b8"
               value={inputText}
               onChangeText={onChangeText}
+              onFocus={onFocus}
               multiline
               maxLength={1500}
             />

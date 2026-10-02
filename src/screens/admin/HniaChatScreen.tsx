@@ -144,21 +144,25 @@ export default function HniaChatScreen() {
   const tokenFlushTimerRef = useRef<any>(null);
   const streamingTextRef = useRef('');
 
-  // Reanimated native keyboard tracking:
-  // On iOS, apply paddingBottom dynamically.
-  // On Android, edge-to-edge / adjustResize already resizes the window, so paddingBottom must be 0 to prevent double-height flashing.
-  const keyboard = useAnimatedKeyboard({
-    isStatusBarTranslucentAndroid: true,
-    isNavigationBarTranslucentAndroid: true,
-  });
-  const animatedKeyboardStyle = useAnimatedStyle(() => ({
-    paddingBottom: Platform.OS === 'ios' ? keyboard.height.value : 0,
-  }));
-
   // Keyboard state
   const [isKeyboardVisible, setIsKeyboardVisible] = useState<boolean>(false);
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
   const isNearBottomRef = useRef(true);
+
+  // Reanimated native keyboard tracking:
+  // Dynamically lifts content above the keyboard on both iOS and Android (edge-to-edge aware)
+  const keyboard = useAnimatedKeyboard({
+    isStatusBarTranslucentAndroid: true,
+    isNavigationBarTranslucentAndroid: true,
+  });
+  const animatedKeyboardStyle = useAnimatedStyle(() => {
+    const anim = keyboard.height.value;
+    const fallback = isKeyboardVisible ? keyboardHeight : 0;
+    const effectiveHeight = anim > 0 ? anim : fallback;
+    return {
+      paddingBottom: effectiveHeight,
+    };
+  }, [isKeyboardVisible, keyboardHeight]);
 
   // Agent Status in Header
   const hasPendingAction = messages.some(
@@ -202,11 +206,12 @@ export default function HniaChatScreen() {
       setIsKeyboardVisible(true);
       const kh = e?.endCoordinates?.height || 0;
       setKeyboardHeight(kh);
-      if (isNearBottomRef.current && !userIsDraggingRef.current) {
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 120);
-      }
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 50);
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 250);
     });
 
     const hideSub = Keyboard.addListener(hideEvent, () => {
@@ -874,40 +879,6 @@ export default function HniaChatScreen() {
             accumulatedText += delta;
             streamingTextRef.current = accumulatedText;
             setActiveStatusStep('Rédaction de la réponse...');
-
-            if (!isStreamStarted) {
-              isStreamStarted = true;
-              setMessages((prev) => [
-                ...prev,
-                {
-                  id: botMsgId,
-                  role: 'assistant',
-                  content: accumulatedText,
-                  isStreaming: true,
-                  createdAt: new Date().toISOString(),
-                },
-              ]);
-              if (isNearBottomRef.current && !userIsDraggingRef.current) {
-                flatListRef.current?.scrollToEnd({ animated: false });
-              }
-            } else {
-              // Throttled token flush every 60ms (~16fps) prevents UI lockup and layout bouncing
-              if (!tokenFlushTimerRef.current) {
-                tokenFlushTimerRef.current = setTimeout(() => {
-                  tokenFlushTimerRef.current = null;
-                  if (controller.signal.aborted) return;
-                  const currentText = streamingTextRef.current;
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === botMsgId ? { ...m, content: currentText, isStreaming: true } : m
-                    )
-                  );
-                  if (isNearBottomRef.current && !userIsDraggingRef.current) {
-                    flatListRef.current?.scrollToEnd({ animated: false });
-                  }
-                }, 60);
-              }
-            }
           },
           onWidget: (widget) => {
             if (controller.signal.aborted) return;
@@ -1367,6 +1338,14 @@ export default function HniaChatScreen() {
             onDismissVocalError={() => setVocalError(null)}
             bottomInset={insets.bottom}
             isKeyboardVisible={isKeyboardVisible}
+            onFocus={() => {
+              setTimeout(() => {
+                flatListRef.current?.scrollToEnd({ animated: true });
+              }, 100);
+              setTimeout(() => {
+                flatListRef.current?.scrollToEnd({ animated: true });
+              }, 300);
+            }}
           />
         </View>
       </Reanimated.View>

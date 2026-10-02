@@ -339,9 +339,6 @@ function HniaMessageBubble({
           /* Standard Assistant Markdown Response */
           <View style={{ width: '100%' }}>
             {renderFormattedContent(message.content)}
-            {message.isStreaming && (
-              <Text style={styles.streamingCursor}>▋</Text>
-            )}
           </View>
         )}
 
