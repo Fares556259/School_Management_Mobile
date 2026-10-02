@@ -60,7 +60,7 @@ interface HniaMessageBubbleProps {
   onPreviewImage: (uri: string) => void;
   onCopyText: (msgId: string, text: string) => void;
   isCopied: boolean;
-  onConfirmAction: (toolCallId: string) => void;
+  onConfirmAction: (toolCallId: string, updatedArgs?: Record<string, any>) => void;
   onCancelAction: (toolCallId: string) => void;
   isActionExecuting: boolean;
   onSelectSuggestion: (text: string) => void;

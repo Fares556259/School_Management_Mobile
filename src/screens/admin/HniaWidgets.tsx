@@ -7,6 +7,12 @@ import {
   Linking,
   Alert,
   ActivityIndicator,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Pressable,
 } from 'react-native';
 import {
   Wallet,
@@ -32,6 +38,7 @@ import {
   Users,
   Bell,
   Building2,
+  Pencil,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -1473,12 +1480,104 @@ export function ActionCardWidget({
   isExecuting,
 }: {
   card: any;
-  onConfirm: (toolCallId: string) => void;
+  onConfirm: (toolCallId: string, updatedArgs?: Record<string, any>) => void;
   onCancel: (toolCallId: string) => void;
   isExecuting?: boolean;
 }) {
   const card: ActionCardData = Array.isArray(rawCard) ? rawCard[0] : rawCard;
   if (!card) return null;
+
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [localOverrides, setLocalOverrides] = useState<Record<string, any> | null>(null);
+
+  const getInitialAmount = () => {
+    if (localOverrides?.amount !== undefined) return String(localOverrides.amount);
+    if (card.arguments?.amount !== undefined) return String(card.arguments.amount);
+    const f = card.fields?.find((x: ActionCardField) => x.label.toLowerCase().includes('montant'));
+    if (f) return f.value.replace(/[^0-9.]/g, '');
+    return '';
+  };
+
+  const getInitialTitle = () => {
+    if (localOverrides?.title) return String(localOverrides.title);
+    if (card.arguments?.title) return String(card.arguments.title);
+    if (card.arguments?.description) return String(card.arguments.description);
+    const f = card.fields?.find(
+      (x: ActionCardField) =>
+        x.label.toLowerCase().includes('description') ||
+        x.label.toLowerCase().includes('intitulé') ||
+        x.label.toLowerCase().includes('titre')
+    );
+    if (f) return f.value;
+    return '';
+  };
+
+  const getInitialCategory = () => {
+    if (localOverrides?.category) return String(localOverrides.category);
+    if (card.arguments?.category) return String(card.arguments.category);
+    const f = card.fields?.find((x: ActionCardField) => x.label.toLowerCase().includes('catégorie'));
+    if (f) return f.value;
+    return '';
+  };
+
+  const getInitialBeneficiary = () => {
+    if (localOverrides?.studentNameOrId) return String(localOverrides.studentNameOrId);
+    if (card.arguments?.studentNameOrId) return String(card.arguments.studentNameOrId);
+    if (card.arguments?.studentName) return String(card.arguments.studentName);
+    if (card.arguments?.parentNameOrId) return String(card.arguments.parentNameOrId);
+    const f = card.fields?.find(
+      (x: ActionCardField) =>
+        x.label.toLowerCase().includes('bénéficiaire') ||
+        x.label.toLowerCase().includes('élève') ||
+        x.label.toLowerCase().includes('nom')
+    );
+    if (f) return f.value;
+    return '';
+  };
+
+  const [editAmount, setEditAmount] = useState('');
+  const [editTitle, setEditTitle] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editBeneficiary, setEditBeneficiary] = useState('');
+
+  const openEditModal = () => {
+    setEditAmount(getInitialAmount());
+    setEditTitle(getInitialTitle());
+    setEditCategory(getInitialCategory());
+    setEditBeneficiary(getInitialBeneficiary());
+    setIsEditModalVisible(true);
+  };
+
+  const handleSaveAndConfirm = (directConfirm: boolean) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const updated: Record<string, any> = {};
+
+    if (editAmount.trim()) {
+      const parsed = parseFloat(editAmount.replace(/[^0-9.]/g, ''));
+      if (!isNaN(parsed)) updated.amount = parsed;
+    }
+    if (editTitle.trim()) {
+      updated.title = editTitle.trim();
+      updated.description = editTitle.trim();
+    }
+    if (editCategory.trim()) {
+      updated.category = editCategory.trim();
+    }
+    if (editBeneficiary.trim()) {
+      if (card.toolName === 'record_payment' || card.actionType === 'payment') {
+        updated.studentNameOrId = editBeneficiary.trim();
+      } else {
+        updated.name = editBeneficiary.trim();
+      }
+    }
+
+    setLocalOverrides(updated);
+    setIsEditModalVisible(false);
+
+    if (directConfirm) {
+      onConfirm(card.toolCallId, updated);
+    }
+  };
 
   const getActionIcon = () => {
     switch (card.actionType) {
@@ -1583,7 +1682,7 @@ export function ActionCardWidget({
   }
 
   // 4. PENDING State -> Clean Interactive Action Card with review fields
-  let fields: ActionCardField[] = card.fields && card.fields.length > 0 ? card.fields : [];
+  let fields: ActionCardField[] = card.fields && card.fields.length > 0 ? [...card.fields] : [];
   if (fields.length === 0 && card.arguments) {
     const args = card.arguments;
     if (card.toolName === 'add_expense' || card.actionType === 'expense') {
@@ -1605,6 +1704,40 @@ export function ActionCardWidget({
             value: String(v) + (k.toLowerCase().includes('amount') ? ' DT' : ''),
           });
         });
+    }
+  }
+
+  // Apply localOverrides to fields if any were saved
+  if (localOverrides) {
+    if (localOverrides.amount !== undefined) {
+      const idx = fields.findIndex((f) => f.label.toLowerCase().includes('montant'));
+      if (idx >= 0) fields[idx] = { ...fields[idx], value: `${localOverrides.amount} DT` };
+      else fields.unshift({ label: 'Montant', value: `${localOverrides.amount} DT` });
+    }
+    if (localOverrides.title) {
+      const idx = fields.findIndex(
+        (f) =>
+          f.label.toLowerCase().includes('description') ||
+          f.label.toLowerCase().includes('intitulé') ||
+          f.label.toLowerCase().includes('titre')
+      );
+      if (idx >= 0) fields[idx] = { ...fields[idx], value: localOverrides.title };
+      else fields.push({ label: 'Description', value: localOverrides.title });
+    }
+    if (localOverrides.category) {
+      const idx = fields.findIndex((f) => f.label.toLowerCase().includes('catégorie'));
+      if (idx >= 0) fields[idx] = { ...fields[idx], value: localOverrides.category };
+      else fields.push({ label: 'Catégorie', value: localOverrides.category });
+    }
+    if (localOverrides.studentNameOrId || localOverrides.name) {
+      const val = localOverrides.studentNameOrId || localOverrides.name;
+      const idx = fields.findIndex(
+        (f) =>
+          f.label.toLowerCase().includes('bénéficiaire') ||
+          f.label.toLowerCase().includes('élève') ||
+          f.label.toLowerCase().includes('nom')
+      );
+      if (idx >= 0) fields[idx] = { ...fields[idx], value: val };
     }
   }
 
@@ -1654,7 +1787,7 @@ export function ActionCardWidget({
         </View>
       )}
 
-      {/* Action Buttons */}
+      {/* Action Buttons: Annuler | Modifier | Confirmer */}
       <View style={actionStyles.buttonsRow}>
         <TouchableOpacity
           activeOpacity={0.75}
@@ -1664,8 +1797,20 @@ export function ActionCardWidget({
             onCancel(card.toolCallId);
           }}
         >
-          <X size={15} color="#64748b" />
+          <X size={14} color="#64748b" />
           <Text style={actionStyles.cancelBtnText}>Annuler</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          activeOpacity={0.75}
+          style={actionStyles.editBtn}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            openEditModal();
+          }}
+        >
+          <Pencil size={13} color="#0055d4" />
+          <Text style={actionStyles.editBtnText}>Modifier</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1673,13 +1818,165 @@ export function ActionCardWidget({
           style={[actionStyles.confirmBtn, { backgroundColor: getActionThemeColor() }]}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            onConfirm(card.toolCallId);
+            onConfirm(card.toolCallId, localOverrides || undefined);
           }}
         >
-          <Check size={16} color="#ffffff" strokeWidth={2.4} />
+          <Check size={15} color="#ffffff" strokeWidth={2.4} />
           <Text style={actionStyles.confirmBtnText}>Confirmer</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Modal d'édition directe */}
+      <Modal
+        visible={isEditModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsEditModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={actionStyles.modalOverlay}
+        >
+          <Pressable
+            style={actionStyles.modalDismissArea}
+            onPress={() => setIsEditModalVisible(false)}
+          />
+          <View style={actionStyles.modalSheet}>
+            {/* Modal Header */}
+            <View style={actionStyles.modalHeader}>
+              <View style={actionStyles.modalHeaderIconWrap}>
+                <Pencil size={18} color="#0055d4" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={actionStyles.modalTitle}>Modifier l'action</Text>
+                <Text style={actionStyles.modalSubtitle}>
+                  Ajustez les informations en 1 seconde avant de valider
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setIsEditModalVisible(false)}
+                style={actionStyles.modalCloseBtn}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <X size={18} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              style={actionStyles.modalScroll}
+            >
+              {/* Montant */}
+              <View style={actionStyles.inputBlock}>
+                <Text style={actionStyles.inputLabel}>Montant</Text>
+                <View style={actionStyles.amountInputRow}>
+                  <TextInput
+                    style={actionStyles.amountTextInput}
+                    value={editAmount}
+                    onChangeText={setEditAmount}
+                    placeholder="0"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="decimal-pad"
+                    selectTextOnFocus
+                  />
+                  <View style={actionStyles.currencyBadge}>
+                    <Text style={actionStyles.currencyBadgeText}>DT</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Titre / Description */}
+              <View style={actionStyles.inputBlock}>
+                <Text style={actionStyles.inputLabel}>
+                  {card.actionType === 'expense' ? 'Intitulé / Justification' : 'Description'}
+                </Text>
+                <TextInput
+                  style={actionStyles.standardTextInput}
+                  value={editTitle}
+                  onChangeText={setEditTitle}
+                  placeholder={card.actionType === 'expense' ? 'Ex: Matériel de bureau, Pain, Facture...' : 'Description'}
+                  placeholderTextColor="#94a3b8"
+                />
+              </View>
+
+              {/* Catégorie pour dépenses */}
+              {(card.actionType === 'expense' || Boolean(getInitialCategory()) || card.toolName === 'add_expense') && (
+                <View style={actionStyles.inputBlock}>
+                  <Text style={actionStyles.inputLabel}>Catégorie</Text>
+                  <TextInput
+                    style={actionStyles.standardTextInput}
+                    value={editCategory}
+                    onChangeText={setEditCategory}
+                    placeholder="Ex: Fournitures, Cantine, Transport..."
+                    placeholderTextColor="#94a3b8"
+                  />
+                  {/* Category Chips */}
+                  <View style={actionStyles.categoryChipsRow}>
+                    {['Fournitures', 'Cantine', 'Transport', 'Maintenance', 'Factures'].map((cat) => (
+                      <TouchableOpacity
+                        key={cat}
+                        style={[
+                          actionStyles.categoryChip,
+                          editCategory.toLowerCase() === cat.toLowerCase() && actionStyles.categoryChipActive,
+                        ]}
+                        onPress={() => {
+                          Haptics.selectionAsync();
+                          setEditCategory(cat);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            actionStyles.categoryChipText,
+                            editCategory.toLowerCase() === cat.toLowerCase() && actionStyles.categoryChipTextActive,
+                          ]}
+                        >
+                          {cat}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Bénéficiaire pour paiement ou élève */}
+              {(card.actionType === 'payment' || card.actionType === 'student' || Boolean(getInitialBeneficiary())) && (
+                <View style={actionStyles.inputBlock}>
+                  <Text style={actionStyles.inputLabel}>Élève / Bénéficiaire</Text>
+                  <TextInput
+                    style={actionStyles.standardTextInput}
+                    value={editBeneficiary}
+                    onChangeText={setEditBeneficiary}
+                    placeholder="Nom complet"
+                    placeholderTextColor="#94a3b8"
+                  />
+                </View>
+              )}
+            </ScrollView>
+
+            {/* Modal Footer Buttons */}
+            <View style={actionStyles.modalActionsRow}>
+              <TouchableOpacity
+                style={actionStyles.modalCancelButton}
+                onPress={() => setIsEditModalVisible(false)}
+              >
+                <Text style={actionStyles.modalCancelButtonText}>Fermer</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={[actionStyles.modalSaveButton, { backgroundColor: getActionThemeColor() }]}
+                onPress={() => handleSaveAndConfirm(true)}
+              >
+                <Check size={16} color="#ffffff" strokeWidth={2.4} />
+                <Text style={actionStyles.modalSaveButtonText}>
+                  {editAmount.trim() ? `Confirmer (${editAmount} DT)` : 'Confirmer l\'action'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -2108,21 +2405,38 @@ const actionStyles = StyleSheet.create({
     borderColor: '#e2e8f0',
     borderRadius: 10,
     paddingVertical: 10,
-    gap: 6,
+    gap: 5,
   },
   cancelBtnText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: '#64748b',
   },
+  editBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 10,
+    paddingVertical: 10,
+    gap: 5,
+  },
+  editBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0055d4',
+  },
   confirmBtn: {
-    flex: 1.5,
+    flex: 1.3,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 10,
     paddingVertical: 10,
-    gap: 6,
+    gap: 5,
     shadowColor: '#0055d4',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -2130,7 +2444,180 @@ const actionStyles = StyleSheet.create({
     elevation: 2,
   },
   confirmBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#ffffff',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalDismissArea: {
+    flex: 1,
+  },
+  modalSheet: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: Platform.OS === 'ios' ? 36 : 22,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+    marginBottom: 14,
+  },
+  modalHeaderIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#eff6ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: '#f8fafc',
+  },
+  modalScroll: {
+    maxHeight: 340,
+  },
+  inputBlock: {
+    marginBottom: 14,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 6,
+  },
+  amountInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1.5,
+    borderColor: '#cbd5e1',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+  },
+  amountTextInput: {
+    flex: 1,
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0f172a',
+    paddingVertical: 10,
+  },
+  currencyBadge: {
+    backgroundColor: '#e2e8f0',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  currencyBadgeText: {
     fontSize: 13,
+    fontWeight: '800',
+    color: '#475569',
+  },
+  standardTextInput: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1.5,
+    borderColor: '#cbd5e1',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#0f172a',
+    fontWeight: '600',
+  },
+  categoryChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
+  categoryChip: {
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  categoryChipActive: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#3b82f6',
+  },
+  categoryChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  categoryChipTextActive: {
+    color: '#1d4ed8',
+    fontWeight: '700',
+  },
+  modalActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+  },
+  modalCancelButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    paddingVertical: 12,
+  },
+  modalCancelButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748b',
+  },
+  modalSaveButton: {
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    paddingVertical: 12,
+    gap: 6,
+    shadowColor: '#0055d4',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  modalSaveButtonText: {
+    fontSize: 14,
     fontWeight: '800',
     color: '#ffffff',
   },

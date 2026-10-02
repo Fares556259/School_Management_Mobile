@@ -1161,18 +1161,29 @@ export default function HniaChatScreen() {
   };
 
   // Confirm or Cancel Action Card
-  const handleConfirmation = async (toolCallId: string, action: 'confirm' | 'cancel') => {
+  const handleConfirmation = async (
+    toolCallId: string,
+    action: 'confirm' | 'cancel',
+    updatedArgs?: Record<string, any>
+  ) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     if (!toolCallId || toolCallId.startsWith('fallback_') || toolCallId.startsWith('parsed_')) {
-      handleSendMessage(action === 'confirm' ? "Oui, je confirme l'action." : 'Non, annule cette action.');
+      if (updatedArgs) {
+        let editPrompt = action === 'confirm' ? "Oui, confirme l'action" : "Non, annule cette action";
+        if (updatedArgs.amount) editPrompt += ` avec le montant ${updatedArgs.amount} DT`;
+        if (updatedArgs.title) editPrompt += ` pour ${updatedArgs.title}`;
+        handleSendMessage(editPrompt);
+      } else {
+        handleSendMessage(action === 'confirm' ? "Oui, je confirme l'action." : 'Non, annule cette action.');
+      }
       return;
     }
 
     setConfirmingToolId(toolCallId);
 
     try {
-      const res = await adminService.confirmAction(toolCallId, action);
+      const res = await adminService.confirmAction(toolCallId, action, updatedArgs);
       if (res && res.success) {
         const newStatus: 'EXECUTED' | 'REJECTED' = action === 'confirm' ? 'EXECUTED' : 'REJECTED';
         setMessages((prev) => {
@@ -1187,6 +1198,7 @@ export default function HniaChatScreen() {
                       ? {
                           ...c,
                           status: newStatus,
+                          arguments: updatedArgs ? { ...(c.arguments || {}), ...updatedArgs } : c.arguments,
                           reference: res.actionResult?.reference,
                           resultMessage: res.actionResult?.summary || res.message,
                         }
@@ -1200,6 +1212,7 @@ export default function HniaChatScreen() {
                 pendingConfirmation: {
                   ...m.pendingConfirmation,
                   status: newStatus,
+                  arguments: updatedArgs ? { ...(m.pendingConfirmation.arguments || {}), ...updatedArgs } : m.pendingConfirmation.arguments,
                   reference: res.actionResult?.reference,
                   resultMessage: res.actionResult?.summary || res.message,
                 },
@@ -1348,7 +1361,7 @@ export default function HniaChatScreen() {
                   onPreviewImage={(uri) => setFullscreenImageUri(uri)}
                   onCopyText={handleCopyMessage}
                   isCopied={copiedMessageId === item.id}
-                  onConfirmAction={(id) => handleConfirmation(id, 'confirm')}
+                  onConfirmAction={(id, updatedArgs) => handleConfirmation(id, 'confirm', updatedArgs)}
                   onCancelAction={(id) => handleConfirmation(id, 'cancel')}
                   isActionExecuting={
                     Boolean(

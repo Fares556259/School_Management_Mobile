@@ -977,11 +977,15 @@ export const adminService = {
     });
   },
   
-  // Confirm or cancel a pending action
-  confirmAction: async (toolCallId: string, action: 'confirm' | 'cancel') => {
+  // Confirm or cancel a pending action (supports optional edited parameters)
+  confirmAction: async (
+    toolCallId: string,
+    action: 'confirm' | 'cancel',
+    updatedArgs?: Record<string, any>
+  ) => {
     return apiFetch('/api/mobile/agent/confirm', {
       method: 'POST',
-      body: JSON.stringify({ toolCallId, action }),
+      body: JSON.stringify({ toolCallId, action, updatedArgs }),
     });
   },
   
