@@ -37,6 +37,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { adminService } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
+import { useLanguage } from '../../context/LanguageContext';
 
 import HniaEmptyState from './components/HniaEmptyState';
 import HniaHistoryDrawer, { ConversationThread } from './components/HniaHistoryDrawer';
@@ -106,6 +107,7 @@ export default function HniaChatScreen() {
   const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
   const schoolName = useAppStore((s) => s.schoolName) || 'SnapSchool';
+  const { t, language, isRTL } = useLanguage();
 
   // Chat State — initialized instantly from in-memory cache (0ms mount, zero spinner)
   const [messages, setMessages] = useState<ChatMessage[]>(() => memoryCachedMessages);
@@ -185,17 +187,64 @@ export default function HniaChatScreen() {
     return m.pendingConfirmation.status === 'PENDING';
   });
   const agentStatus = hasPendingAction
-    ? { label: 'Action requise', dotColor: '#f59e0b', textColor: '#b45309', bg: '#fef3c7' }
+    ? {
+        label: language === 'ar' ? 'إجراء مطلوب' : language === 'en' ? 'Action Required' : 'Action requise',
+        dotColor: '#f59e0b',
+        textColor: '#b45309',
+        bg: '#fef3c7',
+      }
     : isLoading
-    ? { label: 'Hnia travaille...', dotColor: '#2563eb', textColor: '#1d4ed8', bg: '#eff6ff' }
-    : { label: 'En ligne', dotColor: '#10b981', textColor: '#059669', bg: '#ecfdf5' };
+    ? {
+        label: language === 'ar' ? 'هنيّة تفكّر...' : language === 'en' ? 'Hnia is thinking...' : 'Hnia travaille...',
+        dotColor: '#2563eb',
+        textColor: '#1d4ed8',
+        bg: '#eff6ff',
+      }
+    : {
+        label: language === 'ar' ? 'متصلة' : language === 'en' ? 'Online' : 'En ligne',
+        dotColor: '#10b981',
+        textColor: '#059669',
+        bg: '#ecfdf5',
+      };
 
   // Quick Suggestion Chips (visible when in active conversation)
   const QUICK_CHIPS = [
-    { label: '📊 Recettes du mois', prompt: 'Donne-moi les revenus et le bilan financier de ce mois' },
-    { label: '💳 Impayés', prompt: "Quels sont les élèves qui ont des impayés ce mois-ci ?" },
-    { label: '💰 Ajouter dépense', prompt: 'Je souhaite enregistrer une nouvelle dépense' },
-    { label: '📋 Absences du jour', prompt: "Quelles sont les absences constatées aujourd'hui ?" },
+    {
+      label: language === 'ar' ? '📊 مداخيل الشهر' : language === 'en' ? '📊 Monthly Revenue' : '📊 Recettes du mois',
+      prompt:
+        language === 'ar'
+          ? 'أعطني مداخيل ورصيد هذا الشهر المالي'
+          : language === 'en'
+          ? 'Give me the revenue and financial summary for this month'
+          : 'Donne-moi les revenus et le bilan financier de ce mois',
+    },
+    {
+      label: language === 'ar' ? '💳 المستحقات' : language === 'en' ? '💳 Unpaid' : '💳 Impayés',
+      prompt:
+        language === 'ar'
+          ? 'من هم التلاميذ الذين لديهم مستحقات غير خالصة هذا الشهر؟'
+          : language === 'en'
+          ? 'Which students have unpaid tuitions this month?'
+          : 'Quels sont les élèves qui ont des impayés ce mois-ci ?',
+    },
+    {
+      label: language === 'ar' ? '💰 تسجيل مصروف' : language === 'en' ? '💰 Add Expense' : '💰 Ajouter dépense',
+      prompt:
+        language === 'ar'
+          ? 'أريد تسجيل مصروف جديد في الخزينة'
+          : language === 'en'
+          ? 'I want to record a new expense'
+          : 'Je souhaite enregistrer une nouvelle dépense',
+    },
+    {
+      label: language === 'ar' ? '📋 غيابات اليوم' : language === 'en' ? "📋 Today's Absences" : '📋 Absences du jour',
+      prompt:
+        language === 'ar'
+          ? 'ما هي الغيابات المسجلة لهذا اليوم؟'
+          : language === 'en'
+          ? 'What are the recorded absences for today?'
+          : "Quelles sont les absences constatées aujourd'hui ?",
+    },
   ];
 
   // Cleanup audio recording on unmount
@@ -512,12 +561,19 @@ export default function HniaChatScreen() {
   const handleDeleteThread = (threadId: string, threadTitle: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
-      'Supprimer la discussion',
-      `Voulez-vous supprimer définitivement "${threadTitle}" ?`,
+      language === 'ar' ? 'حذف المحادثة' : language === 'en' ? 'Delete Conversation' : 'Supprimer la discussion',
+      language === 'ar'
+        ? `هل تريد حقاً حذف "${threadTitle}" ؟`
+        : language === 'en'
+        ? `Are you sure you want to delete "${threadTitle}"?`
+        : `Voulez-vous supprimer définitivement "${threadTitle}" ?`,
       [
-        { text: 'Annuler', style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: language === 'ar' ? 'إلغاء' : language === 'en' ? 'Cancel' : 'Annuler',
+          style: 'cancel',
+        },
+        {
+          text: language === 'ar' ? 'حذف' : language === 'en' ? 'Delete' : 'Supprimer',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -568,7 +624,14 @@ export default function HniaChatScreen() {
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission requise', 'Veuillez autoriser l’accès à la caméra.');
+        Alert.alert(
+          language === 'ar' ? 'الإذن مطلوب' : language === 'en' ? 'Permission Required' : 'Permission requise',
+          language === 'ar'
+            ? 'يرجى السماح بالوصول إلى الكاميرا.'
+            : language === 'en'
+            ? 'Please grant camera access.'
+            : 'Veuillez autoriser l’accès à la caméra.'
+        );
         return;
       }
       const result = await ImagePicker.launchCameraAsync({
@@ -587,7 +650,14 @@ export default function HniaChatScreen() {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission requise', 'Veuillez autoriser l’accès à vos photos.');
+        Alert.alert(
+          language === 'ar' ? 'الإذن مطلوب' : language === 'en' ? 'Permission Required' : 'Permission requise',
+          language === 'ar'
+            ? 'يرجى السماح بالوصول إلى الصور.'
+            : language === 'en'
+            ? 'Please grant photo library access.'
+            : 'Veuillez autoriser l’accès à vos photos.'
+        );
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -684,14 +754,26 @@ export default function HniaChatScreen() {
 
     const Audio = getNativeAudioModule();
     if (!Audio) {
-      setVocalError('Module audio indisponible');
+      setVocalError(
+        language === 'ar'
+          ? 'وحدة الصوت غير متوفرة'
+          : language === 'en'
+          ? 'Audio module unavailable'
+          : 'Module audio indisponible'
+      );
       return;
     }
 
     try {
       const permission = await Audio.requestPermissionsAsync();
       if (!permission.granted) {
-        setVocalError('Permission microphone requise');
+        setVocalError(
+          language === 'ar'
+            ? 'إذن الميكروفون مطلوب'
+            : language === 'en'
+            ? 'Microphone permission required'
+            : 'Permission microphone requise'
+        );
         return;
       }
 
@@ -1263,8 +1345,8 @@ export default function HniaChatScreen() {
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" translucent={Platform.OS === 'android'} />
 
       {/* Top Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
+      <View style={[styles.header, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+        <View style={[styles.headerLeft, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
           <TouchableOpacity
             style={styles.historyBtn}
             onPress={handleOpenHistoryDrawer}
@@ -1276,21 +1358,27 @@ export default function HniaChatScreen() {
 
           <View style={styles.avatarBox}>
             <Image source={HNIA_AVATAR} style={styles.avatarImg} />
-            <View style={[styles.avatarDot, { backgroundColor: agentStatus.dotColor }]} />
+            <View
+              style={[
+                styles.avatarDot,
+                { backgroundColor: agentStatus.dotColor },
+                isRTL ? { right: undefined, left: 0 } : { right: 0 },
+              ]}
+            />
           </View>
 
-          <View style={styles.headerTitleCol}>
-            <View style={styles.titleRow}>
-              <Text style={styles.headerTitle}>Hnia</Text>
-              <View style={[styles.statusBadge, { backgroundColor: agentStatus.bg }]}>
+          <View style={[styles.headerTitleCol, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+            <View style={[styles.titleRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+              <Text style={styles.headerTitle}>{language === 'ar' ? 'هنيّة' : 'Hnia'}</Text>
+              <View style={[styles.statusBadge, { backgroundColor: agentStatus.bg, flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                 <View style={[styles.statusDot, { backgroundColor: agentStatus.dotColor }]} />
                 <Text style={[styles.statusText, { color: agentStatus.textColor }]}>
                   {agentStatus.label}
                 </Text>
               </View>
             </View>
-            <Text style={styles.headerSubtitle} numberOfLines={1}>
-              Assistante SnapSchool • {schoolName}
+            <Text style={[styles.headerSubtitle, { textAlign: isRTL ? 'right' : 'left' }]} numberOfLines={1}>
+              {language === 'ar' ? `المساعد الذكي • ${schoolName}` : language === 'en' ? `Assistant • ${schoolName}` : `Assistante SnapSchool • ${schoolName}`}
             </Text>
           </View>
         </View>
@@ -1316,7 +1404,9 @@ export default function HniaChatScreen() {
           {isInitializing ? (
             <View style={styles.loadingCenter}>
               <ActivityIndicator size="large" color="#0055d4" />
-              <Text style={styles.loadingText}>Initialisation d’Hnia...</Text>
+              <Text style={styles.loadingText}>
+                {language === 'ar' ? 'جاري تهيئة هنيّة...' : language === 'en' ? 'Initializing Hnia...' : 'Initialisation d’Hnia...'}
+              </Text>
             </View>
           ) : messages.length === 0 ? (
             /* Welcome / Empty State */
@@ -1381,30 +1471,34 @@ export default function HniaChatScreen() {
               keyboardShouldPersistTaps="handled"
               ListHeaderComponent={
                 isLoading && !messages.some((m) => m.isStreaming) ? (
-                  <View style={styles.typingCard}>
+                  <View style={[styles.typingCard, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                     <Image source={HNIA_AVATAR} style={styles.typingAvatar} />
-                    <View style={styles.typingContent}>
-                      <ActivityIndicator size="small" color="#0055d4" style={{ marginRight: 6 }} />
-                      <Text style={styles.typingText}>
-                        {activeStatusStep || 'Hnia prépare la réponse...'}
+                    <View style={[styles.typingContent, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                      <ActivityIndicator size="small" color="#0055d4" style={isRTL ? { marginLeft: 6 } : { marginRight: 6 }} />
+                      <Text style={[styles.typingText, { textAlign: isRTL ? 'right' : 'left' }]}>
+                        {activeStatusStep || (language === 'ar' ? 'هنيّة تحضّر الإجابة...' : language === 'en' ? 'Hnia is preparing the answer...' : 'Hnia prépare la réponse...')}
                       </Text>
                     </View>
                     <TouchableOpacity
-                      style={styles.stopPill}
+                      style={[styles.stopPill, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
                       onPress={handleInterrupt}
                       activeOpacity={0.8}
                     >
                       <Square size={9} color="#dc2626" fill="#dc2626" />
-                      <Text style={styles.stopPillText}>Arrêter</Text>
+                      <Text style={styles.stopPillText}>
+                        {language === 'ar' ? 'إيقاف' : language === 'en' ? 'Stop' : 'Arrêter'}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 ) : lastFailedMessage ? (
                   <TouchableOpacity
-                    style={styles.retryBanner}
+                    style={[styles.retryBanner, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
                     onPress={() => handleSendMessage(lastFailedMessage)}
                   >
                     <RotateCcw size={14} color="#dc2626" />
-                    <Text style={styles.retryText}>Réessayer l'envoi</Text>
+                    <Text style={styles.retryText}>
+                      {language === 'ar' ? 'إعادة المحاولة' : language === 'en' ? 'Retry sending' : "Réessayer l'envoi"}
+                    </Text>
                   </TouchableOpacity>
                 ) : null
               }
@@ -1433,7 +1527,7 @@ export default function HniaChatScreen() {
                 data={QUICK_CHIPS}
                 keyExtractor={(item, index) => index.toString()}
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.quickChipsContent}
+                contentContainerStyle={[styles.quickChipsContent, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
                 renderItem={({ item }) => (
                   <TouchableOpacity
                     style={styles.chipBtn}

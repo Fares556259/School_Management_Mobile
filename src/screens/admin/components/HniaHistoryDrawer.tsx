@@ -35,6 +35,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../../../store/useAppStore';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export interface ConversationThread {
   id: string;
@@ -109,6 +110,7 @@ export default function HniaHistoryDrawer({
   onRenameThread,
 }: HniaHistoryDrawerProps) {
   const insets = useSafeAreaInsets();
+  const { t, language, isRTL } = useLanguage();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 0) + 12;
 
   const DRAWER_WIDTH = Math.min(Dimensions.get('window').width * 0.82, 320);
@@ -235,31 +237,37 @@ export default function HniaHistoryDrawer({
     const thirtyDaysAgo = new Date(today);
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+    const labelToday = language === 'ar' ? 'اليوم' : language === 'en' ? 'Today' : "Aujourd'hui";
+    const labelYesterday = language === 'ar' ? 'أمس' : language === 'en' ? 'Yesterday' : 'Hier';
+    const labelSevenDays = language === 'ar' ? 'آخر 7 أيام' : language === 'en' ? 'Last 7 days' : '7 derniers jours';
+    const labelThisMonth = language === 'ar' ? 'هذا الشهر' : language === 'en' ? 'This month' : 'Ce mois-ci';
+    const labelPrevious = language === 'ar' ? 'سابقاً' : language === 'en' ? 'Previous' : 'Précédents';
+
     const groups: { [key: string]: ConversationThread[] } = {
-      "Aujourd'hui": [],
-      'Hier': [],
-      '7 derniers jours': [],
-      'Ce mois-ci': [],
-      'Précédents': [],
+      [labelToday]: [],
+      [labelYesterday]: [],
+      [labelSevenDays]: [],
+      [labelThisMonth]: [],
+      [labelPrevious]: [],
     };
 
     filtered.forEach((thread) => {
       const threadDate = new Date(thread.updatedAt || thread.createdAt);
       if (threadDate >= today) {
-        groups["Aujourd'hui"].push(thread);
+        groups[labelToday].push(thread);
       } else if (threadDate >= yesterday) {
-        groups['Hier'].push(thread);
+        groups[labelYesterday].push(thread);
       } else if (threadDate >= sevenDaysAgo) {
-        groups['7 derniers jours'].push(thread);
+        groups[labelSevenDays].push(thread);
       } else if (threadDate >= thirtyDaysAgo) {
-        groups['Ce mois-ci'].push(thread);
+        groups[labelThisMonth].push(thread);
       } else {
-        groups['Précédents'].push(thread);
+        groups[labelPrevious].push(thread);
       }
     });
 
     return Object.entries(groups).filter(([_, items]) => items.length > 0);
-  }, [threads, searchQuery, activeFilter]);
+  }, [threads, searchQuery, activeFilter, language]);
 
   const toggleCategoryFilter = (cat: 'docs' | 'caisse' | 'students') => {
     Haptics.selectionAsync();
@@ -283,7 +291,10 @@ export default function HniaHistoryDrawer({
       setRenameModalVisible(false);
       setRenamingThread(null);
     } catch (err) {
-      Alert.alert('Erreur', 'Impossible de renommer la discussion.');
+      Alert.alert(
+        language === 'ar' ? 'خطأ' : language === 'en' ? 'Error' : 'Erreur',
+        language === 'ar' ? 'تعذر تغيير اسم المحادثة.' : language === 'en' ? 'Unable to rename conversation.' : 'Impossible de renommer la discussion.'
+      );
     } finally {
       setIsRenaming(false);
     }
@@ -294,15 +305,22 @@ export default function HniaHistoryDrawer({
     const cleanTitle = formatThreadTitle(thread.title);
     Alert.alert(
       cleanTitle,
-      'Choisissez une action pour cette discussion :',
+      language === 'ar'
+        ? 'اختر إجراءً لهذه المحادثة :'
+        : language === 'en'
+        ? 'Choose an action for this conversation:'
+        : 'Choisissez une action pour cette discussion :',
       [
-        { text: 'Annuler', style: 'cancel' },
         {
-          text: '✏️ Renommer',
+          text: language === 'ar' ? 'إلغاء' : language === 'en' ? 'Cancel' : 'Annuler',
+          style: 'cancel',
+        },
+        {
+          text: language === 'ar' ? '✏️ تعديل الاسم' : language === 'en' ? '✏️ Rename' : '✏️ Renommer',
           onPress: () => openRenameModal(thread),
         },
         {
-          text: '🗑️ Supprimer',
+          text: language === 'ar' ? '🗑️ حذف' : language === 'en' ? '🗑️ Delete' : '🗑️ Supprimer',
           style: 'destructive',
           onPress: () => onDeleteThread(thread.id, cleanTitle),
         },
@@ -337,7 +355,7 @@ export default function HniaHistoryDrawer({
         <Animated.View style={[styles.drawerContainer, animatedDrawerStyle]}>
           {/* Top Header: "Hnia" on left, search icon & close button on right */}
           <View style={[styles.header, { paddingTop: topPadding }]}>
-            <Text style={styles.headerTitle}>Hnia</Text>
+            <Text style={styles.headerTitle}>{language === 'ar' ? 'هنيّة' : 'Hnia'}</Text>
             <View style={styles.headerRightActions}>
               <TouchableOpacity
                 style={[styles.headerIconBtn, showSearch && styles.headerIconBtnActive]}
@@ -364,8 +382,8 @@ export default function HniaHistoryDrawer({
             <View style={styles.searchBarContainer}>
               <Search size={15} color="#94a3b8" />
               <TextInput
-                style={styles.searchInput}
-                placeholder="Rechercher une discussion..."
+                style={[styles.searchInput, { textAlign: isRTL ? 'right' : 'left' }]}
+                placeholder={language === 'ar' ? 'بحث في المحادثات...' : language === 'en' ? 'Search conversations...' : 'Rechercher une discussion...'}
                 placeholderTextColor="#94a3b8"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -411,7 +429,7 @@ export default function HniaHistoryDrawer({
                     activeFilter === 'docs' && styles.shortcutLabelActive,
                   ]}
                 >
-                  Justificatifs & Reçus
+                  {language === 'ar' ? 'الوصولات والمؤيدات' : language === 'en' ? 'Receipts & Proofs' : 'Justificatifs & Reçus'}
                 </Text>
               </TouchableOpacity>
 
@@ -434,7 +452,7 @@ export default function HniaHistoryDrawer({
                     activeFilter === 'caisse' && styles.shortcutLabelActive,
                   ]}
                 >
-                  Caisse & Dépenses
+                  {language === 'ar' ? 'الخزينة والمصاريف' : language === 'en' ? 'Cash & Expenses' : 'Caisse & Dépenses'}
                 </Text>
               </TouchableOpacity>
 
@@ -457,7 +475,7 @@ export default function HniaHistoryDrawer({
                     activeFilter === 'students' && styles.shortcutLabelActive,
                   ]}
                 >
-                  Élèves & Présences
+                  {language === 'ar' ? 'التلاميذ والغيابات' : language === 'en' ? 'Students & Attendance' : 'Élèves & Présences'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -469,10 +487,29 @@ export default function HniaHistoryDrawer({
             {activeFilter !== 'all' && (
               <View style={styles.filterBanner}>
                 <Text style={styles.filterBannerText}>
-                  Filtre : {activeFilter === 'docs' ? 'Documents' : activeFilter === 'caisse' ? 'Caisse' : 'Élèves'}
+                  {language === 'ar' ? 'تصفية :' : language === 'en' ? 'Filter:' : 'Filtre :'}{' '}
+                  {activeFilter === 'docs'
+                    ? language === 'ar'
+                      ? 'الوثائق'
+                      : language === 'en'
+                      ? 'Documents'
+                      : 'Documents'
+                    : activeFilter === 'caisse'
+                    ? language === 'ar'
+                      ? 'الخزينة'
+                      : language === 'en'
+                      ? 'Cash'
+                      : 'Caisse'
+                    : language === 'ar'
+                    ? 'التلاميذ'
+                    : language === 'en'
+                    ? 'Students'
+                    : 'Élèves'}
                 </Text>
                 <TouchableOpacity onPress={() => setActiveFilter('all')}>
-                  <Text style={styles.filterBannerClear}>Effacer</Text>
+                  <Text style={styles.filterBannerClear}>
+                    {language === 'ar' ? 'مسح' : language === 'en' ? 'Clear' : 'Effacer'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -484,22 +521,34 @@ export default function HniaHistoryDrawer({
               </View>
             ) : threads.length === 0 ? (
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyTitle}>Aucune discussion</Text>
+                <Text style={styles.emptyTitle}>
+                  {language === 'ar' ? 'لا توجد محادثات' : language === 'en' ? 'No conversations' : 'Aucune discussion'}
+                </Text>
                 <Text style={styles.emptySubtitle}>
-                  Vos échanges avec Hnia apparaîtront ici.
+                  {language === 'ar'
+                    ? 'ستظهر محادثاتك مع هنيّة هنا.'
+                    : language === 'en'
+                    ? 'Your conversations with Hnia will appear here.'
+                    : 'Vos échanges avec Hnia apparaîtront ici.'}
                 </Text>
               </View>
             ) : groupedThreads.length === 0 ? (
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyTitle}>Aucun résultat</Text>
+                <Text style={styles.emptyTitle}>
+                  {language === 'ar' ? 'لا توجد نتائج' : language === 'en' ? 'No results' : 'Aucun résultat'}
+                </Text>
                 <Text style={styles.emptySubtitle}>
-                  Aucune discussion ne correspond à vos filtres.
+                  {language === 'ar'
+                    ? 'لا توجد محادثة تطابق خيارات البحث.'
+                    : language === 'en'
+                    ? 'No conversation matches your search.'
+                    : 'Aucune discussion ne correspond à vos filtres.'}
                 </Text>
               </View>
             ) : (
               groupedThreads.map(([groupLabel, items]) => (
                 <View key={groupLabel} style={styles.groupSection}>
-                  <Text style={styles.groupHeader}>{groupLabel}</Text>
+                  <Text style={[styles.groupHeader, { textAlign: isRTL ? 'right' : 'left' }]}>{groupLabel}</Text>
 
                   {items.map((thread) => {
                     const isActive = thread.id === activeConversationId;
@@ -511,6 +560,7 @@ export default function HniaHistoryDrawer({
                         style={[
                           styles.threadRow,
                           isActive && styles.threadRowActive,
+                          { flexDirection: isRTL ? 'row-reverse' : 'row' },
                         ]}
                         activeOpacity={0.6}
                         onPress={() => onSelectThread(thread.id)}
@@ -520,6 +570,7 @@ export default function HniaHistoryDrawer({
                           style={[
                             styles.threadTitle,
                             isActive && styles.threadTitleActive,
+                            { textAlign: isRTL ? 'right' : 'left' },
                           ]}
                           numberOfLines={1}
                         >
@@ -528,7 +579,7 @@ export default function HniaHistoryDrawer({
 
                         {/* Action buttons on active thread */}
                         {isActive && (
-                          <View style={styles.threadActions}>
+                          <View style={[styles.threadActions, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                             <TouchableOpacity
                               style={styles.actionIconBtn}
                               hitSlop={{ top: 8, bottom: 8, left: 6, right: 4 }}
@@ -556,10 +607,10 @@ export default function HniaHistoryDrawer({
           </ScrollView>
 
           {/* 3. PINNED BOTTOM BAR (ChatGPT Signature layout) */}
-          <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 14) + 6 }]}>
-            {/* Blue "Chat" pill button (bottom left) */}
+          <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 14) + 6, flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            {/* Blue "Chat" pill button */}
             <TouchableOpacity
-              style={styles.newChatPill}
+              style={[styles.newChatPill, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
               activeOpacity={0.8}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -567,10 +618,12 @@ export default function HniaHistoryDrawer({
               }}
             >
               <Edit3 size={16} color="#ffffff" strokeWidth={2.4} />
-              <Text style={styles.newChatPillText}>Chat</Text>
+              <Text style={styles.newChatPillText}>
+                {language === 'ar' ? 'محادثة' : language === 'en' ? 'Chat' : 'Chat'}
+              </Text>
             </TouchableOpacity>
 
-            {/* Admin Avatar Circle (bottom right - like [SE] in ChatGPT) */}
+            {/* Admin Avatar Circle */}
             <View style={styles.userAvatarCircle}>
               {userAvatarUrl ? (
                 <Image source={{ uri: userAvatarUrl }} style={styles.userAvatarImg} />
@@ -591,27 +644,31 @@ export default function HniaHistoryDrawer({
       >
         <View style={styles.renameOverlay}>
           <View style={styles.renameCard}>
-            <View style={styles.renameHeader}>
+            <View style={[styles.renameHeader, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
               <Edit3 size={17} color="#0055d4" />
-              <Text style={styles.renameTitle}>Renommer</Text>
+              <Text style={styles.renameTitle}>
+                {language === 'ar' ? 'تعديل الاسم' : language === 'en' ? 'Rename' : 'Renommer'}
+              </Text>
             </View>
 
             <TextInput
-              style={styles.renameInput}
+              style={[styles.renameInput, { textAlign: isRTL ? 'right' : 'left' }]}
               value={newTitleInput}
               onChangeText={setNewTitleInput}
-              placeholder="Nouveau titre..."
+              placeholder={language === 'ar' ? 'عنوان جديد...' : language === 'en' ? 'New title...' : 'Nouveau titre...'}
               placeholderTextColor="#9ca3af"
               autoFocus
               maxLength={50}
             />
 
-            <View style={styles.renameActions}>
+            <View style={[styles.renameActions, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
               <TouchableOpacity
                 style={styles.renameCancelBtn}
                 onPress={() => setRenameModalVisible(false)}
               >
-                <Text style={styles.renameCancelText}>Annuler</Text>
+                <Text style={styles.renameCancelText}>
+                  {language === 'ar' ? 'إلغاء' : language === 'en' ? 'Cancel' : 'Annuler'}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -624,7 +681,9 @@ export default function HniaHistoryDrawer({
                 ) : (
                   <>
                     <Check size={15} color="#ffffff" strokeWidth={2.4} />
-                    <Text style={styles.renameSaveText}>Enregistrer</Text>
+                    <Text style={styles.renameSaveText}>
+                      {language === 'ar' ? 'حفظ' : language === 'en' ? 'Save' : 'Enregistrer'}
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>

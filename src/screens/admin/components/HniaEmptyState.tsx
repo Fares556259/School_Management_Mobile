@@ -16,7 +16,9 @@ import {
   Calendar,
   Sparkles,
   ChevronRight,
+  ChevronLeft,
 } from 'lucide-react-native';
+import { useLanguage } from '../../../context/LanguageContext';
 
 const HNIA_AVATAR = require('../../../../assets/hnia/hnia_mascot_icon.png');
 
@@ -42,41 +44,43 @@ export default function HniaEmptyState({
   onOpenAttachmentSheet,
   schoolName = 'SnapSchool',
 }: HniaEmptyStateProps) {
+  const { language, isRTL } = useLanguage();
+
   const suggestions: SuggestionAction[] = [
     {
       id: 'revenus',
       icon: TrendingUp,
       iconColor: '#0284c7',
       iconBg: '#e0f2fe',
-      title: 'Recettes du mois',
-      description: 'Point de caisse, rentrées et solde physique net',
-      prompt: 'Donne-moi les revenus et le bilan financier de ce mois',
+      title: language === 'ar' ? 'مداخيل الشهر' : language === 'en' ? 'Monthly Revenue' : 'Recettes du mois',
+      description: language === 'ar' ? 'كشف الخزينة والمداخيل والرصيد الصافي' : language === 'en' ? 'Cash status, inflows and net balance' : 'Point de caisse, rentrées et solde physique net',
+      prompt: language === 'ar' ? 'أعطني مداخيل وحصيلة هذا الشهر المالية' : language === 'en' ? 'Show me the revenue and financial summary for this month' : 'Donne-moi les revenus et le bilan financier de ce mois',
     },
     {
       id: 'impayes',
       icon: CreditCard,
       iconColor: '#dc2626',
       iconBg: '#fef2f2',
-      title: 'Paiements en retard',
-      description: 'Élèves avec impayés et options de relance',
-      prompt: "Quels sont les élèves qui ont des impayés ce mois-ci ?",
+      title: language === 'ar' ? 'المستحقات المتأخرة' : language === 'en' ? 'Overdue Payments' : 'Paiements en retard',
+      description: language === 'ar' ? 'التلاميذ غير الخالصين وإمكانية التذكير' : language === 'en' ? 'Students with unpaid fees and reminders' : 'Élèves avec impayés et options de relance',
+      prompt: language === 'ar' ? 'من هم التلاميذ المتأخرون في الدفع هذا الشهر ؟' : language === 'en' ? 'Which students have unpaid fees this month?' : "Quels sont les élèves qui ont des impayés ce mois-ci ?",
     },
     {
       id: 'depense',
       icon: Wallet,
       iconColor: '#059669',
       iconBg: '#ecfdf5',
-      title: 'Ajouter une dépense / recette',
-      description: 'Enregistrer une sortie ou une rentrée de fonds',
-      prompt: 'Je souhaite enregistrer une nouvelle dépense',
+      title: language === 'ar' ? 'تسجيل مدخول / مصروف' : language === 'en' ? 'Record Expense / Income' : 'Ajouter une dépense / recette',
+      description: language === 'ar' ? 'تسجيل خروج أو دخول أموال في الخزينة' : language === 'en' ? 'Record cash outflow or inflow' : 'Enregistrer une sortie ou une rentrée de fonds',
+      prompt: language === 'ar' ? 'أريد تسجيل مصروف جديد' : language === 'en' ? 'I want to record a new expense' : 'Je souhaite enregistrer une nouvelle dépense',
     },
     {
       id: 'doc',
       icon: Camera,
       iconColor: '#0055d4',
       iconBg: '#eff6ff',
-      title: 'Analyser un reçu / document',
-      description: 'Photo de facture ou reçu avec extraction automatique',
+      title: language === 'ar' ? 'تحليل وصل / وثيقة' : language === 'en' ? 'Analyze Receipt / Doc' : 'Analyser un reçu / document',
+      description: language === 'ar' ? 'تصوير وصل لاستخراج البيانات تلقائياً' : language === 'en' ? 'Receipt photo with auto extraction' : 'Photo de facture ou reçu avec extraction automatique',
       onPress: onOpenAttachmentSheet,
     },
     {
@@ -84,18 +88,18 @@ export default function HniaEmptyState({
       icon: Users,
       iconColor: '#d97706',
       iconBg: '#fffbeb',
-      title: 'Élèves absents du jour',
-      description: 'Suivi des présences et alertes parents',
-      prompt: "Quelles sont les absences constatées aujourd'hui ?",
+      title: language === 'ar' ? 'غيابات اليوم' : language === 'en' ? "Today's Absences" : 'Élèves absents du jour',
+      description: language === 'ar' ? 'متابعة الحضور وتنبيهات الأولياء' : language === 'en' ? 'Attendance tracking and alerts' : 'Suivi des présences et alertes parents',
+      prompt: language === 'ar' ? 'ما هي الغيابات المسجلة اليوم ؟' : language === 'en' ? 'What absences are recorded today?' : "Quelles sont les absences constatées aujourd'hui ?",
     },
     {
       id: 'timetable',
       icon: Calendar,
       iconColor: '#7c3aed',
       iconBg: '#f5f3ff',
-      title: 'Emploi du temps',
-      description: 'Séances prévues et disponibilité des enseignants',
-      prompt: "Montre-moi l'emploi du temps des cours prévus aujourd'hui.",
+      title: language === 'ar' ? 'جدول الأوقات' : language === 'en' ? 'Timetable Schedule' : 'Emploi du temps',
+      description: language === 'ar' ? 'الحصص المبرمجة وشغور الأساتذة' : language === 'en' ? 'Scheduled lessons and teachers' : 'Séances prévues et disponibilité des enseignants',
+      prompt: language === 'ar' ? 'أرني جدول الحصص المبرمجة اليوم.' : language === 'en' ? "Show me today's class schedule." : "Montre-moi l'emploi du temps des cours prévus aujourd'hui.",
     },
   ];
 
@@ -116,22 +120,50 @@ export default function HniaEmptyState({
         </View>
 
         <Text style={styles.heroTitle}>
-          Bonjour 👋 Je suis <Text style={styles.brandName}>Hnia</Text>
+          {language === 'ar' ? (
+            <>
+              مرحباً 👋 أنا <Text style={styles.brandName}>هنيّة</Text>
+            </>
+          ) : language === 'en' ? (
+            <>
+              Hello 👋 I'm <Text style={styles.brandName}>Hnia</Text>
+            </>
+          ) : (
+            <>
+              Bonjour 👋 Je suis <Text style={styles.brandName}>Hnia</Text>
+            </>
+          )}
         </Text>
         <Text style={styles.heroSubtitle}>
-          Assistante de direction connectée à <Text style={styles.schoolName}>{schoolName}</Text>.
-          Posez-moi une question ou choisissez une action :
+          {language === 'ar' ? (
+            <>
+              المساعد الإداري الذكي لمدرسة <Text style={styles.schoolName}>{schoolName}</Text>.
+              {'\n'}اطرح سؤالاً أو اختر أحد الإجراءات السريعة :
+            </>
+          ) : language === 'en' ? (
+            <>
+              Executive assistant connected to <Text style={styles.schoolName}>{schoolName}</Text>.
+              {'\n'}Ask a question or select a quick action:
+            </>
+          ) : (
+            <>
+              Assistante de direction connectée à <Text style={styles.schoolName}>{schoolName}</Text>.
+              {'\n'}Posez-moi une question ou choisissez une action :
+            </>
+          )}
         </Text>
       </View>
 
       {/* Suggested Actions Grid */}
       <View style={styles.gridSection}>
-        <View style={styles.sectionHeader}>
+        <View style={[styles.sectionHeader, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
           <Sparkles size={14} color="#0055d4" />
-          <Text style={styles.sectionTitle}>Suggestions rapides</Text>
+          <Text style={styles.sectionTitle}>
+            {language === 'ar' ? 'اقتراحات سريعة' : language === 'en' ? 'Quick Suggestions' : 'Suggestions rapides'}
+          </Text>
         </View>
 
-        <View style={styles.grid}>
+        <View style={[styles.grid, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
           {suggestions.map((item) => (
             <TouchableOpacity
               key={item.id}
@@ -145,17 +177,17 @@ export default function HniaEmptyState({
                 }
               }}
             >
-              <View style={styles.cardHeader}>
+              <View style={[styles.cardHeader, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                 <View style={[styles.iconBox, { backgroundColor: item.iconBg }]}>
                   <item.icon size={20} color={item.iconColor} />
                 </View>
-                <ChevronRight size={15} color="#cbd5e1" />
+                {isRTL ? <ChevronLeft size={15} color="#cbd5e1" /> : <ChevronRight size={15} color="#cbd5e1" />}
               </View>
 
-              <Text style={styles.cardTitle} numberOfLines={1}>
+              <Text style={[styles.cardTitle, { textAlign: isRTL ? 'right' : 'left' }]} numberOfLines={1}>
                 {item.title}
               </Text>
-              <Text style={styles.cardDescription} numberOfLines={2}>
+              <Text style={[styles.cardDescription, { textAlign: isRTL ? 'right' : 'left' }]} numberOfLines={2}>
                 {item.description}
               </Text>
             </TouchableOpacity>
@@ -166,7 +198,19 @@ export default function HniaEmptyState({
       {/* Help Hint */}
       <View style={styles.hintBox}>
         <Text style={styles.hintText}>
-          💡 <Text style={styles.hintBold}>Astuce :</Text> Vous pouvez aussi me dicter un message vocal ou photographier un reçu.
+          {language === 'ar' ? (
+            <>
+              💡 <Text style={styles.hintBold}>ملاحظة :</Text> يمكنك أيضاً إملاء طلب صوتي أو تصوير وصل لدراسته تلقائياً.
+            </>
+          ) : language === 'en' ? (
+            <>
+              💡 <Text style={styles.hintBold}>Tip:</Text> You can also send a voice message or take a photo of a receipt.
+            </>
+          ) : (
+            <>
+              💡 <Text style={styles.hintBold}>Astuce :</Text> Vous pouvez aussi me dicter un message vocal ou photographier un reçu.
+            </>
+          )}
         </Text>
       </View>
     </ScrollView>

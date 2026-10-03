@@ -22,6 +22,7 @@ import {
   Maximize2,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { useLanguage } from '../../../context/LanguageContext';
 
 interface StagedAttachment {
   type: 'image' | 'document' | 'audio';
@@ -94,6 +95,7 @@ export default function HniaComposer({
   isKeyboardVisible,
   onFocus,
 }: HniaComposerProps) {
+  const { t, language, isRTL } = useLanguage();
   const [attachmentSheetVisible, setAttachmentSheetVisible] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
@@ -243,7 +245,7 @@ export default function HniaComposer({
         </View>
       ) : (
         /* STANDARD MESSAGE COMPOSER */
-        <View style={styles.inputRow}>
+        <View style={[styles.inputRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
           {/* + Attachment Button */}
           <TouchableOpacity
             style={styles.plusButton}
@@ -255,11 +257,17 @@ export default function HniaComposer({
           </TouchableOpacity>
 
           {/* Input Box */}
-          <View style={styles.inputPill}>
+          <View style={[styles.inputPill, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
             <TextInput
               ref={inputRef}
-              style={styles.textInput}
-              placeholder="Message à Hnia..."
+              style={[styles.textInput, { textAlign: isRTL ? 'right' : 'left' }]}
+              placeholder={
+                language === 'ar'
+                  ? 'اكتب رسالة أو طلباً لهنيّة...'
+                  : language === 'en'
+                  ? 'Message Hnia...'
+                  : 'Message à Hnia...'
+              }
               placeholderTextColor="#94a3b8"
               value={inputText}
               onChangeText={onChangeText}
@@ -316,69 +324,107 @@ export default function HniaComposer({
           <View style={styles.sheetContent}>
             <View style={styles.sheetHandle} />
 
-            <Text style={styles.sheetTitle}>Joindre un document</Text>
+            <Text style={[styles.sheetTitle, { textAlign: isRTL ? 'right' : 'left' }]}>
+              {language === 'ar'
+                ? 'إرفاق وثيقة أو ملف'
+                : language === 'en'
+                ? 'Attach Document'
+                : 'Joindre un document'}
+            </Text>
 
             <TouchableOpacity
-              style={styles.sheetOption}
+              style={[styles.sheetOption, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
               onPress={() => {
                 setAttachmentSheetVisible(false);
                 onTakePhoto();
               }}
             >
-              <View style={[styles.sheetIconBox, { backgroundColor: '#eff6ff' }]}>
+              <View style={[styles.sheetIconBox, { backgroundColor: '#eff6ff', marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }]}>
                 <Camera size={20} color="#0055d4" strokeWidth={2} />
               </View>
-              <View style={styles.sheetOptionTextCol}>
-                <Text style={styles.sheetOptionTitle}>Appareil photo</Text>
-                <Text style={styles.sheetOptionSub}>Photographier un reçu ou une facture</Text>
+              <View style={[styles.sheetOptionTextCol, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+                <Text style={styles.sheetOptionTitle}>
+                  {language === 'ar' ? 'الكاميرا' : language === 'en' ? 'Camera' : 'Appareil photo'}
+                </Text>
+                <Text style={[styles.sheetOptionSub, { textAlign: isRTL ? 'right' : 'left' }]}>
+                  {language === 'ar'
+                    ? 'تصوير وصل أو فاتورة بالكاميرا'
+                    : language === 'en'
+                    ? 'Capture a receipt or invoice'
+                    : 'Photographier un reçu ou une facture'}
+                </Text>
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.sheetOption}
+              style={[styles.sheetOption, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
               onPress={() => {
                 setAttachmentSheetVisible(false);
                 onPickImage();
               }}
             >
-              <View style={[styles.sheetIconBox, { backgroundColor: '#f0fdf4' }]}>
+              <View style={[styles.sheetIconBox, { backgroundColor: '#f0fdf4', marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }]}>
                 <ImageIcon size={20} color="#16a34a" strokeWidth={2} />
               </View>
-              <View style={styles.sheetOptionTextCol}>
-                <Text style={styles.sheetOptionTitle}>Galerie photos</Text>
-                <Text style={styles.sheetOptionSub}>Choisir une image existante</Text>
+              <View style={[styles.sheetOptionTextCol, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+                <Text style={styles.sheetOptionTitle}>
+                  {language === 'ar' ? 'معرض الصور' : language === 'en' ? 'Photo Gallery' : 'Galerie photos'}
+                </Text>
+                <Text style={[styles.sheetOptionSub, { textAlign: isRTL ? 'right' : 'left' }]}>
+                  {language === 'ar'
+                    ? 'اختيار صورة موجودة من الهاتف'
+                    : language === 'en'
+                    ? 'Choose an existing image'
+                    : 'Choisir une image existante'}
+                </Text>
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.sheetOption}
+              style={[styles.sheetOption, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
               onPress={() => {
                 setAttachmentSheetVisible(false);
                 onPickDocument();
               }}
             >
-              <View style={[styles.sheetIconBox, { backgroundColor: '#faf5ff' }]}>
+              <View style={[styles.sheetIconBox, { backgroundColor: '#faf5ff', marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }]}>
                 <FileText size={20} color="#9333ea" strokeWidth={2} />
               </View>
-              <View style={styles.sheetOptionTextCol}>
-                <Text style={styles.sheetOptionTitle}>Document ou PDF</Text>
-                <Text style={styles.sheetOptionSub}>Bordereau, relevé bancaire, contrat</Text>
+              <View style={[styles.sheetOptionTextCol, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+                <Text style={styles.sheetOptionTitle}>
+                  {language === 'ar' ? 'مستند أو PDF' : language === 'en' ? 'Document or PDF' : 'Document ou PDF'}
+                </Text>
+                <Text style={[styles.sheetOptionSub, { textAlign: isRTL ? 'right' : 'left' }]}>
+                  {language === 'ar'
+                    ? 'كشف حساب، وثيقة، عقد'
+                    : language === 'en'
+                    ? 'Statement, report, contract'
+                    : 'Bordereau, relevé bancaire, contrat'}
+                </Text>
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.sheetOption}
+              style={[styles.sheetOption, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
               onPress={() => {
                 setAttachmentSheetVisible(false);
                 onPickAudioFile();
               }}
             >
-              <View style={[styles.sheetIconBox, { backgroundColor: '#fff7ed' }]}>
+              <View style={[styles.sheetIconBox, { backgroundColor: '#fff7ed', marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }]}>
                 <Mic size={20} color="#ea580c" strokeWidth={2} />
               </View>
-              <View style={styles.sheetOptionTextCol}>
-                <Text style={styles.sheetOptionTitle}>Fichier audio</Text>
-                <Text style={styles.sheetOptionSub}>Importer un mémo vocal enregistré</Text>
+              <View style={[styles.sheetOptionTextCol, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+                <Text style={styles.sheetOptionTitle}>
+                  {language === 'ar' ? 'ملف صوتي' : language === 'en' ? 'Audio File' : 'Fichier audio'}
+                </Text>
+                <Text style={[styles.sheetOptionSub, { textAlign: isRTL ? 'right' : 'left' }]}>
+                  {language === 'ar'
+                    ? 'إدراج تسجيل صوتي خارجي'
+                    : language === 'en'
+                    ? 'Import recorded voice memo'
+                    : 'Importer un mémo vocal enregistré'}
+                </Text>
               </View>
             </TouchableOpacity>
           </View>

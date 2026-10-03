@@ -131,10 +131,10 @@ function BottomTabsContent({ onSignOut }: { onSignOut: () => void }) {
             },
           }}
         >
-          <Tab.Screen name="Dashboard" component={AdminDashboardScreen} options={{ tabBarLabel: (t as any).adminDashboard || 'Dashboard', tabBarIcon: ({ color, focused }) => <LayoutDashboard size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} /> }} />
-          <Tab.Screen name="Hnia" component={HniaChatScreen} options={{ tabBarHideOnKeyboard: true, tabBarLabel: 'Hnia', tabBarIcon: ({ color, focused }) => <Bot size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} /> }} />
-          <Tab.Screen name="Caisse" component={AdminCaisseScreen} options={{ tabBarLabel: (t as any).adminCaisse || 'Caisse', tabBarIcon: ({ color, focused }) => <Wallet size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} /> }} />
-          <Tab.Screen name="More" options={{ tabBarLabel: (t as any).more || 'Plus', tabBarIcon: ({ color, focused }) => <MoreHorizontal size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} /> }}>
+          <Tab.Screen name="Dashboard" component={AdminDashboardScreen} options={{ tabBarLabel: t.adminDashboard, tabBarIcon: ({ color, focused }) => <LayoutDashboard size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} /> }} />
+          <Tab.Screen name="Hnia" component={HniaChatScreen} options={{ tabBarHideOnKeyboard: true, tabBarLabel: t.adminHnia, tabBarIcon: ({ color, focused }) => <Bot size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} /> }} />
+          <Tab.Screen name="Caisse" component={AdminCaisseScreen} options={{ tabBarLabel: t.adminCaisse, tabBarIcon: ({ color, focused }) => <Wallet size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} /> }} />
+          <Tab.Screen name="More" options={{ tabBarLabel: t.adminMore, tabBarIcon: ({ color, focused }) => <MoreHorizontal size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} /> }}>
             {props => <AdminMoreScreen {...props} onSignOut={onSignOut} />}
           </Tab.Screen>
         </Tab.Navigator>

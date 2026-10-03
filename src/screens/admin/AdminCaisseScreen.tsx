@@ -35,6 +35,7 @@ import {
   CheckCircle2,
   AlertCircle,
   ChevronRight,
+  ChevronLeft,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
@@ -43,6 +44,7 @@ import * as Sharing from 'expo-sharing';
 import * as ImagePicker from 'expo-image-picker';
 import { adminService, authStorage } from '../../services/api';
 import { trackEvent } from '../../services/posthog';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface Transaction {
   id: string;
@@ -80,6 +82,7 @@ interface CustomFeedback {
 }
 
 export default function AdminCaisseScreen() {
+  const { t, language, isRTL } = useLanguage();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 0);
@@ -113,7 +116,7 @@ export default function AdminCaisseScreen() {
     monthExpense: 0,
   };
   const transactions: Transaction[] = caisseData?.todayTransactions || [];
-  const monthLabel: string = caisseData?.monthLabel || 'Ce mois';
+  const monthLabel: string = caisseData?.monthLabel || t.adminCaisseThisMonth;
 
   const loading = isQueryLoading && !caisseData;
   const [refreshing, setRefreshing] = useState(false);
@@ -138,23 +141,23 @@ export default function AdminCaisseScreen() {
 
   // Dynamic Categories from Server
   const [incomeCategories, setIncomeCategories] = useState<string[]>([
-    'Inscription',
-    'Cantine',
-    'Transport',
-    'Activités',
-    'Donation',
-    'Événement',
-    'Autre',
+    language === 'ar' ? 'تسجيل' : language === 'en' ? 'Registration' : 'Inscription',
+    language === 'ar' ? 'مطعم مدرسي' : language === 'en' ? 'Canteen' : 'Cantine',
+    language === 'ar' ? 'نقل' : 'Transport',
+    language === 'ar' ? 'أنشطة' : language === 'en' ? 'Activities' : 'Activités',
+    language === 'ar' ? 'تبرع' : language === 'en' ? 'Donation' : 'Donation',
+    language === 'ar' ? 'حدث / حفل' : language === 'en' ? 'Event' : 'Événement',
+    language === 'ar' ? 'أخرى' : language === 'en' ? 'Other' : 'Autre',
   ]);
   const [expenseCategories, setExpenseCategories] = useState<string[]>([
-    'Fournitures',
-    'Carburant',
-    'Maintenance',
-    'Énergie & Factures',
-    'Transport',
-    'Loyer',
-    'Salaires',
-    'Divers',
+    language === 'ar' ? 'أدوات مكتبية' : language === 'en' ? 'Supplies' : 'Fournitures',
+    language === 'ar' ? 'وقود' : language === 'en' ? 'Fuel' : 'Carburant',
+    language === 'ar' ? 'صيانة' : 'Maintenance',
+    language === 'ar' ? 'فواتير وطاقة' : language === 'en' ? 'Utilities' : 'Énergie & Factures',
+    language === 'ar' ? 'نقل' : 'Transport',
+    language === 'ar' ? 'إيجار' : language === 'en' ? 'Rent' : 'Loyer',
+    language === 'ar' ? 'أجور' : language === 'en' ? 'Salaries' : 'Salaires',
+    language === 'ar' ? 'متفرقات' : language === 'en' ? 'Miscellaneous' : 'Divers',
   ]);
 
   // Sync server categories into local selectable list
@@ -196,7 +199,9 @@ export default function AdminCaisseScreen() {
   const [showCollectModal, setShowCollectModal] = useState(false);
   const [collectTitle, setCollectTitle] = useState('');
   const [collectAmount, setCollectAmount] = useState('');
-  const [collectCategory, setCollectCategory] = useState('Inscription');
+  const [collectCategory, setCollectCategory] = useState(
+    language === 'ar' ? 'تسجيل' : language === 'en' ? 'Registration' : 'Inscription'
+  );
   const [collectMethod, setCollectMethod] = useState<'Espèces' | 'Chèque' | 'Virement'>('Espèces');
   const [collectImageUri, setCollectImageUri] = useState<string | null>(null);
   const [showNewIncomeCategoryInput, setShowNewIncomeCategoryInput] = useState(false);
@@ -208,13 +213,14 @@ export default function AdminCaisseScreen() {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [expenseTitle, setExpenseTitle] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
-  const [expenseCategory, setExpenseCategory] = useState('Fournitures');
+  const [expenseCategory, setExpenseCategory] = useState(
+    language === 'ar' ? 'أدوات مكتبية' : language === 'en' ? 'Supplies' : 'Fournitures'
+  );
   const [expenseImageUri, setExpenseImageUri] = useState<string | null>(null);
   const [showNewExpenseCategoryInput, setShowNewExpenseCategoryInput] = useState(false);
   const [newExpenseCategoryText, setNewExpenseCategoryText] = useState('');
   const [submittingExpense, setSubmittingExpense] = useState(false);
   const [expenseError, setExpenseError] = useState('');
-
 
   // ── PHOTO PICKER HELPERS ───────────────────────────────────────────────────
   const openGallery = async (onSelected: (uri: string) => void) => {
@@ -225,8 +231,8 @@ export default function AdminCaisseScreen() {
         setFeedback({
           visible: true,
           type: 'error',
-          title: 'Permission requise',
-          message: "L'accès à la galerie photo est nécessaire pour joindre un reçu.",
+          title: t.adminPermissionRequired,
+          message: t.adminGalleryPermMsg,
         });
         return;
       }
@@ -253,8 +259,8 @@ export default function AdminCaisseScreen() {
         setFeedback({
           visible: true,
           type: 'error',
-          title: 'Permission requise',
-          message: "L'accès à la caméra est nécessaire pour photographier le reçu.",
+          title: t.adminPermissionRequired,
+          message: t.adminCameraPermMsg,
         });
         return;
       }
@@ -281,13 +287,25 @@ export default function AdminCaisseScreen() {
   const handleConfirmCollect = async () => {
     setCollectError('');
     if (!collectTitle.trim()) {
-      setCollectError('Veuillez indiquer le libellé de la recette.');
+      setCollectError(
+        language === 'ar'
+          ? 'يرجى كتابة بيان أو سبب المدخول.'
+          : language === 'en'
+          ? 'Please enter a description for the income.'
+          : 'Veuillez indiquer le libellé de la recette.'
+      );
       return;
     }
 
     const amt = parseFloat(collectAmount);
     if (isNaN(amt) || amt <= 0) {
-      setCollectError('Veuillez saisir un montant positif valide.');
+      setCollectError(
+        language === 'ar'
+          ? 'يرجى إدخال مبلغ صحيح وموجب.'
+          : language === 'en'
+          ? 'Please enter a valid positive amount.'
+          : 'Veuillez saisir un montant positif valide.'
+      );
       return;
     }
 
@@ -326,8 +344,13 @@ export default function AdminCaisseScreen() {
         setFeedback({
           visible: true,
           type: 'success',
-          title: 'Recette Encaissée',
-          message: `✓ ${amt} DT encaissés avec succès pour "${collectTitle}".`,
+          title: t.adminCaisseIncomeSuccess,
+          message:
+            language === 'ar'
+              ? `✓ تم قبض ${amt} د.ت بنجاح لـ "${collectTitle}".`
+              : language === 'en'
+              ? `✓ Successfully collected ${amt} DT for "${collectTitle}".`
+              : `✓ ${amt} DT encaissés avec succès pour "${collectTitle}".`,
         });
         queryClient.invalidateQueries({ queryKey: ['admin'] });
         refetch();
@@ -338,8 +361,14 @@ export default function AdminCaisseScreen() {
       setFeedback({
         visible: true,
         type: 'error',
-        title: 'Erreur',
-        message: err.message || 'Une erreur est survenue lors de l’encaissement.',
+        title: t.adminErrorTitle,
+        message:
+          err.message ||
+          (language === 'ar'
+            ? 'حدث خطأ أثناء تسجيل المدخول.'
+            : language === 'en'
+            ? 'An error occurred while recording income.'
+            : 'Une erreur est survenue lors de l’encaissement.'),
       });
     } finally {
       setSubmittingCollect(false);
@@ -350,12 +379,24 @@ export default function AdminCaisseScreen() {
   const handleConfirmExpense = async () => {
     setExpenseError('');
     if (!expenseTitle.trim()) {
-      setExpenseError('Veuillez indiquer le motif de la dépense.');
+      setExpenseError(
+        language === 'ar'
+          ? 'يرجى كتابة سبب المصروف.'
+          : language === 'en'
+          ? 'Please enter a description for the expense.'
+          : 'Veuillez indiquer le motif de la dépense.'
+      );
       return;
     }
     const amt = parseFloat(expenseAmount);
     if (isNaN(amt) || amt <= 0) {
-      setExpenseError('Veuillez saisir un montant valide.');
+      setExpenseError(
+        language === 'ar'
+          ? 'يرجى إدخال مبلغ صحيح وموجب.'
+          : language === 'en'
+          ? 'Please enter a valid amount.'
+          : 'Veuillez saisir un montant valide.'
+      );
       return;
     }
 
@@ -392,8 +433,13 @@ export default function AdminCaisseScreen() {
         setFeedback({
           visible: true,
           type: 'success',
-          title: 'Dépense Enregistrée',
-          message: `✓ ${amt} DT décaissés pour "${expenseTitle}".`,
+          title: t.adminCaisseExpenseSuccess,
+          message:
+            language === 'ar'
+              ? `✓ تم صرف ${amt} د.ت لـ "${expenseTitle}".`
+              : language === 'en'
+              ? `✓ ${amt} DT disbursed for "${expenseTitle}".`
+              : `✓ ${amt} DT décaissés pour "${expenseTitle}".`,
         });
         queryClient.invalidateQueries({ queryKey: ['admin'] });
         refetch();
@@ -404,8 +450,14 @@ export default function AdminCaisseScreen() {
       setFeedback({
         visible: true,
         type: 'error',
-        title: 'Erreur',
-        message: err.message || 'Une erreur est survenue lors de la dépense.',
+        title: t.adminErrorTitle,
+        message:
+          err.message ||
+          (language === 'ar'
+            ? 'حدث خطأ أثناء تسجيل المصروف.'
+            : language === 'en'
+            ? 'An error occurred while recording the expense.'
+            : 'Une erreur est survenue lors de la dépense.'),
       });
     } finally {
       setSubmittingExpense(false);
@@ -430,8 +482,13 @@ export default function AdminCaisseScreen() {
       setFeedback({
         visible: true,
         type: 'error',
-        title: "Erreur d'impression",
-        message: "Impossible d'ouvrir le module d'impression : " + (err.message || ''),
+        title: language === 'ar' ? 'خطأ في الطباعة' : language === 'en' ? 'Print Error' : "Erreur d'impression",
+        message:
+          (language === 'ar'
+            ? 'تعذر فتح وحدة الطباعة : '
+            : language === 'en'
+            ? 'Unable to open print module: '
+            : "Impossible d'ouvrir le module d'impression : ") + (err.message || ''),
       });
     } finally {
       setPrinting(false);
@@ -468,15 +525,20 @@ export default function AdminCaisseScreen() {
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(localUri, {
           mimeType: 'application/pdf',
-          dialogTitle: 'Bordereau de Caisse Journalière',
+          dialogTitle: t.adminCaissePdfDialog,
           UTI: 'com.adobe.pdf',
         });
       } else {
         setFeedback({
           visible: true,
           type: 'success',
-          title: 'Document enregistré',
-          message: `Le bordereau PDF a été enregistré avec succès : ${filename}`,
+          title: t.adminDocSaved,
+          message:
+            language === 'ar'
+              ? `تم حفظ ملف PDF بنجاح : ${filename}`
+              : language === 'en'
+              ? `PDF report saved successfully: ${filename}`
+              : `Le bordereau PDF a été enregistré avec succès : ${filename}`,
         });
       }
     } catch (err: any) {
@@ -484,19 +546,28 @@ export default function AdminCaisseScreen() {
       setFeedback({
         visible: true,
         type: 'error',
-        title: 'Erreur',
-        message: 'Impossible de télécharger le bordereau : ' + (err.message || 'Erreur inconnue'),
+        title: t.adminErrorTitle,
+        message:
+          err.message ||
+          (language === 'ar'
+            ? 'تعذر تحميل المستند'
+            : language === 'en'
+            ? 'Unable to download report'
+            : 'Impossible de télécharger le bordereau'),
       });
     } finally {
       setSharing(false);
     }
   };
 
-  const todayDateStr = new Date().toLocaleDateString('fr-FR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  });
+  const todayDateStr = new Date().toLocaleDateString(
+    language === 'ar' ? 'ar-TN' : language === 'en' ? 'en-US' : 'fr-FR',
+    {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    }
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: '#f8fafc', paddingTop: topPadding }}>
@@ -504,23 +575,23 @@ export default function AdminCaisseScreen() {
 
       {/* ── HEADER ─────────────────────────────────────────────────────────── */}
       <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 10 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View>
+        <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
             <Text style={{ fontSize: 26, fontWeight: '900', color: '#0f172a', letterSpacing: -0.5 }}>
-              Caisse du Jour
+              {t.adminCaisseTodayTitle}
             </Text>
             <Text style={{ fontSize: 13, fontWeight: '600', color: '#64748b', marginTop: 2, textTransform: 'capitalize' }}>
               {todayDateStr}
             </Text>
           </View>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 8 }}>
             {/* Quick Hnia Pill */}
             <TouchableOpacity
               onPress={() => navigation.navigate('Hnia')}
               activeOpacity={0.8}
               style={{
-                flexDirection: 'row',
+                flexDirection: isRTL ? 'row-reverse' : 'row',
                 alignItems: 'center',
                 gap: 5,
                 backgroundColor: '#eff6ff',
@@ -532,7 +603,7 @@ export default function AdminCaisseScreen() {
               }}
             >
               <Bot size={15} color="#0055d4" />
-              <Text style={{ fontSize: 12.5, fontWeight: '800', color: '#0055d4' }}>Hnia</Text>
+              <Text style={{ fontSize: 12.5, fontWeight: '800', color: '#0055d4' }}>{t.adminHnia}</Text>
             </TouchableOpacity>
 
             {/* Refresh Button */}
@@ -582,17 +653,17 @@ export default function AdminCaisseScreen() {
           }}
         >
           {/* Card Header */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 6 }}>
               <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#ecfdf5', alignItems: 'center', justifyContent: 'center' }}>
                 <Wallet size={14} color="#059669" />
               </View>
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                Solde Net Caisse
+                {t.adminCaisseNetBalance}
               </Text>
             </View>
             <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
-              <Text style={{ fontSize: 10.5, fontWeight: '700', color: '#475569' }}>Aujourd'hui</Text>
+              <Text style={{ fontSize: 10.5, fontWeight: '700', color: '#475569' }}>{t.adminCaisseTodayBadge}</Text>
             </View>
           </View>
 
@@ -604,6 +675,7 @@ export default function AdminCaisseScreen() {
                 fontWeight: '900',
                 color: summary.todayNet >= 0 ? '#059669' : '#dc2626',
                 letterSpacing: -0.8,
+                textAlign: isRTL ? 'right' : 'left',
               }}
             >
               {summary.todayNet >= 0 ? `+${summary.todayNet.toLocaleString()} DT` : `${summary.todayNet.toLocaleString()} DT`}
@@ -611,26 +683,26 @@ export default function AdminCaisseScreen() {
           </View>
 
           {/* Inflow / Outflow Split */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#f0fdf4', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12, gap: 6 }}>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <View style={{ flex: 1, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#f0fdf4', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12, gap: 6 }}>
               <ArrowDownLeft size={14} color="#059669" />
-              <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600' }}>Recettes</Text>
-              <Text style={{ fontSize: 13, fontWeight: '800', color: '#15803d', marginLeft: 'auto' }}>
+              <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600' }}>{t.adminCaisseInflow}</Text>
+              <Text style={{ fontSize: 13, fontWeight: '800', color: '#15803d', marginLeft: isRTL ? 0 : 'auto', marginRight: isRTL ? 'auto' : 0 }}>
                 +{summary.todayIncome.toLocaleString()} DT
               </Text>
             </View>
 
-            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fef2f2', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12, gap: 6 }}>
+            <View style={{ flex: 1, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#fef2f2', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12, gap: 6 }}>
               <ArrowUpRight size={14} color="#dc2626" />
-              <Text style={{ fontSize: 12, color: '#991b1b', fontWeight: '600' }}>Dépenses</Text>
-              <Text style={{ fontSize: 13, fontWeight: '800', color: '#b91c1c', marginLeft: 'auto' }}>
+              <Text style={{ fontSize: 12, color: '#991b1b', fontWeight: '600' }}>{t.adminCaisseOutflow}</Text>
+              <Text style={{ fontSize: 13, fontWeight: '800', color: '#b91c1c', marginLeft: isRTL ? 0 : 'auto', marginRight: isRTL ? 'auto' : 0 }}>
                 -{summary.todayExpense.toLocaleString()} DT
               </Text>
             </View>
           </View>
 
           {/* A4 Print & PDF Share */}
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 8 }}>
             <TouchableOpacity
               onPress={handlePrintBordereau}
               disabled={printing}
@@ -640,7 +712,7 @@ export default function AdminCaisseScreen() {
                 backgroundColor: '#059669',
                 borderRadius: 12,
                 paddingVertical: 10,
-                flexDirection: 'row',
+                flexDirection: isRTL ? 'row-reverse' : 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 6,
@@ -652,7 +724,7 @@ export default function AdminCaisseScreen() {
                 <>
                   <Printer size={14} color="#ffffff" strokeWidth={2.2} />
                   <Text style={{ fontSize: 12.5, fontWeight: '800', color: '#ffffff' }}>
-                    Livre de Caisse A4
+                    {t.adminCaisseA4Book}
                   </Text>
                 </>
               )}
@@ -669,7 +741,7 @@ export default function AdminCaisseScreen() {
                 borderColor: '#e2e8f0',
                 borderRadius: 12,
                 paddingVertical: 10,
-                flexDirection: 'row',
+                flexDirection: isRTL ? 'row-reverse' : 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 6,
@@ -681,7 +753,7 @@ export default function AdminCaisseScreen() {
                 <>
                   <Share2 size={14} color="#0f172a" />
                   <Text style={{ fontSize: 12.5, fontWeight: '700', color: '#0f172a' }}>
-                    Partager PDF
+                    {t.adminCaisseSharePdf}
                   </Text>
                 </>
               )}
@@ -691,11 +763,11 @@ export default function AdminCaisseScreen() {
 
         {/* ── 2. ACTIONS DU JOUR (MATCHING MODERN LUXURY UI) ───────────────── */}
         <View style={{ marginTop: 18 }}>
-          <Text style={{ fontSize: 12, fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 10 }}>
-            Actions Rapides du Jour
+          <Text style={{ fontSize: 12, fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 10, textAlign: isRTL ? 'right' : 'left' }}>
+            {t.adminCaisseQuickActions}
           </Text>
 
-          <View style={{ flexDirection: 'row', gap: 10 }}>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 10 }}>
             {/* Card 1: Encaisser */}
             <TouchableOpacity
               onPress={() => {
@@ -722,8 +794,8 @@ export default function AdminCaisseScreen() {
               <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: '#ecfdf5', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
                 <Plus size={22} color="#059669" strokeWidth={2.5} />
               </View>
-              <Text style={{ fontSize: 14, fontWeight: '800', color: '#0f172a' }}>Encaisser</Text>
-              <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Recette / Frais</Text>
+              <Text style={{ fontSize: 14, fontWeight: '800', color: '#0f172a' }}>{t.adminCaisseCollectBtn}</Text>
+              <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{t.adminCaisseCollectSub}</Text>
             </TouchableOpacity>
 
             {/* Card 2: Dépense */}
@@ -752,8 +824,8 @@ export default function AdminCaisseScreen() {
               <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: '#fef2f2', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
                 <Minus size={22} color="#dc2626" strokeWidth={2.5} />
               </View>
-              <Text style={{ fontSize: 14, fontWeight: '800', color: '#0f172a' }}>Dépense</Text>
-              <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Sortie de caisse</Text>
+              <Text style={{ fontSize: 14, fontWeight: '800', color: '#0f172a' }}>{t.adminCaisseExpenseBtn}</Text>
+              <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{t.adminCaisseExpenseSub}</Text>
             </TouchableOpacity>
 
             {/* Card 3: Hnia IA (LUXURY SOFT-BLUE CARD) */}
@@ -779,31 +851,31 @@ export default function AdminCaisseScreen() {
                 position: 'relative',
               }}
             >
-              <View style={{ position: 'absolute', top: 7, right: 7, backgroundColor: '#eff6ff', paddingHorizontal: 5, paddingVertical: 1.5, borderRadius: 6, borderWidth: 1, borderColor: '#dbeafe' }}>
+              <View style={{ position: 'absolute', top: 7, right: isRTL ? undefined : 7, left: isRTL ? 7 : undefined, backgroundColor: '#eff6ff', paddingHorizontal: 5, paddingVertical: 1.5, borderRadius: 6, borderWidth: 1, borderColor: '#dbeafe' }}>
                 <Text style={{ fontSize: 8.5, fontWeight: '900', color: '#0055d4' }}>IA</Text>
               </View>
 
               <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
                 <Bot size={22} color="#0055d4" strokeWidth={2.2} />
               </View>
-              <Text style={{ fontSize: 14, fontWeight: '800', color: '#0f172a' }}>Hnia IA</Text>
-              <Text style={{ fontSize: 11, color: '#0055d4', fontWeight: '600', marginTop: 2 }}>Vocal / Dictée</Text>
+              <Text style={{ fontSize: 14, fontWeight: '800', color: '#0f172a' }}>{t.adminCaisseHniaBtn}</Text>
+              <Text style={{ fontSize: 11, color: '#0055d4', fontWeight: '600', marginTop: 2 }}>{t.adminCaisseHniaSub}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* ── 3. JOURNAL DES FLUX DU JOUR ──────────────────────────────────── */}
         <View style={{ marginTop: 22 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 6 }}>
               <Clock size={16} color="#0055d4" />
-              <Text style={{ fontSize: 15, fontWeight: '800', color: '#0f172a' }}>
-                Opérations du Jour
+              <Text style={{ fontSize: 15, fontWeight: '800', color: '#0f172a', textAlign: isRTL ? 'right' : 'left' }}>
+                {t.adminCaisseTodayTxTitle}
               </Text>
             </View>
             <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
               <Text style={{ fontSize: 11, fontWeight: '800', color: '#0055d4' }}>
-                {transactions.length} mouvement{transactions.length > 1 ? 's' : ''}
+                {transactions.length} {t.adminCaisseMovements}
               </Text>
             </View>
           </View>
@@ -811,7 +883,7 @@ export default function AdminCaisseScreen() {
           {loading ? (
             <View style={{ paddingVertical: 40, alignItems: 'center' }}>
               <ActivityIndicator size="large" color="#0055d4" />
-              <Text style={{ fontSize: 13, color: '#64748b', marginTop: 12 }}>Chargement des flux...</Text>
+              <Text style={{ fontSize: 13, color: '#64748b', marginTop: 12 }}>{t.adminCaisseLoadingTx}</Text>
             </View>
           ) : transactions.length === 0 ? (
             <View
@@ -827,18 +899,21 @@ export default function AdminCaisseScreen() {
               <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
                 <Wallet size={26} color="#94a3b8" />
               </View>
-              <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e293b' }}>
-                Aucun mouvement aujourd'hui
+              <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e293b', textAlign: 'center' }}>
+                {t.adminCaisseNoTxTitle}
               </Text>
               <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center', marginTop: 6, lineHeight: 19 }}>
-                Votre caisse est équilibrée. Utilisez les boutons ci-dessus ou demandez à Hnia pour enregistrer une opération.
+                {t.adminCaisseNoTxSub}
               </Text>
             </View>
           ) : (
             <View style={{ gap: 9 }}>
               {transactions.map((tx) => {
                 const isIncome = tx.type === 'IN';
-                const timeStr = new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const timeStr = new Date(tx.createdAt).toLocaleTimeString(
+                  language === 'ar' ? 'ar-TN' : language === 'en' ? 'en-US' : 'fr-FR',
+                  { hour: '2-digit', minute: '2-digit' }
+                );
 
                 return (
                   <View
@@ -847,7 +922,7 @@ export default function AdminCaisseScreen() {
                       backgroundColor: '#ffffff',
                       borderRadius: 16,
                       padding: 14,
-                      flexDirection: 'row',
+                      flexDirection: isRTL ? 'row-reverse' : 'row',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       borderWidth: 1,
@@ -858,7 +933,7 @@ export default function AdminCaisseScreen() {
                       elevation: 1,
                     }}
                   >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, paddingRight: 8 }}>
+                    <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 12, flex: 1, paddingRight: isRTL ? 0 : 8, paddingLeft: isRTL ? 8 : 0 }}>
                       <View
                         style={{
                           width: 38,
@@ -871,11 +946,11 @@ export default function AdminCaisseScreen() {
                       >
                         {isIncome ? <ArrowDownLeft size={18} color="#10b981" /> : <ArrowUpRight size={18} color="#ef4444" />}
                       </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 14, fontWeight: '800', color: '#1e293b' }} numberOfLines={1}>
+                      <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                        <Text style={{ fontSize: 14, fontWeight: '800', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>
                           {tx.title}
                         </Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                        <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
                           <Text style={{ fontSize: 11, color: '#94a3b8' }}>{timeStr}</Text>
                           <Text style={{ fontSize: 11, color: '#cbd5e1' }}>•</Text>
                           <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 6 }}>
@@ -884,10 +959,10 @@ export default function AdminCaisseScreen() {
                           {tx.img ? (
                             <TouchableOpacity
                               onPress={() => setPreviewImage(tx.img || null)}
-                              style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#eff6ff', paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 6 }}
+                              style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 3, backgroundColor: '#eff6ff', paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 6 }}
                             >
                               <ImageIcon size={10} color="#0055d4" />
-                              <Text style={{ fontSize: 9.5, fontWeight: '700', color: '#0055d4' }}>Reçu</Text>
+                              <Text style={{ fontSize: 9.5, fontWeight: '700', color: '#0055d4' }}>{t.adminCaisseReceiptBadge}</Text>
                             </TouchableOpacity>
                           ) : null}
                         </View>
@@ -936,13 +1011,13 @@ export default function AdminCaisseScreen() {
             }}
           >
             {/* Modal Header */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <View>
-                <Text style={{ fontSize: 19, fontWeight: '900', color: '#0f172a' }}>
-                  Encaisser une Recette
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                <Text style={{ fontSize: 19, fontWeight: '900', color: '#0f172a', textAlign: isRTL ? 'right' : 'left' }}>
+                  {t.adminCaisseModalIncomeTitle}
                 </Text>
-                <Text style={{ fontSize: 12, color: '#64748b', marginTop: 1 }}>
-                  Entrée de fonds dans la caisse aujourd'hui
+                <Text style={{ fontSize: 12, color: '#64748b', marginTop: 1, textAlign: isRTL ? 'right' : 'left' }}>
+                  {t.adminCaisseModalIncomeSub}
                 </Text>
               </View>
               <TouchableOpacity
@@ -956,24 +1031,24 @@ export default function AdminCaisseScreen() {
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 10 }}>
               {/* Inline Error if any */}
               {Boolean(collectError) && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#fef2f2', padding: 10, borderRadius: 10, marginBottom: 12 }}>
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 6, backgroundColor: '#fef2f2', padding: 10, borderRadius: 10, marginBottom: 12 }}>
                   <AlertCircle size={15} color="#dc2626" />
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#dc2626' }}>{collectError}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#dc2626', textAlign: isRTL ? 'right' : 'left', flex: 1 }}>{collectError}</Text>
                 </View>
               )}
 
               {/* Motif / Libellé de la recette */}
               <View style={{ marginBottom: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 5 }}>
-                  Motif / Libellé de la recette
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 5, textAlign: isRTL ? 'right' : 'left' }}>
+                  {t.adminCaisseIncomeReason}
                 </Text>
                 <TextInput
                   value={collectTitle}
-                  onChangeText={(t) => {
-                    setCollectTitle(t);
+                  onChangeText={(text) => {
+                    setCollectTitle(text);
                     if (collectError) setCollectError('');
                   }}
-                  placeholder="Ex: Frais d'inscription, Cantine, Vente manuels, Don..."
+                  placeholder={t.adminCaisseIncomeReasonPlaceholder}
                   placeholderTextColor="#94a3b8"
                   style={{
                     backgroundColor: '#ffffff',
@@ -985,19 +1060,20 @@ export default function AdminCaisseScreen() {
                     fontSize: 14,
                     fontWeight: '600',
                     color: '#0f172a',
+                    textAlign: isRTL ? 'right' : 'left',
                   }}
                 />
               </View>
 
               {/* Amount Field */}
               <View style={{ marginBottom: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 5 }}>
-                  Montant encaissé (DT)
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 5, textAlign: isRTL ? 'right' : 'left' }}>
+                  {t.adminCaisseAmountDT}
                 </Text>
                 <TextInput
                   value={collectAmount}
-                  onChangeText={(t) => {
-                    setCollectAmount(t);
+                  onChangeText={(text) => {
+                    setCollectAmount(text);
                     if (collectError) setCollectError('');
                   }}
                   keyboardType="numeric"
@@ -1013,18 +1089,25 @@ export default function AdminCaisseScreen() {
                     fontSize: 18,
                     fontWeight: '800',
                     color: '#0f172a',
+                    textAlign: isRTL ? 'right' : 'left',
                   }}
                 />
               </View>
 
               {/* Mode de règlement */}
               <View style={{ marginBottom: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 5 }}>
-                  Mode de règlement
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 5, textAlign: isRTL ? 'right' : 'left' }}>
+                  {t.adminCaissePaymentMode}
                 </Text>
-                <View style={{ flexDirection: 'row', gap: 6 }}>
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 6 }}>
                   {(['Espèces', 'Chèque', 'Virement'] as const).map((method) => {
                     const isSelected = collectMethod === method;
+                    const methodLabel =
+                      method === 'Espèces'
+                        ? t.adminMethodCash
+                        : method === 'Chèque'
+                        ? t.adminMethodCheque
+                        : t.adminMethodTransfer;
                     return (
                       <TouchableOpacity
                         key={method}
@@ -1040,7 +1123,7 @@ export default function AdminCaisseScreen() {
                         }}
                       >
                         <Text style={{ fontSize: 12, fontWeight: isSelected ? '800' : '600', color: isSelected ? '#059669' : '#475569' }}>
-                          {method}
+                          {methodLabel}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -1050,27 +1133,27 @@ export default function AdminCaisseScreen() {
 
               {/* Catégories de recette + Bouton Créer */}
               <View style={{ marginBottom: 14 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569' }}>
-                    Catégorie de recette
+                    {t.adminCaisseCategory}
                   </Text>
                   <TouchableOpacity
                     onPress={() => setShowNewIncomeCategoryInput(!showNewIncomeCategoryInput)}
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}
+                    style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 3 }}
                   >
                     <Plus size={13} color="#0055d4" />
                     <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#0055d4' }}>
-                      {showNewIncomeCategoryInput ? 'Fermer' : '+ Nouvelle'}
+                      {showNewIncomeCategoryInput ? t.adminCaisseClose : t.adminCaisseNewCategory}
                     </Text>
                   </TouchableOpacity>
                 </View>
 
                 {showNewIncomeCategoryInput && (
-                  <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8 }}>
+                  <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 6, marginBottom: 8 }}>
                     <TextInput
                       value={newIncomeCategoryText}
                       onChangeText={setNewIncomeCategoryText}
-                      placeholder="Nom de la nouvelle catégorie..."
+                      placeholder={t.adminCaisseNewCategoryPlaceholder}
                       placeholderTextColor="#94a3b8"
                       style={{
                         flex: 1,
@@ -1082,6 +1165,7 @@ export default function AdminCaisseScreen() {
                         paddingVertical: 7,
                         fontSize: 13,
                         color: '#0f172a',
+                        textAlign: isRTL ? 'right' : 'left',
                       }}
                     />
                     <TouchableOpacity
@@ -1104,7 +1188,7 @@ export default function AdminCaisseScreen() {
                   </View>
                 )}
 
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: 6 }}>
                   {incomeCategories.map((cat) => {
                     const isSelected = collectCategory === cat;
                     return (
@@ -1134,16 +1218,16 @@ export default function AdminCaisseScreen() {
 
               {/* Justificatif / Reçu (Photo) */}
               <View style={{ marginBottom: 16 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 6 }}>
-                  Justificatif / Reçu (Photo)
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 6, textAlign: isRTL ? 'right' : 'left' }}>
+                  {t.adminCaisseReceiptProof}
                 </Text>
 
                 {collectImageUri ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#f8fafc', padding: 8, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
+                  <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 10, backgroundColor: '#f8fafc', padding: 8, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
                     <Image source={{ uri: collectImageUri }} style={{ width: 44, height: 44, borderRadius: 8 }} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#0f172a' }}>Justificatif joint</Text>
-                      <Text style={{ fontSize: 10.5, color: '#64748b' }}>Photo prête à être enregistrée</Text>
+                    <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#0f172a', textAlign: isRTL ? 'right' : 'left' }}>{t.adminCaisseProofAttached}</Text>
+                      <Text style={{ fontSize: 10.5, color: '#64748b', textAlign: isRTL ? 'right' : 'left' }}>{t.adminCaisseProofReady}</Text>
                     </View>
                     <TouchableOpacity
                       onPress={() => setCollectImageUri(null)}
@@ -1156,7 +1240,7 @@ export default function AdminCaisseScreen() {
                   <TouchableOpacity
                     onPress={() => triggerPhotoPicker(setCollectImageUri)}
                     style={{
-                      flexDirection: 'row',
+                      flexDirection: isRTL ? 'row-reverse' : 'row',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: 8,
@@ -1170,19 +1254,19 @@ export default function AdminCaisseScreen() {
                   >
                     <Camera size={16} color="#0055d4" />
                     <Text style={{ fontSize: 13, fontWeight: '700', color: '#0055d4' }}>
-                      Prendre ou choisir une photo du reçu
+                      {t.adminCaisseAttachReceipt}
                     </Text>
                   </TouchableOpacity>
                 )}
               </View>
 
               {/* Action Buttons */}
-              <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 10 }}>
                 <TouchableOpacity
                   onPress={() => setShowCollectModal(false)}
                   style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: '#f1f5f9', alignItems: 'center' }}
                 >
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#64748b' }}>Annuler</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#64748b' }}>{t.adminCancel}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -1194,7 +1278,7 @@ export default function AdminCaisseScreen() {
                     borderRadius: 12,
                     backgroundColor: '#059669',
                     alignItems: 'center',
-                    flexDirection: 'row',
+                    flexDirection: isRTL ? 'row-reverse' : 'row',
                     justifyContent: 'center',
                     gap: 6,
                   }}
@@ -1204,7 +1288,7 @@ export default function AdminCaisseScreen() {
                   ) : (
                     <>
                       <Check size={16} color="#ffffff" strokeWidth={2.5} />
-                      <Text style={{ fontSize: 14, fontWeight: '800', color: '#ffffff' }}>Encaisser</Text>
+                      <Text style={{ fontSize: 14, fontWeight: '800', color: '#ffffff' }}>{t.adminCaisseSubmitIncome}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -1245,13 +1329,13 @@ export default function AdminCaisseScreen() {
             }}
           >
             {/* Modal Header */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <View>
-                <Text style={{ fontSize: 19, fontWeight: '900', color: '#0f172a' }}>
-                  Enregistrer une Dépense
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                <Text style={{ fontSize: 19, fontWeight: '900', color: '#0f172a', textAlign: isRTL ? 'right' : 'left' }}>
+                  {t.adminCaisseModalExpenseTitle}
                 </Text>
-                <Text style={{ fontSize: 12, color: '#64748b', marginTop: 1 }}>
-                  Sortie de caisse physique aujourd'hui
+                <Text style={{ fontSize: 12, color: '#64748b', marginTop: 1, textAlign: isRTL ? 'right' : 'left' }}>
+                  {t.adminCaisseModalExpenseSub}
                 </Text>
               </View>
               <TouchableOpacity
@@ -1265,24 +1349,24 @@ export default function AdminCaisseScreen() {
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 10 }}>
               {/* Inline Error if any */}
               {Boolean(expenseError) && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#fef2f2', padding: 10, borderRadius: 10, marginBottom: 12 }}>
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 6, backgroundColor: '#fef2f2', padding: 10, borderRadius: 10, marginBottom: 12 }}>
                   <AlertCircle size={15} color="#dc2626" />
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#dc2626' }}>{expenseError}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#dc2626', textAlign: isRTL ? 'right' : 'left', flex: 1 }}>{expenseError}</Text>
                 </View>
               )}
 
               {/* Motif */}
               <View style={{ marginBottom: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 5 }}>
-                  Motif de la dépense
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 5, textAlign: isRTL ? 'right' : 'left' }}>
+                  {t.adminCaisseExpenseReason}
                 </Text>
                 <TextInput
                   value={expenseTitle}
-                  onChangeText={(t) => {
-                    setExpenseTitle(t);
+                  onChangeText={(text) => {
+                    setExpenseTitle(text);
                     if (expenseError) setExpenseError('');
                   }}
-                  placeholder="Ex: Achat ramettes papier, Plomberie, Carburant..."
+                  placeholder={t.adminCaisseExpenseReasonPlaceholder}
                   placeholderTextColor="#94a3b8"
                   style={{
                     backgroundColor: '#ffffff',
@@ -1294,19 +1378,20 @@ export default function AdminCaisseScreen() {
                     fontSize: 14,
                     fontWeight: '600',
                     color: '#0f172a',
+                    textAlign: isRTL ? 'right' : 'left',
                   }}
                 />
               </View>
 
               {/* Montant */}
               <View style={{ marginBottom: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 5 }}>
-                  Montant décaissé (DT)
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 5, textAlign: isRTL ? 'right' : 'left' }}>
+                  {t.adminCaisseExpenseAmountDT}
                 </Text>
                 <TextInput
                   value={expenseAmount}
-                  onChangeText={(t) => {
-                    setExpenseAmount(t);
+                  onChangeText={(text) => {
+                    setExpenseAmount(text);
                     if (expenseError) setExpenseError('');
                   }}
                   keyboardType="numeric"
@@ -1322,33 +1407,34 @@ export default function AdminCaisseScreen() {
                     fontSize: 18,
                     fontWeight: '800',
                     color: '#0f172a',
+                    textAlign: isRTL ? 'right' : 'left',
                   }}
                 />
               </View>
 
               {/* Catégories de dépense + Bouton Créer */}
               <View style={{ marginBottom: 14 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569' }}>
-                    Catégorie de dépense
+                    {t.adminCaisseExpenseCategory}
                   </Text>
                   <TouchableOpacity
                     onPress={() => setShowNewExpenseCategoryInput(!showNewExpenseCategoryInput)}
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}
+                    style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 3 }}
                   >
                     <Plus size={13} color="#dc2626" />
                     <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#dc2626' }}>
-                      {showNewExpenseCategoryInput ? 'Fermer' : '+ Nouvelle'}
+                      {showNewExpenseCategoryInput ? t.adminCaisseClose : t.adminCaisseNewCategory}
                     </Text>
                   </TouchableOpacity>
                 </View>
 
                 {showNewExpenseCategoryInput && (
-                  <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8 }}>
+                  <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 6, marginBottom: 8 }}>
                     <TextInput
                       value={newExpenseCategoryText}
                       onChangeText={setNewExpenseCategoryText}
-                      placeholder="Nom de la nouvelle catégorie..."
+                      placeholder={t.adminCaisseNewCategoryPlaceholder}
                       placeholderTextColor="#94a3b8"
                       style={{
                         flex: 1,
@@ -1360,6 +1446,7 @@ export default function AdminCaisseScreen() {
                         paddingVertical: 7,
                         fontSize: 13,
                         color: '#0f172a',
+                        textAlign: isRTL ? 'right' : 'left',
                       }}
                     />
                     <TouchableOpacity
@@ -1382,7 +1469,7 @@ export default function AdminCaisseScreen() {
                   </View>
                 )}
 
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: 6 }}>
                   {expenseCategories.map((cat) => {
                     const isSelected = expenseCategory === cat;
                     return (
@@ -1412,16 +1499,16 @@ export default function AdminCaisseScreen() {
 
               {/* Justificatif / Facture (Photo) */}
               <View style={{ marginBottom: 16 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 6 }}>
-                  Facture / Ticket (Photo)
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 6, textAlign: isRTL ? 'right' : 'left' }}>
+                  {t.adminCaisseInvoiceProof}
                 </Text>
 
                 {expenseImageUri ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#f8fafc', padding: 8, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
+                  <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 10, backgroundColor: '#f8fafc', padding: 8, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
                     <Image source={{ uri: expenseImageUri }} style={{ width: 44, height: 44, borderRadius: 8 }} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#0f172a' }}>Facture jointe</Text>
-                      <Text style={{ fontSize: 10.5, color: '#64748b' }}>Photo prête à être enregistrée</Text>
+                    <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#0f172a', textAlign: isRTL ? 'right' : 'left' }}>{t.adminCaisseProofAttached}</Text>
+                      <Text style={{ fontSize: 10.5, color: '#64748b', textAlign: isRTL ? 'right' : 'left' }}>{t.adminCaisseProofReady}</Text>
                     </View>
                     <TouchableOpacity
                       onPress={() => setExpenseImageUri(null)}
@@ -1434,7 +1521,7 @@ export default function AdminCaisseScreen() {
                   <TouchableOpacity
                     onPress={() => triggerPhotoPicker(setExpenseImageUri)}
                     style={{
-                      flexDirection: 'row',
+                      flexDirection: isRTL ? 'row-reverse' : 'row',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: 8,
@@ -1448,19 +1535,19 @@ export default function AdminCaisseScreen() {
                   >
                     <Camera size={16} color="#dc2626" />
                     <Text style={{ fontSize: 13, fontWeight: '700', color: '#dc2626' }}>
-                      Photographier la facture ou le ticket
+                      {t.adminCaisseAttachInvoice}
                     </Text>
                   </TouchableOpacity>
                 )}
               </View>
 
               {/* Action Buttons */}
-              <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 10 }}>
                 <TouchableOpacity
                   onPress={() => setShowExpenseModal(false)}
                   style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: '#f1f5f9', alignItems: 'center' }}
                 >
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#64748b' }}>Annuler</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#64748b' }}>{t.adminCancel}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -1472,7 +1559,7 @@ export default function AdminCaisseScreen() {
                     borderRadius: 12,
                     backgroundColor: '#dc2626',
                     alignItems: 'center',
-                    flexDirection: 'row',
+                    flexDirection: isRTL ? 'row-reverse' : 'row',
                     justifyContent: 'center',
                     gap: 6,
                   }}
@@ -1482,7 +1569,7 @@ export default function AdminCaisseScreen() {
                   ) : (
                     <>
                       <Check size={16} color="#ffffff" strokeWidth={2.5} />
-                      <Text style={{ fontSize: 14, fontWeight: '800', color: '#ffffff' }}>Décaisser</Text>
+                      <Text style={{ fontSize: 14, fontWeight: '800', color: '#ffffff' }}>{t.adminCaisseSubmitExpense}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -1513,10 +1600,10 @@ export default function AdminCaisseScreen() {
             {/* Top Indicator */}
             <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#cbd5e1', alignSelf: 'center', marginBottom: 14 }} />
 
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <View>
-                <Text style={{ fontSize: 18, fontWeight: '900', color: '#0f172a' }}>Joindre un Justificatif</Text>
-                <Text style={{ fontSize: 12.5, color: '#64748b', marginTop: 2 }}>Prenez une photo ou importez depuis vos photos</Text>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                <Text style={{ fontSize: 18, fontWeight: '900', color: '#0f172a', textAlign: isRTL ? 'right' : 'left' }}>{t.adminCaissePhotoModalTitle}</Text>
+                <Text style={{ fontSize: 12.5, color: '#64748b', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>{t.adminCaissePhotoModalSub}</Text>
               </View>
               <TouchableOpacity
                 onPress={() => setShowPhotoPicker(null)}
@@ -1531,7 +1618,7 @@ export default function AdminCaisseScreen() {
               onPress={() => showPhotoPicker && openCamera(showPhotoPicker.onSelected)}
               activeOpacity={0.8}
               style={{
-                flexDirection: 'row',
+                flexDirection: isRTL ? 'row-reverse' : 'row',
                 alignItems: 'center',
                 backgroundColor: '#f8fafc',
                 padding: 14,
@@ -1541,14 +1628,14 @@ export default function AdminCaisseScreen() {
                 marginBottom: 10,
               }}
             >
-              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
+              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginRight: isRTL ? 0 : 14, marginLeft: isRTL ? 14 : 0 }}>
                 <Camera size={22} color="#0055d4" />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 15, fontWeight: '800', color: '#0f172a' }}>Prendre une photo</Text>
-                <Text style={{ fontSize: 12, color: '#64748b', marginTop: 1 }}>Photographier le ticket avec la caméra</Text>
+              <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                <Text style={{ fontSize: 15, fontWeight: '800', color: '#0f172a', textAlign: isRTL ? 'right' : 'left' }}>{t.adminCaisseTakePhoto}</Text>
+                <Text style={{ fontSize: 12, color: '#64748b', marginTop: 1, textAlign: isRTL ? 'right' : 'left' }}>{t.adminCaisseTakePhotoSub}</Text>
               </View>
-              <ChevronRight size={18} color="#94a3b8" />
+              {isRTL ? <ChevronLeft size={18} color="#94a3b8" /> : <ChevronRight size={18} color="#94a3b8" />}
             </TouchableOpacity>
 
             {/* Option 2: Galerie */}
@@ -1556,7 +1643,7 @@ export default function AdminCaisseScreen() {
               onPress={() => showPhotoPicker && openGallery(showPhotoPicker.onSelected)}
               activeOpacity={0.8}
               style={{
-                flexDirection: 'row',
+                flexDirection: isRTL ? 'row-reverse' : 'row',
                 alignItems: 'center',
                 backgroundColor: '#f8fafc',
                 padding: 14,
@@ -1566,14 +1653,14 @@ export default function AdminCaisseScreen() {
                 marginBottom: 14,
               }}
             >
-              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#ecfdf5', alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
+              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#ecfdf5', alignItems: 'center', justifyContent: 'center', marginRight: isRTL ? 0 : 14, marginLeft: isRTL ? 14 : 0 }}>
                 <ImageIcon size={22} color="#059669" />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 15, fontWeight: '800', color: '#0f172a' }}>Choisir dans la galerie</Text>
-                <Text style={{ fontSize: 12, color: '#64748b', marginTop: 1 }}>Importer une image existante</Text>
+              <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                <Text style={{ fontSize: 15, fontWeight: '800', color: '#0f172a', textAlign: isRTL ? 'right' : 'left' }}>{t.adminCaisseChooseGallery}</Text>
+                <Text style={{ fontSize: 12, color: '#64748b', marginTop: 1, textAlign: isRTL ? 'right' : 'left' }}>{t.adminCaisseChooseGallerySub}</Text>
               </View>
-              <ChevronRight size={18} color="#94a3b8" />
+              {isRTL ? <ChevronLeft size={18} color="#94a3b8" /> : <ChevronRight size={18} color="#94a3b8" />}
             </TouchableOpacity>
 
             {/* Cancel Button */}
@@ -1581,7 +1668,7 @@ export default function AdminCaisseScreen() {
               onPress={() => setShowPhotoPicker(null)}
               style={{ paddingVertical: 13, borderRadius: 14, backgroundColor: '#f1f5f9', alignItems: 'center' }}
             >
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#64748b' }}>Annuler</Text>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#64748b' }}>{t.adminCancel}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1660,7 +1747,7 @@ export default function AdminCaisseScreen() {
                 justifyContent: 'center',
               }}
             >
-              <Text style={{ fontSize: 15, fontWeight: '800', color: '#ffffff' }}>OK</Text>
+              <Text style={{ fontSize: 15, fontWeight: '800', color: '#ffffff' }}>{t.adminOk}</Text>
             </TouchableOpacity>
           </View>
         </View>

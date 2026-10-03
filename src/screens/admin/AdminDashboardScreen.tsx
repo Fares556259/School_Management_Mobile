@@ -44,6 +44,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { adminService } from '../../services/api';
 import { trackEvent } from '../../services/posthog';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface UnpaidItem {
   id: string;
@@ -114,6 +115,7 @@ interface DashboardData {
 }
 
 export default function AdminDashboardScreen() {
+  const { t, language, isRTL } = useLanguage();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 0);
@@ -232,8 +234,11 @@ export default function AdminDashboardScreen() {
     if (!phoneNumber) {
       setFeedback({
         type: 'error',
-        title: 'Numéro indisponible',
-        message: `Aucun numéro de téléphone enregistré pour ${contactName || 'ce contact'}.`,
+        title: language === 'ar' ? 'الرقم غير متوفر' : 'Numéro indisponible',
+        message:
+          language === 'ar'
+            ? `لا يوجد رقم هاتف مسجل لـ ${contactName || 'هذا جهة الاتصال'}.`
+            : `Aucun numéro de téléphone enregistré pour ${contactName || 'ce contact'}.`,
       });
       return;
     }
@@ -242,8 +247,11 @@ export default function AdminDashboardScreen() {
     Linking.openURL(`tel:${phoneNumber.replace(/\s+/g, '')}`).catch(() => {
       setFeedback({
         type: 'error',
-        title: 'Appel impossible',
-        message: "L'application Téléphone n'a pas pu être ouverte.",
+        title: language === 'ar' ? 'تعذر الاتصال' : 'Appel impossible',
+        message:
+          language === 'ar'
+            ? "تعذر فتح تطبيق الهاتف."
+            : "L'application Téléphone n'a pas pu être ouverte.",
       });
     });
   };
@@ -252,14 +260,20 @@ export default function AdminDashboardScreen() {
     if (!parentPhone) {
       setFeedback({
         type: 'error',
-        title: 'Numéro indisponible',
-        message: `Aucun numéro de parent enregistré pour ${studentName || 'cet élève'}.`,
+        title: language === 'ar' ? 'الرقم غير متوفر' : 'Numéro indisponible',
+        message:
+          language === 'ar'
+            ? `لا يوجد رقم هاتف للولي مسجل لـ ${studentName || 'هذا التلميذ'}.`
+            : `Aucun numéro de parent enregistré pour ${studentName || 'cet élève'}.`,
       });
       return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const cleanPhone = parentPhone.replace(/[^0-9]/g, '');
-    const message = `Bonjour, nous vous contactons depuis l'administration de ${data?.schoolName || 'notre établissement'} concernant les frais de scolarité de ${studentName || 'votre enfant'}. Il reste un montant dû de ${dueAmount || 0} DT pour le mois en cours. Merci de bien vouloir régulariser auprès de l'administration. Cordialement.`;
+    const message =
+      language === 'ar'
+        ? `السلام عليكم، نتواصل معكم من إدارة ${data?.schoolName || 'المؤسسة'} بخصوص مصاريف التمدرس الخاصة بالتلميذ(ة) ${studentName || 'ابنكم'}. تبقى مبلغ مستحق قدره ${dueAmount || 0} د.ت للشهر الحالي. نرجو منكم تسوية الوضعية مع الإدارة. مع خالص التحيات.`
+        : `Bonjour, nous vous contactons depuis l'administration de ${data?.schoolName || 'notre établissement'} concernant les frais de scolarité de ${studentName || 'votre enfant'}. Il reste un montant dû de ${dueAmount || 0} DT pour le mois en cours. Merci de bien vouloir régulariser auprès de l'administration. Cordialement.`;
     const url = `whatsapp://send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
 
     trackEvent('admin_whatsapp_reminder_sent', {
@@ -280,8 +294,11 @@ export default function AdminDashboardScreen() {
       .catch(() => {
         setFeedback({
           type: 'error',
-          title: 'WhatsApp non disponible',
-          message: "L'application WhatsApp n'est pas installée sur cet appareil.",
+          title: language === 'ar' ? 'واتساب غير متوفر' : 'WhatsApp non disponible',
+          message:
+            language === 'ar'
+              ? 'تطبيق واتساب غير مثبت على هذا الجهاز.'
+              : "L'application WhatsApp n'est pas installée sur cet appareil.",
         });
       });
   };
@@ -300,8 +317,11 @@ export default function AdminDashboardScreen() {
     if (isNaN(amt) || amt <= 0) {
       setFeedback({
         type: 'error',
-        title: 'Montant invalide',
-        message: 'Veuillez saisir un montant positif valide.',
+        title: language === 'ar' ? 'مبلغ غير صالح' : 'Montant invalide',
+        message:
+          language === 'ar'
+            ? 'يرجى إدخال مبلغ صحيح وموجب.'
+            : 'Veuillez saisir un montant positif valide.',
       });
       return;
     }
@@ -329,8 +349,12 @@ export default function AdminDashboardScreen() {
           setPayModalItem(null);
           setFeedback({
             type: 'success',
-            title: 'Encaissement validé !',
-            message: res.message || `✓ Encaissé ${amt} DT pour ${payModalItem.name}.`,
+            title: language === 'ar' ? 'تم الاستخلاص بنجاح !' : 'Encaissement validé !',
+            message:
+              res.message ||
+              (language === 'ar'
+                ? `✓ تم قبض ${amt} د.ت لـ ${payModalItem.name}.`
+                : `✓ Encaissé ${amt} DT pour ${payModalItem.name}.`),
           });
           queryClient.invalidateQueries({ queryKey: ['admin'] });
           refetch();
@@ -359,8 +383,12 @@ export default function AdminDashboardScreen() {
           setPayModalItem(null);
           setFeedback({
             type: 'success',
-            title: 'Rémunération validée !',
-            message: res.message || `✓ Rémunération de ${amt} DT versée à ${payModalItem.name}.`,
+            title: language === 'ar' ? 'تم صرف الأجر بنجاح !' : 'Rémunération validée !',
+            message:
+              res.message ||
+              (language === 'ar'
+                ? `✓ تم صرف أجر قدره ${amt} د.ت لـ ${payModalItem.name}.`
+                : `✓ Rémunération de ${amt} DT versée à ${payModalItem.name}.`),
           });
           queryClient.invalidateQueries({ queryKey: ['admin'] });
           refetch();
@@ -371,15 +399,15 @@ export default function AdminDashboardScreen() {
     } catch (err: any) {
       setFeedback({
         type: 'error',
-        title: 'Erreur',
-        message: err.message || 'Une erreur est survenue.',
+        title: language === 'ar' ? 'خطأ' : 'Erreur',
+        message: err.message || (language === 'ar' ? 'حدث خطأ غير متوقع.' : 'Une erreur est survenue.'),
       });
     } finally {
       setSubmittingPay(false);
     }
   };
 
-  const todayDateStr = new Date().toLocaleDateString('fr-FR', {
+  const todayDateStr = new Date().toLocaleDateString(language === 'ar' ? 'ar-TN' : 'fr-FR', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -390,10 +418,10 @@ export default function AdminDashboardScreen() {
       <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" translucent={Platform.OS === 'android'} />
 
       {/* ── HEADER (AIRY, CLEAN & EXECUTIVE) ─────────────────────────────────── */}
-      <View style={styles.headerContainer}>
-        <View style={{ flex: 1, paddingRight: 12 }}>
+      <View style={[styles.headerContainer, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+        <View style={{ flex: 1, paddingRight: isRTL ? 0 : 12, paddingLeft: isRTL ? 12 : 0, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
           {/* Subtitle: School & Date */}
-          <View style={styles.headerSubtitleRow}>
+          <View style={[styles.headerSubtitleRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
             <Building2 size={13} color="#0055d4" />
             <Text style={styles.headerSchoolName} numberOfLines={1}>
               {data?.schoolName || 'SnapSchool'}
@@ -402,8 +430,8 @@ export default function AdminDashboardScreen() {
             <Text style={styles.headerDate}>{todayDateStr}</Text>
           </View>
           {/* Main Greeting */}
-          <Text style={styles.headerGreeting} numberOfLines={1}>
-            Bonjour, {data?.adminName || 'Direction'} 👋
+          <Text style={[styles.headerGreeting, { textAlign: isRTL ? 'right' : 'left' }]} numberOfLines={1}>
+            {t.adminGreeting}, {data?.adminName || (language === 'ar' ? 'الإدارة' : 'Direction')} 👋
           </Text>
         </View>
 
@@ -426,7 +454,7 @@ export default function AdminDashboardScreen() {
           <View style={{ paddingVertical: 70, alignItems: 'center' }}>
             <ActivityIndicator size="large" color="#0055d4" />
             <Text style={{ fontSize: 14, color: '#64748b', marginTop: 14, fontWeight: '500' }}>
-              Chargement du tableau de bord...
+              {t.adminDashboardLoading}
             </Text>
           </View>
         ) : (
@@ -434,89 +462,89 @@ export default function AdminDashboardScreen() {
             {/* ── 1. 2x2 OPERATIONS GRID (AIRY, ROOM TO BREATHE) ──────────────── */}
             <View style={styles.statsGrid}>
               {/* Élèves */}
-              <View style={styles.statCard}>
+              <View style={[styles.statCard, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                 <View style={[styles.statIconBox, { backgroundColor: '#eff6ff' }]}>
                   <GraduationCap size={18} color="#0055d4" />
                 </View>
-                <View style={styles.statTextBox}>
+                <View style={[styles.statTextBox, { alignItems: isRTL ? 'flex-end' : 'flex-start', marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0 }]}>
                   <Text style={styles.statNumber}>
                     {data?.operations.students.toLocaleString() || 0}
                   </Text>
-                  <Text style={styles.statLabel}>Élèves inscrits</Text>
+                  <Text style={[styles.statLabel, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminRegisteredStudents}</Text>
                 </View>
               </View>
 
               {/* Profs */}
-              <View style={styles.statCard}>
+              <View style={[styles.statCard, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                 <View style={[styles.statIconBox, { backgroundColor: '#ecfdf5' }]}>
                   <Users size={18} color="#059669" />
                 </View>
-                <View style={styles.statTextBox}>
+                <View style={[styles.statTextBox, { alignItems: isRTL ? 'flex-end' : 'flex-start', marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0 }]}>
                   <Text style={styles.statNumber}>
                     {data?.operations.teachers.toLocaleString() || 0}
                   </Text>
-                  <Text style={styles.statLabel}>Enseignants</Text>
+                  <Text style={[styles.statLabel, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminTeachers}</Text>
                 </View>
               </View>
 
               {/* Classes */}
-              <View style={styles.statCard}>
+              <View style={[styles.statCard, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                 <View style={[styles.statIconBox, { backgroundColor: '#fef9c3' }]}>
                   <Building2 size={18} color="#ca8a04" />
                 </View>
-                <View style={styles.statTextBox}>
+                <View style={[styles.statTextBox, { alignItems: isRTL ? 'flex-end' : 'flex-start', marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0 }]}>
                   <Text style={styles.statNumber}>
                     {data?.operations.classes.toLocaleString() || 0}
                   </Text>
-                  <Text style={styles.statLabel}>Classes</Text>
+                  <Text style={[styles.statLabel, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminClasses}</Text>
                 </View>
               </View>
 
               {/* Personnel */}
-              <View style={styles.statCard}>
+              <View style={[styles.statCard, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                 <View style={[styles.statIconBox, { backgroundColor: '#f5f3ff' }]}>
                   <Briefcase size={18} color="#7c3aed" />
                 </View>
-                <View style={styles.statTextBox}>
+                <View style={[styles.statTextBox, { alignItems: isRTL ? 'flex-end' : 'flex-start', marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0 }]}>
                   <Text style={styles.statNumber}>
                     {data?.operations.staff.toLocaleString() || 0}
                   </Text>
-                  <Text style={styles.statLabel}>Personnel</Text>
+                  <Text style={[styles.statLabel, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminStaff}</Text>
                 </View>
               </View>
             </View>
 
             {/* ── 2. RECOUVREMENT SCOLARITÉS (CLEAN & NON-TRUNCATED) ──────────── */}
             <View style={styles.financialCard}>
-              <View style={styles.financialHeaderRow}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+              <View style={[styles.financialHeaderRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 8, flex: 1 }}>
                   <View style={styles.financialIconBox}>
                     <TrendingUp size={16} color="#0055d4" />
                   </View>
                   <Text style={styles.financialTitle} numberOfLines={1}>
-                    Recouvrement {data?.financialPulse?.monthLabel ? `• ${data.financialPulse.monthLabel}` : ''}
+                    {t.adminTuitionRecovery} {data?.financialPulse?.monthLabel ? `• ${data.financialPulse.monthLabel}` : ''}
                   </Text>
                 </View>
                 <TouchableOpacity
                   onPress={() => navigation.navigate('Caisse')}
                   activeOpacity={0.7}
-                  style={styles.caisseButton}
+                  style={[styles.caisseButton, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
                 >
-                  <Text style={styles.caisseButtonText}>Caisse</Text>
-                  <ChevronRight size={13} color="#0055d4" />
+                  <Text style={styles.caisseButtonText}>{t.adminCaisse}</Text>
+                  <ChevronRight size={13} color="#0055d4" style={{ transform: [{ rotate: isRTL ? '180deg' : '0deg' }] }} />
                 </TouchableOpacity>
               </View>
 
               {/* Amount collected vs expected */}
-              <View style={styles.financialAmountsRow}>
-                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+              <View style={[styles.financialAmountsRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'baseline', gap: 6 }}>
                   <Text style={styles.financialBigNumber}>
                     {data?.financialPulse.collectedTuition.toLocaleString() || 0} DT
                   </Text>
-                  <Text style={styles.financialSubtext}>encaissés</Text>
+                  <Text style={styles.financialSubtext}>{t.adminCollected}</Text>
                 </View>
                 <Text style={styles.financialExpectedText}>
-                  sur {data?.financialPulse.expectedTuition.toLocaleString() || 0} DT
+                  {t.adminOutOfExpected} {data?.financialPulse.expectedTuition.toLocaleString() || 0} DT
                 </Text>
               </View>
 
@@ -535,15 +563,15 @@ export default function AdminDashboardScreen() {
               </View>
 
               {/* Bottom stats row */}
-              <View style={styles.financialBottomRow}>
+              <View style={[styles.financialBottomRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                 <View style={styles.ratePill}>
                   <Text style={styles.ratePillText}>
-                    {data?.financialPulse.collectionRate || 0}% collecté
+                    {data?.financialPulse.collectionRate || 0}% {t.adminCollectedRate}
                   </Text>
                 </View>
                 <View style={styles.remainingPill}>
                   <Text style={styles.remainingPillText}>
-                    Reste : {data?.financialPulse.remainingToCollect.toLocaleString() || 0} DT
+                    {t.adminRemainingToCollect} : {data?.financialPulse.remainingToCollect.toLocaleString() || 0} DT
                   </Text>
                 </View>
               </View>
@@ -551,12 +579,12 @@ export default function AdminDashboardScreen() {
 
             {/* ── 3. ATTENDANCE PULSE TODAY ─────────────────────────────────── */}
             <View style={styles.attendanceCard}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 8 }}>
                   <View style={styles.attendanceIconBox}>
                     <CheckCircle2 size={16} color="#059669" />
                   </View>
-                  <Text style={styles.attendanceTitle}>Présence aujourd'hui</Text>
+                  <Text style={styles.attendanceTitle}>{t.adminAttendanceToday}</Text>
                 </View>
                 <View
                   style={[
@@ -576,13 +604,13 @@ export default function AdminDashboardScreen() {
                       },
                     ]}
                   >
-                    {data?.attendanceToday.attendanceRate || 98}% de présence
+                    {data?.attendanceToday.attendanceRate || 98}% {t.adminAttendanceRate}
                   </Text>
                 </View>
               </View>
 
               {data?.attendanceToday.recentAbsentees && data.attendanceToday.recentAbsentees.length > 0 ? (
-                <View style={styles.absenteesContainer}>
+                <View style={[styles.absenteesContainer, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                   {data.attendanceToday.recentAbsentees.map((a) => (
                     <View key={a.id} style={styles.absenteeTag}>
                       <Text style={styles.absenteeName}>{a.studentName}</Text>
@@ -596,54 +624,54 @@ export default function AdminDashboardScreen() {
             {/* ── 4. SUIVI DES IMPAYÉS & SALAIRES (OPEN, AIRY & ELEGANT) ───────── */}
             <View style={styles.unpaidSection}>
               {/* Section Header */}
-              <View style={styles.unpaidHeader}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+              <View style={[styles.unpaidHeader, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 7 }}>
                   <Wallet size={16} color="#0055d4" />
-                  <Text style={styles.unpaidTitle}>Impayés & Salaires dus</Text>
+                  <Text style={styles.unpaidTitle}>{t.adminUnpaidAndSalaries}</Text>
                 </View>
                 <View style={styles.unpaidTotalBadge}>
                   <Text style={styles.unpaidTotalBadgeText}>
-                    {(unpaidStudentsTotal + unpaidEmployeesTotal).toLocaleString()} DT total
+                    {(unpaidStudentsTotal + unpaidEmployeesTotal).toLocaleString()} DT {t.adminTotalDue}
                   </Text>
                 </View>
               </View>
 
               {/* Dual Stat Ribbon */}
-              <View style={styles.dualRibbon}>
+              <View style={[styles.dualRibbon, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                 <View style={styles.ribbonItem}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Text style={styles.ribbonLabel}>Scolarités dues</Text>
+                  <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={styles.ribbonLabel}>{t.adminTuitionDue}</Text>
                     <View style={styles.ribbonCountPillGreen}>
                       <Text style={styles.ribbonCountTextGreen}>{unpaidStudentsCount}</Text>
                     </View>
                   </View>
-                  <Text style={styles.ribbonAmount}>
+                  <Text style={[styles.ribbonAmount, { textAlign: isRTL ? 'right' : 'left' }]}>
                     {unpaidStudentsTotal.toLocaleString()} DT
                   </Text>
                 </View>
 
                 <View style={styles.ribbonItem}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Text style={styles.ribbonLabel}>Salaires dus</Text>
+                  <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={styles.ribbonLabel}>{t.adminSalariesDue}</Text>
                     <View style={styles.ribbonCountPillPurple}>
                       <Text style={styles.ribbonCountTextPurple}>{unpaidEmployeesCount}</Text>
                     </View>
                   </View>
-                  <Text style={styles.ribbonAmount}>
+                  <Text style={[styles.ribbonAmount, { textAlign: isRTL ? 'right' : 'left' }]}>
                     {unpaidEmployeesTotal.toLocaleString()} DT
                   </Text>
                 </View>
               </View>
 
               {/* Integrated Search Input */}
-              <View style={styles.searchContainer}>
+              <View style={[styles.searchContainer, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                 <Search size={14} color="#94a3b8" />
                 <TextInput
                   value={unpaidSearch}
                   onChangeText={setUnpaidSearch}
-                  placeholder="Rechercher élève, classe, prof..."
+                  placeholder={t.adminSearchUnpaidPlaceholder}
                   placeholderTextColor="#94a3b8"
-                  style={styles.searchInput}
+                  style={[styles.searchInput, { textAlign: isRTL ? 'right' : 'left' }]}
                 />
                 {unpaidSearch ? (
                   <TouchableOpacity onPress={() => setUnpaidSearch('')}>
@@ -653,12 +681,12 @@ export default function AdminDashboardScreen() {
               </View>
 
               {/* Segmented Category Filter Tabs */}
-              <View style={styles.tabsContainer}>
+              <View style={[styles.tabsContainer, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                 {[
-                  { key: 'STUDENT', label: 'Élèves', count: studentItems.length },
-                  { key: 'TEACHER', label: 'Profs', count: teacherItems.length },
-                  { key: 'STAFF', label: 'Staff', count: staffItems.length },
-                  { key: 'ALL', label: 'Tous', count: allUnpaid.length },
+                  { key: 'STUDENT', label: t.adminTabStudents, count: studentItems.length },
+                  { key: 'TEACHER', label: t.adminTabTeachers, count: teacherItems.length },
+                  { key: 'STAFF', label: t.adminTabStaff, count: staffItems.length },
+                  { key: 'ALL', label: t.adminTabAll, count: allUnpaid.length },
                 ].map((tab) => {
                   const isActive = unpaidCategory === tab.key;
                   return (
@@ -670,6 +698,7 @@ export default function AdminDashboardScreen() {
                       }}
                       style={[
                         styles.tabButton,
+                        { flexDirection: isRTL ? 'row-reverse' : 'row' },
                         isActive && styles.tabButtonActive,
                       ]}
                     >
@@ -705,9 +734,9 @@ export default function AdminDashboardScreen() {
               {filteredUnpaid.length === 0 ? (
                 <View style={styles.emptyContainer}>
                   <CheckCircle2 size={30} color="#10b981" />
-                  <Text style={styles.emptyTitle}>Tout est à jour !</Text>
+                  <Text style={styles.emptyTitle}>{t.adminAllCaughtUpTitle}</Text>
                   <Text style={styles.emptySubtitle}>
-                    Aucun impayé trouvé pour cette sélection.
+                    {t.adminAllCaughtUpSub}
                   </Text>
                 </View>
               ) : (
@@ -722,9 +751,9 @@ export default function AdminDashboardScreen() {
                         key={`${item.type}_${item.id}`}
                         style={styles.unpaidCard}
                       >
-                        <View style={styles.unpaidCardTopRow}>
+                        <View style={[styles.unpaidCardTopRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                           {/* Avatar + Info */}
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, paddingRight: 8 }}>
+                          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 10, flex: 1, paddingRight: isRTL ? 0 : 8, paddingLeft: isRTL ? 8 : 0 }}>
                             <View
                               style={[
                                 styles.unpaidAvatar,
@@ -743,10 +772,10 @@ export default function AdminDashboardScreen() {
                             </View>
 
                             <View style={{ flex: 1 }}>
-                              <Text style={styles.unpaidPersonName} numberOfLines={1}>
+                              <Text style={[styles.unpaidPersonName, { textAlign: isRTL ? 'right' : 'left' }]} numberOfLines={1}>
                                 {item.name}
                               </Text>
-                              <View style={styles.unpaidMetaRow}>
+                              <View style={[styles.unpaidMetaRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                                 {item.className ? (
                                   <View style={styles.classBadge}>
                                     <Text style={styles.classBadgeText}>{item.className}</Text>
@@ -754,12 +783,12 @@ export default function AdminDashboardScreen() {
                                 ) : null}
                                 {isTeacher ? (
                                   <View style={styles.teacherBadge}>
-                                    <Text style={styles.teacherBadgeText}>Enseignant</Text>
+                                    <Text style={styles.teacherBadgeText}>{t.adminTeacherBadge}</Text>
                                   </View>
                                 ) : null}
                                 {isStaff ? (
                                   <View style={styles.staffBadge}>
-                                    <Text style={styles.staffBadgeText}>Personnel</Text>
+                                    <Text style={styles.staffBadgeText}>{t.adminStaffBadge}</Text>
                                   </View>
                                 ) : null}
                                 {item.parentName ? (
@@ -772,21 +801,21 @@ export default function AdminDashboardScreen() {
                           </View>
 
                           {/* Amount Due */}
-                          <View style={{ alignItems: 'flex-end' }}>
+                          <View style={{ alignItems: isRTL ? 'flex-start' : 'flex-end' }}>
                             <Text style={[styles.dueAmountText, { color: isStudent ? '#dc2626' : '#0f172a' }]}>
                               {item.dueAmount} DT
                             </Text>
                             {isStudent && item.status === 'PARTIAL' && (
                               <Text style={styles.partialBadgeText}>
-                                Acompte {item.paidAmount} DT
+                                {t.adminPartialAdvance} {item.paidAmount} DT
                               </Text>
                             )}
                           </View>
                         </View>
 
                         {/* Action Buttons Row */}
-                        <View style={styles.unpaidActionsRow}>
-                          <View style={{ flexDirection: 'row', gap: 6 }}>
+                        <View style={[styles.unpaidActionsRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 6 }}>
                             {/* Phone Call */}
                             <TouchableOpacity
                               onPress={() => handleCall(isStudent ? item.parentPhone : item.phone, item.name)}
@@ -814,18 +843,21 @@ export default function AdminDashboardScreen() {
                             activeOpacity={0.85}
                             style={[
                               styles.primaryActionButton,
-                              { backgroundColor: isStudent ? '#059669' : '#0055d4' },
+                              {
+                                flexDirection: isRTL ? 'row-reverse' : 'row',
+                                backgroundColor: isStudent ? '#059669' : '#0055d4',
+                              },
                             ]}
                           >
                             {isStudent ? (
                               <>
                                 <HandCoins size={13} color="#ffffff" />
-                                <Text style={styles.primaryActionButtonText}>Encaisser</Text>
+                                <Text style={styles.primaryActionButtonText}>{t.adminCollectAction}</Text>
                               </>
                             ) : (
                               <>
                                 <CreditCard size={13} color="#ffffff" />
-                                <Text style={styles.primaryActionButtonText}>Payer</Text>
+                                <Text style={styles.primaryActionButtonText}>{t.adminPayAction}</Text>
                               </>
                             )}
                           </TouchableOpacity>
@@ -843,24 +875,24 @@ export default function AdminDashboardScreen() {
               activeOpacity={0.9}
               style={styles.hniaCopilotCard}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, paddingRight: 10 }}>
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 12, flex: 1, paddingRight: isRTL ? 0 : 10, paddingLeft: isRTL ? 10 : 0 }}>
                   <View style={styles.hniaAvatarBox}>
                     <Bot size={22} color="#0055d4" />
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                      <Text style={styles.hniaTitle}>Hnia IA • Assistante</Text>
+                  <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                    <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 5 }}>
+                      <Text style={styles.hniaTitle}>{t.adminHniaCopilotTitle}</Text>
                       <Sparkles size={13} color="#0055d4" />
                     </View>
-                    <Text style={styles.hniaSubtitle}>
-                      Pilotage vocal, gestion de caisse et bilans en direct.
+                    <Text style={[styles.hniaSubtitle, { textAlign: isRTL ? 'right' : 'left' }]}>
+                      {t.adminHniaCopilotSub}
                     </Text>
                   </View>
                 </View>
-                <View style={styles.hniaOpenButton}>
-                  <Text style={styles.hniaOpenButtonText}>Ouvrir</Text>
-                  <ArrowRight size={12} color="#ffffff" />
+                <View style={[styles.hniaOpenButton, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                  <Text style={styles.hniaOpenButtonText}>{t.adminOpenAction}</Text>
+                  <ArrowRight size={12} color="#ffffff" style={{ transform: [{ rotate: isRTL ? '180deg' : '0deg' }] }} />
                 </View>
               </View>
             </TouchableOpacity>
@@ -878,13 +910,13 @@ export default function AdminDashboardScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             {/* Modal Header */}
-            <View style={styles.modalHeaderRow}>
-              <View>
+            <View style={[styles.modalHeaderRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+              <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
                 <Text style={styles.modalHeaderTitle}>
-                  {payModalItem?.type === 'student' ? 'Encaisser la scolarité' : 'Verser la rémunération'}
+                  {payModalItem?.type === 'student' ? t.adminModalCollectTitle : t.adminModalPayTitle}
                 </Text>
                 <Text style={styles.modalHeaderSub}>
-                  {data?.monthLabel || 'Ce mois'}
+                  {data?.monthLabel || (language === 'ar' ? 'هذا الشهر' : 'Ce mois')}
                 </Text>
               </View>
               <TouchableOpacity
@@ -896,30 +928,36 @@ export default function AdminDashboardScreen() {
             </View>
 
             {/* Beneficiary Card */}
-            <View style={styles.modalBeneficiaryBox}>
-              <Text style={styles.modalBeneficiaryName}>{payModalItem?.name}</Text>
-              <Text style={styles.modalBeneficiaryMeta}>
-                {payModalItem?.className || payModalItem?.role || 'Bénéficiaire'} • Reste dû :{' '}
+            <View style={[styles.modalBeneficiaryBox, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+              <Text style={[styles.modalBeneficiaryName, { textAlign: isRTL ? 'right' : 'left' }]}>{payModalItem?.name}</Text>
+              <Text style={[styles.modalBeneficiaryMeta, { textAlign: isRTL ? 'right' : 'left' }]}>
+                {payModalItem?.className || payModalItem?.role || t.adminModalBeneficiary} • {t.adminModalRemainingDue} :{' '}
                 <Text style={{ fontWeight: '800', color: '#dc2626' }}>{payModalItem?.dueAmount} DT</Text>
               </Text>
             </View>
 
             {/* Amount Field */}
-            <Text style={styles.modalFieldLabel}>Montant à enregistrer (DT)</Text>
+            <Text style={[styles.modalFieldLabel, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminModalAmountToRecord}</Text>
             <TextInput
               value={payAmount}
               onChangeText={setPayAmount}
               keyboardType="numeric"
               placeholder="Ex: 250"
               placeholderTextColor="#94a3b8"
-              style={styles.modalTextInput}
+              style={[styles.modalTextInput, { textAlign: isRTL ? 'right' : 'left' }]}
             />
 
             {/* Payment Method Selector */}
-            <Text style={styles.modalFieldLabel}>Mode de règlement</Text>
-            <View style={styles.modalMethodsRow}>
+            <Text style={[styles.modalFieldLabel, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminModalPaymentMethod}</Text>
+            <View style={[styles.modalMethodsRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
               {(['Espèces', 'Chèque', 'Virement'] as const).map((method) => {
                 const isSelected = payMethod === method;
+                const methodLabel =
+                  method === 'Espèces'
+                    ? t.adminMethodCash
+                    : method === 'Chèque'
+                    ? t.adminMethodCheque
+                    : t.adminMethodTransfer;
                 return (
                   <TouchableOpacity
                     key={method}
@@ -935,7 +973,7 @@ export default function AdminDashboardScreen() {
                         isSelected && styles.modalMethodTextActive,
                       ]}
                     >
-                      {method}
+                      {methodLabel}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -943,12 +981,12 @@ export default function AdminDashboardScreen() {
             </View>
 
             {/* Actions */}
-            <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 10 }}>
               <TouchableOpacity
                 onPress={() => setPayModalItem(null)}
                 style={styles.modalCancelButton}
               >
-                <Text style={styles.modalCancelText}>Annuler</Text>
+                <Text style={styles.modalCancelText}>{t.adminCancel}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -956,7 +994,10 @@ export default function AdminDashboardScreen() {
                 disabled={submittingPay}
                 style={[
                   styles.modalConfirmButton,
-                  { backgroundColor: payModalItem?.type === 'student' ? '#059669' : '#0055d4' },
+                  {
+                    flexDirection: isRTL ? 'row-reverse' : 'row',
+                    backgroundColor: payModalItem?.type === 'student' ? '#059669' : '#0055d4',
+                  },
                 ]}
               >
                 {submittingPay ? (
@@ -964,7 +1005,7 @@ export default function AdminDashboardScreen() {
                 ) : (
                   <>
                     <Check size={16} color="#ffffff" strokeWidth={2.5} />
-                    <Text style={styles.modalConfirmText}>Confirmer</Text>
+                    <Text style={styles.modalConfirmText}>{t.adminConfirm}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -1006,7 +1047,7 @@ export default function AdminDashboardScreen() {
                 { backgroundColor: feedback?.type === 'success' ? '#0055d4' : '#dc2626' },
               ]}
             >
-              <Text style={styles.feedbackButtonText}>OK</Text>
+              <Text style={styles.feedbackButtonText}>{t.adminOk}</Text>
             </TouchableOpacity>
           </View>
         </View>

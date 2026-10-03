@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   Linking,
+  Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -23,24 +24,30 @@ import {
   Sparkles,
   Bot,
   ChevronRight,
+  ChevronLeft,
   ShieldCheck,
   MessageCircle,
   CheckCircle2,
   ExternalLink,
+  Globe,
+  Check,
 } from 'lucide-react-native';
 import * as Updates from 'expo-updates';
 import Constants from 'expo-constants';
 import * as Haptics from 'expo-haptics';
 import { useAppStore } from '../../store/useAppStore';
+import { useLanguage, Language } from '../../context/LanguageContext';
 
 export default function AdminMoreScreen({ onSignOut }: { onSignOut?: () => void }) {
   const userName = useAppStore((s) => s.userName) || 'Direction';
   const schoolName = useAppStore((s) => s.schoolName) || 'SnapSchool';
+  const { t, language, setLanguage, isRTL } = useLanguage();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 0);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateStatusText, setUpdateStatusText] = useState<string | null>(null);
+  const [langModalVisible, setLangModalVisible] = useState(false);
 
   const appVersion = Constants.expoConfig?.version || '1.0.3';
 
@@ -50,21 +57,28 @@ export default function AdminMoreScreen({ onSignOut }: { onSignOut?: () => void 
     setUpdateStatusText(null);
     try {
       if (__DEV__) {
-        Alert.alert('Mode Développement', 'Les mises à jour OTA sont actives uniquement sur les versions installées.');
+        Alert.alert(
+          language === 'ar' ? 'وضع التطوير' : 'Mode Développement',
+          language === 'ar'
+            ? 'المزامنة والتحديثات اللاسلكية مفعلة فقط في النسخة المجمعة.'
+            : 'Les mises à jour OTA sont actives uniquement sur les versions installées.'
+        );
         return;
       }
       const update = await Updates.checkForUpdateAsync();
       if (update.isAvailable) {
-        setUpdateStatusText('Téléchargement...');
+        setUpdateStatusText(language === 'ar' ? 'جارٍ التحميل...' : 'Téléchargement...');
         await Updates.fetchUpdateAsync();
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(
-          'Mise à jour prête ! 🎉',
-          'La toute dernière version de SnapSchool a été téléchargée. Redémarrez pour appliquer immédiatement.',
+          language === 'ar' ? 'التحديث جاهز! 🎉' : 'Mise à jour prête ! 🎉',
+          language === 'ar'
+            ? 'تم تنزيل آخر إصدار من SnapSchool. أعد تشغيل التطبيق لتطبيقه فوراً.'
+            : 'La toute dernière version de SnapSchool a été téléchargée. Redémarrez pour appliquer immédiatement.',
           [
-            { text: 'Plus tard', style: 'cancel' },
+            { text: t.adminCancel, style: 'cancel' },
             {
-              text: 'Redémarrer maintenant',
+              text: language === 'ar' ? 'إعادة التشغيل الآن' : 'Redémarrer maintenant',
               style: 'default',
               onPress: () => Updates.reloadAsync(),
             },
@@ -72,12 +86,22 @@ export default function AdminMoreScreen({ onSignOut }: { onSignOut?: () => void 
         );
       } else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setUpdateStatusText('À jour');
-        Alert.alert('Application à jour', `Vous disposez déjà de la dernière version (${appVersion}).`);
+        setUpdateStatusText(t.adminUpToDate);
+        Alert.alert(
+          language === 'ar' ? 'التطبيق محدث' : 'Application à jour',
+          language === 'ar'
+            ? `أنت تستخدم بالفعل أحدث إصدار (${appVersion}).`
+            : `Vous disposez déjà de la dernière version (${appVersion}).`
+        );
       }
     } catch (err: any) {
-      setUpdateStatusText('À jour');
-      Alert.alert('Vérification terminée', 'Votre application est synchronisée avec la version courante.');
+      setUpdateStatusText(t.adminUpToDate);
+      Alert.alert(
+        language === 'ar' ? 'اكتمل الفحص' : 'Vérification terminée',
+        language === 'ar'
+          ? 'تطبيقك متزامن مع أحدث نسخة متاحة.'
+          : 'Votre application est synchronisée avec la version courante.'
+      );
     } finally {
       setCheckingUpdate(false);
     }
@@ -86,12 +110,14 @@ export default function AdminMoreScreen({ onSignOut }: { onSignOut?: () => void 
   const handleOpenHelp = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Alert.alert(
-      'Aide & Support SnapSchool',
-      'Besoin d’assistance pour votre établissement ? Notre équipe support est à votre disposition.',
+      language === 'ar' ? 'المساعدة والدعم' : 'Aide & Support SnapSchool',
+      language === 'ar'
+        ? 'هل تحتاج إلى مساعدة لمؤسستك؟ فريق الدعم وهنيّة في خدمتك.'
+        : 'Besoin d’assistance pour votre établissement ? Notre équipe support est à votre disposition.',
       [
-        { text: 'Fermer', style: 'cancel' },
+        { text: t.adminCancel, style: 'cancel' },
         {
-          text: 'Poser une question à Hnia',
+          text: language === 'ar' ? 'سؤال هنيّة الذكية' : 'Poser une question à Hnia',
           onPress: () => navigation.navigate('Hnia'),
         },
       ]
@@ -111,11 +137,11 @@ export default function AdminMoreScreen({ onSignOut }: { onSignOut?: () => void 
       <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" translucent={Platform.OS === 'android'} />
 
       {/* Top Header Bar */}
-      <View style={styles.topHeader}>
-        <Text style={styles.screenTitle}>Paramètres</Text>
-        <View style={styles.headerRoleBadge}>
+      <View style={[styles.topHeader, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+        <Text style={styles.screenTitle}>{t.adminSettingsTitle}</Text>
+        <View style={[styles.headerRoleBadge, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
           <ShieldCheck size={13} color="#0055d4" />
-          <Text style={styles.headerRoleText}>Administration</Text>
+          <Text style={styles.headerRoleText}>{t.adminHeaderRole}</Text>
         </View>
       </View>
 
@@ -125,33 +151,45 @@ export default function AdminMoreScreen({ onSignOut }: { onSignOut?: () => void 
         showsVerticalScrollIndicator={false}
       >
         {/* ── 1. PROFILE HERO CARD ────────────────────────────────────────────── */}
-        <View style={styles.profileCard}>
+        <View style={[styles.profileCard, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
           <View style={styles.profileAvatar}>
             <Text style={styles.profileAvatarText}>{initials}</Text>
             <View style={styles.onlineBadge} />
           </View>
-          <View style={{ flex: 1, marginLeft: 14 }}>
-            <Text style={styles.profileName} numberOfLines={1}>
+          <View style={{ flex: 1, marginLeft: isRTL ? 0 : 14, marginRight: isRTL ? 14 : 0, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+            <Text style={[styles.profileName, { textAlign: isRTL ? 'right' : 'left' }]} numberOfLines={1}>
               {userName}
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3 }}>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginTop: 3 }}>
               <Building2 size={13} color="#0055d4" />
-              <Text style={styles.profileSchool} numberOfLines={1}>
+              <Text
+                style={[
+                  styles.profileSchool,
+                  {
+                    marginLeft: isRTL ? 0 : 5,
+                    marginRight: isRTL ? 5 : 0,
+                    textAlign: isRTL ? 'right' : 'left',
+                  },
+                ]}
+                numberOfLines={1}
+              >
                 {schoolName}
               </Text>
             </View>
           </View>
           <View style={styles.profilePill}>
-            <Text style={styles.profilePillText}>Actif</Text>
+            <Text style={styles.profilePillText}>{t.adminActiveStatus}</Text>
           </View>
         </View>
 
         {/* ── 2. GROUP 1: ÉTABLISSEMENT & SYSTÈME ─────────────────────────────── */}
-        <Text style={styles.sectionTitle}>SYSTÈME & ÉTABLISSEMENT</Text>
+        <Text style={[styles.sectionTitle, { textAlign: isRTL ? 'right' : 'left', marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }]}>
+          {t.adminSectionSystem}
+        </Text>
         <View style={styles.groupedCard}>
           {/* Vérifier les mises à jour */}
           <TouchableOpacity
-            style={styles.rowItem}
+            style={[styles.rowItem, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
             activeOpacity={0.7}
             onPress={handleCheckUpdate}
             disabled={checkingUpdate}
@@ -163,83 +201,120 @@ export default function AdminMoreScreen({ onSignOut }: { onSignOut?: () => void 
                 <RefreshCw size={19} color="#0055d4" />
               )}
             </View>
-            <View style={styles.rowContent}>
-              <Text style={styles.rowLabel}>Mises à jour de l'app</Text>
-              <Text style={styles.rowSub}>
+            <View style={[styles.rowContent, { marginLeft: isRTL ? 0 : 14, marginRight: isRTL ? 14 : 0, alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+              <Text style={[styles.rowLabel, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminAppUpdates}</Text>
+              <Text style={[styles.rowSub, { textAlign: isRTL ? 'right' : 'left' }]}>
                 {checkingUpdate
-                  ? 'Recherche de version...'
-                  : updateStatusText || `Version installée v${appVersion}`}
+                  ? t.adminCheckingVersion
+                  : updateStatusText || `${t.adminInstalledVersion} v${appVersion}`}
               </Text>
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 6 }}>
               <View style={styles.versionPill}>
                 <Text style={styles.versionPillText}>v{appVersion}</Text>
               </View>
-              <ChevronRight size={16} color="#94a3b8" />
+              {isRTL ? <ChevronLeft size={16} color="#94a3b8" /> : <ChevronRight size={16} color="#94a3b8" />}
             </View>
           </TouchableOpacity>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, isRTL ? { marginRight: 68, marginLeft: 0 } : {}]} />
+
+          {/* Sélecteur de langue */}
+          <TouchableOpacity
+            style={[styles.rowItem, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
+            activeOpacity={0.7}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setLangModalVisible(true);
+            }}
+          >
+            <View style={[styles.iconBox, { backgroundColor: '#f0f4ff' }]}>
+              <Globe size={19} color="#0055d4" />
+            </View>
+            <View style={[styles.rowContent, { marginLeft: isRTL ? 0 : 14, marginRight: isRTL ? 14 : 0, alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+              <Text style={[styles.rowLabel, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminAppLanguage}</Text>
+              <Text style={[styles.rowSub, { textAlign: isRTL ? 'right' : 'left' }]}>
+                {language === 'ar' ? 'العربية (تونس) 🇹🇳' : language === 'fr' ? 'Français 🇫🇷' : 'English 🇬🇧'}
+              </Text>
+            </View>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 6 }}>
+              <View style={[styles.versionPill, { backgroundColor: '#eff6ff' }]}>
+                <Text style={[styles.versionPillText, { color: '#0055d4', fontWeight: '800' }]}>
+                  {language.toUpperCase()}
+                </Text>
+              </View>
+              {isRTL ? <ChevronLeft size={16} color="#94a3b8" /> : <ChevronRight size={16} color="#94a3b8" />}
+            </View>
+          </TouchableOpacity>
+
+          <View style={[styles.divider, isRTL ? { marginRight: 68, marginLeft: 0 } : {}]} />
 
           {/* Assistant Hnia IA */}
           <TouchableOpacity
-            style={styles.rowItem}
+            style={[styles.rowItem, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
             activeOpacity={0.7}
             onPress={() => navigation.navigate('Hnia')}
           >
             <View style={[styles.iconBox, { backgroundColor: '#f0fdf4' }]}>
               <Bot size={19} color="#16a34a" />
             </View>
-            <View style={styles.rowContent}>
-              <Text style={styles.rowLabel}>Assistante Hnia IA</Text>
-              <Text style={styles.rowSub}>Pilotage intelligent & commandes vocales</Text>
+            <View style={[styles.rowContent, { marginLeft: isRTL ? 0 : 14, marginRight: isRTL ? 14 : 0, alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+              <Text style={[styles.rowLabel, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminHniaAssistant}</Text>
+              <Text style={[styles.rowSub, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminHniaSub}</Text>
             </View>
-            <ChevronRight size={16} color="#94a3b8" />
+            {isRTL ? <ChevronLeft size={16} color="#94a3b8" /> : <ChevronRight size={16} color="#94a3b8" />}
           </TouchableOpacity>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, isRTL ? { marginRight: 68, marginLeft: 0 } : {}]} />
 
           {/* Profil */}
           <TouchableOpacity
-            style={styles.rowItem}
+            style={[styles.rowItem, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
             activeOpacity={0.7}
             onPress={() => {
-              Alert.alert('Profil Direction', `Connecté en tant que ${userName} pour l'établissement ${schoolName}.`);
+              Alert.alert(
+                t.adminDirectionProfile,
+                language === 'ar'
+                  ? `متصل بصفتك ${userName} لإدارة ${schoolName}.`
+                  : `Connecté en tant que ${userName} pour l'établissement ${schoolName}.`
+              );
             }}
           >
             <View style={[styles.iconBox, { backgroundColor: '#faf5ff' }]}>
               <User size={19} color="#9333ea" />
             </View>
-            <View style={styles.rowContent}>
-              <Text style={styles.rowLabel}>Fiche Direction</Text>
-              <Text style={styles.rowSub}>Identifiants & coordonnées</Text>
+            <View style={[styles.rowContent, { marginLeft: isRTL ? 0 : 14, marginRight: isRTL ? 14 : 0, alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+              <Text style={[styles.rowLabel, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminDirectionProfile}</Text>
+              <Text style={[styles.rowSub, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminDirectionProfileSub}</Text>
             </View>
-            <ChevronRight size={16} color="#94a3b8" />
+            {isRTL ? <ChevronLeft size={16} color="#94a3b8" /> : <ChevronRight size={16} color="#94a3b8" />}
           </TouchableOpacity>
         </View>
 
         {/* ── 3. GROUP 2: ASSISTANCE & DOCUMENTATION ──────────────────────────── */}
-        <Text style={styles.sectionTitle}>ASSISTANCE</Text>
+        <Text style={[styles.sectionTitle, { textAlign: isRTL ? 'right' : 'left', marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }]}>
+          {t.adminSectionAssistance}
+        </Text>
         <View style={styles.groupedCard}>
           <TouchableOpacity
-            style={styles.rowItem}
+            style={[styles.rowItem, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
             activeOpacity={0.7}
             onPress={handleOpenHelp}
           >
             <View style={[styles.iconBox, { backgroundColor: '#fffbeb' }]}>
               <HelpCircle size={19} color="#d97706" />
             </View>
-            <View style={styles.rowContent}>
-              <Text style={styles.rowLabel}>Aide & Guide d'utilisation</Text>
-              <Text style={styles.rowSub}>Foire aux questions & tutoriels</Text>
+            <View style={[styles.rowContent, { marginLeft: isRTL ? 0 : 14, marginRight: isRTL ? 14 : 0, alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+              <Text style={[styles.rowLabel, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminHelpGuide}</Text>
+              <Text style={[styles.rowSub, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminHelpGuideSub}</Text>
             </View>
-            <ChevronRight size={16} color="#94a3b8" />
+            {isRTL ? <ChevronLeft size={16} color="#94a3b8" /> : <ChevronRight size={16} color="#94a3b8" />}
           </TouchableOpacity>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, isRTL ? { marginRight: 68, marginLeft: 0 } : {}]} />
 
           <TouchableOpacity
-            style={styles.rowItem}
+            style={[styles.rowItem, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
             activeOpacity={0.7}
             onPress={() => {
               Linking.openURL('https://snapschool.tn').catch(() => null);
@@ -248,29 +323,31 @@ export default function AdminMoreScreen({ onSignOut }: { onSignOut?: () => void 
             <View style={[styles.iconBox, { backgroundColor: '#f1f5f9' }]}>
               <ExternalLink size={19} color="#475569" />
             </View>
-            <View style={styles.rowContent}>
-              <Text style={styles.rowLabel}>Portail SnapSchool Web</Text>
-              <Text style={styles.rowSub}>Accéder à l'interface administrative complète</Text>
+            <View style={[styles.rowContent, { marginLeft: isRTL ? 0 : 14, marginRight: isRTL ? 14 : 0, alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+              <Text style={[styles.rowLabel, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminWebPortal}</Text>
+              <Text style={[styles.rowSub, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminWebPortalSub}</Text>
             </View>
-            <ChevronRight size={16} color="#94a3b8" />
+            {isRTL ? <ChevronLeft size={16} color="#94a3b8" /> : <ChevronRight size={16} color="#94a3b8" />}
           </TouchableOpacity>
         </View>
 
         {/* ── 4. GROUP 3: SESSION ─────────────────────────────────────────────── */}
-        <Text style={styles.sectionTitle}>SESSION</Text>
+        <Text style={[styles.sectionTitle, { textAlign: isRTL ? 'right' : 'left', marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }]}>
+          {t.adminSectionSession}
+        </Text>
         <View style={styles.groupedCard}>
           {onSignOut && (
             <TouchableOpacity
-              style={styles.rowItem}
+              style={[styles.rowItem, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
               activeOpacity={0.7}
               onPress={() => {
                 Alert.alert(
-                  'Déconnexion',
-                  'Voulez-vous vraiment vous déconnecter de la session direction ?',
+                  t.adminSignOutTitle,
+                  t.adminSignOutConfirm,
                   [
-                    { text: 'Annuler', style: 'cancel' },
+                    { text: t.adminCancel, style: 'cancel' },
                     {
-                      text: 'Se déconnecter',
+                      text: t.adminConfirmSignOut,
                       style: 'destructive',
                       onPress: onSignOut,
                     },
@@ -281,11 +358,11 @@ export default function AdminMoreScreen({ onSignOut }: { onSignOut?: () => void 
               <View style={[styles.iconBox, { backgroundColor: '#fef2f2' }]}>
                 <LogOut size={19} color="#ef4444" />
               </View>
-              <View style={styles.rowContent}>
-                <Text style={[styles.rowLabel, { color: '#ef4444' }]}>Déconnexion</Text>
-                <Text style={styles.rowSub}>Fermer la session sur cet appareil</Text>
+              <View style={[styles.rowContent, { marginLeft: isRTL ? 0 : 14, marginRight: isRTL ? 14 : 0, alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+                <Text style={[styles.rowLabel, { color: '#ef4444', textAlign: isRTL ? 'right' : 'left' }]}>{t.adminSignOutTitle}</Text>
+                <Text style={[styles.rowSub, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminSignOutSub}</Text>
               </View>
-              <ChevronRight size={16} color="#fca5a5" />
+              {isRTL ? <ChevronLeft size={16} color="#fca5a5" /> : <ChevronRight size={16} color="#fca5a5" />}
             </TouchableOpacity>
           )}
         </View>
@@ -296,10 +373,64 @@ export default function AdminMoreScreen({ onSignOut }: { onSignOut?: () => void 
             SnapSchool Executive Mobile • v{appVersion} {Updates.channel ? `(${Updates.channel})` : ''}
           </Text>
           <Text style={styles.footerCopyright}>
-            Système de gestion scolaire intelligente SnapSchool
+            {t.adminFooterSystem}
           </Text>
         </View>
       </ScrollView>
+
+      {/* Language Selection Modal */}
+      <Modal visible={langModalVisible} transparent animationType="fade" onRequestClose={() => setLangModalVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }}>
+          <View style={{ width: '100%', maxWidth: 360, backgroundColor: 'white', borderRadius: 28, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 8 }}>
+            <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', textAlign: 'center', marginBottom: 20 }}>
+              {t.selectLanguageTitle}
+            </Text>
+            
+            {[
+              { code: 'ar', label: 'العربية (تونس)', flag: '🇹🇳' },
+              { code: 'fr', label: 'Français', flag: '🇫🇷' },
+              { code: 'en', label: 'English', flag: '🇬🇧' },
+            ].map((opt) => (
+              <TouchableOpacity
+                key={opt.code}
+                onPress={async () => {
+                  Haptics.selectionAsync();
+                  await setLanguage(opt.code as Language);
+                  setLangModalVisible(false);
+                }}
+                activeOpacity={0.7}
+                style={{
+                  flexDirection: isRTL ? 'row-reverse' : 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingVertical: 14,
+                  paddingHorizontal: 16,
+                  borderRadius: 16,
+                  backgroundColor: language === opt.code ? '#eff6ff' : '#f8fafc',
+                  marginBottom: 10,
+                  borderWidth: 1,
+                  borderColor: language === opt.code ? '#93c5fd' : '#f1f5f9',
+                }}
+              >
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 12 }}>
+                  <Text style={{ fontSize: 20 }}>{opt.flag}</Text>
+                  <Text style={{ fontSize: 15, fontWeight: language === opt.code ? '800' : '600', color: language === opt.code ? '#0072e6' : '#334155' }}>
+                    {opt.label}
+                  </Text>
+                </View>
+                {language === opt.code && <Check size={20} color="#0072e6" strokeWidth={3} />}
+              </TouchableOpacity>
+            ))}
+
+            <TouchableOpacity
+              onPress={() => setLangModalVisible(false)}
+              style={{ marginTop: 10, paddingVertical: 12, alignItems: 'center' }}
+            >
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#94a3b8' }}>{t.adminCancel}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
