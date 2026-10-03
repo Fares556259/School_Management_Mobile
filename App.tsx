@@ -1,3 +1,4 @@
+import { registerAccountCleanup } from "./src/services/accountCleanup";
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -71,6 +72,15 @@ const asyncStoragePersister = createAsyncStoragePersister({
   storage: AsyncStorage,
 });
 
+
+const clearAccountCache = async () => {
+  await queryClient.cancelQueries();
+  queryClient.clear();
+  await asyncStoragePersister.removeClient();
+  useAppStore.setState({ children: [], selectedChildId: null, studentStatuses: {}, selectedTeacherClass: null, userAvatarUrl: null, schoolName: null, unreadNotificationsCount: 0 });
+};
+
+registerAccountCleanup(clearAccountCache);
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -378,7 +388,7 @@ export default function App() {
     const { DeviceEventEmitter } = require('react-native');
     const authSubscription = DeviceEventEmitter.addListener('auth_unauthorized', () => {
       // Clear local state and go back to landing
-      authService.logout().then(() => {
+      authService.logout().then(async () => {
         setChildren([]);
         setUserName("User");
         setUserRole(null);
@@ -566,7 +576,7 @@ export default function App() {
     <PostHogProvider client={posthog} autocapture>
       <PersistQueryClientProvider 
         client={queryClient}
-        persistOptions={{ persister: asyncStoragePersister }}
+        persistOptions={{ persister: asyncStoragePersister, buster: "account-isolation-v2" }}
       >
         <LanguageProvider>
           <SafeAreaProvider>

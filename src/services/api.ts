@@ -1,3 +1,4 @@
+import { clearAccountData } from "./accountCleanup";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Student,
@@ -55,6 +56,7 @@ export const authStorage = {
   getToken: async () => { if (_memToken) return _memToken; _memToken = await AsyncStorage.getItem(JWT_TOKEN_KEY); return _memToken; },
   clear: async () => {
     _memToken = null; _memSchoolId = null; _memUserId = null; _memUserRole = null;
+    await clearAccountData();
     return AsyncStorage.multiRemove([USER_ID_KEY, USER_ROLE_KEY, SCHOOL_ID_KEY, JWT_TOKEN_KEY, STUDENTS_CACHE_KEY]);
   },
   isLoggedIn: async () => {
@@ -81,7 +83,8 @@ export const authStorage = {
 const inflightRequests = new Map<string, Promise<any>>();
 
 const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
-  const requestKey = `${options.method || 'GET'}:${endpoint}:${options.body || ''}`;
+  const requestAccount = await authStorage.getToken();
+  const requestKey = `${requestAccount || 'anonymous'}:${options.method || 'GET'}:${endpoint}:${options.body || ''}`;
   
   if (inflightRequests.has(requestKey)) {
     if (__DEV__) {
