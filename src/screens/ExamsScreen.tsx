@@ -9,7 +9,7 @@ import { studentService } from '../services/api';
 import { downloadAndPreviewPDF } from '../utils/fileUtils';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 
-const TermCard = ({ period, pdfUrl }: { period: number, pdfUrl?: string }) => {
+const TermCard = React.memo(({ period, pdfUrl }: { period: number, pdfUrl?: string }) => {
   const { t, isRTL } = useLanguage();
   const [downloading, setDownloading] = React.useState(false);
 
@@ -88,9 +88,9 @@ const TermCard = ({ period, pdfUrl }: { period: number, pdfUrl?: string }) => {
       )}
     </View>
   );
-};
+});
 
-const UpcomingExamRow = ({ exam }: any) => {
+const UpcomingExamRow = React.memo(({ exam }: any) => {
   const { getTranslatedSubject } = useLanguage();
   return (
     <View style={{ 
@@ -108,10 +108,10 @@ const UpcomingExamRow = ({ exam }: any) => {
       <ChevronRight color="#cbd5e1" size={20} strokeWidth={3} />
     </View>
   );
-};
+});
 
 export const ExamsScreen = ({ navigation }: any) => {
-  const { selectedChildId } = useAppStore();
+  const selectedChildId = useAppStore((s) => s.selectedChildId);
 
   const { data = { examPeriods: [], upcomingExams: [] }, isLoading: loading, isRefetching: refreshing, refetch } = useQuery({
     queryKey: ['exams', selectedChildId],

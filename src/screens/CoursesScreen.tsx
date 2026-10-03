@@ -49,7 +49,8 @@ const getSubjectDomain = (subjectName: string) => {
 };
 
 export const CoursesScreen = ({ navigation }: any) => {
-  const { selectedChildId, children } = useAppStore();
+  const selectedChildId = useAppStore((s) => s.selectedChildId);
+  const children = useAppStore((s) => s.children);
   const { t, isRTL, getTranslatedSubject } = useLanguage();
   const [viewedResources, setViewedResources] = useState<string[]>([]);
   const [expandedCourses, setExpandedCourses] = useState<Record<string, boolean>>({});

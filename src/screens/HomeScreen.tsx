@@ -33,7 +33,7 @@ const ICON_MAP: Record<string, any> = {
 };
 
 // ─── Date Card ───────────────────────────────────────────────────────────────
-const DateItem = ({ day, date, active, isToday, onPress }: any) => {
+const DateItem = React.memo(({ day, date, active, isToday, onPress }: any) => {
   const scale = React.useRef(new Animated.Value(1)).current;
   const handlePress = () => {
     Animated.sequence([
@@ -57,18 +57,18 @@ const DateItem = ({ day, date, active, isToday, onPress }: any) => {
       </TouchableOpacity>
     </Animated.View>
   );
-};
+});
 
 // ─── Stat Pill ───────────────────────────────────────────────────────────────
-const StatPill = ({ count, label, color, bgColor, borderColor }: any) => (
+const StatPill = React.memo(({ count, label, color, bgColor, borderColor }: any) => (
   <View style={[styles.statPill, { backgroundColor: bgColor, borderColor, borderBottomWidth: 4 }]}>
     <Text style={[styles.statValue, { color }]}>{count}</Text>
     <Text style={[styles.statLabel, { color }]}>{label}</Text>
   </View>
-);
+));
 
 // ─── Session Card ─────────────────────────────────────────────────────────────
-const SessionCard = ({ session }: any) => {
+const SessionCard = React.memo(({ session }: any) => {
   const { t, isRTL, getTranslatedSubject } = useLanguage();
   const isAbsent = session.attendance === 'ABSENT';
   const isPresent = session.attendance === 'PRESENT';
@@ -117,10 +117,10 @@ const SessionCard = ({ session }: any) => {
       </View>
     </View>
   );
-};
+});
 
 // ─── Empty Sessions ───────────────────────────────────────────────────────────
-const EmptySessionsUI = () => {
+const EmptySessionsUI = React.memo(() => {
   const { t } = useLanguage();
   return (
     <View style={[styles.emptyStateBox, { gap: 8 }]}>
@@ -131,10 +131,10 @@ const EmptySessionsUI = () => {
       <Text style={styles.emptySub}>{t.freeDay}</Text>
     </View>
   );
-};
+});
 
 // ─── Section Header ───────────────────────────────────────────────────────────
-const SectionHeader = ({ title, action, onAction }: any) => {
+const SectionHeader = React.memo(({ title, action, onAction }: any) => {
   const { isRTL } = useLanguage();
   return (
     <View style={[styles.sectionHeaderRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
@@ -147,7 +147,7 @@ const SectionHeader = ({ title, action, onAction }: any) => {
       )}
     </View>
   );
-};
+});
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 const EMPTY_DAY: StudentDayData = { sessions: [], notes: [], files: [], homeworkDue: [], homeworkGiven: [], exams: [] };
@@ -173,22 +173,6 @@ export const HomeScreen = ({ navigation, route }: any) => {
 
   const dateStr = React.useMemo(() => selectedDate.toISOString().split('T')[0], [selectedDate]);
 
-  React.useEffect(() => {
-    (async () => {
-      try {
-        const uid = await authStorage.getUserId();
-        if (uid) {
-          await notificationService.initChannels();
-          const token = await notificationService.getPushToken();
-          if (token) {
-            await authService.registerPushToken(uid, token);
-          }
-        }
-      } catch (e) {
-        console.warn('[HOME-PUSH-SYNC-FAIL]', e);
-      }
-    })();
-  }, []);
 
   // ─── React Query: stale-while-revalidate with persistent cache ──────────
   const { data: dayData = EMPTY_DAY, isLoading: loading, isFetching, refetch } = useQuery({

@@ -62,6 +62,17 @@ export const authStorage = {
     const token = await authStorage.getToken();
     return !!id && !!token;
   },
+  preload: async () => {
+    try {
+      const pairs = await AsyncStorage.multiGet([USER_ID_KEY, USER_ROLE_KEY, SCHOOL_ID_KEY, JWT_TOKEN_KEY]);
+      for (const [key, val] of pairs) {
+        if (key === USER_ID_KEY && val) _memUserId = val;
+        else if (key === USER_ROLE_KEY && val) _memUserRole = val;
+        else if (key === SCHOOL_ID_KEY && val) _memSchoolId = val;
+        else if (key === JWT_TOKEN_KEY && val) _memToken = val;
+      }
+    } catch {}
+  },
   // Legacy compatibility wrappers
   getParentId: () => authStorage.getUserId(),
 };

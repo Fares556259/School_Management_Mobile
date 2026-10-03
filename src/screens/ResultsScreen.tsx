@@ -76,7 +76,8 @@ const getArabicName = (subjectName: string) => {
 };
 
 export const ResultsScreen = ({ navigation }: any) => {
-  const { selectedChildId, children } = useAppStore();
+  const selectedChildId = useAppStore((s) => s.selectedChildId);
+  const children = useAppStore((s) => s.children);
   const { t, language, isRTL } = useLanguage();
   const [selectedTerm, setSelectedTerm] = useState<number>(1);
 

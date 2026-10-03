@@ -12,20 +12,18 @@ interface GlobalHeaderProps {
   showBack?: boolean;
 }
 
-export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
+const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
   const { t, isRTL } = useLanguage();
-  const { 
-    selectedChildId, 
-    setSelectedChildId, 
-    children, 
-    userName, 
-    userAvatarUrl, 
-    userRole,
-    userId,
-    unreadNotificationsCount,
-    setUnreadNotificationsCount,
-    studentStatuses
-  } = useAppStore();
+  const selectedChildId = useAppStore(s => s.selectedChildId);
+  const setSelectedChildId = useAppStore(s => s.setSelectedChildId);
+  const children = useAppStore(s => s.children);
+  const userName = useAppStore(s => s.userName);
+  const userAvatarUrl = useAppStore(s => s.userAvatarUrl);
+  const userRole = useAppStore(s => s.userRole);
+  const userId = useAppStore(s => s.userId);
+  const unreadNotificationsCount = useAppStore(s => s.unreadNotificationsCount);
+  const setUnreadNotificationsCount = useAppStore(s => s.setUnreadNotificationsCount);
+  const studentStatuses = useAppStore(s => s.studentStatuses);
   
   const [showSwitcher, setShowSwitcher] = useState(false);
   const selectedChild = children.find((c: any) => c.id === selectedChildId);
@@ -82,6 +80,8 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
                   source={userAvatarUrl ? { uri: userAvatarUrl } : require('../../assets/noavatar.png')} 
                   contentFit="cover"
                   transition={200}
+                  cachePolicy="memory-disk"
+                  priority="high"
                   style={{ width: '100%', height: '100%' }}
                 />
               </View>
@@ -92,6 +92,8 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
                     source={selectedChild?.avatarUrl ? { uri: selectedChild.avatarUrl } : require('../../assets/noavatar.png')} 
                     contentFit="cover"
                     transition={200}
+                    cachePolicy="memory-disk"
+                    priority="high"
                     style={{ width: '100%', height: '100%' }}
                   />
                 </View>
@@ -208,3 +210,5 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
     </View>
   );
 };
+
+export const GlobalHeader = React.memo(GlobalHeaderComponent);

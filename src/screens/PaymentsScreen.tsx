@@ -30,7 +30,7 @@ import { useQuery, keepPreviousData } from '@tanstack/react-query';
 const { width } = Dimensions.get('window');
 
 export const PaymentsScreen = ({ navigation }: any) => {
-  const { selectedChildId } = useAppStore();
+  const selectedChildId = useAppStore((s) => s.selectedChildId);
   const { t, isRTL } = useLanguage();
   const [activeFilter, setActiveFilter] = useState<'Due' | 'Paid'>('Due');
 

@@ -78,7 +78,7 @@ const navigationRef = createNavigationContainerRef();
 
 function BottomTabsContent({ onSignOut }: { onSignOut: () => void }) {
   const insets = useSafeAreaInsets();
-  const { userRole } = useAppStore();
+  const userRole = useAppStore(s => s.userRole);
   const { t, isRTL } = useLanguage();
   const isTeacher = userRole === 'teacher';
 
@@ -109,6 +109,7 @@ function BottomTabsContent({ onSignOut }: { onSignOut: () => void }) {
       return (
         <Tab.Navigator
           screenOptions={{
+            freezeOnBlur: true,
             headerShown: false,
             tabBarHideOnKeyboard: true,
             tabBarStyle: {
@@ -144,6 +145,7 @@ return (
     <Tab.Navigator
       initialRouteName="Home"
       screenOptions={({ route }) => ({
+        freezeOnBlur: true,
         headerShown: false,
         tabBarHideOnKeyboard: true,
         tabBarStyle: {
@@ -308,6 +310,7 @@ export default function App() {
     const bootstrap = async () => {
       let nextPostOnboarding: 'signedIn' | 'landing' = 'landing';
       try {
+        await authStorage.preload();
         const loggedIn = await authStorage.isLoggedIn();
 
         if (loggedIn) {
@@ -324,8 +327,11 @@ export default function App() {
           // Fetch profile
           let profile: any = null;
           if (role === 'parent') {
-            profile = await parentService.fetchParentProfile();
-            const childrenData = await parentService.fetchChildren();
+            const [profileRes, childrenData] = await Promise.all([
+              parentService.fetchParentProfile().catch(() => null),
+              parentService.fetchChildren().catch(() => []),
+            ]);
+            profile = profileRes;
             if (childrenData && childrenData.length > 0) {
               setChildren(childrenData);
               setSelectedChildId(childrenData[0].id);
