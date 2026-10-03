@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, StatusBar, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useQuery } from '@tanstack/react-query';
 import { 
   Users, 
   PlusCircle, 
@@ -149,30 +150,15 @@ const ClassCard = ({ subject, className, time, room, students, status }: any) =>
 export const TeacherHomeScreen = ({ navigation }: any) => {
   const { userName, userAvatarUrl } = useAppStore();
   const { t, language, isRTL } = useLanguage();
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<any>(null);
-  const [refreshing, setRefreshing] = useState(false);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const res = await teacherService.fetchHomeData();
-      setData(res);
-    } catch (err) {
-      console.error("[TEACHER-HOME-LOAD]", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
+  const { data, isLoading: loading, isRefetching: refreshing, refetch } = useQuery({
+    queryKey: ['teacherHome'],
+    queryFn: () => teacherService.fetchHomeData(),
+    staleTime: 30_000,
+  });
 
   const onRefresh = async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
+    refetch();
   };
 
   const locale = language === 'ar' ? 'ar-TN' : language === 'fr' ? 'fr-FR' : 'en-US';

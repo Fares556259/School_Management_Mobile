@@ -653,6 +653,13 @@ export const studentService = {
     }));
   },
 
+  fetchUnreadNotificationCount: async (parentId: string, studentId?: string | null): Promise<number> => {
+    let url = `/api/mobile/notifications?parentId=${parentId}&countOnly=true`;
+    if (studentId) url += `&studentId=${studentId}`;
+    const data = await apiFetch(url);
+    return typeof data?.unreadCount === 'number' ? data.unreadCount : 0;
+  },
+
   deleteNotification: async (id: number) => {
     return apiFetch(`/api/mobile/notifications?id=${id}`, {
       method: 'DELETE',

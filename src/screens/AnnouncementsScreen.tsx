@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Megaphone, ChevronRight } from 'lucide-react-native';
 import { studentService } from '../services/api';
@@ -92,10 +92,10 @@ export const AnnouncementsScreen = ({ navigation }: any) => {
   const classId = child?.raw?.classId;
   const studentId = child?.id;
 
-  const { data: announcements = [], isLoading: loading } = useQuery({
+  const { data: announcements = [], isLoading: loading, isFetching, refetch } = useQuery({
     queryKey: ['announcements', classId, studentId],
     queryFn: () => studentService.fetchAnnouncements(classId, studentId),
-    enabled: !!classId && !!studentId,
+    enabled: !!studentId,
     staleTime: 60_000,
     placeholderData: keepPreviousData,
   });
@@ -118,7 +118,6 @@ export const AnnouncementsScreen = ({ navigation }: any) => {
       </View>
 
 
-
       {/* Content */}
       {loading ? (
         <ScrollView contentContainerStyle={{ paddingHorizontal: 20 }}>
@@ -138,7 +137,10 @@ export const AnnouncementsScreen = ({ navigation }: any) => {
           ))}
         </ScrollView>
       ) : filtered.length === 0 ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 }}>
+        <ScrollView 
+          contentContainerStyle={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 }}
+          refreshControl={<RefreshControl refreshing={isFetching && !loading} onRefresh={refetch} tintColor="#0055d4" />}
+        >
           <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#eff6ff', borderWidth: 2, borderColor: '#bfdbfe', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
             <Megaphone size={32} color="#0072e6" />
           </View>
@@ -150,11 +152,12 @@ export const AnnouncementsScreen = ({ navigation }: any) => {
               ? 'School news and alerts will appear here once published.'
               : 'Nothing matches your search or filters. Try a different keyword.'}
           </Text>
-        </View>
+        </ScrollView>
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
+          refreshControl={<RefreshControl refreshing={isFetching && !loading} onRefresh={refetch} tintColor="#0055d4" />}
         >
           {filtered.map(item => (
             <AnnouncementCard

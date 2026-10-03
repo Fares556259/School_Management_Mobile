@@ -31,14 +31,13 @@ export const GlobalHeader = ({ navigation, showBack }: GlobalHeaderProps) => {
   const selectedChild = children.find((c: any) => c.id === selectedChildId);
   const status = selectedChildId ? studentStatuses[selectedChildId] || 'Present' : 'Present';
 
-  // Use React Query for notification count — cached 60s across all screens
+  // Use React Query for notification count — fast countOnly query, cached 60s across all screens
   useQuery({
     queryKey: ['notifCount', userId, selectedChildId],
     queryFn: async () => {
       const uid = userId || await authStorage.getUserId();
       if (!uid) return 0;
-      const notes = await studentService.fetchNotifications(uid, selectedChildId);
-      const count = notes.filter(n => n.isNew).length;
+      const count = await studentService.fetchUnreadNotificationCount(uid, selectedChildId);
       setUnreadNotificationsCount(count);
       return count;
     },
