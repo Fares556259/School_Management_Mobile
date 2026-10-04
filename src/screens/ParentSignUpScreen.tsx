@@ -1,3 +1,4 @@
+import { PrivacyControls } from '../components/PrivacyControls';
 import React, { useState, useEffect, useRef } from 'react';
 import { useHardwareBack } from '../hooks/useHardwareBack';
 import { AuthLanguageSwitch } from '../components/auth/AuthLanguageSwitch';
@@ -1777,6 +1778,7 @@ export const ParentSignUpScreen = ({
                   </Text>
                 </TouchableOpacity>
               </View>
+              <PrivacyControls signedIn={false} />
             </ScrollView>
           </View>
         </KeyboardAvoidingView>

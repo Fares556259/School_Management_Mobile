@@ -1,3 +1,4 @@
+import { PrivacyControls } from '../components/PrivacyControls';
 import React, { useState, useEffect, useRef } from 'react';
 import { useHardwareBack } from '../hooks/useHardwareBack';
 import { AuthLanguageSwitch } from '../components/auth/AuthLanguageSwitch';
@@ -779,6 +780,7 @@ export const SignInScreen = ({
                   {language === 'ar' ? 'تواصل مع إدارة مدرستك إذا احتجت إلى مساعدة.' : language === 'en' ? 'Need help? Contact your school office.' : 'Besoin d’aide ? Contactez votre école.'}
                 </Text>
               </View>
+              <PrivacyControls signedIn={false} />
             </ScrollView>
           </View>
         </KeyboardAvoidingView>

@@ -1258,3 +1258,9 @@ export const adminService = {
     return data?.url || null;
   },
 };
+
+export const privacyService = {
+  submit: (kind: 'ACCOUNT_DELETION' | 'AI_REPORT', message = '') => apiFetch('/api/mobile/privacy-request', {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({kind, message}),
+  }),
+};

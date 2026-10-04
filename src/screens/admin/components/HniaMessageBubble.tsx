@@ -1,3 +1,4 @@
+import { ReportAIResponse } from '../../../components/PrivacyControls';
 import React, { useState, useMemo } from 'react';
 import {
   View,
@@ -390,6 +391,7 @@ function HniaMessageBubble({
         {/* Assistant Footer (Model Tag & Copy Button) */}
         {!isUser && message.content && (
           <View style={styles.assistantFooter}>
+            <ReportAIResponse content={message.content} />
             <View style={styles.modelTag}>
               <View style={styles.modelDot} />
               <Text style={styles.modelText}>Hnia IA</Text>

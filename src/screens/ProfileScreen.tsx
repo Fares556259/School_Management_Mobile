@@ -1,3 +1,4 @@
+import { PrivacyControls } from '../components/PrivacyControls';
 import React, { useState, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput, ActivityIndicator, StatusBar, Dimensions, Switch, Linking } from 'react-native';
@@ -433,12 +434,6 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
 
   const pickImage = async (type: 'user' | 'student', id?: string) => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Gallery access is required to pick photos.');
-        return;
-      }
-
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: 'images',
         allowsEditing: true,
@@ -832,6 +827,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
             />
           </View>
 
+          <PrivacyControls />
           {/* App Version Tag */}
           <View style={{ alignItems: 'center', marginTop: 20, marginBottom: 8 }}>
             <Text style={{ fontSize: 12, fontWeight: '700', color: '#94a3b8' }}>

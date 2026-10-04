@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # Script: publish-all-testers.sh
-# Purpose: Publish EAS OTA updates across ALL runtime versions (1.0.1, 1.0.2, 1.0.3)
+# Purpose: Publish EAS OTA updates across ALL runtime versions (1.0.1, 1.0.2, 1.0.3, 1.0.4)
 #          and ALL channels (main, production) so EVERY tester gets the update!
 # ==============================================================================
 
@@ -15,13 +15,14 @@ echo "🚀 SnapSchool Mobile - Diffusion Mise à Jour Testeurs"
 echo "========================================================"
 
 MESSAGE="${1:-feat: admin portal, hnia chat, caisse & auto-update}"
+ORIGINAL_VERSION=$(node -p "require('./app.json').expo.version")
 
 restore_version() {
   node -e "
     const fs = require('fs');
     const p = './app.json';
     const j = JSON.parse(fs.readFileSync(p, 'utf8'));
-    j.expo.version = '1.0.3';
+    j.expo.version = '$ORIGINAL_VERSION';
     fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');
   "
 }
@@ -74,19 +75,20 @@ publish_for_version() {
 publish_for_version "1.0.1"
 publish_for_version "1.0.2"
 publish_for_version "1.0.3"
+publish_for_version "1.0.4"
 
-# Restore app.json to 1.0.3
+# Restore the original app version
 node -e "
   const fs = require('fs');
   const p = './app.json';
   const j = JSON.parse(fs.readFileSync(p, 'utf8'));
-  j.expo.version = '1.0.3';
+  j.expo.version = '$ORIGINAL_VERSION';
   fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');
 "
 
 echo ""
 echo "========================================================"
 echo "🎉 SUCCÈS TOTAL !"
-echo "Tous vos testeurs (1.0.1, 1.0.2, 1.0.3 sur main & production)"
+echo "Tous vos testeurs (1.0.1–1.0.4 sur main & production)"
 echo "recevront la mise à jour dès l'ouverture de l'application !"
 echo "========================================================"

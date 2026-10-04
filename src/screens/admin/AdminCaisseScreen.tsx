@@ -226,17 +226,6 @@ export default function AdminCaisseScreen() {
   const openGallery = async (onSelected: (uri: string) => void) => {
     setShowPhotoPicker(null);
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        setFeedback({
-          visible: true,
-          type: 'error',
-          title: t.adminPermissionRequired,
-          message: t.adminGalleryPermMsg,
-        });
-        return;
-      }
-
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,

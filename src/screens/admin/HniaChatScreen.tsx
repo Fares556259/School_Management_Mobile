@@ -648,18 +648,6 @@ export default function HniaChatScreen() {
 
   const handlePickImage = async () => {
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert(
-          language === 'ar' ? 'الإذن مطلوب' : language === 'en' ? 'Permission Required' : 'Permission requise',
-          language === 'ar'
-            ? 'يرجى السماح بالوصول إلى الصور.'
-            : language === 'en'
-            ? 'Please grant photo library access.'
-            : 'Veuillez autoriser l’accès à vos photos.'
-        );
-        return;
-      }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: false,
@@ -930,6 +918,7 @@ export default function HniaChatScreen() {
   };
 
   // Send Message with SSE streaming
+  const aiConsent = useRef(false);
   const handleSendMessage = async (
     textToSend?: string,
     directAudioBase64?: string,
@@ -937,6 +926,13 @@ export default function HniaChatScreen() {
   ) => {
     const rawText = (textToSend ?? inputText).trim();
     if (!rawText && !stagedImage && !stagedAudio && !directAudioBase64) return;
+    if (!aiConsent.current) {
+      Alert.alert('Hnia IA', language === 'ar' ? 'ستُرسل رسائلك والصور والتسجيلات التي تختارها إلى خدمة الذكاء الاصطناعي لمعالجتها. تجنب البيانات غير الضرورية وتحقق من الإجابات قبل تنفيذ القرارات.' : language === 'fr' ? 'Vos messages et les photos ou enregistrements choisis seront transmis au service d’intelligence artificielle. Évitez les données inutiles et vérifiez les réponses avant toute décision.' : 'Your messages and selected photos or recordings will be sent to the AI service. Avoid unnecessary personal data and verify responses before acting.', [
+        { text: language === 'ar' ? 'إلغاء' : language === 'fr' ? 'Annuler' : 'Cancel', style: 'cancel' },
+        { text: language === 'ar' ? 'متابعة' : language === 'fr' ? 'Continuer' : 'Continue', onPress: () => { aiConsent.current = true; void handleSendMessage(textToSend, directAudioBase64, directAudioMime); } }
+      ]);
+      return;
+    }
     if (isSendingRef.current) return; // Prevent double-send on rapid tap
     isSendingRef.current = true;
 

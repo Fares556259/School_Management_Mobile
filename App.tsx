@@ -55,8 +55,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 
-import { PostHogProvider } from 'posthog-react-native';
-import { posthog, identifyUser, resetUser, trackScreen } from './src/services/posthog';
+import { identifyUser, resetUser, trackScreen } from './src/services/posthog';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -572,7 +571,6 @@ export default function App() {
   };
 
   return (
-    <PostHogProvider client={posthog} autocapture>
       <PersistQueryClientProvider 
         client={queryClient}
         persistOptions={{ persister: asyncStoragePersister, buster: "account-isolation-v2" }}
@@ -684,6 +682,5 @@ export default function App() {
           </SafeAreaProvider>
         </LanguageProvider>
       </PersistQueryClientProvider>
-    </PostHogProvider>
   );
 }

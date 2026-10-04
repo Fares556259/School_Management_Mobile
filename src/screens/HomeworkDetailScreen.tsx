@@ -86,11 +86,6 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
       return;
     }
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(t.permissionNeeded, t.allowPhotoAccess);
-        return;
-      }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: false,

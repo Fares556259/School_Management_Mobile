@@ -1,3 +1,4 @@
+import { PrivacyControls } from '../../components/PrivacyControls';
 import React, { useState } from 'react';
 import {
   View,
@@ -331,6 +332,7 @@ export default function AdminMoreScreen({ onSignOut }: { onSignOut?: () => void 
           </TouchableOpacity>
         </View>
 
+        <PrivacyControls admin />
         {/* ── 4. GROUP 3: SESSION ─────────────────────────────────────────────── */}
         <Text style={[styles.sectionTitle, { textAlign: isRTL ? 'right' : 'left', marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }]}>
           {t.adminSectionSession}
