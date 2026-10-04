@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   GraduationCap,
   Users,
@@ -42,6 +42,8 @@ import {
   ArrowUpRight,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { useAppStore } from '../../store/useAppStore';
+import { dashboardQueryKey, dashboardStaleTime, shouldRefreshDashboard } from './dashboardCache';
 import { adminService } from '../../services/api';
 import { trackEvent } from '../../services/posthog';
 import { useLanguage } from '../../context/LanguageContext';
@@ -128,14 +130,19 @@ export default function AdminDashboardScreen() {
   const selectedYear = currentYearNum;
 
   const queryClient = useQueryClient();
+  const userId = useAppStore(state => state.userId);
+  const dashboardKey = useMemo(() => dashboardQueryKey(userId, selectedMonth, selectedYear), [userId, selectedMonth, selectedYear]);
 
   // ── REACT QUERY DATA FETCHING ─────────────────────────────────────────────
   const {
     data: queryData,
     isLoading: isQueryLoading,
+    isError,
+    isFetching,
     refetch,
   } = useQuery<DashboardData>({
-    queryKey: ['admin', 'dashboard', selectedMonth, selectedYear],
+    queryKey: dashboardKey,
+    enabled: Boolean(userId),
     queryFn: async () => {
       const res = await adminService.fetchDashboard(selectedMonth, selectedYear);
       if (res && res.success) {
@@ -143,9 +150,8 @@ export default function AdminDashboardScreen() {
       }
       throw new Error(res?.error || 'Failed to load dashboard');
     },
-    staleTime: 30_000,
+    staleTime: dashboardStaleTime,
     gcTime: 1000 * 60 * 60 * 24, // 24 hours persistent cache
-    placeholderData: keepPreviousData,
     retry: 1,
   });
 
@@ -156,24 +162,23 @@ export default function AdminDashboardScreen() {
   // Background revalidation on tab focus if data is stale (>30s)
   useFocusEffect(
     useCallback(() => {
-      const state = queryClient.getQueryState(['admin', 'dashboard', selectedMonth, selectedYear]);
-      const isStale = !state?.dataUpdatedAt || Date.now() - state.dataUpdatedAt > 30_000;
-      if (isStale) {
+      if (shouldRefreshDashboard(queryClient, dashboardKey)) {
         refetch();
       }
-    }, [queryClient, selectedMonth, selectedYear, refetch])
+    }, [queryClient, dashboardKey, userId, refetch])
   );
 
   const onRefresh = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setRefreshing(true);
-    await refetch();
-    setRefreshing(false);
+    try { await refetch(); } finally { setRefreshing(false); }
   }, [refetch]);
 
   // Unpaid section filtering state
   const [unpaidCategory, setUnpaidCategory] = useState<'STUDENT' | 'TEACHER' | 'STAFF' | 'ALL'>('STUDENT');
   const [unpaidSearch, setUnpaidSearch] = useState('');
+  const [visibleCount, setVisibleCount] = useState(10);
+  useEffect(() => { setVisibleCount(10); }, [unpaidCategory, unpaidSearch]);
 
   // Payment / Collection Modal State
   const [payModalItem, setPayModalItem] = useState<UnpaidItem | null>(null);
@@ -356,8 +361,7 @@ export default function AdminDashboardScreen() {
                 ? `✓ تم قبض ${amt} د.ت لـ ${payModalItem.name}.`
                 : `✓ Encaissé ${amt} DT pour ${payModalItem.name}.`),
           });
-          queryClient.invalidateQueries({ queryKey: ['admin'] });
-          refetch();
+          await queryClient.invalidateQueries({ queryKey: ['admin'] });
         } else {
           throw new Error(res?.error || "Échec de l'encaissement");
         }
@@ -390,8 +394,7 @@ export default function AdminDashboardScreen() {
                 ? `✓ تم صرف أجر قدره ${amt} د.ت لـ ${payModalItem.name}.`
                 : `✓ Rémunération de ${amt} DT versée à ${payModalItem.name}.`),
           });
-          queryClient.invalidateQueries({ queryKey: ['admin'] });
-          refetch();
+          await queryClient.invalidateQueries({ queryKey: ['admin'] });
         } else {
           throw new Error(res?.error || 'Échec du versement');
         }
@@ -430,23 +433,26 @@ export default function AdminDashboardScreen() {
             <Text style={styles.headerDate}>{todayDateStr}</Text>
           </View>
           {/* Main Greeting */}
-          <Text style={[styles.headerGreeting, { textAlign: isRTL ? 'right' : 'left' }]} numberOfLines={1}>
+          <Text style={[styles.headerGreeting, { textAlign: isRTL ? 'right' : 'left' }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
             {t.adminGreeting}, {data?.adminName || (language === 'ar' ? 'الإدارة' : 'Direction')} 👋
           </Text>
         </View>
 
         <TouchableOpacity
           onPress={onRefresh}
+          accessibilityRole="button"
+          accessibilityLabel={language === 'ar' ? 'تحديث' : language === 'en' ? 'Refresh dashboard' : 'Actualiser le tableau de bord'}
+          disabled={isFetching}
           activeOpacity={0.7}
           style={styles.refreshButton}
         >
-          <RefreshCw size={15} color="#0055d4" />
+          <RefreshCw size={18} color="#0055d4" />
         </TouchableOpacity>
       </View>
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 50 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 40 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0055d4']} />}
         showsVerticalScrollIndicator={false}
       >
@@ -457,8 +463,15 @@ export default function AdminDashboardScreen() {
               {t.adminDashboardLoading}
             </Text>
           </View>
+        ) : isError && !data ? (
+          <View style={{ padding: 28, alignItems: 'center', gap: 16 }}>
+            <AlertCircle size={28} color="#64748b" />
+            <Text style={{ color: '#64748b', textAlign: 'center', lineHeight: 22 }}>{language === 'ar' ? 'تعذر تحميل البيانات. يرجى المحاولة من جديد.' : language === 'en' ? 'Could not load the dashboard. Please retry.' : 'Impossible de charger les données. Réessayez.'}</Text>
+            <TouchableOpacity accessibilityRole="button" onPress={onRefresh} style={{ padding: 14 }}><Text style={{ color: '#0055d4', fontWeight: '700' }}>{language === 'ar' ? 'إعادة المحاولة' : language === 'en' ? 'Retry' : 'Réessayer'}</Text></TouchableOpacity>
+          </View>
         ) : (
           <>
+            {isError && data && <Text style={{ color: '#b45309', marginBottom: 16, lineHeight: 20 }}>{language === 'ar' ? 'تعذر التحديث. هذه آخر بيانات محفوظة.' : language === 'en' ? 'Update failed. Showing previously loaded data.' : 'Actualisation indisponible. Dernières données affichées.'}</Text>}
             {/* ── 1. 2x2 OPERATIONS GRID (AIRY, ROOM TO BREATHE) ──────────────── */}
             <View style={styles.statsGrid}>
               {/* Élèves */}
@@ -521,9 +534,10 @@ export default function AdminDashboardScreen() {
                   <View style={styles.financialIconBox}>
                     <TrendingUp size={16} color="#0055d4" />
                   </View>
-                  <Text style={styles.financialTitle} numberOfLines={1}>
-                    {t.adminTuitionRecovery} {data?.financialPulse?.monthLabel ? `• ${data.financialPulse.monthLabel}` : ''}
-                  </Text>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={[styles.financialTitle, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminTuitionRecovery}</Text>
+                    <Text style={{ color: '#64748b', fontSize: 12, marginTop: 4, textAlign: isRTL ? 'right' : 'left' }}>{data?.financialPulse?.monthLabel}</Text>
+                  </View>
                 </View>
                 <TouchableOpacity
                   onPress={() => navigation.navigate('Caisse')}
@@ -536,8 +550,8 @@ export default function AdminDashboardScreen() {
               </View>
 
               {/* Amount collected vs expected */}
-              <View style={[styles.financialAmountsRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'baseline', gap: 6 }}>
+              <View style={[styles.financialAmountsRow, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
                   <Text style={styles.financialBigNumber}>
                     {data?.financialPulse.collectedTuition.toLocaleString() || 0} DT
                   </Text>
@@ -579,7 +593,7 @@ export default function AdminDashboardScreen() {
 
             {/* ── 3. ATTENDANCE PULSE TODAY ─────────────────────────────────── */}
             <View style={styles.attendanceCard}>
-              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
                 <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 8 }}>
                   <View style={styles.attendanceIconBox}>
                     <CheckCircle2 size={16} color="#059669" />
@@ -741,7 +755,7 @@ export default function AdminDashboardScreen() {
                 </View>
               ) : (
                 <View style={{ gap: 10 }}>
-                  {filteredUnpaid.map((item) => {
+                  {filteredUnpaid.slice(0, visibleCount).map((item) => {
                     const isStudent = item.type === 'student';
                     const isTeacher = item.type === 'teacher';
                     const isStaff = item.type === 'staff';
@@ -865,6 +879,11 @@ export default function AdminDashboardScreen() {
                       </View>
                     );
                   })}
+                  {filteredUnpaid.length > visibleCount && (
+                    <TouchableOpacity accessibilityRole="button" onPress={() => setVisibleCount(count => count + 10)} style={{ padding: 16, alignItems: 'center', borderRadius: 14, backgroundColor: '#eff6ff' }}>
+                      <Text style={{ color: '#0055d4', fontWeight: '700' }}>{language === 'ar' ? 'عرض المزيد' : language === 'en' ? 'Show more' : 'Voir plus'} ({filteredUnpaid.length - visibleCount})</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
             </View>
@@ -1063,7 +1082,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: 8,
+    paddingBottom: 18,
   },
   headerSubtitleRow: {
     flexDirection: 'row',
@@ -1072,6 +1091,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   headerSchoolName: {
+    flexShrink: 1,
     fontSize: 12,
     fontWeight: '800',
     color: '#0055d4',
@@ -1081,6 +1101,8 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
   },
   headerDate: {
+    flexShrink: 0,
+    maxWidth: 80,
     fontSize: 12,
     fontWeight: '600',
     color: '#64748b',
@@ -1093,9 +1115,9 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   refreshButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1109,15 +1131,17 @@ const styles = StyleSheet.create({
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 12,
     marginTop: 8,
-    marginBottom: 12,
+    marginBottom: 24,
   },
   statCard: {
-    width: '48.5%',
+    flexBasis: '46%',
+    flexGrow: 1,
+    minWidth: 0,
     backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 13,
+    borderRadius: 20,
+    padding: 16,
     borderWidth: 1,
     borderColor: '#f1f5f9',
     flexDirection: 'row',
@@ -1126,7 +1150,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
     shadowRadius: 6,
-    elevation: 2,
+    elevation: 0,
   },
   statIconBox: {
     width: 38,
@@ -1140,29 +1164,29 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statNumber: {
-    fontSize: 17.5,
+    fontSize: 22,
     fontWeight: '800',
     color: '#0f172a',
     letterSpacing: -0.3,
   },
   statLabel: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '500',
     color: '#64748b',
-    marginTop: 1,
+    marginTop: 5,
   },
   financialCard: {
     backgroundColor: '#ffffff',
     borderRadius: 20,
-    padding: 18,
+    padding: 22,
     borderWidth: 1,
     borderColor: '#f1f5f9',
     shadowColor: '#0f172a',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.04,
     shadowRadius: 10,
-    elevation: 2,
-    marginBottom: 14,
+    elevation: 0,
+    marginBottom: 24,
   },
   financialHeaderRow: {
     flexDirection: 'row',
@@ -1178,7 +1202,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   financialTitle: {
-    fontSize: 14.5,
+    fontSize: 16,
     fontWeight: '700',
     color: '#0f172a',
   },
@@ -1188,7 +1212,7 @@ const styles = StyleSheet.create({
     gap: 4,
     backgroundColor: '#eff6ff',
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 12,
     borderRadius: 8,
     flexShrink: 0,
   },
@@ -1198,13 +1222,13 @@ const styles = StyleSheet.create({
     color: '#0055d4',
   },
   financialAmountsRow: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginTop: 12,
+    alignItems: 'flex-start',
+    marginTop: 22,
   },
   financialBigNumber: {
-    fontSize: 26,
+    fontSize: 32,
     fontWeight: '800',
     color: '#0055d4',
     letterSpacing: -0.6,
@@ -1215,9 +1239,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   financialExpectedText: {
-    fontSize: 12.5,
+    fontSize: 13,
     color: '#64748b',
     fontWeight: '500',
+    marginTop: 6,
   },
   progressBarTrack: {
     height: 7,
@@ -1234,7 +1259,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 12,
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 18,
   },
   ratePill: {
     backgroundColor: '#ecfdf5',
@@ -1261,15 +1288,15 @@ const styles = StyleSheet.create({
   attendanceCard: {
     backgroundColor: '#ffffff',
     borderRadius: 18,
-    padding: 16,
+    padding: 20,
     borderWidth: 1,
     borderColor: '#f1f5f9',
     shadowColor: '#0f172a',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
     shadowRadius: 8,
-    elevation: 2,
-    marginBottom: 16,
+    elevation: 0,
+    marginBottom: 28,
   },
   attendanceIconBox: {
     width: 32,
@@ -1327,7 +1354,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
     paddingHorizontal: 4,
   },
   unpaidTitle: {
@@ -1349,13 +1378,13 @@ const styles = StyleSheet.create({
   },
   dualRibbon: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 10,
+    gap: 12,
+    marginBottom: 16,
   },
   ribbonItem: {
     flex: 1,
     backgroundColor: '#ffffff',
-    padding: 10,
+    padding: 16,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#e2e8f0',
@@ -1394,6 +1423,7 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   searchContainer: {
+    minHeight: 46,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#ffffff',
@@ -1417,6 +1447,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   tabButton: {
+    minHeight: 44,
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
