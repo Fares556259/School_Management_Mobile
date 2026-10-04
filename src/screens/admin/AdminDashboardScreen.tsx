@@ -43,6 +43,7 @@ import {
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useAppStore } from '../../store/useAppStore';
+import { matchesUnpaidSearch } from './unpaidSearch';
 import { dashboardQueryKey, dashboardStaleTime, shouldRefreshDashboard } from './dashboardCache';
 import { adminService } from '../../services/api';
 import { trackEvent } from '../../services/posthog';
@@ -175,7 +176,7 @@ export default function AdminDashboardScreen() {
   }, [refetch]);
 
   // Unpaid section filtering state
-  const [unpaidCategory, setUnpaidCategory] = useState<'STUDENT' | 'TEACHER' | 'STAFF' | 'ALL'>('STUDENT');
+  const [unpaidCategory, setUnpaidCategory] = useState<'STUDENT' | 'TEACHER' | 'STAFF' | 'ALL'>('ALL');
   const [unpaidSearch, setUnpaidSearch] = useState('');
   const [visibleCount, setVisibleCount] = useState(10);
   useEffect(() => { setVisibleCount(10); }, [unpaidCategory, unpaidSearch]);
@@ -224,14 +225,7 @@ export default function AdminDashboardScreen() {
 
     if (!unpaidSearch.trim()) return list;
 
-    const q = unpaidSearch.toLowerCase().trim();
-    return list.filter((item) => {
-      const matchName = item.name.toLowerCase().includes(q);
-      const matchClass = item.className ? item.className.toLowerCase().includes(q) : false;
-      const matchParent = item.parentName ? item.parentName.toLowerCase().includes(q) : false;
-      const matchRole = item.role ? item.role.toLowerCase().includes(q) : false;
-      return matchName || matchClass || matchParent || matchRole;
-    });
+    return list.filter(item => matchesUnpaidSearch(item, unpaidSearch));
   }, [unpaidCategory, studentItems, teacherItems, staffItems, allUnpaid, unpaidSearch]);
 
   // ── CONTACT ACTIONS ────────────────────────────────────────────────────────
@@ -429,13 +423,13 @@ export default function AdminDashboardScreen() {
             <Text style={styles.headerSchoolName} numberOfLines={1}>
               {data?.schoolName || 'SnapSchool'}
             </Text>
-            <Text style={styles.headerDot}>•</Text>
-            <Text style={styles.headerDate}>{todayDateStr}</Text>
+            
           </View>
-          {/* Main Greeting */}
+          {/* Dashboard title */}
           <Text style={[styles.headerGreeting, { textAlign: isRTL ? 'right' : 'left' }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
-            {t.adminGreeting}, {data?.adminName || (language === 'ar' ? 'الإدارة' : 'Direction')} 👋
+            {language === 'ar' ? 'نظرة عامة' : language === 'en' ? 'School overview' : 'Vue d’ensemble'}
           </Text>
+          <Text style={[styles.headerDate, { maxWidth: undefined, marginTop: 6, textAlign: isRTL ? 'right' : 'left' }]}>{todayDateStr}</Text>
         </View>
 
         <TouchableOpacity
@@ -683,7 +677,8 @@ export default function AdminDashboardScreen() {
                 <TextInput
                   value={unpaidSearch}
                   onChangeText={setUnpaidSearch}
-                  placeholder={t.adminSearchUnpaidPlaceholder}
+                  accessibilityLabel={language === 'ar' ? 'البحث في الحسابات غير المدفوعة' : language === 'en' ? 'Search unpaid accounts' : 'Rechercher les comptes impayés'}
+                  placeholder={language === 'ar' ? 'الاسم، القسم، الولي أو الهاتف' : language === 'en' ? 'Name, class, parent or phone' : 'Nom, classe, parent ou téléphone'}
                   placeholderTextColor="#94a3b8"
                   style={[styles.searchInput, { textAlign: isRTL ? 'right' : 'left' }]}
                 />
@@ -748,9 +743,9 @@ export default function AdminDashboardScreen() {
               {filteredUnpaid.length === 0 ? (
                 <View style={styles.emptyContainer}>
                   <CheckCircle2 size={30} color="#10b981" />
-                  <Text style={styles.emptyTitle}>{t.adminAllCaughtUpTitle}</Text>
+                  <Text style={styles.emptyTitle}>{unpaidSearch.trim() ? (language === 'ar' ? 'لا توجد نتائج' : language === 'en' ? 'No matches' : 'Aucun résultat') : t.adminAllCaughtUpTitle}</Text>
                   <Text style={styles.emptySubtitle}>
-                    {t.adminAllCaughtUpSub}
+                    {unpaidSearch.trim() ? (language === 'ar' ? 'جرب اسماً أو قسماً أو رقماً آخر، أو اختر الكل.' : language === 'en' ? 'Try another name, class or phone, or select All.' : 'Essayez un autre nom, une classe ou un numéro, ou choisissez Tous.') : t.adminAllCaughtUpSub}
                   </Text>
                 </View>
               ) : (
@@ -1110,7 +1105,7 @@ const styles = StyleSheet.create({
   },
   headerGreeting: {
     fontSize: 24,
-    fontWeight: '900',
+    fontWeight: '800',
     color: '#0f172a',
     letterSpacing: -0.5,
   },
