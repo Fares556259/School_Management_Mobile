@@ -1203,12 +1203,12 @@ export default function HniaChatScreen() {
         });
         queryClient.invalidateQueries({ queryKey: ['admin'] });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } else if (res && !res.success && !isStreamStarted && !isDoneTriggered) {
+      } else if (res && !res.success && !isDoneTriggered) {
         setLastFailedMessage(rawText);
         const errorMsg: ChatMessage = {
           id: `bot_${Date.now()}`,
           role: 'assistant',
-          content: "Je n'arrive pas à contacter SnapSchool pour le moment. Veuillez vérifier votre connexion.",
+          content: "La réponse a été interrompue. Vérifiez le résultat avant de réessayer si une action était en cours.",
           createdAt: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, errorMsg]);

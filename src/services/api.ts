@@ -1,3 +1,4 @@
+import { requestChatStream, type ChatStreamCallbacks } from "./chatStream";
 import { clearAccountData } from "./accountCleanup";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -958,7 +959,7 @@ export const teacherService = {
       method: "POST",
       body: JSON.stringify({ ...data, teacherId }),
     });
-    if (!result) throw new Error("Failed to save attendance");
+    if (result?.success !== true) throw new Error("Failed to save attendance");
     return result;
   },
 
@@ -1074,123 +1075,25 @@ export const adminService = {
       imageBase64?: string;
       imageMimeType?: string;
     },
-    callbacks: {
-      onStatus?: (status: { step: string; tool?: string }) => void;
-      onTranscription?: (transcription: string) => void;
-      onToken?: (delta: string) => void;
-      onWidget?: (widget: any) => void;
-      onConfirmation?: (pendingConfirmation: any) => void;
-      onDone?: (result: any) => void;
-      onError?: (error: any) => void;
-    },
+    callbacks: ChatStreamCallbacks,
     signal?: AbortSignal
   ): Promise<any> => {
-    const schoolId = await authStorage.getSchoolId();
-    const token = await authStorage.getToken();
-    const url = `${API_BASE_URL}/api/mobile/agent/chat`;
-
-    return new Promise((resolve) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', url, true);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.setRequestHeader('Accept', 'text/event-stream');
-      xhr.setRequestHeader('x-school-id', schoolId || 'default_school');
-      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-
-      let seenBytes = 0;
-      let finalResult: any = null;
-      let accumulatedBuffer = '';
-      let currentEvent = 'message';
-      let inactivityTimer: ReturnType<typeof setTimeout> | null = null;
-
-      if (signal) {
-        signal.addEventListener('abort', () => {
-          if (inactivityTimer) clearTimeout(inactivityTimer);
-          xhr.abort();
-          resolve({ aborted: true });
-        });
-      }
-
-      xhr.onprogress = () => {
-        try {
-          if (inactivityTimer) clearTimeout(inactivityTimer);
-          inactivityTimer = setTimeout(() => {
-            xhr.abort();
-            callbacks.onError?.(new Error('Aucune réponse reçue depuis 30 secondes.'));
-            resolve({ success: false, error: 'Inactivity timeout' });
-          }, 30000);
-
-          const newChunk = xhr.responseText.substring(seenBytes);
-          seenBytes = xhr.responseText.length;
-          accumulatedBuffer += newChunk;
-
-          const lines = accumulatedBuffer.split('\n');
-          accumulatedBuffer = lines.pop() || '';
-
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed) continue;
-            if (trimmed.startsWith('event:')) {
-              currentEvent = trimmed.replace(/^event:\s*/, '').trim();
-            } else if (trimmed.startsWith('data:')) {
-              const dataStr = trimmed.replace(/^data:\s*/, '').trim();
-              try {
-                const parsed = JSON.parse(dataStr);
-                if (currentEvent === 'status') {
-                  callbacks.onStatus?.(parsed);
-                } else if (currentEvent === 'transcription') {
-                  callbacks.onTranscription?.(parsed.transcription || '');
-                } else if (currentEvent === 'token') {
-                  callbacks.onToken?.(parsed.delta || '');
-                } else if (currentEvent === 'widget') {
-                  callbacks.onWidget?.(parsed.widget);
-                } else if (currentEvent === 'confirmation') {
-                  callbacks.onConfirmation?.(parsed.pendingConfirmation);
-                } else if (currentEvent === 'done') {
-                  finalResult = parsed;
-                  callbacks.onDone?.(parsed);
-                } else if (currentEvent === 'error') {
-                  callbacks.onError?.(parsed);
-                }
-              } catch {}
-            }
-          }
-        } catch (e) {
-          console.warn('[SSE Stream] Progress parse error:', e);
-        }
-      };
-
-      xhr.onload = () => {
-        if (inactivityTimer) clearTimeout(inactivityTimer);
-        if (xhr.status >= 200 && xhr.status < 300) {
-          if (!finalResult && xhr.responseText) {
-            try {
-              const parsed = JSON.parse(xhr.responseText);
-              finalResult = parsed;
-              callbacks.onDone?.(parsed);
-            } catch {}
-          }
-          resolve(finalResult || { success: true });
-        } else {
-          callbacks.onError?.(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
-          resolve({ success: false, error: `HTTP ${xhr.status}` });
-        }
-      };
-
-      xhr.onerror = () => {
-        if (inactivityTimer) clearTimeout(inactivityTimer);
-        callbacks.onError?.(new Error('Network error on stream'));
-        resolve({ success: false, error: 'Network error' });
-      };
-
-      xhr.timeout = 90000; // 90 second total timeout
-      xhr.ontimeout = () => {
-        if (inactivityTimer) clearTimeout(inactivityTimer);
-        callbacks.onError?.(new Error('La requête a expiré. Veuillez réessayer.'));
-        resolve({ success: false, error: 'Request timeout' });
-      };
-
-      xhr.send(JSON.stringify({ ...data, stream: true }));
+    if (signal?.aborted) return { aborted: true };
+    const generation = authGeneration;
+    const [schoolId, token] = await Promise.all([authStorage.getSchoolId(), authStorage.getToken()]);
+    return requestChatStream({
+      url: `${API_BASE_URL}/api/mobile/agent/chat`,
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+        'x-school-id': schoolId || 'default_school',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      data, callbacks, signal,
+      isCurrent: () => generation === authGeneration,
+      onUnauthorized: () => {
+        if (token) require('react-native').DeviceEventEmitter.emit('auth_unauthorized');
+      },
     });
   },
 

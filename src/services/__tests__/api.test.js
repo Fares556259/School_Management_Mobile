@@ -236,3 +236,16 @@ it('saves login children with account ownership and preserves the tuition cache'
   expect(payments).toHaveLength(10);
   expect(payments.every(payment => payment.totalAmount === 350)).toBe(true);
 });
+
+
+it('never reports rejected attendance as saved, and accepts a confirmed save', async () => {
+  await login('teacher-token', 'school-a', 'teacher-a');
+  const payload = { classId: '111', date: '2026-10-05', records: [], lessonId: null };
+  fetch.mockResolvedValueOnce(response({ error: 'No teaching sessions' }, 400));
+  await expect(api.teacherService.saveAttendance(payload)).rejects.toThrow('Failed to save attendance');
+  fetch.mockResolvedValueOnce(response({ success: false }, 200));
+  await expect(api.teacherService.saveAttendance(payload)).rejects.toThrow('Failed to save attendance');
+  fetch.mockResolvedValueOnce(response({ success: true, count: 1 }));
+  await expect(api.teacherService.saveAttendance(payload)).resolves.toEqual({ success: true, count: 1 });
+  expect(fetch).toHaveBeenCalledTimes(3);
+});
