@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { AuthLanguageSwitch } from '../components/auth/AuthLanguageSwitch';
 import {
   View,
   Text,
@@ -34,7 +35,7 @@ import {
 } from 'lucide-react-native';
 import { authService } from '../services/api';
 import { useAppStore } from '../store/useAppStore';
-import { useLanguage, Language } from '../context/LanguageContext';
+import { useLanguage } from '../context/LanguageContext';
 
 interface VerifiedStudent {
   id: string;
@@ -58,7 +59,7 @@ export const ParentSignUpScreen = ({
   onBack: () => void;
   onSignUpSuccess: () => void;
 }) => {
-  const { language, setLanguage, isRTL } = useLanguage();
+  const { language, isRTL } = useLanguage();
   const { setUserName, setUserAvatarUrl, setChildren, setSelectedChildId, setUserId, setUserRole } =
     useAppStore();
 
@@ -99,6 +100,7 @@ export const ParentSignUpScreen = ({
   const [nationalIdInput, setNationalIdInput] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState('');
+  const [studentFieldFocused, setStudentFieldFocused] = useState(false);
   const [verifiedStudents, setVerifiedStudents] = useState<VerifiedStudent[]>([]);
   const [showAddSibling, setShowAddSibling] = useState(false);
 
@@ -146,9 +148,9 @@ export const ParentSignUpScreen = ({
       // Step 1
       studentSearchTitle: 'Identification de votre enfant',
       studentSearchSubtitle:
-        'Entrez le matricule ou المعرف التربوي fourni par l’école pour retrouver instantanément votre enfant.',
-      nationalIdLabel: 'Matricule / المعرف التربوي de l’élève',
-      nationalIdPlaceholder: 'Ex: 118728385289',
+        'Entrez le matricule fourni par votre école pour retrouver votre enfant.',
+      nationalIdLabel: 'Matricule de l’élève',
+      nationalIdPlaceholder: '118728385289',
       btnVerify: 'Vérifier l’élève',
       verifiedBadge: 'Élève reconnu',
       school: 'Établissement',
@@ -262,7 +264,7 @@ export const ParentSignUpScreen = ({
       studentSearchSubtitle:
         'Enter the student ID or National educational ID provided by the school.',
       nationalIdLabel: 'Student ID / Matricule',
-      nationalIdPlaceholder: 'Ex: 118728385289',
+      nationalIdPlaceholder: '118728385289',
       btnVerify: 'Verify Student',
       verifiedBadge: 'Student Verified',
       school: 'School',
@@ -320,7 +322,7 @@ export const ParentSignUpScreen = ({
       setVerifyError(
         language === 'ar'
           ? 'الرجاء إدخال المعرف الوحيد للتلميذ'
-          : 'Veuillez entrer le المعرف التربوي / Matricule.'
+          : language === 'en' ? 'Please enter your child’s student ID.' : 'Veuillez entrer le matricule de votre enfant.'
       );
       return;
     }
@@ -450,7 +452,7 @@ export const ParentSignUpScreen = ({
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#EAF1FD' }}>
+    <View style={{ flex: 1, backgroundColor: '#EAF1FD', overflow: 'hidden' }}>
       <StatusBar barStyle="dark-content" backgroundColor="#8FB4F0" />
       <SafeAreaView style={{ flex: 1 }}>
         <KeyboardAvoidingView
@@ -524,48 +526,7 @@ export const ParentSignUpScreen = ({
             </TouchableOpacity>
 
             {/* Language Selector Pill */}
-            <View
-              style={{
-                flexDirection: isRTL ? 'row-reverse' : 'row',
-                backgroundColor: 'rgba(255, 255, 255, 0.88)',
-                borderRadius: 999,
-                padding: 3,
-                borderWidth: 1.5,
-                borderColor: 'rgba(255, 255, 255, 0.95)',
-                shadowColor: '#3B7BEA',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.08,
-                shadowRadius: 6,
-                elevation: 2,
-              }}
-            >
-              {[
-                { id: 'ar', label: 'العربية 🇹🇳' },
-                { id: 'fr', label: 'Français 🇫🇷' },
-                { id: 'en', label: 'English 🇬🇧' },
-              ].map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  onPress={() => setLanguage(item.id as Language)}
-                  style={{
-                    paddingHorizontal: 11,
-                    paddingVertical: 6,
-                    borderRadius: 999,
-                    backgroundColor: language === item.id ? '#3B7BEA' : 'transparent',
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 11.5,
-                      fontWeight: '800',
-                      color: language === item.id ? '#ffffff' : '#5B6B8C',
-                    }}
-                  >
-                    {item.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <AuthLanguageSwitch />
           </View>
 
           {/* HERO PROGRESS & STEP INDICATOR (CRITICAL FIX: 1 SINGLE LINE FOR ARABIC TITLE) */}
@@ -587,7 +548,7 @@ export const ParentSignUpScreen = ({
                 style={{
                   flex: 1,
                   fontSize: 18.5,
-                  fontWeight: '900',
+                  fontWeight: '700',
                   color: '#0F1B3D',
                   letterSpacing: -0.4,
                   textAlign: isRTL ? 'right' : 'left',
@@ -607,7 +568,7 @@ export const ParentSignUpScreen = ({
                 <Text
                   style={{
                     fontSize: 12,
-                    fontWeight: '900',
+                    fontWeight: '700',
                     color: '#3B7BEA',
                   }}
                 >
@@ -689,7 +650,7 @@ export const ParentSignUpScreen = ({
                     <Text
                       style={{
                         fontSize: 24,
-                        fontWeight: '900',
+                        fontWeight: '700',
                         color: '#0F1B3D',
                         letterSpacing: -0.5,
                         textAlign: isRTL ? 'right' : 'left',
@@ -751,7 +712,7 @@ export const ParentSignUpScreen = ({
                           <Text
                             style={{
                               fontSize: 12,
-                              fontWeight: '800',
+                              fontWeight: '600',
                               color: '#059669',
                             }}
                           >
@@ -802,7 +763,7 @@ export const ParentSignUpScreen = ({
                           <Text
                             style={{
                               fontSize: 18,
-                              fontWeight: '900',
+                              fontWeight: '700',
                               color: '#0F1B3D',
                               textAlign: isRTL ? 'right' : 'left',
                             }}
@@ -875,7 +836,7 @@ export const ParentSignUpScreen = ({
                         <Text
                           style={{
                             fontSize: 12.5,
-                            fontWeight: '800',
+                            fontWeight: '600',
                             color: '#475569',
                             textAlign: isRTL ? 'right' : 'left',
                           }}
@@ -898,7 +859,7 @@ export const ParentSignUpScreen = ({
                           backgroundColor: 'rgba(248, 250, 252, 0.95)',
                           borderRadius: 999,
                           borderWidth: 1.5,
-                          borderColor: '#E2E8F0',
+                          borderColor: verifyError ? '#FCA5A5' : studentFieldFocused ? '#3B7BEA' : '#E2E8F0',
                           paddingHorizontal: 18,
                           height: 54,
                           marginBottom: 12,
@@ -915,28 +876,31 @@ export const ParentSignUpScreen = ({
                         />
                         <TextInput
                           value={nationalIdInput}
+                          accessibilityLabel={t.nationalIdLabel}
                           onChangeText={(val) => {
                             setNationalIdInput(val);
                             setVerifyError('');
                           }}
-                          onFocus={() => scrollToInput(100)}
+                          onFocus={() => { setStudentFieldFocused(true); scrollToInput(100); }}
+                          onBlur={() => setStudentFieldFocused(false)}
                           placeholder={t.nationalIdPlaceholder}
                           placeholderTextColor="#94A3B8"
                           keyboardType="numeric"
                           returnKeyType="done"
-                          onSubmitEditing={handleVerify}
+                          onSubmitEditing={() => { if (!isVerifying) handleVerify(); }}
                           style={{
                             flex: 1,
                             fontSize: 16,
                             color: '#0F1B3D',
-                            fontWeight: '700',
-                            textAlign: isRTL ? 'right' : 'left',
+                            fontWeight: '500',
+                            textAlign: 'left',
+                            writingDirection: 'ltr',
                           }}
                         />
                       </View>
 
                       {verifyError ? (
-                        <View
+                        <View accessibilityRole="alert"
                           style={{
                             flexDirection: isRTL ? 'row-reverse' : 'row',
                             alignItems: 'center',
@@ -967,6 +931,8 @@ export const ParentSignUpScreen = ({
                       <TouchableOpacity
                         onPress={handleVerify}
                         disabled={isVerifying}
+                        accessibilityRole="button"
+                        accessibilityState={{ disabled: isVerifying, busy: isVerifying }}
                         style={{
                           backgroundColor: '#3B7BEA',
                           borderRadius: 999,
@@ -976,7 +942,7 @@ export const ParentSignUpScreen = ({
                           flexDirection: 'row',
                           shadowColor: '#3B7BEA',
                           shadowOffset: { width: 0, height: 4 },
-                          shadowOpacity: 0.25,
+                          shadowOpacity: 0.14,
                           shadowRadius: 8,
                           elevation: 3,
                         }}
@@ -984,7 +950,7 @@ export const ParentSignUpScreen = ({
                         {isVerifying ? (
                           <ActivityIndicator size="small" color="#ffffff" />
                         ) : (
-                          <Text style={{ fontSize: 15, fontWeight: '800', color: '#ffffff' }}>
+                          <Text style={{ fontSize: 15, fontWeight: '600', color: '#ffffff' }}>
                             {t.btnVerify}
                           </Text>
                         )}
@@ -1014,7 +980,7 @@ export const ParentSignUpScreen = ({
                       }}
                     >
                       <Plus size={18} color="#3B7BEA" />
-                      <Text style={{ fontSize: 14, fontWeight: '800', color: '#3B7BEA' }}>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#3B7BEA' }}>
                         {t.btnAddSibling}
                       </Text>
                     </TouchableOpacity>
@@ -1034,7 +1000,7 @@ export const ParentSignUpScreen = ({
                         flexDirection: isRTL ? 'row-reverse' : 'row',
                         shadowColor: '#3B7BEA',
                         shadowOffset: { width: 0, height: 6 },
-                        shadowOpacity: 0.3,
+                        shadowOpacity: 0.16,
                         shadowRadius: 10,
                         elevation: 4,
                         marginTop: 4,
@@ -1044,7 +1010,7 @@ export const ParentSignUpScreen = ({
                       <Text
                         style={{
                           fontSize: 16,
-                          fontWeight: '800',
+                          fontWeight: '600',
                           color: '#ffffff',
                         }}
                       >
@@ -1068,7 +1034,7 @@ export const ParentSignUpScreen = ({
                     <Text
                       style={{
                         fontSize: 24,
-                        fontWeight: '900',
+                        fontWeight: '700',
                         color: '#0F1B3D',
                         letterSpacing: -0.5,
                         textAlign: isRTL ? 'right' : 'left',
@@ -1094,7 +1060,7 @@ export const ParentSignUpScreen = ({
                     <Text
                       style={{
                         fontSize: 12.5,
-                        fontWeight: '800',
+                        fontWeight: '600',
                         color: '#475569',
                         marginBottom: 7,
                         textAlign: isRTL ? 'right' : 'left',
@@ -1125,6 +1091,7 @@ export const ParentSignUpScreen = ({
                       />
                       <TextInput
                         value={parentName}
+                        accessibilityLabel={t.firstName}
                         onChangeText={setParentName}
                         onFocus={() => scrollToInput(60)}
                         placeholder={t.firstNamePlaceholder}
@@ -1145,7 +1112,7 @@ export const ParentSignUpScreen = ({
                     <Text
                       style={{
                         fontSize: 12.5,
-                        fontWeight: '800',
+                        fontWeight: '600',
                         color: '#475569',
                         marginBottom: 7,
                         textAlign: isRTL ? 'right' : 'left',
@@ -1176,6 +1143,7 @@ export const ParentSignUpScreen = ({
                       />
                       <TextInput
                         value={parentSurname}
+                        accessibilityLabel={t.lastName}
                         onChangeText={setParentSurname}
                         onFocus={() => scrollToInput(120)}
                         placeholder={t.lastNamePlaceholder}
@@ -1196,7 +1164,7 @@ export const ParentSignUpScreen = ({
                     <Text
                       style={{
                         fontSize: 12.5,
-                        fontWeight: '800',
+                        fontWeight: '600',
                         color: '#475569',
                         marginBottom: 7,
                         textAlign: isRTL ? 'right' : 'left',
@@ -1228,6 +1196,7 @@ export const ParentSignUpScreen = ({
                       />
                       <TextInput
                         value={phone}
+                        accessibilityLabel={t.phone}
                         onChangeText={setPhone}
                         onFocus={() => scrollToInput(180)}
                         placeholder={t.phonePlaceholder}
@@ -1258,7 +1227,7 @@ export const ParentSignUpScreen = ({
                     <Text
                       style={{
                         fontSize: 12.5,
-                        fontWeight: '800',
+                        fontWeight: '600',
                         color: '#475569',
                         marginBottom: 8,
                         textAlign: isRTL ? 'right' : 'left',
@@ -1312,7 +1281,7 @@ export const ParentSignUpScreen = ({
                     <Text
                       style={{
                         fontSize: 12.5,
-                        fontWeight: '800',
+                        fontWeight: '600',
                         color: '#475569',
                         marginBottom: 7,
                         textAlign: isRTL ? 'right' : 'left',
@@ -1343,6 +1312,7 @@ export const ParentSignUpScreen = ({
                       />
                       <TextInput
                         value={address}
+                        accessibilityLabel={t.addressLabel}
                         onChangeText={setAddress}
                         onFocus={() => scrollToInput(240)}
                         placeholder={t.addressPlaceholder}
@@ -1370,7 +1340,7 @@ export const ParentSignUpScreen = ({
                       flexDirection: isRTL ? 'row-reverse' : 'row',
                       shadowColor: '#3B7BEA',
                       shadowOffset: { width: 0, height: 6 },
-                      shadowOpacity: 0.3,
+                      shadowOpacity: 0.16,
                       shadowRadius: 10,
                       elevation: 4,
                       gap: 6,
@@ -1379,7 +1349,7 @@ export const ParentSignUpScreen = ({
                     <Text
                       style={{
                         fontSize: 16,
-                        fontWeight: '800',
+                        fontWeight: '600',
                         color: '#ffffff',
                       }}
                     >
@@ -1402,7 +1372,7 @@ export const ParentSignUpScreen = ({
                     <Text
                       style={{
                         fontSize: 24,
-                        fontWeight: '900',
+                        fontWeight: '700',
                         color: '#0F1B3D',
                         letterSpacing: -0.5,
                         textAlign: isRTL ? 'right' : 'left',
@@ -1428,7 +1398,7 @@ export const ParentSignUpScreen = ({
                     <Text
                       style={{
                         fontSize: 12.5,
-                        fontWeight: '800',
+                        fontWeight: '600',
                         color: '#475569',
                         marginBottom: 7,
                         textAlign: isRTL ? 'right' : 'left',
@@ -1460,6 +1430,7 @@ export const ParentSignUpScreen = ({
                       />
                       <TextInput
                         value={password}
+                        accessibilityLabel={t.pwdLabel}
                         onChangeText={(val) => {
                           setPassword(val);
                           setSubmitError('');
@@ -1524,7 +1495,7 @@ export const ParentSignUpScreen = ({
                     <Text
                       style={{
                         fontSize: 12.5,
-                        fontWeight: '800',
+                        fontWeight: '600',
                         color: '#475569',
                         marginBottom: 7,
                         textAlign: isRTL ? 'right' : 'left',
@@ -1561,6 +1532,7 @@ export const ParentSignUpScreen = ({
                       />
                       <TextInput
                         value={confirmPassword}
+                        accessibilityLabel={t.confirmPwdLabel}
                         onChangeText={(val) => {
                           setConfirmPassword(val);
                           setSubmitError('');
@@ -1622,7 +1594,7 @@ export const ParentSignUpScreen = ({
                       }}
                     >
                       <ShieldCheck size={18} color="#3B7BEA" />
-                      <Text style={{ fontSize: 13.5, fontWeight: '800', color: '#0F1B3D' }}>
+                      <Text style={{ fontSize: 13.5, fontWeight: '600', color: '#0F1B3D' }}>
                         {t.recapTitle}
                       </Text>
                     </View>
@@ -1638,7 +1610,7 @@ export const ParentSignUpScreen = ({
                       <Text style={{ fontSize: 12.5, color: '#5B6B8C', fontWeight: '600' }}>
                         {t.loginId}
                       </Text>
-                      <Text style={{ fontSize: 13.5, fontWeight: '800', color: '#3B7BEA' }}>
+                      <Text style={{ fontSize: 13.5, fontWeight: '600', color: '#3B7BEA' }}>
                         {phone}
                       </Text>
                     </View>
@@ -1772,7 +1744,7 @@ export const ParentSignUpScreen = ({
                         <Text
                           style={{
                             fontSize: 16,
-                            fontWeight: '800',
+                            fontWeight: '600',
                             color: '#ffffff',
                           }}
                         >
@@ -1818,8 +1790,8 @@ export const ParentSignUpScreen = ({
                 }}
               >
                 <Text style={{ fontSize: 13.5, color: '#5B6B8C' }}>{t.alreadyHaveAccount} </Text>
-                <TouchableOpacity onPress={onBack}>
-                  <Text style={{ fontSize: 13.5, fontWeight: '800', color: '#3B7BEA' }}>
+                <TouchableOpacity onPress={onBack} accessibilityRole="button" hitSlop={10}>
+                  <Text style={{ fontSize: 13.5, fontWeight: '600', color: '#3B7BEA' }}>
                     {t.signInLink}
                   </Text>
                 </TouchableOpacity>

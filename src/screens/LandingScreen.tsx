@@ -6,15 +6,11 @@ import {
   TouchableOpacity,
   Image,
   StatusBar,
-  Dimensions,
   Modal,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GraduationCap, ChevronRight, Globe, Check } from 'lucide-react-native';
 import { useLanguage, Language } from '../context/LanguageContext';
-
-const { width } = Dimensions.get('window');
 
 interface RoleCardProps {
   title: string;
@@ -35,28 +31,31 @@ const RoleCard = ({
 }: RoleCardProps) => (
   <TouchableOpacity
     onPress={onPress}
+    accessibilityRole="button"
+    accessibilityLabel={title}
+    accessibilityHint={description}
     activeOpacity={0.88}
     style={{
       backgroundColor: 'rgba(255, 255, 255, 0.88)',
-      borderRadius: 26,
-      padding: 16,
+      borderRadius: 24,
+      padding: 18,
       flexDirection: isRTL ? 'row-reverse' : 'row',
       alignItems: 'center',
       marginBottom: 16,
-      borderWidth: isPrimary ? 2 : 1.5,
-      borderColor: isPrimary ? '#3B7BEA' : 'rgba(255, 255, 255, 0.95)',
+      borderWidth: isPrimary ? 1.5 : 1,
+      borderColor: isPrimary ? '#3B7BEA' : '#E2E8F0',
       shadowColor: isPrimary ? '#3B7BEA' : '#0F1B3D',
-      shadowOffset: { width: 0, height: isPrimary ? 8 : 4 },
-      shadowOpacity: isPrimary ? 0.16 : 0.06,
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: isPrimary ? 0.1 : 0.04,
       shadowRadius: isPrimary ? 16 : 12,
-      elevation: isPrimary ? 6 : 3,
+      elevation: isPrimary ? 3 : 2,
     }}
   >
     {/* 3D Illustration tile */}
     <View
       style={{
-        width: 76,
-        height: 76,
+        width: 68,
+        height: 68,
         borderRadius: 22,
         backgroundColor: isPrimary ? '#EFF6FF' : '#F8FAFC',
         alignItems: 'center',
@@ -81,7 +80,7 @@ const RoleCard = ({
         <Text
           style={{
             fontSize: 18,
-            fontWeight: '900',
+            fontWeight: '700',
             color: '#0F1B3D',
             marginBottom: 3,
             letterSpacing: -0.3,
@@ -100,16 +99,16 @@ const RoleCard = ({
               marginBottom: 3,
             }}
           >
-            <Text style={{ fontSize: 10, fontWeight: '800', color: '#3B7BEA' }}>★</Text>
+            <Text style={{ fontSize: 10, fontWeight: '600', color: '#3B7BEA' }}>★</Text>
           </View>
         )}
       </View>
       <Text
-        numberOfLines={2}
+        numberOfLines={3}
         style={{
-          fontSize: 12.5,
+          fontSize: 13,
           color: '#5B6B8C',
-          lineHeight: 17,
+          lineHeight: 19,
           fontWeight: '500',
           textAlign: isRTL ? 'right' : 'left',
         }}
@@ -158,7 +157,7 @@ export const LandingScreen = ({
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#EAF1FD' }}>
+    <View style={{ flex: 1, backgroundColor: '#EAF1FD', overflow: 'hidden' }}>
       <StatusBar barStyle="dark-content" backgroundColor="#8FB4F0" />
 
       {/* Atmospheric sky background with blurred cloud blobs */}
@@ -199,6 +198,9 @@ export const LandingScreen = ({
         <ScrollView
           contentContainerStyle={{
             paddingHorizontal: 22,
+            width: '100%',
+            maxWidth: 480,
+            alignSelf: 'center',
             paddingTop: 8,
             paddingBottom: 36,
           }}
@@ -214,6 +216,8 @@ export const LandingScreen = ({
           >
             <TouchableOpacity
               onPress={() => setLangModalVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel={language === 'ar' ? 'تغيير اللغة' : language === 'en' ? 'Change language' : 'Changer de langue'}
               activeOpacity={0.8}
               style={{
                 flexDirection: isRTL ? 'row-reverse' : 'row',
@@ -221,6 +225,7 @@ export const LandingScreen = ({
                 backgroundColor: 'rgba(255, 255, 255, 0.85)',
                 paddingHorizontal: 14,
                 paddingVertical: 7,
+                minHeight: 44,
                 borderRadius: 999,
                 gap: 7,
                 borderWidth: 1.5,
@@ -233,7 +238,7 @@ export const LandingScreen = ({
               }}
             >
               <Globe size={16} color="#3B7BEA" />
-              <Text style={{ fontSize: 12.5, fontWeight: '800', color: '#0F1B3D' }}>
+              <Text style={{ fontSize: 12.5, fontWeight: '600', color: '#0F1B3D' }}>
                 {getLangBadge()}
               </Text>
             </TouchableOpacity>
@@ -252,9 +257,9 @@ export const LandingScreen = ({
                 marginBottom: 14,
                 shadowColor: '#3B7BEA',
                 shadowOffset: { width: 0, height: 10 },
-                shadowOpacity: 0.38,
+                shadowOpacity: 0.22,
                 shadowRadius: 18,
-                elevation: 10,
+                elevation: 5,
                 borderWidth: 2,
                 borderColor: 'rgba(255, 255, 255, 0.4)',
               }}
@@ -265,7 +270,7 @@ export const LandingScreen = ({
             <Text
               style={{
                 fontSize: 32,
-                fontWeight: '900',
+                fontWeight: '700',
                 color: '#0F1B3D',
                 letterSpacing: -0.8,
               }}
@@ -277,7 +282,7 @@ export const LandingScreen = ({
               <Text
                 style={{
                   fontSize: 22,
-                  fontWeight: '900',
+                  fontWeight: '700',
                   color: '#0F1B3D',
                   letterSpacing: -0.4,
                   textAlign: 'center',
@@ -311,7 +316,7 @@ export const LandingScreen = ({
               description={
                 language === 'ar'
                   ? 'متابعة أعداد ومواظبة وجدول الأبناء'
-                  : 'Suivez les notes, absences et la vie scolaire de vos enfants.'
+                  : language === 'en' ? 'Follow your children’s grades, attendance and school life.' : 'Suivez les notes, absences et la vie scolaire de vos enfants.'
               }
               image={require('../../assets/3d/parent.jpg')}
               isPrimary={true}
@@ -325,7 +330,7 @@ export const LandingScreen = ({
               description={
                 language === 'ar'
                   ? 'إدارة الدروس والواجبات والغيابات'
-                  : 'Saisie des notes, appel et cahier de texte en direct.'
+                  : language === 'en' ? 'Manage grades, attendance and your class journal.' : 'Saisie des notes, appel et cahier de texte en direct.'
               }
               image={require('../../assets/3d/teacher.jpg')}
               isPrimary={false}
@@ -339,7 +344,7 @@ export const LandingScreen = ({
               description={
                 language === 'ar'
                   ? 'أدِر مدرستك مع هنيّة الذكية'
-                  : 'Pilotez l’école, les finances et la vie scolaire avec Hnia.'
+                  : language === 'en' ? 'Manage your school, finances and school life with Hnia.' : 'Pilotez l’école, les finances et la vie scolaire avec Hnia.'
               }
               image={require('../../assets/3d/admin.jpg')}
               isPrimary={false}
@@ -396,13 +401,13 @@ export const LandingScreen = ({
               shadowOffset: { width: 0, height: 10 },
               shadowOpacity: 0.2,
               shadowRadius: 20,
-              elevation: 10,
+              elevation: 5,
             }}
           >
             <Text
               style={{
                 fontSize: 18,
-                fontWeight: '900',
+                fontWeight: '700',
                 color: '#0F1B3D',
                 marginBottom: 16,
                 textAlign: 'center',

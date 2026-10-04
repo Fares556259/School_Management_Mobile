@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { AuthLanguageSwitch } from '../components/auth/AuthLanguageSwitch';
 import {
   View,
+  useWindowDimensions,
   Text,
   TextInput,
   TouchableOpacity,
@@ -27,7 +29,7 @@ import {
 } from 'lucide-react-native';
 import { authService } from '../services/api';
 import { useAppStore } from '../store/useAppStore';
-import { useLanguage, Language } from '../context/LanguageContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export const SignInScreen = ({
   role,
@@ -42,7 +44,8 @@ export const SignInScreen = ({
 }) => {
   const { setUserName, setUserAvatarUrl, setChildren, setSelectedChildId, setUserId, setUserRole } =
     useAppStore();
-  const { language, setLanguage, t, isRTL } = useLanguage();
+  const { language, isRTL } = useLanguage();
+  const { width } = useWindowDimensions();
 
   const scrollViewRef = useRef<ScrollView>(null);
   const [keyboardOffset, setKeyboardOffset] = useState<number>(0);
@@ -66,6 +69,7 @@ export const SignInScreen = ({
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [focusedField, setFocusedField] = useState<'phone' | 'password' | null>(null);
   const [tempParent, setTempParent] = useState<{ name: string; img: string | null } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -188,84 +192,84 @@ export const SignInScreen = ({
     role === 'admin'
       ? language === 'ar'
         ? 'تسجيل دخول الإدارة'
-        : 'Connexion Direction'
+        : language === 'en' ? 'School team sign-in' : 'Connexion Direction'
       : step === 'PHONE'
       ? language === 'ar'
         ? 'مرحباً بك مجدداً !'
-        : 'Bon retour parmi nous !'
+        : language === 'en' ? 'Welcome back!' : 'Bon retour parmi nous !'
       : step === 'NEEDS_SETUP'
       ? language === 'ar'
         ? 'تعيين كلمة المرور'
-        : 'Créez votre mot de passe'
+        : language === 'en' ? 'Create your password' : 'Créez votre mot de passe'
       : language === 'ar'
       ? `مرحباً، ${tempParent?.name?.split(' ')[0]} 👋`
-      : `Bonjour, ${tempParent?.name?.split(' ')[0]} 👋`;
+      : language === 'en' ? `Hello, ${tempParent?.name?.split(' ')[0]} 👋` : `Bonjour, ${tempParent?.name?.split(' ')[0]} 👋`;
 
   const stepSub =
     role === 'admin'
       ? language === 'ar'
         ? 'أدخل بيانات الدخول المعتمدة من المدرسة'
-        : 'Entrez vos identifiants administrateur'
+        : language === 'en' ? 'Enter your administrator credentials' : 'Entrez vos identifiants administrateur'
       : step === 'PHONE'
       ? language === 'ar'
         ? 'أدخل رقم هاتفك للوصول ومتابعة الأبناء'
-        : 'Entrez votre numéro pour accéder au suivi scolaire'
+        : language === 'en' ? 'Enter your phone number to access your school space' : 'Entrez votre numéro pour accéder au suivi scolaire'
       : step === 'NEEDS_SETUP'
       ? language === 'ar'
         ? 'اختر كلمة مرور آمنة لحسابك'
-        : 'Choisissez un mot de passe pour votre premier accès'
+        : language === 'en' ? 'Choose a password for your first sign-in' : 'Choisissez un mot de passe pour votre premier accès'
       : language === 'ar'
       ? 'أدخل كلمة المرور للمتابعة'
-      : 'Entrez votre mot de passe pour continuer';
+      : language === 'en' ? 'Enter your password to continue' : 'Entrez votre mot de passe pour continuer';
 
   const loadingLabel =
     role === 'admin' || (step !== 'PHONE' && step !== 'NEEDS_SETUP')
       ? language === 'ar'
         ? 'جاري الدخول...'
-        : 'Connexion...'
+        : language === 'en' ? 'Signing in…' : 'Connexion...'
       : step === 'PHONE'
       ? language === 'ar'
         ? 'جاري التحقق...'
-        : 'Vérification...'
+        : language === 'en' ? 'Checking…' : 'Vérification...'
       : language === 'ar'
       ? 'جاري التفعيل...'
-      : 'Activation...';
+      : language === 'en' ? 'Activating…' : 'Activation...';
 
   const btnLabel =
     role === 'admin'
       ? language === 'ar'
         ? 'تسجيل الدخول'
-        : 'Se connecter'
+        : language === 'en' ? 'Sign in' : 'Se connecter'
       : step === 'PHONE'
       ? language === 'ar'
         ? 'متابعة'
-        : 'Continuer'
+        : language === 'en' ? 'Continue' : 'Continuer'
       : step === 'NEEDS_SETUP'
       ? language === 'ar'
         ? 'تأكيد كلمة المرور'
-        : 'Définir le mot de passe'
+        : language === 'en' ? 'Set password' : 'Définir le mot de passe'
       : language === 'ar'
       ? 'تسجيل الدخول'
-      : 'Se connecter';
+      : language === 'en' ? 'Sign in' : 'Se connecter';
 
   const roleChip =
     role === 'parent'
       ? {
-          title: language === 'ar' ? 'فضاء الأولياء' : 'Espace Parents',
+          title: language === 'ar' ? 'فضاء الأولياء' : language === 'en' ? 'Parent space' : 'Espace Parents',
           icon: User,
         }
       : role === 'teacher'
       ? {
-          title: language === 'ar' ? 'فضاء الأساتذة' : 'Espace Enseignants',
+          title: language === 'ar' ? 'فضاء الأساتذة' : language === 'en' ? 'Teacher space' : 'Espace Enseignants',
           icon: GraduationCap,
         }
       : {
-          title: language === 'ar' ? 'إدارة المؤسسة' : 'Direction de l’école',
+          title: language === 'ar' ? 'إدارة المؤسسة' : language === 'en' ? 'School team' : 'Direction de l’école',
           icon: Building2,
         };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#EAF1FD' }}>
+    <View style={{ flex: 1, backgroundColor: '#EAF1FD', overflow: 'hidden' }}>
       <StatusBar barStyle="dark-content" backgroundColor="#8FB4F0" />
 
       {/* Atmospheric sky background with soft blurred cloud circles */}
@@ -313,6 +317,7 @@ export const SignInScreen = ({
               flexDirection: isRTL ? 'row-reverse' : 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
+              gap: 8,
               paddingHorizontal: 20,
               paddingTop: 8,
               paddingBottom: 12,
@@ -320,6 +325,8 @@ export const SignInScreen = ({
           >
             <TouchableOpacity
               onPress={handleBack}
+              accessibilityRole="button"
+              accessibilityLabel={language === 'ar' ? 'رجوع' : language === 'en' ? 'Back' : 'Retour'}
               style={{
                 width: 44,
                 height: 44,
@@ -350,7 +357,8 @@ export const SignInScreen = ({
                 flexDirection: isRTL ? 'row-reverse' : 'row',
                 alignItems: 'center',
                 backgroundColor: 'rgba(255, 255, 255, 0.88)',
-                paddingHorizontal: 14,
+                paddingHorizontal: 8,
+                flexShrink: 1,
                 paddingVertical: 7,
                 borderRadius: 999,
                 borderWidth: 1.5,
@@ -364,53 +372,28 @@ export const SignInScreen = ({
               }}
             >
               <roleChip.icon size={15} color="#3B7BEA" strokeWidth={2.5} />
-              <Text style={{ fontSize: 12, fontWeight: '800', color: '#0F1B3D' }}>
-                {roleChip.title}
+              <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: 11.5, fontWeight: '600', color: '#0F1B3D' }}>
+                {width < 360
+                  ? role === 'parent'
+                    ? language === 'ar' ? 'ولي الأمر' : 'Parent'
+                    : role === 'teacher'
+                      ? language === 'ar' ? 'المدرّس' : language === 'en' ? 'Teacher' : 'Enseignant'
+                      : language === 'ar' ? 'الإدارة' : language === 'en' ? 'School team' : 'Direction'
+                  : roleChip.title}
               </Text>
             </View>
 
             {/* Language Switcher Pill */}
-            <View
-              style={{
-                flexDirection: isRTL ? 'row-reverse' : 'row',
-                backgroundColor: 'rgba(255, 255, 255, 0.88)',
-                borderRadius: 999,
-                padding: 3,
-                borderWidth: 1.5,
-                borderColor: 'rgba(255, 255, 255, 0.95)',
-              }}
-            >
-              {(['ar', 'fr', 'en'] as const).map((l) => (
-                <TouchableOpacity
-                  key={l}
-                  onPress={() => setLanguage(l)}
-                  style={{
-                    paddingHorizontal: 8,
-                    paddingVertical: 4,
-                    borderRadius: 999,
-                    backgroundColor: language === l ? '#3B7BEA' : 'transparent',
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 10.5,
-                      fontWeight: '800',
-                      color: language === l ? '#ffffff' : '#5B6B8C',
-                    }}
-                  >
-                    {l === 'ar' ? 'ع' : l === 'fr' ? 'FR' : 'EN'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <AuthLanguageSwitch />
           </View>
 
           {/* Heading area over the sky gradient */}
           <View style={{ paddingHorizontal: 26, paddingTop: 10, paddingBottom: 22 }}>
             <Text
               style={{
-                fontSize: 28,
-                fontWeight: '900',
+                fontSize: 26,
+                lineHeight: 34,
+                fontWeight: '700',
                 color: '#0F1B3D',
                 letterSpacing: -0.6,
                 marginBottom: 4,
@@ -468,7 +451,7 @@ export const SignInScreen = ({
                   <Text
                     style={{
                       fontSize: 12.5,
-                      fontWeight: '800',
+                      fontWeight: '600',
                       color: '#475569',
                       marginBottom: 7,
                       textAlign: isRTL ? 'right' : 'left',
@@ -480,7 +463,7 @@ export const SignInScreen = ({
                         : 'Adresse Email'
                       : language === 'ar'
                       ? 'رقم الهاتف الجوال'
-                      : 'Numéro de téléphone'}
+                      : language === 'en' ? 'Phone number' : 'Numéro de téléphone'}
                   </Text>
                   <View
                     style={{
@@ -489,7 +472,7 @@ export const SignInScreen = ({
                       backgroundColor: 'rgba(248, 250, 252, 0.95)',
                       borderRadius: 999,
                       borderWidth: 1.5,
-                      borderColor: '#E2E8F0',
+                      borderColor: focusedField === 'phone' ? '#3B7BEA' : '#E2E8F0',
                       paddingHorizontal: 18,
                       height: 54,
                     }}
@@ -509,6 +492,9 @@ export const SignInScreen = ({
                     />
                     <TextInput
                       value={phone}
+                      accessibilityLabel={role === 'admin' ? (language === 'ar' ? 'البريد الإلكتروني' : language === 'en' ? 'Email' : 'Adresse email') : (language === 'ar' ? 'رقم الهاتف' : language === 'en' ? 'Phone number' : 'Numéro de téléphone')}
+                      onFocus={() => setFocusedField('phone')}
+                      onBlur={() => setFocusedField(null)}
                       onChangeText={(v) => {
                         setPhone(v);
                         setError('');
@@ -528,8 +514,9 @@ export const SignInScreen = ({
                         flex: 1,
                         color: '#0F1B3D',
                         fontSize: 16,
-                        fontWeight: '700',
-                        textAlign: isRTL ? 'right' : 'left',
+                        fontWeight: '500',
+                        textAlign: 'left',
+                        writingDirection: 'ltr',
                       }}
                     />
                   </View>
@@ -542,13 +529,13 @@ export const SignInScreen = ({
                   <Text
                     style={{
                       fontSize: 12.5,
-                      fontWeight: '800',
+                      fontWeight: '600',
                       color: '#475569',
                       marginBottom: 7,
                       textAlign: isRTL ? 'right' : 'left',
                     }}
                   >
-                    {language === 'ar' ? 'كلمة المرور' : 'Mot de passe'}
+                    {language === 'ar' ? 'كلمة المرور' : language === 'en' ? 'Password' : 'Mot de passe'}
                   </Text>
                   <View
                     style={{
@@ -557,7 +544,7 @@ export const SignInScreen = ({
                       backgroundColor: 'rgba(248, 250, 252, 0.95)',
                       borderRadius: 999,
                       borderWidth: 1.5,
-                      borderColor: '#E2E8F0',
+                      borderColor: focusedField === 'password' ? '#3B7BEA' : '#E2E8F0',
                       paddingHorizontal: 18,
                       height: 54,
                     }}
@@ -573,6 +560,9 @@ export const SignInScreen = ({
                     />
                     <TextInput
                       value={password}
+                      accessibilityLabel={language === 'ar' ? 'كلمة المرور' : language === 'en' ? 'Password' : 'Mot de passe'}
+                      onFocus={() => setFocusedField('password')}
+                      onBlur={() => setFocusedField(null)}
                       onChangeText={(v) => {
                         setPassword(v);
                         setError('');
@@ -590,13 +580,15 @@ export const SignInScreen = ({
                         flex: 1,
                         color: '#0F1B3D',
                         fontSize: 16,
-                        fontWeight: '700',
+                        fontWeight: '500',
                         textAlign: isRTL ? 'right' : 'left',
                       }}
                     />
                     <TouchableOpacity
                       onPress={() => setShowPassword(!showPassword)}
-                      style={{ padding: 6 }}
+                      accessibilityRole="button"
+                      accessibilityLabel={language === 'ar' ? (showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور') : language === 'en' ? (showPassword ? 'Hide password' : 'Show password') : (showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe')}
+                      style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}
                     >
                       {showPassword ? (
                         <EyeOff size={19} color="#8FA3C7" />
@@ -610,7 +602,7 @@ export const SignInScreen = ({
 
               {/* Error Banner */}
               {!!error && (
-                <View
+                <View accessibilityRole="alert"
                   style={{
                     backgroundColor: '#FEF2F2',
                     borderRadius: 16,
@@ -694,7 +686,7 @@ export const SignInScreen = ({
                       justifyContent: 'center',
                     }}
                   >
-                    <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: 14 }}>
+                    <Text style={{ color: '#ffffff', fontWeight: '600', fontSize: 14 }}>
                       {language === 'ar'
                         ? 'إنشاء حساب وربط التلميذ الآن ←'
                         : 'Créer mon compte et lier mon enfant →'}
@@ -709,6 +701,8 @@ export const SignInScreen = ({
                   role === 'admin' || step !== 'PHONE' ? handleFinalAuth : handleCheckStatus
                 }
                 disabled={isLoading}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: isLoading, busy: isLoading }}
                 activeOpacity={0.88}
                 style={{
                   backgroundColor: '#3B7BEA',
@@ -719,7 +713,7 @@ export const SignInScreen = ({
                   flexDirection: isRTL ? 'row-reverse' : 'row',
                   shadowColor: '#3B7BEA',
                   shadowOffset: { width: 0, height: 6 },
-                  shadowOpacity: 0.3,
+                  shadowOpacity: 0.16,
                   shadowRadius: 12,
                   elevation: 5,
                   marginTop: 6,
@@ -730,13 +724,13 @@ export const SignInScreen = ({
                 {isLoading ? (
                   <>
                     <ActivityIndicator color="#ffffff" size="small" />
-                    <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: 16 }}>
+                    <Text style={{ color: '#ffffff', fontWeight: '600', fontSize: 16 }}>
                       {loadingLabel}
                     </Text>
                   </>
                 ) : (
                   <>
-                    <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: 16 }}>
+                    <Text style={{ color: '#ffffff', fontWeight: '600', fontSize: 16 }}>
                       {btnLabel}
                     </Text>
                     <ArrowRight
@@ -761,11 +755,11 @@ export const SignInScreen = ({
                   }}
                 >
                   <Text style={{ fontSize: 14, color: '#5B6B8C', fontWeight: '500' }}>
-                    {language === 'ar' ? 'جديد على التطبيق ؟' : 'Nouveau sur l’application ?'}
+                    {language === 'ar' ? 'جديد على التطبيق ؟' : language === 'en' ? 'New here?' : 'Nouveau sur l’application ?'}
                   </Text>
                   <TouchableOpacity onPress={() => onNavigateToSignUp && onNavigateToSignUp(phone.trim())}>
-                    <Text style={{ fontSize: 14, fontWeight: '800', color: '#3B7BEA' }}>
-                      {language === 'ar' ? 'تسجيل حساب' : 'S’inscrire'}
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#3B7BEA' }}>
+                      {language === 'ar' ? 'تسجيل حساب' : language === 'en' ? 'Create an account' : 'S’inscrire'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -796,12 +790,12 @@ export const SignInScreen = ({
                     style={{
                       fontSize: 11,
                       color: '#8FA3C7',
-                      fontWeight: '800',
+                      fontWeight: '600',
                       letterSpacing: 0.8,
                       textTransform: 'uppercase',
                     }}
                   >
-                    Accès Sécurisé Établissement
+                    {language === 'ar' ? 'دخول آمن' : language === 'en' ? 'Secure access' : 'Accès sécurisé'}
                   </Text>
                 </View>
                 <Text
@@ -813,8 +807,7 @@ export const SignInScreen = ({
                     lineHeight: 16,
                   }}
                 >
-                  {t?.accountManagementHandledBySnapschool ||
-                    'Gestion centralisée par la direction de SnapSchool.'}
+                  {language === 'ar' ? 'تواصل مع إدارة مدرستك إذا احتجت إلى مساعدة.' : language === 'en' ? 'Need help? Contact your school office.' : 'Besoin d’aide ? Contactez votre école.'}
                 </Text>
               </View>
             </ScrollView>
