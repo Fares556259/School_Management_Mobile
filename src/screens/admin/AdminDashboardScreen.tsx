@@ -423,7 +423,7 @@ export default function AdminDashboardScreen() {
             <Text style={styles.headerSchoolName} numberOfLines={1}>
               {data?.schoolName || 'SnapSchool'}
             </Text>
-            
+
           </View>
           {/* Dashboard title */}
           <Text style={[styles.headerGreeting, { textAlign: isRTL ? 'right' : 'left' }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
