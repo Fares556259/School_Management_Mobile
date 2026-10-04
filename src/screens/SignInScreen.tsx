@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useHardwareBack } from '../hooks/useHardwareBack';
 import { AuthLanguageSwitch } from '../components/auth/AuthLanguageSwitch';
 import {
   View,
@@ -187,6 +188,8 @@ export const SignInScreen = ({
       setHint('');
     }
   };
+
+  useHardwareBack(handleBack);
 
   const stepTitle =
     role === 'admin'

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useHardwareBack } from '../hooks/useHardwareBack';
 import { AuthLanguageSwitch } from '../components/auth/AuthLanguageSwitch';
 import {
   View,
@@ -67,6 +68,15 @@ export const ParentSignUpScreen = ({
 
   // Wizard Step: 1 = Student, 2 = Parent Info, 3 = Password & Finalize
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep((previous) => (previous - 1) as 1 | 2 | 3);
+    } else {
+      onBack();
+    }
+  };
+  useHardwareBack(handleBack);
 
   // Keyboard offset tracking for rock-solid Android & iOS scrolling
   const [keyboardOffset, setKeyboardOffset] = useState<number>(0);
@@ -471,13 +481,7 @@ export const ParentSignUpScreen = ({
             }}
           >
             <TouchableOpacity
-              onPress={() => {
-                if (currentStep > 1) {
-                  setCurrentStep((prev) => (prev - 1) as 1 | 2 | 3);
-                } else {
-                  onBack();
-                }
-              }}
+              onPress={handleBack}
               style={{
                 width: 44,
                 height: 44,
