@@ -38,44 +38,93 @@ export const getFullImageUrl = (url: string | null): string | null => {
 };
 
 // ─── In-Memory Credential Cache ──────────────────────────────────────────────
-// Avoids 2x AsyncStorage disk reads on EVERY API call (~100ms saved per request)
-let _memToken: string | null = null;
-let _memSchoolId: string | null = null;
-let _memUserId: string | null = null;
-let _memUserRole: string | null = null;
+// Cache missing values too, and share cold reads across concurrent requests.
+const credentialKeys = [USER_ID_KEY, USER_ROLE_KEY, SCHOOL_ID_KEY, JWT_TOKEN_KEY];
+type CredentialState = { value: string | null; loaded: boolean; revision: number; pending?: Promise<string | null> };
+const credentials = new Map<string, CredentialState>();
+let authGeneration = 0;
+
+function credentialState(key: string): CredentialState {
+  let state = credentials.get(key);
+  if (!state) {
+    state = { value: null, loaded: false, revision: 0 };
+    credentials.set(key, state);
+  }
+  return state;
+}
+
+function readCredential(key: string): Promise<string | null> {
+  const state = credentialState(key);
+  if (state.loaded) return Promise.resolve(state.value);
+  if (state.pending) return state.pending;
+  const revision = state.revision;
+  const pending = AsyncStorage.getItem(key).then(value => {
+    // A slow disk read must never restore credentials after logout or login.
+    if (state.revision !== revision) return readCredential(key);
+    state.value = value;
+    state.loaded = true;
+    return value;
+  }).finally(() => {
+    if (state.pending === pending) state.pending = undefined;
+  });
+  state.pending = pending;
+  return pending;
+}
+
+function saveCredential(key: string, value: string): Promise<void> {
+  const state = credentialState(key);
+  state.revision += 1;
+  state.value = value;
+  state.loaded = true;
+  state.pending = undefined;
+  return AsyncStorage.setItem(key, value);
+}
 
 // ─── Auth Storage ────────────────────────────────────────────────────────────
 export const authStorage = {
-  saveUserId: async (id: string) => { _memUserId = id; return AsyncStorage.setItem(USER_ID_KEY, id); },
-  getUserId: async () => { if (_memUserId) return _memUserId; _memUserId = await AsyncStorage.getItem(USER_ID_KEY); return _memUserId; },
-  saveUserRole: async (role: string) => { _memUserRole = role; return AsyncStorage.setItem(USER_ROLE_KEY, role); },
-  getUserRole: async () => { if (_memUserRole) return _memUserRole; _memUserRole = await AsyncStorage.getItem(USER_ROLE_KEY); return _memUserRole; },
-  saveSchoolId: async (id: string) => { _memSchoolId = id; return AsyncStorage.setItem(SCHOOL_ID_KEY, id); },
-  getSchoolId: async () => { if (_memSchoolId) return _memSchoolId; _memSchoolId = await AsyncStorage.getItem(SCHOOL_ID_KEY); return _memSchoolId; },
-  saveToken: async (token: string) => { _memToken = token; return AsyncStorage.setItem(JWT_TOKEN_KEY, token); },
-  getToken: async () => { if (_memToken) return _memToken; _memToken = await AsyncStorage.getItem(JWT_TOKEN_KEY); return _memToken; },
+  saveUserId: (id: string) => saveCredential(USER_ID_KEY, id),
+  getUserId: () => readCredential(USER_ID_KEY),
+  saveUserRole: (role: string) => saveCredential(USER_ROLE_KEY, role),
+  getUserRole: () => readCredential(USER_ROLE_KEY),
+  saveSchoolId: (id: string) => saveCredential(SCHOOL_ID_KEY, id),
+  getSchoolId: () => readCredential(SCHOOL_ID_KEY),
+  saveToken: (token: string) => { authGeneration += 1; return saveCredential(JWT_TOKEN_KEY, token); },
+  getToken: () => readCredential(JWT_TOKEN_KEY),
   clear: async () => {
-    _memToken = null; _memSchoolId = null; _memUserId = null; _memUserRole = null;
-    await clearAccountData();
-    return AsyncStorage.multiRemove([USER_ID_KEY, USER_ROLE_KEY, SCHOOL_ID_KEY, JWT_TOKEN_KEY, STUDENTS_CACHE_KEY]);
+    authGeneration += 1;
+    for (const key of credentialKeys) {
+      const state = credentialState(key);
+      state.revision += 1;
+      state.value = null;
+      state.loaded = true;
+      state.pending = undefined;
+    }
+    try {
+      await clearAccountData();
+    } finally {
+      await AsyncStorage.multiRemove([...credentialKeys, STUDENTS_CACHE_KEY]);
+    }
   },
   isLoggedIn: async () => {
-    const id = await authStorage.getUserId();
-    const token = await authStorage.getToken();
+    const [id, token] = await Promise.all([authStorage.getUserId(), authStorage.getToken()]);
     return !!id && !!token;
   },
   preload: async () => {
+    const keys = credentialKeys.filter(key => !credentialState(key).loaded);
+    if (!keys.length) return;
+    const revisions = keys.map(key => credentialState(key).revision);
     try {
-      const pairs = await AsyncStorage.multiGet([USER_ID_KEY, USER_ROLE_KEY, SCHOOL_ID_KEY, JWT_TOKEN_KEY]);
-      for (const [key, val] of pairs) {
-        if (key === USER_ID_KEY && val) _memUserId = val;
-        else if (key === USER_ROLE_KEY && val) _memUserRole = val;
-        else if (key === SCHOOL_ID_KEY && val) _memSchoolId = val;
-        else if (key === JWT_TOKEN_KEY && val) _memToken = val;
-      }
+      const pairs = await AsyncStorage.multiGet(keys);
+      pairs.forEach(([key, value], index) => {
+        const state = credentialState(key);
+        if (state.revision === revisions[index]) {
+          state.value = value;
+          state.loaded = true;
+        }
+      });
     } catch {}
   },
-  // Legacy compatibility wrappers
+  // Legacy compatibility wrapper
   getParentId: () => authStorage.getUserId(),
 };
 
@@ -83,95 +132,77 @@ export const authStorage = {
 const inflightRequests = new Map<string, Promise<any>>();
 
 const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
-  const requestAccount = await authStorage.getToken();
-  const requestKey = `${requestAccount || 'anonymous'}:${options.method || 'GET'}:${endpoint}:${options.body || ''}`;
-  
-  if (inflightRequests.has(requestKey)) {
-    if (__DEV__) {
-      console.log(`[DEBUG-API] Reusing in-flight request: ${endpoint}`);
-    }
-    return inflightRequests.get(requestKey);
-  }
+  if (options.signal?.aborted) return { aborted: true };
+  const generation = authGeneration;
+  const [token, schoolId] = await Promise.all([authStorage.getToken(), authStorage.getSchoolId()]);
+  if (generation !== authGeneration) return null;
+  if (options.signal?.aborted) return { aborted: true };
+
+  const timeoutMs = (options as any)?.timeout || (endpoint.includes('/agent/') ? 55000 : 30000);
+  // Independently cancelable requests must not share a network operation.
+  // Preserve deduplication of identical submissions; never automatically retry writes.
+  const canShare = !options.signal && !options.headers && (!options.body || typeof options.body === 'string');
+  const requestKey = JSON.stringify([generation, token, schoolId, options.method || 'GET', endpoint, options.body || '', timeoutMs]);
+  if (canShare && inflightRequests.has(requestKey)) return inflightRequests.get(requestKey);
 
   const fetchPromise = (async () => {
-    let controller: AbortController | undefined;
-    let timeoutId: any;
+    const controller = new AbortController();
+    const abortFromCaller = () => controller.abort();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     const startTime = Date.now();
+    options.signal?.addEventListener('abort', abortFromCaller);
 
     try {
-      controller = new AbortController();
-      const timeoutMs = (options as any)?.timeout || (endpoint.includes('/agent/') ? 55000 : 30000);
-      timeoutId = setTimeout(() => controller?.abort(), timeoutMs);
-      const schoolId = await authStorage.getSchoolId();
-      const token = await authStorage.getToken();
-      const url = `${API_BASE_URL}${endpoint}`;
-      if (__DEV__) {
-        console.log(`[DEBUG-API] Calling: ${url}`);
-      }
-
-      const headers: Record<string, string> = {
+      if (options.signal?.aborted) return { aborted: true };
+      const headers = {
         'Content-Type': 'application/json',
         'x-school-id': schoolId || 'default_school',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(options.headers as any),
       };
-
-      if (options.signal) {
-        options.signal.addEventListener('abort', () => {
-          controller?.abort();
-        });
-      }
-
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal,
-        headers,
-      });
-      
-      if (timeoutId) clearTimeout(timeoutId);
-      const duration = Date.now() - startTime;
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, signal: controller.signal, headers });
+      if (generation !== authGeneration) return null;
 
       if (!response.ok) {
         const text = await response.text();
-        console.warn(`API Error [${response.status}] [${duration}ms] ${endpoint}: ${text}`);
-        
-        if (response.status === 401) {
+        if (generation !== authGeneration) return null;
+        console.warn(`API Error [${response.status}] [${Date.now() - startTime}ms] ${endpoint}`);
+        // A delayed failure from a previous account, or an anonymous login error,
+        // must not sign out the current account.
+        if (response.status === 401 && token) {
           const { DeviceEventEmitter } = require('react-native');
           DeviceEventEmitter.emit('auth_unauthorized');
         }
-        
-        // Try to return the parsed JSON error if it exists (e.g. 400 Bad Request with {error: '...'})
         try {
           const parsed = JSON.parse(text);
-          if (parsed && typeof parsed === 'object') {
-            return parsed;
-          }
-        } catch (e) {
-          // If not JSON, fall through and return null
-        }
-        
+          if (parsed && typeof parsed === 'object') return parsed;
+        } catch {}
         return null;
       }
 
-      return await response.json();
+      const data = await response.json();
+      return generation === authGeneration ? data : null;
     } catch (error: any) {
-      if (timeoutId) clearTimeout(timeoutId);
-      const duration = Date.now() - startTime;
       if (error.name === 'AbortError') {
-        if (options.signal?.aborted) {
-          return { aborted: true };
-        }
-        console.error(`Network Error (Timeout) [${duration}ms]: The request to ${endpoint} took too long.`);
+        if (options.signal?.aborted) return { aborted: true };
+        console.error(`Network Error (Timeout) [${Date.now() - startTime}ms]: The request to ${endpoint} took too long.`);
       } else {
-        console.error(`Network Error [${duration}ms] for ${endpoint}:`, error);
+        console.error(`Network Error [${Date.now() - startTime}ms] for ${endpoint}:`, error);
       }
       return null;
     } finally {
-      inflightRequests.delete(requestKey);
+      // The timeout covers body parsing as well as response headers.
+      clearTimeout(timeoutId);
+      options.signal?.removeEventListener('abort', abortFromCaller);
     }
   })();
 
-  inflightRequests.set(requestKey, fetchPromise);
+  if (canShare) {
+    inflightRequests.set(requestKey, fetchPromise);
+    void fetchPromise.finally(() => {
+      if (inflightRequests.get(requestKey) === fetchPromise) inflightRequests.delete(requestKey);
+    });
+  }
   return fetchPromise;
 };
 
@@ -183,6 +214,29 @@ const mapStudent = (s: any): Student & { raw: any } => ({
   avatarUrl: getFullImageUrl(s.img),
   raw: s,
 });
+
+// Store ownership alongside the cached children, so a delayed write after
+// logout cannot expose the previous family's data to the next account.
+const saveStudentsCache = (userId: string, schoolId: string | null, students: any[]) =>
+  AsyncStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify({ userId, schoolId, students }));
+
+async function readStudentsCache(userId: string | null, schoolId: string | null): Promise<any[]> {
+  if (!userId) return [];
+  try {
+    const stored = await AsyncStorage.getItem(STUDENTS_CACHE_KEY);
+    const cache = stored ? JSON.parse(stored) : null;
+    // Older app versions saved raw Prisma students. Keep their offline cache
+    // only when every record proves the same parent and school ownership.
+    if (Array.isArray(cache)) {
+      return cache.every(student => student && student.parentId === userId && student.schoolId === schoolId)
+        ? cache : [];
+    }
+    if (cache?.userId !== userId || cache?.schoolId !== schoolId || !Array.isArray(cache?.students)) return [];
+    return cache.students.filter((student: any) => student && typeof student.id === 'string');
+  } catch {
+    return [];
+  }
+}
 
 // ─── Auth Service ────────────────────────────────────────────────────────────
 export const authService = {
@@ -277,8 +331,8 @@ export const authService = {
       response.userId ? authStorage.saveUserId(response.userId) : Promise.resolve(),
       response.userType ? authStorage.saveUserRole(response.userType) : Promise.resolve(),
       response.schoolId ? authStorage.saveSchoolId(response.schoolId) : Promise.resolve(),
-      response.students
-        ? AsyncStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify(response.students))
+      response.students && response.userId
+        ? saveStudentsCache(response.userId, response.schoolId || null, response.students)
         : Promise.resolve(),
     ]);
 
@@ -326,8 +380,8 @@ export const authService = {
       response.userId ? authStorage.saveUserId(response.userId) : Promise.resolve(),
       response.userType ? authStorage.saveUserRole(response.userType) : Promise.resolve(),
       response.schoolId ? authStorage.saveSchoolId(response.schoolId) : Promise.resolve(),
-      response.students
-        ? AsyncStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify(response.students))
+      response.students && response.userId
+        ? saveStudentsCache(response.userId, response.schoolId || null, response.students)
         : Promise.resolve(),
     ]);
 
@@ -407,21 +461,18 @@ export const parentService = {
     return await authStorage.getParentId();
   },
   fetchChildren: async (): Promise<(Student & { raw?: any })[]> => {
-    const uid = await authStorage.getUserId();
-
-    // Try cache first while fetching
-    const cached = await AsyncStorage.getItem(STUDENTS_CACHE_KEY);
-
-    const data = await apiFetch(`/api/mobile/students?parentId=${uid}`);
-
-    if (!data && cached) {
-      const parsed = JSON.parse(cached);
-      return parsed.map(mapStudent);
-    }
-    if (!data || !Array.isArray(data)) return [];
-
-    await AsyncStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify(data));
-    return data.map(mapStudent);
+    const generation = authGeneration;
+    const [uid, schoolId] = await Promise.all([authStorage.getUserId(), authStorage.getSchoolId()]);
+    if (!uid || generation !== authGeneration) return [];
+    const [data, cached] = await Promise.all([
+      apiFetch(`/api/mobile/students?parentId=${uid}`),
+      readStudentsCache(uid, schoolId),
+    ]);
+    if (generation !== authGeneration) return [];
+    if (!data) return cached.map(mapStudent);
+    if (!Array.isArray(data)) return [];
+    await saveStudentsCache(uid, schoolId, data);
+    return generation === authGeneration ? data.map(mapStudent) : [];
   },
 
   fetchParentProfile: async (): Promise<{ name: string; surname: string; phone: string; img: string | null } | null> => {
@@ -551,6 +602,7 @@ export const studentService = {
   },
 
   fetchPayments: async (studentId: string, forceRefresh = false): Promise<PaymentRecord[]> => {
+    const generation = authGeneration;
     // Fetch payments directly from the new backend API endpoint
     const data = await apiFetch(`/api/mobile/payments?studentId=${studentId}`);
     const payments = Array.isArray(data) ? data : [];
@@ -583,7 +635,9 @@ export const studentService = {
     ];
 
     // Fetch student data from cache to get tuition fee, fallback to 120
-    const students: any[] = JSON.parse(await AsyncStorage.getItem(STUDENTS_CACHE_KEY) || '[]');
+    const [userId, schoolId] = await Promise.all([authStorage.getUserId(), authStorage.getSchoolId()]);
+    const students = await readStudentsCache(userId, schoolId);
+    if (generation !== authGeneration) return [];
     const s = students.find((x) => x.id === studentId);
     const tuitionFee = s?.class?.level?.tuitionFee || 120;
 
