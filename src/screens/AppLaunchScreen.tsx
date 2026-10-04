@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Animated, StatusBar, StyleSheet, Easing } from 'react-native';
+import { View, Animated, StatusBar, StyleSheet, Easing } from 'react-native';
 import { GraduationCap } from 'lucide-react-native';
 import { useLanguage } from '../context/LanguageContext';
 import { useReducedMotion } from '../hooks/useReducedMotion';
@@ -15,7 +15,6 @@ export const AppLaunchScreen = ({ onFinish, minDurationMs = 1100, isReady = fals
   const { language } = useLanguage();
   const reducedMotion = useReducedMotion();
   const logo = useRef(new Animated.Value(0)).current;
-  const connections = useRef(new Animated.Value(0)).current;
   const snap = useRef(new Animated.Value(0)).current;
   const school = useRef(new Animated.Value(0)).current;
   const exit = useRef(new Animated.Value(1)).current;
@@ -27,7 +26,7 @@ export const AppLaunchScreen = ({ onFinish, minDurationMs = 1100, isReady = fals
 
   useEffect(() => {
     if (reducedMotion === null) return;
-    const values = [logo, connections, snap, school];
+    const values = [logo, snap, school];
     const complete = () => {
       if (!finished.current) { finished.current = true; finishRef.current?.(); }
     };
@@ -37,7 +36,6 @@ export const AppLaunchScreen = ({ onFinish, minDurationMs = 1100, isReady = fals
       return;
     }
     const animation = Animated.parallel([
-      Animated.timing(connections, { toValue: 1, duration: 650, easing: Easing.inOut(Easing.cubic), useNativeDriver: true }),
       Animated.timing(logo, { toValue: 1, duration: 520, delay: 120, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       Animated.timing(snap, { toValue: 1, duration: 350, delay: 350, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       Animated.timing(school, { toValue: 1, duration: 350, delay: 470, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
@@ -45,7 +43,7 @@ export const AppLaunchScreen = ({ onFinish, minDurationMs = 1100, isReady = fals
     animation.start();
     const timer = setTimeout(complete, Math.max(850, minDurationMs));
     return () => { clearTimeout(timer); animation.stop(); };
-  }, [logo, connections, snap, school, reducedMotion, minDurationMs]);
+  }, [logo, snap, school, reducedMotion, minDurationMs]);
 
   useEffect(() => {
     if (!isReady || reducedMotion === null) return;
@@ -56,20 +54,18 @@ export const AppLaunchScreen = ({ onFinish, minDurationMs = 1100, isReady = fals
     return () => animation.stop();
   }, [isReady, reducedMotion, exit]);
 
-  const reveal = (value: Animated.Value) => ({ opacity: value, transform: [{ translateY: value.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] });
+  const reveal = (value: Animated.Value) => ({ opacity: value, transform: [{ translateY: value.interpolate({ inputRange: [0, 1], outputRange: [5, 0] }) }] });
   const tagline = { ar: 'مدرستك، وكلّنا متواصلون.', fr: 'Votre école. Tous connectés.', en: 'Your school. All connected.' }[language];
   return (
     <Animated.View style={[styles.container, { opacity: exit }]} accessibilityLabel="SnapSchool">
       <StatusBar barStyle="dark-content" backgroundColor="#F8FBFF" />
       <View style={styles.orb} />
       <View style={styles.markArea}>
-        <Animated.View style={[styles.halo, { opacity: connections.interpolate({ inputRange: [0, 0.45, 1], outputRange: [0, 0.7, 0] }), transform: [{ scale: connections.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1.65] }) }] }]} />
-        {[{ x: -100, y: -28, color: '#0055D4' }, { x: 90, y: -42, color: '#38BDF8' }, { x: 35, y: 95, color: '#818CF8' }].map((node, i) => (
-          <Animated.View key={i} style={[styles.node, { backgroundColor: node.color, opacity: connections.interpolate({ inputRange: [0, 0.2, 0.7, 1], outputRange: [0, 1, 1, 0] }), transform: [{ translateX: connections.interpolate({ inputRange: [0, 1], outputRange: [node.x, 0] }) }, { translateY: connections.interpolate({ inputRange: [0, 1], outputRange: [node.y, 0] }) }, { scale: connections.interpolate({ inputRange: [0, 1], outputRange: [1, 0.35] }) }] }]} />
-        ))}
-        <Animated.View style={[styles.logo, { opacity: logo, transform: [{ translateY: logo.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }, { scale: logo.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] }) }, { rotate: logo.interpolate({ inputRange: [0, 1], outputRange: ['-8deg', '0deg'] }) }] }]}>
+        <View style={styles.logo}>
+          <Animated.View style={{ opacity: logo, transform: [{ translateY: logo.interpolate({ inputRange: [0, 1], outputRange: [6, 0] }) }] }}>
           <GraduationCap size={46} color="#FFFFFF" strokeWidth={2.2} />
-        </Animated.View>
+          </Animated.View>
+        </View>
       </View>
       <View style={styles.wordmark}>
         <Animated.Text style={[styles.brand, reveal(snap)]}>Snap</Animated.Text>
@@ -84,8 +80,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FBFF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   orb: { position: 'absolute', width: 440, height: 440, borderRadius: 220, backgroundColor: '#EFF7FB', right: -160, top: -200 },
   markArea: { width: 220, height: 150, alignItems: 'center', justifyContent: 'center' },
-  halo: { position: 'absolute', width: 126, height: 126, borderRadius: 63, borderWidth: 2, borderColor: '#BADEFF' },
-  node: { position: 'absolute', width: 13, height: 13, borderRadius: 7 },
   logo: { width: 88, height: 88, borderRadius: 27, backgroundColor: '#0055D4', alignItems: 'center', justifyContent: 'center', shadowColor: '#0055D4', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 18, elevation: 6 },
   wordmark: { flexDirection: 'row', marginTop: 8 },
   brand: { fontSize: 36, fontWeight: '800', letterSpacing: -1.2, color: '#263238' },

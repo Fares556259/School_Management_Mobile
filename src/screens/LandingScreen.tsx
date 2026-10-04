@@ -9,14 +9,13 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GraduationCap, ChevronRight, Globe, Check, Building2 } from 'lucide-react-native';
-import { AnimatedEntrance } from '../components/auth/AnimatedEntrance';
+import { GraduationCap, ChevronRight, Globe, Check } from 'lucide-react-native';
 import { useLanguage, Language } from '../context/LanguageContext';
 
 interface RoleCardProps {
   title: string;
   description: string;
-  image?: any;
+  image: import('react-native').ImageSourcePropType;
   isPrimary?: boolean;
   isRTL?: boolean;
   onPress: () => void;
@@ -58,7 +57,7 @@ const RoleCard = ({
         width: 74,
         height: 74,
         borderRadius: 22,
-        backgroundColor: image ? '#F8FBFF' : '#1E3A5F',
+        backgroundColor: '#F8FBFF',
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: isRTL ? 0 : 16,
@@ -68,26 +67,29 @@ const RoleCard = ({
         borderColor: '#F1F5F9',
       }}
     >
-      {image ? <Image source={image} style={{ width: '100%', height: '100%' }} resizeMode="contain" /> : <Building2 size={34} color="#FFFFFF" strokeWidth={1.7} />}
+      <Image source={image} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
     </View>
 
     {/* Text info */}
-    <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
-      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 6 }}>
-        <Text
-          style={{
-            fontSize: 18,
-            fontWeight: '700',
-            color: '#263238',
-            marginBottom: 3,
-            letterSpacing: -0.3,
-            textAlign: isRTL ? 'right' : 'left',
-          }}
-        >
-          {title}
-        </Text>
+    <View style={{ flex: 1, minWidth: 0 }}>
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.85}
+        style={{
+          fontSize: 18,
+          fontWeight: '700',
+          color: '#263238',
+          marginBottom: 3,
+          letterSpacing: isRTL ? 0 : -0.3,
+          alignSelf: 'stretch',
+          writingDirection: isRTL ? 'rtl' : 'ltr',
+          textAlign: isRTL ? 'right' : 'left',
+        }}
+      >
+        {title}
+      </Text>
 
-      </View>
       <Text
         numberOfLines={3}
         style={{
@@ -231,9 +233,10 @@ export const LandingScreen = ({
               Snap<Text style={{ color: '#0055D4' }}>School</Text>
             </Text>
 
-            <View style={{ marginTop: 10, alignItems: 'center', paddingHorizontal: 16 }}>
-              <Text
+            <View style={{ marginTop: 10, width: '100%', alignItems: 'center', paddingHorizontal: 16 }}>
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}
                 style={{
+                  width: '100%',
                   fontSize: 22,
                   fontWeight: '700',
                   color: '#263238',
@@ -264,9 +267,8 @@ export const LandingScreen = ({
           {/* School spaces */}
           <View>
             {/* Parent */}
-            <AnimatedEntrance delay={100}>
             <RoleCard
-              title={t?.parent || (language === 'ar' ? 'ولي الأمر' : 'Parent')}
+              title={language === 'ar' ? 'ولي الأمر' : t?.parent || 'Parent'}
               description={
                 language === 'ar'
                   ? 'متابعة أعداد ومواظبة وجدول الأبناء'
@@ -277,10 +279,8 @@ export const LandingScreen = ({
               isRTL={isRTL}
               onPress={() => onSelectRole('parent')}
             />
-            </AnimatedEntrance>
 
             {/* Teacher */}
-            <AnimatedEntrance delay={180}>
             <RoleCard
               title={t?.teacher || (language === 'ar' ? 'المدرس' : 'Enseignant')}
               description={
@@ -293,10 +293,8 @@ export const LandingScreen = ({
               isRTL={isRTL}
               onPress={() => onSelectRole('teacher')}
             />
-            </AnimatedEntrance>
 
-            {/* 3. ADMINISTRATION (3D School Building Image) */}
-            <AnimatedEntrance delay={260}>
+            {/* Administration */}
             <RoleCard
               title={language === 'ar' ? 'الإدارة' : language === 'fr' ? 'Direction' : 'Admin'}
               description={
@@ -307,9 +305,9 @@ export const LandingScreen = ({
 
               isPrimary={false}
               isRTL={isRTL}
+              image={require('../../assets/3d/administrator.png')}
               onPress={() => onSelectRole('admin')}
             />
-            </AnimatedEntrance>
           </View>
 
           {/* Footer note */}
