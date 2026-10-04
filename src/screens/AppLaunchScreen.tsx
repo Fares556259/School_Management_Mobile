@@ -1,320 +1,93 @@
-import React, { useEffect, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  Animated,
-  Dimensions,
-  StatusBar,
-  StyleSheet,
-  Easing,
-} from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, Animated, StatusBar, StyleSheet, Easing } from 'react-native';
 import { GraduationCap } from 'lucide-react-native';
-
-const { width } = Dimensions.get('window');
+import { useLanguage } from '../context/LanguageContext';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 
 interface AppLaunchScreenProps {
   onFinish?: () => void;
   minDurationMs?: number;
+  isReady?: boolean;
+  onExit?: () => void;
 }
 
-export const AppLaunchScreen: React.FC<AppLaunchScreenProps> = ({
-  onFinish,
-  minDurationMs = 1400,
-}) => {
-  const logoScale = useRef(new Animated.Value(0.8)).current;
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  const contentFade = useRef(new Animated.Value(0)).current;
-  const glowScale = useRef(new Animated.Value(1)).current;
-  const glowOpacity = useRef(new Animated.Value(0.35)).current;
-  const exitFade = useRef(new Animated.Value(1)).current;
-
-  // Wave dots animation
-  const dot1Anim = useRef(new Animated.Value(0)).current;
-  const dot2Anim = useRef(new Animated.Value(0)).current;
-  const dot3Anim = useRef(new Animated.Value(0)).current;
-
-  const [loadingTextIndex, setLoadingTextIndex] = useState(0);
-
-  const statusMessages = [
-    'Chargement de votre espace...',
-    'Synchronisation sécurisée...',
-    'Bienvenue sur SnapSchool',
-  ];
+export const AppLaunchScreen = ({ onFinish, minDurationMs = 1100, isReady = false, onExit }: AppLaunchScreenProps) => {
+  const { language } = useLanguage();
+  const reducedMotion = useReducedMotion();
+  const logo = useRef(new Animated.Value(0)).current;
+  const connections = useRef(new Animated.Value(0)).current;
+  const snap = useRef(new Animated.Value(0)).current;
+  const school = useRef(new Animated.Value(0)).current;
+  const exit = useRef(new Animated.Value(1)).current;
+  const finishRef = useRef(onFinish);
+  const exitRef = useRef(onExit);
+  const finished = useRef(false);
+  const exited = useRef(false);
+  useEffect(() => { finishRef.current = onFinish; exitRef.current = onExit; }, [onFinish, onExit]);
 
   useEffect(() => {
-    // 1. Entrance animation (gentle spring)
-    Animated.parallel([
-      Animated.spring(logoScale, {
-        toValue: 1,
-        tension: 45,
-        friction: 6.5,
-        useNativeDriver: true,
-      }),
-      Animated.timing(logoOpacity, {
-        toValue: 1,
-        duration: 380,
-        useNativeDriver: true,
-      }),
-      Animated.timing(contentFade, {
-        toValue: 1,
-        duration: 450,
-        delay: 150,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    // 2. Continuous breathing halo behind logo
-    const glowLoop = Animated.loop(
-      Animated.sequence([
-        Animated.parallel([
-          Animated.timing(glowScale, {
-            toValue: 1.28,
-            duration: 1000,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(glowOpacity, {
-            toValue: 0.12,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.parallel([
-          Animated.timing(glowScale, {
-            toValue: 1,
-            duration: 1000,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(glowOpacity, {
-            toValue: 0.35,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-        ]),
-      ])
-    );
-    glowLoop.start();
-
-    // 3. Elegant bouncing dots wave loop
-    const createDotLoop = (anim: Animated.Value, delay: number) => {
-      return Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(anim, {
-            toValue: -6,
-            duration: 320,
-            easing: Easing.out(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(anim, {
-            toValue: 0,
-            duration: 320,
-            easing: Easing.in(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.delay(400 - delay),
-        ])
-      );
+    if (reducedMotion === null) return;
+    const values = [logo, connections, snap, school];
+    const complete = () => {
+      if (!finished.current) { finished.current = true; finishRef.current?.(); }
     };
+    if (reducedMotion) {
+      values.forEach(value => value.setValue(1));
+      complete();
+      return;
+    }
+    const animation = Animated.parallel([
+      Animated.timing(connections, { toValue: 1, duration: 650, easing: Easing.inOut(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(logo, { toValue: 1, duration: 520, delay: 120, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(snap, { toValue: 1, duration: 350, delay: 350, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(school, { toValue: 1, duration: 350, delay: 470, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+    ]);
+    animation.start();
+    const timer = setTimeout(complete, Math.max(850, minDurationMs));
+    return () => { clearTimeout(timer); animation.stop(); };
+  }, [logo, connections, snap, school, reducedMotion, minDurationMs]);
 
-    const dot1Loop = createDotLoop(dot1Anim, 0);
-    const dot2Loop = createDotLoop(dot2Anim, 120);
-    const dot3Loop = createDotLoop(dot3Anim, 240);
+  useEffect(() => {
+    if (!isReady || reducedMotion === null) return;
+    const animation = Animated.timing(exit, { toValue: 0, duration: reducedMotion ? 0 : 220, easing: Easing.out(Easing.ease), useNativeDriver: true });
+    animation.start(({ finished: done }) => {
+      if (done && !exited.current) { exited.current = true; exitRef.current?.(); }
+    });
+    return () => animation.stop();
+  }, [isReady, reducedMotion, exit]);
 
-    dot1Loop.start();
-    dot2Loop.start();
-    dot3Loop.start();
-
-    // 4. Subtle status text cycle
-    const textInterval = setInterval(() => {
-      setLoadingTextIndex((prev) => (prev + 1) % statusMessages.length);
-    }, 450);
-
-    // 5. Clean instant exit — immediate transition, zero fade-to-white
-    const timer = setTimeout(() => {
-      clearInterval(textInterval);
-      glowLoop.stop();
-      dot1Loop.stop();
-      dot2Loop.stop();
-      dot3Loop.stop();
-      if (onFinish) onFinish();
-    }, minDurationMs);
-
-    return () => {
-      clearTimeout(timer);
-      clearInterval(textInterval);
-      glowLoop.stop();
-      dot1Loop.stop();
-      dot2Loop.stop();
-      dot3Loop.stop();
-    };
-  }, []);
-
+  const reveal = (value: Animated.Value) => ({ opacity: value, transform: [{ translateY: value.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] });
+  const tagline = { ar: 'مدرستك، وكلّنا متواصلون.', fr: 'Votre école. Tous connectés.', en: 'Your school. All connected.' }[language];
   return (
-    <Animated.View style={[styles.container, { opacity: exitFade }]}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" translucent />
-
-      {/* Subtle, luxurious ambient background gradients */}
-      <View style={styles.topOrb} />
-      <View style={styles.bottomOrb} />
-
-      {/* Center Hero Logo + Branding */}
-      <View style={styles.centerContent}>
-        {/* Breathing Halo behind the logo */}
-        <Animated.View
-          style={[
-            styles.glowRing,
-            {
-              transform: [{ scale: glowScale }],
-              opacity: glowOpacity,
-            },
-          ]}
-        />
-
-        {/* Premium Logo Card */}
-        <Animated.View
-          style={[
-            styles.logoContainer,
-            {
-              transform: [{ scale: logoScale }],
-              opacity: logoOpacity,
-            },
-          ]}
-        >
-          <GraduationCap color="#ffffff" size={48} strokeWidth={2.4} />
-        </Animated.View>
-
-        {/* Brand Name */}
-        <Animated.View style={[styles.brandWrapper, { opacity: contentFade }]}>
-          <Text style={styles.brandTitle}>
-            Snap<Text style={styles.brandAccent}>School</Text>
-          </Text>
-
-          <View style={styles.taglineBadge}>
-            <Text style={styles.taglineText}>L'Éducation Connectée</Text>
-          </View>
+    <Animated.View style={[styles.container, { opacity: exit }]} accessibilityLabel="SnapSchool">
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FBFF" />
+      <View style={styles.orb} />
+      <View style={styles.markArea}>
+        <Animated.View style={[styles.halo, { opacity: connections.interpolate({ inputRange: [0, 0.45, 1], outputRange: [0, 0.7, 0] }), transform: [{ scale: connections.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1.65] }) }] }]} />
+        {[{ x: -100, y: -28, color: '#0055D4' }, { x: 90, y: -42, color: '#38BDF8' }, { x: 35, y: 95, color: '#818CF8' }].map((node, i) => (
+          <Animated.View key={i} style={[styles.node, { backgroundColor: node.color, opacity: connections.interpolate({ inputRange: [0, 0.2, 0.7, 1], outputRange: [0, 1, 1, 0] }), transform: [{ translateX: connections.interpolate({ inputRange: [0, 1], outputRange: [node.x, 0] }) }, { translateY: connections.interpolate({ inputRange: [0, 1], outputRange: [node.y, 0] }) }, { scale: connections.interpolate({ inputRange: [0, 1], outputRange: [1, 0.35] }) }] }]} />
+        ))}
+        <Animated.View style={[styles.logo, { opacity: logo, transform: [{ translateY: logo.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }, { scale: logo.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] }) }, { rotate: logo.interpolate({ inputRange: [0, 1], outputRange: ['-8deg', '0deg'] }) }] }]}>
+          <GraduationCap size={46} color="#FFFFFF" strokeWidth={2.2} />
         </Animated.View>
       </View>
-
-      {/* Refined Minimalist Dot Loader + Status Message */}
-      <Animated.View style={[styles.footerContent, { opacity: contentFade }]}>
-        <View style={styles.dotsRow}>
-          <Animated.View style={[styles.dot, { transform: [{ translateY: dot1Anim }] }]} />
-          <Animated.View style={[styles.dot, { transform: [{ translateY: dot2Anim }] }]} />
-          <Animated.View style={[styles.dot, { transform: [{ translateY: dot3Anim }] }]} />
-        </View>
-
-        <Text style={styles.statusText}>{statusMessages[loadingTextIndex]}</Text>
-      </Animated.View>
+      <View style={styles.wordmark}>
+        <Animated.Text style={[styles.brand, reveal(snap)]}>Snap</Animated.Text>
+        <Animated.Text style={[styles.brand, { color: '#0055D4' }, reveal(school)]}>School</Animated.Text>
+      </View>
+      <Animated.Text style={[styles.tagline, { opacity: school }]}>{tagline}</Animated.Text>
     </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  topOrb: {
-    position: 'absolute',
-    top: -120,
-    right: -100,
-    width: 360,
-    height: 360,
-    borderRadius: 180,
-    backgroundColor: '#0055d40a',
-  },
-  bottomOrb: {
-    position: 'absolute',
-    bottom: -140,
-    left: -120,
-    width: 380,
-    height: 380,
-    borderRadius: 190,
-    backgroundColor: '#0284c708',
-  },
-  centerContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  glowRing: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 48,
-    backgroundColor: '#0055d420',
-  },
-  logoContainer: {
-    width: 104,
-    height: 104,
-    borderRadius: 32,
-    backgroundColor: '#0055d4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#0055d4',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.35,
-    shadowRadius: 22,
-    elevation: 10,
-    borderWidth: 1.5,
-    borderColor: '#ffffff50',
-  },
-  brandWrapper: {
-    alignItems: 'center',
-    marginTop: 22,
-  },
-  brandTitle: {
-    fontSize: 36,
-    fontWeight: '900',
-    color: '#0f172a',
-    letterSpacing: -0.9,
-    fontFamily: 'PlusJakartaSans-ExtraBold',
-  },
-  brandAccent: {
-    color: '#0055d4',
-  },
-  taglineBadge: {
-    backgroundColor: '#eff6ff',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 18,
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: '#dbeafe',
-  },
-  taglineText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0055d4',
-    letterSpacing: 0.3,
-  },
-  footerContent: {
-    position: 'absolute',
-    bottom: 54,
-    width: '100%',
-    alignItems: 'center',
-  },
-  dotsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 14,
-    height: 18,
-  },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: '#0055d4',
-  },
-  statusText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#94a3b8',
-    letterSpacing: 0.2,
-  },
+  container: { flex: 1, backgroundColor: '#F8FBFF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  orb: { position: 'absolute', width: 440, height: 440, borderRadius: 220, backgroundColor: '#EFF7FB', right: -160, top: -200 },
+  markArea: { width: 220, height: 150, alignItems: 'center', justifyContent: 'center' },
+  halo: { position: 'absolute', width: 126, height: 126, borderRadius: 63, borderWidth: 2, borderColor: '#BADEFF' },
+  node: { position: 'absolute', width: 13, height: 13, borderRadius: 7 },
+  logo: { width: 88, height: 88, borderRadius: 27, backgroundColor: '#0055D4', alignItems: 'center', justifyContent: 'center', shadowColor: '#0055D4', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 18, elevation: 6 },
+  wordmark: { flexDirection: 'row', marginTop: 8 },
+  brand: { fontSize: 36, fontWeight: '800', letterSpacing: -1.2, color: '#263238' },
+  tagline: { fontSize: 14, lineHeight: 22, color: '#64748B', marginTop: 16, paddingHorizontal: 24, textAlign: 'center' },
 });

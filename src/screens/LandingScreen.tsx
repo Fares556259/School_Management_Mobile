@@ -9,13 +9,14 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GraduationCap, ChevronRight, Globe, Check } from 'lucide-react-native';
+import { GraduationCap, ChevronRight, Globe, Check, Building2 } from 'lucide-react-native';
+import { AnimatedEntrance } from '../components/auth/AnimatedEntrance';
 import { useLanguage, Language } from '../context/LanguageContext';
 
 interface RoleCardProps {
   title: string;
   description: string;
-  image: any;
+  image?: any;
   isPrimary?: boolean;
   isRTL?: boolean;
   onPress: () => void;
@@ -36,42 +37,38 @@ const RoleCard = ({
     accessibilityHint={description}
     activeOpacity={0.88}
     style={{
-      backgroundColor: 'rgba(255, 255, 255, 0.88)',
-      borderRadius: 24,
-      padding: 18,
+      backgroundColor: '#FFFFFF',
+      borderRadius: 30,
+      padding: 20,
       flexDirection: isRTL ? 'row-reverse' : 'row',
       alignItems: 'center',
       marginBottom: 16,
-      borderWidth: isPrimary ? 1.5 : 1,
-      borderColor: isPrimary ? '#3B7BEA' : '#E2E8F0',
-      shadowColor: isPrimary ? '#3B7BEA' : '#0F1B3D',
+      borderWidth: 1,
+      borderColor: '#E6F0F8',
+      shadowColor: isPrimary ? '#0055D4' : '#263238',
       shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: isPrimary ? 0.1 : 0.04,
+      shadowOpacity: 0.07,
       shadowRadius: isPrimary ? 16 : 12,
-      elevation: isPrimary ? 3 : 2,
+      elevation: 3,
     }}
   >
     {/* 3D Illustration tile */}
     <View
       style={{
-        width: 68,
-        height: 68,
+        width: 74,
+        height: 74,
         borderRadius: 22,
-        backgroundColor: isPrimary ? '#EFF6FF' : '#F8FAFC',
+        backgroundColor: image ? '#F8FBFF' : '#1E3A5F',
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: isRTL ? 0 : 16,
         marginLeft: isRTL ? 16 : 0,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: isPrimary ? 'rgba(59, 123, 234, 0.2)' : 'rgba(226, 232, 240, 0.8)',
+        borderColor: '#F1F5F9',
       }}
     >
-      <Image
-        source={image}
-        style={{ width: '100%', height: '100%' }}
-        resizeMode="cover"
-      />
+      {image ? <Image source={image} style={{ width: '100%', height: '100%' }} resizeMode="contain" /> : <Building2 size={34} color="#FFFFFF" strokeWidth={1.7} />}
     </View>
 
     {/* Text info */}
@@ -81,7 +78,7 @@ const RoleCard = ({
           style={{
             fontSize: 18,
             fontWeight: '700',
-            color: '#0F1B3D',
+            color: '#263238',
             marginBottom: 3,
             letterSpacing: -0.3,
             textAlign: isRTL ? 'right' : 'left',
@@ -89,19 +86,7 @@ const RoleCard = ({
         >
           {title}
         </Text>
-        {isPrimary && (
-          <View
-            style={{
-              backgroundColor: 'rgba(59, 123, 234, 0.12)',
-              paddingHorizontal: 7,
-              paddingVertical: 2,
-              borderRadius: 6,
-              marginBottom: 3,
-            }}
-          >
-            <Text style={{ fontSize: 10, fontWeight: '600', color: '#3B7BEA' }}>★</Text>
-          </View>
-        )}
+
       </View>
       <Text
         numberOfLines={3}
@@ -122,7 +107,7 @@ const RoleCard = ({
       style={{
         width: 36,
         height: 36,
-        borderRadius: 18,
+        borderRadius: 14,
         backgroundColor: isPrimary ? 'rgba(59, 123, 234, 0.12)' : 'rgba(241, 245, 249, 0.9)',
         alignItems: 'center',
         justifyContent: 'center',
@@ -132,7 +117,7 @@ const RoleCard = ({
     >
       <ChevronRight
         size={18}
-        color={isPrimary ? '#3B7BEA' : '#5B6B8C'}
+        color={isPrimary ? '#0055D4' : '#5B6B8C'}
         strokeWidth={2.8}
         style={{ transform: [{ rotate: isRTL ? '180deg' : '0deg' }] }}
       />
@@ -157,42 +142,10 @@ export const LandingScreen = ({
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#EAF1FD', overflow: 'hidden' }}>
-      <StatusBar barStyle="dark-content" backgroundColor="#8FB4F0" />
+    <View style={{ flex: 1, backgroundColor: '#F8FBFF', overflow: 'hidden' }}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FBFF" />
 
-      {/* Atmospheric sky background with blurred cloud blobs */}
-      <View
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 340,
-          backgroundColor: '#8FB4F0',
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          top: -60,
-          right: -50,
-          width: 280,
-          height: 280,
-          borderRadius: 140,
-          backgroundColor: 'rgba(255, 255, 255, 0.35)',
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          top: 140,
-          left: -80,
-          width: 220,
-          height: 220,
-          borderRadius: 110,
-          backgroundColor: 'rgba(255, 255, 255, 0.28)',
-        }}
-      />
+      <View pointerEvents="none" style={{ position: 'absolute', top: -150, right: -110, width: 400, height: 400, borderRadius: 200, backgroundColor: '#EFF7FB' }} />
 
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView
@@ -201,7 +154,7 @@ export const LandingScreen = ({
             width: '100%',
             maxWidth: 480,
             alignSelf: 'center',
-            paddingTop: 8,
+            paddingTop: 16,
             paddingBottom: 36,
           }}
           showsVerticalScrollIndicator={false}
@@ -230,32 +183,32 @@ export const LandingScreen = ({
                 gap: 7,
                 borderWidth: 1.5,
                 borderColor: 'rgba(255, 255, 255, 0.95)',
-                shadowColor: '#3B7BEA',
+                shadowColor: '#0055D4',
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.1,
                 shadowRadius: 8,
                 elevation: 3,
               }}
             >
-              <Globe size={16} color="#3B7BEA" />
-              <Text style={{ fontSize: 12.5, fontWeight: '600', color: '#0F1B3D' }}>
+              <Globe size={16} color="#0055D4" />
+              <Text style={{ fontSize: 12.5, fontWeight: '600', color: '#263238' }}>
                 {getLangBadge()}
               </Text>
             </TouchableOpacity>
           </View>
 
           {/* Center: App Logo in a rounded glass square with soft glow */}
-          <View style={{ alignItems: 'center', marginBottom: 28 }}>
+          <View style={{ alignItems: 'center', marginBottom: 32 }}>
             <View
               style={{
-                width: 74,
-                height: 74,
+                width: 80,
+                height: 80,
                 borderRadius: 24,
-                backgroundColor: '#3B7BEA',
+                backgroundColor: '#0055D4',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: 14,
-                shadowColor: '#3B7BEA',
+                marginBottom: 18,
+                shadowColor: '#0055D4',
                 shadowOffset: { width: 0, height: 10 },
                 shadowOpacity: 0.22,
                 shadowRadius: 18,
@@ -269,13 +222,13 @@ export const LandingScreen = ({
 
             <Text
               style={{
-                fontSize: 32,
+                fontSize: 34,
                 fontWeight: '700',
-                color: '#0F1B3D',
+                color: '#263238',
                 letterSpacing: -0.8,
               }}
             >
-              Snap<Text style={{ color: '#3B7BEA' }}>School</Text>
+              Snap<Text style={{ color: '#0055D4' }}>School</Text>
             </Text>
 
             <View style={{ marginTop: 10, alignItems: 'center', paddingHorizontal: 16 }}>
@@ -283,7 +236,7 @@ export const LandingScreen = ({
                 style={{
                   fontSize: 22,
                   fontWeight: '700',
-                  color: '#0F1B3D',
+                  color: '#263238',
                   letterSpacing: -0.4,
                   textAlign: 'center',
                 }}
@@ -308,9 +261,10 @@ export const LandingScreen = ({
             </View>
           </View>
 
-          {/* Role Cards: EXACTLY 3 ROLES (Student removed completely) */}
+          {/* School spaces */}
           <View>
-            {/* 1. PARENT (Primary Highlighted) */}
+            {/* Parent */}
+            <AnimatedEntrance delay={100}>
             <RoleCard
               title={t?.parent || (language === 'ar' ? 'ولي الأمر' : 'Parent')}
               description={
@@ -323,8 +277,10 @@ export const LandingScreen = ({
               isRTL={isRTL}
               onPress={() => onSelectRole('parent')}
             />
+            </AnimatedEntrance>
 
-            {/* 2. TEACHER */}
+            {/* Teacher */}
+            <AnimatedEntrance delay={180}>
             <RoleCard
               title={t?.teacher || (language === 'ar' ? 'المدرس' : 'Enseignant')}
               description={
@@ -337,8 +293,10 @@ export const LandingScreen = ({
               isRTL={isRTL}
               onPress={() => onSelectRole('teacher')}
             />
+            </AnimatedEntrance>
 
             {/* 3. ADMINISTRATION (3D School Building Image) */}
+            <AnimatedEntrance delay={260}>
             <RoleCard
               title={language === 'ar' ? 'الإدارة' : language === 'fr' ? 'Direction' : 'Admin'}
               description={
@@ -346,11 +304,12 @@ export const LandingScreen = ({
                   ? 'أدِر مدرستك مع هنيّة الذكية'
                   : language === 'en' ? 'Manage your school, finances and school life with Hnia.' : 'Pilotez l’école, les finances et la vie scolaire avec Hnia.'
               }
-              image={require('../../assets/3d/admin.jpg')}
+
               isPrimary={false}
               isRTL={isRTL}
               onPress={() => onSelectRole('admin')}
             />
+            </AnimatedEntrance>
           </View>
 
           {/* Footer note */}
@@ -397,7 +356,7 @@ export const LandingScreen = ({
               padding: 24,
               borderWidth: 1.5,
               borderColor: 'rgba(255, 255, 255, 0.9)',
-              shadowColor: '#3B7BEA',
+              shadowColor: '#0055D4',
               shadowOffset: { width: 0, height: 10 },
               shadowOpacity: 0.2,
               shadowRadius: 20,
@@ -408,7 +367,7 @@ export const LandingScreen = ({
               style={{
                 fontSize: 18,
                 fontWeight: '700',
-                color: '#0F1B3D',
+                color: '#263238',
                 marginBottom: 16,
                 textAlign: 'center',
               }}
@@ -450,13 +409,13 @@ export const LandingScreen = ({
                     style={{
                       fontSize: 15,
                       fontWeight: language === item.id ? '800' : '600',
-                      color: language === item.id ? '#3B7BEA' : '#0F1B3D',
+                      color: language === item.id ? '#0055D4' : '#263238',
                     }}
                   >
                     {item.name}
                   </Text>
                 </View>
-                {language === item.id && <Check size={18} color="#3B7BEA" strokeWidth={3} />}
+                {language === item.id && <Check size={18} color="#0055D4" strokeWidth={3} />}
               </TouchableOpacity>
             ))}
           </View>

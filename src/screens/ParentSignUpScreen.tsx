@@ -131,7 +131,7 @@ export const ParentSignUpScreen = ({
       return { score: 4, label: language === 'ar' ? 'ممتازة' : 'Excellent', color: '#10b981' };
     }
     if (pwd.length >= 8 && ((hasLetters && hasNumbers) || hasSpecial)) {
-      return { score: 3, label: language === 'ar' ? 'قوية' : 'Sécurisé', color: '#3B7BEA' };
+      return { score: 3, label: language === 'ar' ? 'قوية' : 'Sécurisé', color: '#0055D4' };
     }
     return { score: 2, label: language === 'ar' ? 'متوسطة' : 'Moyen', color: '#f59e0b' };
   };
@@ -452,36 +452,13 @@ export const ParentSignUpScreen = ({
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#EAF1FD', overflow: 'hidden' }}>
-      <StatusBar barStyle="dark-content" backgroundColor="#8FB4F0" />
-      <SafeAreaView style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: '#F8FBFF', overflow: 'hidden' }}>
+      <StatusBar barStyle="dark-content" backgroundColor="#EAF6FF" />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#EAF6FF' }}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{ flex: 1 }}
         >
-          {/* Atmospheric sky background blobs */}
-          <View
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 280,
-              backgroundColor: '#8FB4F0',
-            }}
-          />
-          <View
-            style={{
-              position: 'absolute',
-              top: -50,
-              right: -40,
-              width: 240,
-              height: 240,
-              borderRadius: 120,
-              backgroundColor: 'rgba(255, 255, 255, 0.32)',
-            }}
-          />
-
           {/* TOP BAR: CIRCULAR GLASS BACK & LANGUAGE SELECTOR */}
           <View
             style={{
@@ -510,7 +487,7 @@ export const ParentSignUpScreen = ({
                 justifyContent: 'center',
                 borderWidth: 1.5,
                 borderColor: 'rgba(255, 255, 255, 0.95)',
-                shadowColor: '#3B7BEA',
+                shadowColor: '#0055D4',
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.1,
                 shadowRadius: 8,
@@ -562,14 +539,14 @@ export const ParentSignUpScreen = ({
                   backgroundColor: 'rgba(59, 123, 234, 0.14)',
                   paddingHorizontal: 10,
                   paddingVertical: 4,
-                  borderRadius: 999,
+                  borderRadius: 16,
                 }}
               >
                 <Text
                   style={{
                     fontSize: 12,
                     fontWeight: '700',
-                    color: '#3B7BEA',
+                    color: '#0055D4',
                   }}
                 >
                   {currentStep} / 3
@@ -592,7 +569,7 @@ export const ParentSignUpScreen = ({
                       style={{
                         height: 4,
                         borderRadius: 2,
-                        backgroundColor: isDone ? '#10b981' : isActive ? '#3B7BEA' : 'rgba(255, 255, 255, 0.7)',
+                        backgroundColor: isDone ? '#10b981' : isActive ? '#0055D4' : 'rgba(255, 255, 255, 0.7)',
                         marginBottom: 4,
                       }}
                     />
@@ -617,12 +594,12 @@ export const ParentSignUpScreen = ({
           <View
             style={{
               flex: 1,
-              backgroundColor: 'rgba(255, 255, 255, 0.94)',
+              backgroundColor: '#FFFFFF',
               borderTopLeftRadius: 32,
               borderTopRightRadius: 32,
               borderWidth: 1.5,
               borderColor: 'rgba(255, 255, 255, 0.95)',
-              shadowColor: '#3B7BEA',
+              shadowColor: '#0055D4',
               shadowOffset: { width: 0, height: -6 },
               shadowOpacity: 0.1,
               shadowRadius: 16,
@@ -704,7 +681,7 @@ export const ParentSignUpScreen = ({
                             backgroundColor: '#ecfdf5',
                             paddingHorizontal: 12,
                             paddingVertical: 5,
-                            borderRadius: 999,
+                            borderRadius: 16,
                             gap: 5,
                           }}
                         >
@@ -757,7 +734,7 @@ export const ParentSignUpScreen = ({
                             borderColor: 'rgba(59, 123, 234, 0.25)',
                           }}
                         >
-                          <GraduationCap size={28} color="#3B7BEA" />
+                          <GraduationCap size={28} color="#0055D4" />
                         </View>
                         <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
                           <Text
@@ -784,7 +761,7 @@ export const ParentSignUpScreen = ({
                                 backgroundColor: 'rgba(59, 123, 234, 0.12)',
                                 paddingHorizontal: 10,
                                 paddingVertical: 4,
-                                borderRadius: 999,
+                                borderRadius: 16,
                               }}
                             >
                               <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#1E40AF' }}>
@@ -796,7 +773,7 @@ export const ParentSignUpScreen = ({
                                 backgroundColor: '#F1F5F9',
                                 paddingHorizontal: 10,
                                 paddingVertical: 4,
-                                borderRadius: 999,
+                                borderRadius: 16,
                               }}
                             >
                               <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#475569' }}>
@@ -857,9 +834,9 @@ export const ParentSignUpScreen = ({
                           flexDirection: isRTL ? 'row-reverse' : 'row',
                           alignItems: 'center',
                           backgroundColor: 'rgba(248, 250, 252, 0.95)',
-                          borderRadius: 999,
+                          borderRadius: 16,
                           borderWidth: 1.5,
-                          borderColor: verifyError ? '#FCA5A5' : studentFieldFocused ? '#3B7BEA' : '#E2E8F0',
+                          borderColor: verifyError ? '#FCA5A5' : studentFieldFocused ? '#0055D4' : '#E2E8F0',
                           paddingHorizontal: 18,
                           height: 54,
                           marginBottom: 12,
@@ -934,13 +911,13 @@ export const ParentSignUpScreen = ({
                         accessibilityRole="button"
                         accessibilityState={{ disabled: isVerifying, busy: isVerifying }}
                         style={{
-                          backgroundColor: '#3B7BEA',
-                          borderRadius: 999,
+                          backgroundColor: '#0055D4',
+                          borderRadius: 16,
                           height: 50,
                           alignItems: 'center',
                           justifyContent: 'center',
                           flexDirection: 'row',
-                          shadowColor: '#3B7BEA',
+                          shadowColor: '#0055D4',
                           shadowOffset: { width: 0, height: 4 },
                           shadowOpacity: 0.14,
                           shadowRadius: 8,
@@ -970,7 +947,7 @@ export const ParentSignUpScreen = ({
                         borderWidth: 1.5,
                         borderStyle: 'dashed',
                         borderColor: '#CBD5E1',
-                        borderRadius: 999,
+                        borderRadius: 16,
                         padding: 14,
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -979,8 +956,8 @@ export const ParentSignUpScreen = ({
                         gap: 6,
                       }}
                     >
-                      <Plus size={18} color="#3B7BEA" />
-                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#3B7BEA' }}>
+                      <Plus size={18} color="#0055D4" />
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#0055D4' }}>
                         {t.btnAddSibling}
                       </Text>
                     </TouchableOpacity>
@@ -992,13 +969,13 @@ export const ParentSignUpScreen = ({
                       onPress={handleGoToStep2}
                       activeOpacity={0.88}
                       style={{
-                        backgroundColor: '#3B7BEA',
-                        borderRadius: 999,
+                        backgroundColor: '#0055D4',
+                        borderRadius: 16,
                         height: 54,
                         alignItems: 'center',
                         justifyContent: 'center',
                         flexDirection: isRTL ? 'row-reverse' : 'row',
-                        shadowColor: '#3B7BEA',
+                        shadowColor: '#0055D4',
                         shadowOffset: { width: 0, height: 6 },
                         shadowOpacity: 0.16,
                         shadowRadius: 10,
@@ -1073,7 +1050,7 @@ export const ParentSignUpScreen = ({
                         flexDirection: isRTL ? 'row-reverse' : 'row',
                         alignItems: 'center',
                         backgroundColor: 'rgba(248, 250, 252, 0.95)',
-                        borderRadius: 999,
+                        borderRadius: 16,
                         borderWidth: 1.5,
                         borderColor: '#E2E8F0',
                         paddingHorizontal: 18,
@@ -1125,7 +1102,7 @@ export const ParentSignUpScreen = ({
                         flexDirection: isRTL ? 'row-reverse' : 'row',
                         alignItems: 'center',
                         backgroundColor: 'rgba(248, 250, 252, 0.95)',
-                        borderRadius: 999,
+                        borderRadius: 16,
                         borderWidth: 1.5,
                         borderColor: '#E2E8F0',
                         paddingHorizontal: 18,
@@ -1177,7 +1154,7 @@ export const ParentSignUpScreen = ({
                         flexDirection: isRTL ? 'row-reverse' : 'row',
                         alignItems: 'center',
                         backgroundColor: 'rgba(248, 250, 252, 0.95)',
-                        borderRadius: 999,
+                        borderRadius: 16,
                         borderWidth: 1.5,
                         borderColor: '#E2E8F0',
                         paddingHorizontal: 18,
@@ -1249,13 +1226,13 @@ export const ParentSignUpScreen = ({
                             style={{
                               flex: 1,
                               height: 44,
-                              borderRadius: 999,
-                              backgroundColor: isSel ? '#3B7BEA' : 'rgba(248, 250, 252, 0.95)',
+                              borderRadius: 16,
+                              backgroundColor: isSel ? '#0055D4' : 'rgba(248, 250, 252, 0.95)',
                               borderWidth: 1.5,
-                              borderColor: isSel ? '#3B7BEA' : '#E2E8F0',
+                              borderColor: isSel ? '#0055D4' : '#E2E8F0',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              shadowColor: isSel ? '#3B7BEA' : 'transparent',
+                              shadowColor: isSel ? '#0055D4' : 'transparent',
                               shadowOpacity: isSel ? 0.2 : 0,
                               shadowRadius: 4,
                               elevation: isSel ? 2 : 0,
@@ -1294,7 +1271,7 @@ export const ParentSignUpScreen = ({
                         flexDirection: isRTL ? 'row-reverse' : 'row',
                         alignItems: 'center',
                         backgroundColor: 'rgba(248, 250, 252, 0.95)',
-                        borderRadius: 999,
+                        borderRadius: 16,
                         borderWidth: 1.5,
                         borderColor: '#E2E8F0',
                         paddingHorizontal: 18,
@@ -1332,13 +1309,13 @@ export const ParentSignUpScreen = ({
                     onPress={handleGoToStep3}
                     activeOpacity={0.88}
                     style={{
-                      backgroundColor: '#3B7BEA',
-                      borderRadius: 999,
+                      backgroundColor: '#0055D4',
+                      borderRadius: 16,
                       height: 54,
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexDirection: isRTL ? 'row-reverse' : 'row',
-                      shadowColor: '#3B7BEA',
+                      shadowColor: '#0055D4',
                       shadowOffset: { width: 0, height: 6 },
                       shadowOpacity: 0.16,
                       shadowRadius: 10,
@@ -1411,7 +1388,7 @@ export const ParentSignUpScreen = ({
                         flexDirection: isRTL ? 'row-reverse' : 'row',
                         alignItems: 'center',
                         backgroundColor: 'rgba(248, 250, 252, 0.95)',
-                        borderRadius: 999,
+                        borderRadius: 16,
                         borderWidth: 1.5,
                         borderColor: '#E2E8F0',
                         paddingHorizontal: 18,
@@ -1508,7 +1485,7 @@ export const ParentSignUpScreen = ({
                         flexDirection: isRTL ? 'row-reverse' : 'row',
                         alignItems: 'center',
                         backgroundColor: 'rgba(248, 250, 252, 0.95)',
-                        borderRadius: 999,
+                        borderRadius: 16,
                         borderWidth: 1.5,
                         borderColor:
                           confirmPassword.length > 0
@@ -1593,7 +1570,7 @@ export const ParentSignUpScreen = ({
                         gap: 8,
                       }}
                     >
-                      <ShieldCheck size={18} color="#3B7BEA" />
+                      <ShieldCheck size={18} color="#0055D4" />
                       <Text style={{ fontSize: 13.5, fontWeight: '600', color: '#0F1B3D' }}>
                         {t.recapTitle}
                       </Text>
@@ -1610,7 +1587,7 @@ export const ParentSignUpScreen = ({
                       <Text style={{ fontSize: 12.5, color: '#5B6B8C', fontWeight: '600' }}>
                         {t.loginId}
                       </Text>
-                      <Text style={{ fontSize: 13.5, fontWeight: '600', color: '#3B7BEA' }}>
+                      <Text style={{ fontSize: 13.5, fontWeight: '600', color: '#0055D4' }}>
                         {phone}
                       </Text>
                     </View>
@@ -1658,7 +1635,7 @@ export const ParentSignUpScreen = ({
                             gap: 8,
                           }}
                         >
-                          <GraduationCap size={16} color="#3B7BEA" />
+                          <GraduationCap size={16} color="#0055D4" />
                           <Text
                             style={{
                               fontSize: 13,
@@ -1675,7 +1652,7 @@ export const ParentSignUpScreen = ({
                               backgroundColor: 'rgba(59, 123, 234, 0.12)',
                               paddingHorizontal: 8,
                               paddingVertical: 3,
-                              borderRadius: 999,
+                              borderRadius: 16,
                             }}
                           >
                             <Text style={{ fontSize: 11, fontWeight: '700', color: '#1E40AF' }}>
@@ -1722,13 +1699,13 @@ export const ParentSignUpScreen = ({
                     disabled={isSubmitting}
                     activeOpacity={0.88}
                     style={{
-                      backgroundColor: '#3B7BEA',
-                      borderRadius: 999,
+                      backgroundColor: '#0055D4',
+                      borderRadius: 16,
                       height: 54,
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexDirection: isRTL ? 'row-reverse' : 'row',
-                      shadowColor: '#3B7BEA',
+                      shadowColor: '#0055D4',
                       shadowOffset: { width: 0, height: 6 },
                       shadowOpacity: 0.32,
                       shadowRadius: 10,
@@ -1791,7 +1768,7 @@ export const ParentSignUpScreen = ({
               >
                 <Text style={{ fontSize: 13.5, color: '#5B6B8C' }}>{t.alreadyHaveAccount} </Text>
                 <TouchableOpacity onPress={onBack} accessibilityRole="button" hitSlop={10}>
-                  <Text style={{ fontSize: 13.5, fontWeight: '600', color: '#3B7BEA' }}>
+                  <Text style={{ fontSize: 13.5, fontWeight: '600', color: '#0055D4' }}>
                     {t.signInLink}
                   </Text>
                 </TouchableOpacity>

@@ -32,7 +32,7 @@ export function AuthLanguageSwitch() {
 const styles = StyleSheet.create({
   pill: { padding: 3, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.9)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.95)', flexShrink: 0 },
   option: { minWidth: 34, minHeight: 40, paddingHorizontal: 5, borderRadius: 999, justifyContent: 'center', alignItems: 'center' },
-  selected: { backgroundColor: '#3B7BEA' },
+  selected: { backgroundColor: '#0055D4' },
   label: { fontSize: 11, fontWeight: '600', color: '#475569' },
   selectedLabel: { color: '#FFFFFF' },
 });

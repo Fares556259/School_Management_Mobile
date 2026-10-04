@@ -269,44 +269,10 @@ export const SignInScreen = ({
         };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#EAF1FD', overflow: 'hidden' }}>
-      <StatusBar barStyle="dark-content" backgroundColor="#8FB4F0" />
+    <View style={{ flex: 1, backgroundColor: '#F8FBFF', overflow: 'hidden' }}>
+      <StatusBar barStyle="dark-content" backgroundColor="#EAF6FF" />
 
-      {/* Atmospheric sky background with soft blurred cloud circles */}
-      <View
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 320,
-          backgroundColor: '#8FB4F0',
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          top: -50,
-          right: -40,
-          width: 260,
-          height: 260,
-          borderRadius: 130,
-          backgroundColor: 'rgba(255, 255, 255, 0.35)',
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          top: 120,
-          left: -70,
-          width: 200,
-          height: 200,
-          borderRadius: 100,
-          backgroundColor: 'rgba(255, 255, 255, 0.28)',
-        }}
-      />
-
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#EAF6FF' }}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{ flex: 1 }}
@@ -336,7 +302,7 @@ export const SignInScreen = ({
                 justifyContent: 'center',
                 borderWidth: 1.5,
                 borderColor: 'rgba(255, 255, 255, 0.95)',
-                shadowColor: '#3B7BEA',
+                shadowColor: '#0055D4',
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.1,
                 shadowRadius: 8,
@@ -360,10 +326,10 @@ export const SignInScreen = ({
                 paddingHorizontal: 8,
                 flexShrink: 1,
                 paddingVertical: 7,
-                borderRadius: 999,
+                borderRadius: 16,
                 borderWidth: 1.5,
                 borderColor: 'rgba(255, 255, 255, 0.95)',
-                shadowColor: '#3B7BEA',
+                shadowColor: '#0055D4',
                 shadowOffset: { width: 0, height: 2 },
                 shadowOpacity: 0.08,
                 shadowRadius: 6,
@@ -371,7 +337,7 @@ export const SignInScreen = ({
                 gap: 6,
               }}
             >
-              <roleChip.icon size={15} color="#3B7BEA" strokeWidth={2.5} />
+              <roleChip.icon size={15} color="#0055D4" strokeWidth={2.5} />
               <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: 11.5, fontWeight: '600', color: '#0F1B3D' }}>
                 {width < 360
                   ? role === 'parent'
@@ -391,7 +357,7 @@ export const SignInScreen = ({
           <View style={{ paddingHorizontal: 26, paddingTop: 10, paddingBottom: 22 }}>
             <Text
               style={{
-                fontSize: 26,
+                fontSize: 25,
                 lineHeight: 34,
                 fontWeight: '700',
                 color: '#0F1B3D',
@@ -419,12 +385,12 @@ export const SignInScreen = ({
           <View
             style={{
               flex: 1,
-              backgroundColor: 'rgba(255, 255, 255, 0.94)',
+              backgroundColor: '#FFFFFF',
               borderTopLeftRadius: 32,
               borderTopRightRadius: 32,
               borderWidth: 1.5,
               borderColor: 'rgba(255, 255, 255, 0.95)',
-              shadowColor: '#3B7BEA',
+              shadowColor: '#0055D4',
               shadowOffset: { width: 0, height: -6 },
               shadowOpacity: 0.1,
               shadowRadius: 16,
@@ -470,9 +436,9 @@ export const SignInScreen = ({
                       flexDirection: isRTL ? 'row-reverse' : 'row',
                       alignItems: 'center',
                       backgroundColor: 'rgba(248, 250, 252, 0.95)',
-                      borderRadius: 999,
+                      borderRadius: 16,
                       borderWidth: 1.5,
-                      borderColor: focusedField === 'phone' ? '#3B7BEA' : '#E2E8F0',
+                      borderColor: focusedField === 'phone' ? '#0055D4' : '#E2E8F0',
                       paddingHorizontal: 18,
                       height: 54,
                     }}
@@ -542,9 +508,9 @@ export const SignInScreen = ({
                       flexDirection: isRTL ? 'row-reverse' : 'row',
                       alignItems: 'center',
                       backgroundColor: 'rgba(248, 250, 252, 0.95)',
-                      borderRadius: 999,
+                      borderRadius: 16,
                       borderWidth: 1.5,
-                      borderColor: focusedField === 'password' ? '#3B7BEA' : '#E2E8F0',
+                      borderColor: focusedField === 'password' ? '#0055D4' : '#E2E8F0',
                       paddingHorizontal: 18,
                       height: 54,
                     }}
@@ -679,8 +645,8 @@ export const SignInScreen = ({
                   <TouchableOpacity
                     onPress={() => onNavigateToSignUp && onNavigateToSignUp(phone.trim())}
                     style={{
-                      backgroundColor: '#3B7BEA',
-                      borderRadius: 999,
+                      backgroundColor: '#0055D4',
+                      borderRadius: 16,
                       paddingVertical: 12,
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -705,13 +671,13 @@ export const SignInScreen = ({
                 accessibilityState={{ disabled: isLoading, busy: isLoading }}
                 activeOpacity={0.88}
                 style={{
-                  backgroundColor: '#3B7BEA',
-                  borderRadius: 999,
+                  backgroundColor: '#0055D4',
+                  borderRadius: 16,
                   height: 54,
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexDirection: isRTL ? 'row-reverse' : 'row',
-                  shadowColor: '#3B7BEA',
+                  shadowColor: '#0055D4',
                   shadowOffset: { width: 0, height: 6 },
                   shadowOpacity: 0.16,
                   shadowRadius: 12,
@@ -758,7 +724,7 @@ export const SignInScreen = ({
                     {language === 'ar' ? 'جديد على التطبيق ؟' : language === 'en' ? 'New here?' : 'Nouveau sur l’application ?'}
                   </Text>
                   <TouchableOpacity onPress={() => onNavigateToSignUp && onNavigateToSignUp(phone.trim())}>
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#3B7BEA' }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#0055D4' }}>
                       {language === 'ar' ? 'تسجيل حساب' : language === 'en' ? 'Create an account' : 'S’inscrire'}
                     </Text>
                   </TouchableOpacity>

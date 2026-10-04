@@ -253,7 +253,6 @@ export default function App() {
   // Transition smoothly from launch screen once bootstrap and minimum animation time have elapsed
   useEffect(() => {
     if (isBootstrapDone && isLaunchMinTimeDone) {
-      setIsLaunchScreenVisible(false);
       setAuthState(targetAuthStateRef.current);
     }
   }, [isBootstrapDone, isLaunchMinTimeDone]);
@@ -674,7 +673,9 @@ export default function App() {
                   <View style={[StyleSheet.absoluteFill, { zIndex: 999999 }]} pointerEvents="auto">
                     <AppLaunchScreen 
                       onFinish={() => setIsLaunchMinTimeDone(true)} 
-                      minDurationMs={1100} 
+                      minDurationMs={1100}
+                      isReady={isBootstrapDone && isLaunchMinTimeDone}
+                      onExit={() => setIsLaunchScreenVisible(false)}
                     />
                   </View>
                 )}
