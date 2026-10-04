@@ -42,7 +42,7 @@ import { View, ActivityIndicator, Alert, StyleSheet, AppState } from 'react-nati
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from './src/store/useAppStore';
-import { parentService, authService, authStorage, studentService, API_BASE_URL, teacherService, adminService } from './src/services/api';
+import { authService, authStorage, studentService, API_BASE_URL } from './src/services/api';
 import { notificationService } from './src/services/notificationService';
 import * as Notifications from 'expo-notifications';
 import * as Updates from 'expo-updates';
@@ -56,6 +56,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 
 import { identifyUser, resetUser, trackScreen } from './src/services/posthog';
+import { loadSessionSnapshot, type SessionRole } from './src/services/sessionHydration';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -73,10 +74,15 @@ const asyncStoragePersister = createAsyncStoragePersister({
 
 
 const clearAccountCache = async () => {
-  await queryClient.cancelQueries();
-  queryClient.clear();
-  await asyncStoragePersister.removeClient();
-  useAppStore.setState({ children: [], selectedChildId: null, studentStatuses: {}, selectedTeacherClass: null, userAvatarUrl: null, schoolName: null, unreadNotificationsCount: 0 });
+  try {
+    await Promise.allSettled([
+      queryClient.cancelQueries(),
+      asyncStoragePersister.removeClient(),
+    ]);
+  } finally {
+    queryClient.clear();
+    useAppStore.setState({ children: [], selectedChildId: null, studentStatuses: {}, selectedTeacherClass: null, userAvatarUrl: null, schoolName: null, unreadNotificationsCount: 0 });
+  }
 };
 
 registerAccountCleanup(clearAccountCache);
@@ -227,18 +233,17 @@ return (
 
 export default function App() {
   const pendingNotificationRef = React.useRef<any>(null);
-  const { 
-    setChildren, 
-    setSelectedChildId, 
-    setError, 
-    setUserName, 
-    setUserAvatarUrl,
-    setSchoolName,
-    setUserRole,
-    setUserId,
-    userRole,
-    userId
-  } = useAppStore();
+  // Subscribe only to account/navigation state. Attendance, notification and
+  // child-status updates should not re-render the entire navigation tree.
+  const setChildren = useAppStore(state => state.setChildren);
+  const setSelectedChildId = useAppStore(state => state.setSelectedChildId);
+  const setUserName = useAppStore(state => state.setUserName);
+  const setUserAvatarUrl = useAppStore(state => state.setUserAvatarUrl);
+  const setSchoolName = useAppStore(state => state.setSchoolName);
+  const setUserRole = useAppStore(state => state.setUserRole);
+  const setUserId = useAppStore(state => state.setUserId);
+  const userRole = useAppStore(state => state.userRole);
+  const userId = useAppStore(state => state.userId);
   const [authState, setAuthState] = useState<'loading' | 'onboarding' | 'landing' | 'signedIn' | 'signedOut' | 'signUp'>('onboarding');
   const [signUpInitialPhone, setSignUpInitialPhone] = useState('');
   const [isLaunchScreenVisible, setIsLaunchScreenVisible] = useState(true);
@@ -248,6 +253,8 @@ export default function App() {
   const targetAuthStateRef = React.useRef<'onboarding' | 'landing' | 'signedIn'>('onboarding');
   const postOnboardingStateRef = React.useRef<'signedIn' | 'landing'>('landing');
   const routeNameRef = React.useRef<string | undefined>(undefined);
+  const sessionRevisionRef = React.useRef(0);
+  const pushRegistrationRef = React.useRef<{ userId: string; lastAt: number; pending: Promise<void> | null }>({ userId: '', lastAt: 0, pending: null });
 
   // Transition smoothly from launch screen once bootstrap and minimum animation time have elapsed
   useEffect(() => {
@@ -260,6 +267,74 @@ export default function App() {
   useEffect(() => {
     authStateRef.current = authState;
   }, [authState]);
+
+  const applySessionSnapshot = React.useCallback(async (uid: string, role: SessionRole) => {
+    const revision = ++sessionRevisionRef.current;
+    const snapshot = await loadSessionSnapshot(role);
+    const currentUid = await authStorage.getUserId();
+    if (revision !== sessionRevisionRef.current || currentUid !== uid) return;
+
+    if (snapshot.role === 'parent' && snapshot.children.length > 0) {
+      setChildren(snapshot.children);
+      setSelectedChildId(snapshot.children[0].id);
+    }
+
+    if (snapshot.profile?.name) {
+      const fullName = `${snapshot.profile.name} ${snapshot.profile.surname || ''}`.trim();
+      setUserName(fullName);
+    } else if (snapshot.role === 'admin') {
+      setUserName('Admin');
+    }
+    setUserAvatarUrl(snapshot.profile?.img || null);
+    if (snapshot.role === 'admin') {
+      setSchoolName(snapshot.profile?.schoolName || 'SnapSchool');
+    }
+  }, [setChildren, setSelectedChildId, setSchoolName, setUserAvatarUrl, setUserName]);
+
+  const registerPush = React.useCallback((uid: string) => {
+    const state = pushRegistrationRef.current;
+    const now = Date.now();
+    if (state.userId === uid && state.pending) return state.pending;
+    if (state.userId === uid && now - state.lastAt < 6 * 60 * 60 * 1000) return Promise.resolve();
+
+    const pending = (async () => {
+      try {
+        await notificationService.initChannels();
+        const token = await notificationService.getPushToken();
+        if (token) {
+          await authService.registerPushToken(uid, token);
+          pushRegistrationRef.current.lastAt = Date.now();
+        }
+      } catch (error) {
+        if (pushRegistrationRef.current.userId === uid) {
+          pushRegistrationRef.current.lastAt = 0;
+        }
+        console.warn('[PUSH-REG-FAIL]', error);
+      } finally {
+        if (pushRegistrationRef.current.userId === uid) {
+          pushRegistrationRef.current.pending = null;
+        }
+      }
+    })();
+
+    pushRegistrationRef.current = { userId: uid, lastAt: state.userId === uid ? state.lastAt : 0, pending };
+    return pending;
+  }, []);
+
+  const clearLocalSession = React.useCallback(() => {
+    sessionRevisionRef.current += 1;
+    resetUser();
+    setChildren([]);
+    setSelectedChildId(null);
+    setUserName('User');
+    setUserAvatarUrl(null);
+    setSchoolName(null);
+    setUserRole(null);
+    setUserId(null);
+    postOnboardingStateRef.current = 'landing';
+    targetAuthStateRef.current = 'landing';
+    setAuthState('landing');
+  }, [setChildren, setSchoolName, setSelectedChildId, setUserAvatarUrl, setUserId, setUserName, setUserRole]);
 
   const lastUpdateCheckRef = React.useRef<number>(0);
   const checkAndApplyUpdates = React.useCallback(async (isManual = false) => {
@@ -297,24 +372,6 @@ export default function App() {
 
   // Check stored auth on launch
   useEffect(() => {
-
-    const registerPush = async (uid: string) => {
-      try {
-        await notificationService.initChannels();
-        let token = await notificationService.getPushToken();
-        if (!token) {
-          await new Promise(r => setTimeout(r, 2000));
-          token = await notificationService.getPushToken();
-        }
-        if (token) {
-          await authService.registerPushToken(uid, token);
-          console.log("[DEBUG-PUSH] Token registered successfully:", token);
-        }
-      } catch (err) {
-        console.warn("[PUSH-REG-FAIL]", err);
-      }
-    };
-
     const bootstrap = async () => {
       let nextPostOnboarding: 'signedIn' | 'landing' = 'landing';
       try {
@@ -328,39 +385,14 @@ export default function App() {
           if (uid) {
             setUserId(uid);
             setUserRole(role as any);
-            registerPush(uid);
+            void registerPush(uid);
             identifyUser(uid, { role });
           }
 
-          // Fetch profile
-          let profile: any = null;
-          if (role === 'parent') {
-            const [profileRes, childrenData] = await Promise.all([
-              parentService.fetchParentProfile().catch(() => null),
-              parentService.fetchChildren().catch(() => []),
-            ]);
-            profile = profileRes;
-            if (childrenData && childrenData.length > 0) {
-              setChildren(childrenData);
-              setSelectedChildId(childrenData[0].id);
-            }
-          } else if (role === 'teacher') {
-             profile = await teacherService.fetchProfile();
-          } else if (role === 'admin') {
-            profile = await adminService.fetchProfile().catch(() => null);
-            if (profile) {
-              setUserName(profile.name || 'Admin');
-              setUserAvatarUrl(profile.img || null);
-              setSchoolName(profile.schoolName || 'SnapSchool');
-            } else {
-              setUserName('Admin');
-              setSchoolName('SnapSchool');
-            }
-          }
-
-          if (profile && role !== 'admin') {
-            setUserName(`${profile.name} ${profile.surname}`);
-            setUserAvatarUrl(profile.img || null);
+          // Stored credentials are enough to launch. Profile/network hydration
+          // continues in the background and is discarded if the account changes.
+          if (uid && (role === 'parent' || role === 'teacher' || role === 'admin')) {
+            void applySessionSnapshot(uid, role);
           }
           nextPostOnboarding = 'signedIn';
         } else {
@@ -385,20 +417,15 @@ export default function App() {
 
     const { DeviceEventEmitter } = require('react-native');
     const authSubscription = DeviceEventEmitter.addListener('auth_unauthorized', () => {
-      // Clear local state and go back to landing
-      authService.logout().then(async () => {
-        setChildren([]);
-        setUserName("User");
-        setUserRole(null);
-        setUserId(null);
-        setAuthState('landing');
-      });
+      void authService.logout().catch(error => {
+        console.warn('[LOGOUT-CLEANUP-FAIL]', error);
+      }).finally(clearLocalSession);
     });
 
     const appStateSub = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
         authStorage.getUserId().then((storedUid) => {
-          if (storedUid) registerPush(storedUid);
+          if (storedUid) void registerPush(storedUid);
         });
         checkAndApplyUpdates();
       }
@@ -408,7 +435,7 @@ export default function App() {
       authSubscription.remove();
       appStateSub.remove();
     };
-  }, []);
+  }, [applySessionSnapshot, checkAndApplyUpdates, clearLocalSession, registerPush, setUserId, setUserRole]);
 
   const navigateToNotification = (data: any) => {
     if (!data) {
@@ -502,63 +529,21 @@ export default function App() {
     // 1. Immediately transition to signedIn state for instant feedback
     setAuthState('signedIn');
 
-    // 2. Hydrate children and profile concurrently in background
-    (async () => {
-      try {
-        if (role === 'parent') {
-          // Parallel fetch for profile and children
-          const [profile, data] = await Promise.all([
-            parentService.fetchParentProfile(),
-            parentService.fetchChildren(),
-          ]);
-
-          if (Array.isArray(data) && data.length > 0) {
-            setChildren(data);
-            setSelectedChildId(data[0].id);
-          }
-          if (profile?.name) setUserName(`${profile.name} ${profile.surname}`);
-          if (profile?.img) setUserAvatarUrl(profile.img);
-        } else {
-          const profile = await teacherService.fetchProfile();
-          if (profile?.name) setUserName(`${profile.name} ${profile.surname}`);
-          if (profile?.img) setUserAvatarUrl(profile.img);
-        }
-      } catch (err) {
-        console.warn("[HYDRATE-FAIL]", err);
-      }
-    })();
-
-    // 3. Register push token in background asynchronously without blocking UI
-    if (uid) {
-      (async () => {
-        try {
-          await notificationService.initChannels();
-          let token = await notificationService.getPushToken();
-          if (!token) {
-            await new Promise(r => setTimeout(r, 2000));
-            token = await notificationService.getPushToken();
-          }
-          if (token) {
-            await authService.registerPushToken(uid, token);
-            console.log("[DEBUG-PUSH] Token registered in background on login:", token);
-          }
-        } catch (err) {
-          console.warn("[PUSH-LOGIN-FAIL]", err);
-        }
-      })();
+    if (uid && (role === 'parent' || role === 'teacher' || role === 'admin')) {
+      void applySessionSnapshot(uid, role);
+      void registerPush(uid);
     }
   };
 
   const handleSignOut = React.useCallback(async () => {
-    await authService.logout();
-    resetUser();
-    setChildren([]);
-    setUserName("User");
-    setUserRole(null);
-    setUserId(null);
-    postOnboardingStateRef.current = 'landing';
-    setAuthState('landing');
-  }, [setChildren, setUserName, setUserRole, setUserId]);
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.warn('[LOGOUT-CLEANUP-FAIL]', error);
+    } finally {
+      clearLocalSession();
+    }
+  }, [clearLocalSession]);
 
   const MainTabsScreen = React.useCallback(
     () => <BottomTabsContent onSignOut={handleSignOut} />,

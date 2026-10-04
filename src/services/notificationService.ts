@@ -150,7 +150,7 @@ export const notificationService = {
         projectId
       })).data;
       
-      console.log("[NOTIF-TOKEN] Got push token successfully:", token);
+      console.log("[NOTIF-TOKEN] Push token acquired successfully");
       return token;
     } catch (error) {
       console.error("[NOTIF-TOKEN-FAIL]", error);

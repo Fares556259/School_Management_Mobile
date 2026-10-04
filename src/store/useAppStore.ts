@@ -20,7 +20,7 @@ interface AppState {
   setUserName: (name: string) => void;
   setUserAvatarUrl: (url: string | null) => void;
   setSchoolName: (name: string | null) => void;
-  setSelectedChildId: (id: string) => void;
+  setSelectedChildId: (id: string | null) => void;
   setUnreadNotificationsCount: (count: number) => void;
   setStudentStatus: (childId: string, status: 'Present' | 'Absent' | 'Due') => void;
   setLoading: (isLoading: boolean) => void;
