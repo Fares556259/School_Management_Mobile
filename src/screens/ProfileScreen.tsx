@@ -9,7 +9,6 @@ import { Svg, Circle } from 'react-native-svg';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage, Language } from '../context/LanguageContext';
 import { authService, parentService, studentService, uiService, teacherService } from '../services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { notificationService } from '../services/notificationService';
 import * as Updates from 'expo-updates';
 import Constants from 'expo-constants';
@@ -248,10 +247,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
   useEffect(() => {
     const loadNotificationPreference = async () => {
       try {
-        const storedPref = await AsyncStorage.getItem('notificationsEnabled');
-        if (storedPref !== null) {
-          setNotificationsEnabled(storedPref === 'true');
-        }
+        setNotificationsEnabled(await notificationService.isEnabled());
       } catch (e) {
         console.error('Failed to load notification preference', e);
       }
@@ -275,16 +271,24 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
             t?.pleaseEnablePushNotificationPermissions || 'Please enable push notification permissions in system settings to receive alerts.'
           );
           setNotificationsEnabled(false);
-          await AsyncStorage.setItem('notificationsEnabled', 'false');
+          await notificationService.setEnabled(false);
           return;
         }
 
         // Get push token and register on backend
         const pushToken = await notificationService.getPushToken();
-        if (pushToken && userId) {
-          await authService.registerPushToken(userId, pushToken);
+        if (!pushToken) {
+          setNotificationsEnabled(false);
+          await notificationService.setEnabled(false);
+          showToast(
+            'warning',
+            t?.permissionsRequired || 'Permissions Required',
+            t?.pleaseEnablePushNotificationPermissions || 'Please enable push notification permissions in system settings to receive alerts.'
+          );
+          return;
         }
-        await AsyncStorage.setItem('notificationsEnabled', 'true');
+        if (userId) await authService.registerPushToken(userId, pushToken);
+        await notificationService.setEnabled(true);
         
         showToast(
           'info',
@@ -297,7 +301,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
           await authService.registerPushToken(userId, '');
         }
         await notificationService.cancelAll();
-        await AsyncStorage.setItem('notificationsEnabled', 'false');
+        await notificationService.setEnabled(false);
 
         showToast(
           'warning',
@@ -307,6 +311,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
       }
     } catch (e) {
       console.error('Failed to toggle notifications', e);
+      setNotificationsEnabled(!notificationsEnabled);
     }
   };
 
@@ -325,6 +330,8 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
       if (userId) {
         await authService.registerPushToken(userId, pushToken);
       }
+      await notificationService.setEnabled(true);
+      setNotificationsEnabled(true);
       await notificationService.testStandardNotification();
       
       Alert.alert(

@@ -233,6 +233,7 @@ return (
 
 export default function App() {
   const pendingNotificationRef = React.useRef<any>(null);
+  const lastHandledNotificationResponseRef = React.useRef<string | null>(null);
   // Subscribe only to account/navigation state. Attendance, notification and
   // child-status updates should not re-render the entire navigation tree.
   const setChildren = useAppStore(state => state.setChildren);
@@ -299,6 +300,7 @@ export default function App() {
 
     const pending = (async () => {
       try {
+        if (!(await notificationService.isEnabled())) return;
         await notificationService.initChannels();
         const token = await notificationService.getPushToken();
         if (token) {
@@ -482,6 +484,7 @@ export default function App() {
       }
       // Always refresh notification count
       queryClient.invalidateQueries({ queryKey: ['notifCount'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
     });
     return () => subscription.remove();
   }, []);
@@ -493,28 +496,45 @@ export default function App() {
 
   // Notification Response Listener
   useEffect(() => {
-    const subscription = notificationService.addNotificationResponseReceivedListener(response => {
+    let mounted = true;
+    const handleResponse = (response: Notifications.NotificationResponse) => {
+      const responseKey = `${response.notification.request.identifier}:${response.actionIdentifier}`;
+      if (lastHandledNotificationResponseRef.current === responseKey) return;
+      lastHandledNotificationResponseRef.current = responseKey;
       const data = response.notification.request.content.data;
       console.log("[DEBUG-NOTIF-TAP]", data);
-      
-      if (navigationRef.isReady()) {
+
+      if (authStateRef.current === 'signedIn' && navigationRef.isReady()) {
         navigateToNotification(data);
       } else {
         pendingNotificationRef.current = data;
       }
+    };
+    const subscription = notificationService.addNotificationResponseReceivedListener(response => {
+      handleResponse(response);
+      void Notifications.clearLastNotificationResponseAsync();
     });
-    return () => subscription.remove();
+    void Notifications.getLastNotificationResponseAsync().then(async response => {
+      if (!mounted || !response) return;
+      handleResponse(response);
+      await Notifications.clearLastNotificationResponseAsync();
+    }).catch(error => console.warn('[NOTIF-LAST-RESPONSE-FAIL]', error));
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
   }, []);
 
   useEffect(() => {
     if (authState === 'signedIn' && pendingNotificationRef.current) {
       const data = pendingNotificationRef.current;
       pendingNotificationRef.current = null;
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         if (navigationRef.isReady()) {
           navigateToNotification(data);
         }
       }, 500);
+      return () => clearTimeout(timeout);
     }
   }, [authState]);
 

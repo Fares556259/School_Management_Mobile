@@ -147,7 +147,7 @@ export const NotificationsScreen = ({ navigation }: any) => {
       setUnreadNotificationsCount(data.filter(n => n.isNew).length);
       return data;
     },
-    enabled: !!userId && !!selectedChildId,
+    enabled: !!userId,
     staleTime: 30_000,
     placeholderData: keepPreviousData,
   });
@@ -209,7 +209,7 @@ export const NotificationsScreen = ({ navigation }: any) => {
   const filteredNotifications = useMemo(() => {
     let list = notifications;
     if (filter === 'Unread') list = notifications.filter(n => n.isNew);
-    if (filter === 'Urgent') list = notifications.filter(n => n.type === 'ATTENDANCE' || n.message.includes('URGENT'));
+    if (filter === 'Urgent') list = notifications.filter(n => n.type === 'ATTENDANCE' || n.message?.includes('URGENT'));
     
     // Group by day
     const groups: { title: string; data: Notification[] }[] = [];
@@ -229,7 +229,7 @@ export const NotificationsScreen = ({ navigation }: any) => {
     });
 
     return groups;
-  }, [notifications, filter]);
+  }, [notifications, filter, t.older, t.today, t.yesterday]);
 
   if (loading) {
     return (

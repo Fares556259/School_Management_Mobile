@@ -718,7 +718,8 @@ export const studentService = {
       ...n,
       studentName: typeof n.student === 'object' ? `${n.student.name} ${n.student.surname}` : (n.student || 'Student'),
       className: n.className || 'School',
-      studentAvatar: n.student ? getFullImageUrl(n.student.img) : null
+      studentAvatar: getFullImageUrl(n.studentAvatar || (typeof n.student === 'object' ? n.student.img : null)),
+      createdAt: n.createdAt || n.rawDate || new Date().toISOString(),
     }));
   },
 

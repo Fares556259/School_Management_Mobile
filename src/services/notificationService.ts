@@ -1,10 +1,12 @@
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { HomeworkItem, Exam } from '../types';
 
 // Detect if we are in Expo Go
 const isExpoGo = Constants.appOwnership === 'expo';
+const NOTIFICATIONS_ENABLED_KEY = 'notificationsEnabled';
 
 // Configure Android Channels with MAX importance for audible heads-up banners
 export const initNotificationChannels = async () => {
@@ -99,6 +101,19 @@ setupHandler();
 export const notificationService = {
   initChannels: initNotificationChannels,
 
+  isEnabled: async () => {
+    try {
+      return (await AsyncStorage.getItem(NOTIFICATIONS_ENABLED_KEY)) !== 'false';
+    } catch (error) {
+      console.warn('[NOTIF-PREF-READ-FAIL]', error);
+      return true;
+    }
+  },
+
+  setEnabled: async (enabled: boolean) => {
+    await AsyncStorage.setItem(NOTIFICATIONS_ENABLED_KEY, String(enabled));
+  },
+
   /**
    * Request permissions from the user
    */
@@ -130,15 +145,8 @@ export const notificationService = {
     if (isExpoGo) return null;
     
     try {
-      // Proactively request permissions if not yet granted
-      try {
-        const { status: existingStatus } = await Notifications.getPermissionsAsync();
-        if (existingStatus !== 'granted') {
-          await Notifications.requestPermissionsAsync();
-        }
-      } catch (permErr) {
-        console.warn("[NOTIF-PERM-REQ-WARN]", permErr);
-      }
+      const granted = await notificationService.requestPermissions();
+      if (!granted) return null;
 
       // Project ID is required for standalone apps (EAS) - ensure robust fallback
       const projectId = 
