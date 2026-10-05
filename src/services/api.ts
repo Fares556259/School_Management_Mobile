@@ -1,6 +1,7 @@
 import { requestChatStream, type ChatStreamCallbacks } from "./chatStream";
 import { clearAccountData } from "./accountCleanup";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import {
   Student,
   PaymentRecord,
@@ -443,7 +444,9 @@ export const authService = {
       return null;
     }
     const endpoint = role === 'teacher' ? '/api/mobile/teacher/push-token' : '/api/mobile/parent/push-token';
-    const body = role === 'teacher' ? { teacherId: uid, pushToken } : { parentId: uid, pushToken };
+    const body = role === 'teacher'
+      ? { teacherId: uid, pushToken, notificationChannelVersion: 3, platform: Platform.OS }
+      : { parentId: uid, pushToken, notificationChannelVersion: 3, platform: Platform.OS };
     
     return apiFetch(endpoint, {
       method: 'POST',

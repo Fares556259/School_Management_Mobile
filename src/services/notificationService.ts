@@ -7,12 +7,47 @@ import { HomeworkItem, Exam } from '../types';
 // Detect if we are in Expo Go
 const isExpoGo = Constants.appOwnership === 'expo';
 const NOTIFICATIONS_ENABLED_KEY = 'notificationsEnabled';
+const STANDARD_CHANNEL_ID = 'snapschool_alerts_v3';
+const EMERGENCY_CHANNEL_ID = 'snapschool_emergency_v3';
+const STANDARD_SOUND = 'notification.m4a';
+const EMERGENCY_SOUND = 'alert.m4a';
 
 // Configure Android Channels with MAX importance for audible heads-up banners
 export const initNotificationChannels = async () => {
   if (isExpoGo || Platform.OS !== 'android') return;
   try {
-    // 1. Primary Standard Channel v2 - uses device system ringtone & MAX importance
+    // Android locks a channel's sound after creation, so custom sounds use new v3 IDs.
+    await Notifications.setNotificationChannelAsync(STANDARD_CHANNEL_ID, {
+      name: 'SnapSchool — Alertes',
+      description: 'Actualités, devoirs, notes et messages de votre école',
+      importance: Notifications.AndroidImportance.MAX,
+      sound: STANDARD_SOUND,
+      vibrationPattern: [0, 250, 180, 250],
+      lightColor: '#0055d4',
+      enableVibrate: true,
+      showBadge: true,
+      audioAttributes: {
+        usage: Notifications.AndroidAudioUsage.NOTIFICATION,
+        contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+      },
+    });
+
+    await Notifications.setNotificationChannelAsync(EMERGENCY_CHANNEL_ID, {
+      name: 'SnapSchool — Urgences',
+      description: 'Alertes urgentes et annonces prioritaires de votre école',
+      importance: Notifications.AndroidImportance.MAX,
+      sound: EMERGENCY_SOUND,
+      vibrationPattern: [0, 500, 180, 500, 180, 500],
+      lightColor: '#ff0000',
+      enableVibrate: true,
+      showBadge: true,
+      audioAttributes: {
+        usage: Notifications.AndroidAudioUsage.NOTIFICATION,
+        contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+      },
+    });
+
+    // Keep previous channels for notifications already queued with older app versions.
     await Notifications.setNotificationChannelAsync('snapschool_alerts_v2', {
       name: 'SnapSchool Notifications',
       importance: Notifications.AndroidImportance.MAX,
@@ -64,7 +99,7 @@ export const initNotificationChannels = async () => {
       showBadge: true,
     });
 
-    console.log('[NOTIF] Android Notification Channels v2 configured with MAX importance & System Sound');
+    console.log('[NOTIF] Android notification channels v3 configured with SnapSchool custom sounds');
   } catch (error) {
     console.warn('[NOTIF] Failed to configure Android channels:', error);
   }
@@ -185,9 +220,9 @@ export const notificationService = {
           title: "📚 Homework Reminder",
           body: `Don't forget to submit your assignment: "${task.title}". It's due soon!`,
           data: { screen: 'Home', taskId: task.id },
-          sound: true,
+          sound: STANDARD_SOUND,
         },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: triggerDate },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: triggerDate, channelId: STANDARD_CHANNEL_ID },
       });
 
       console.log(`[DEBUG-NOTIF] Scheduled reminder for ${task.title} at ${triggerDate}`);
@@ -217,9 +252,9 @@ export const notificationService = {
           title: "🎯 Exam Alert!",
           body: `You have a ${exam.subject} exam today: "${exam.description}". Good luck!`,
           data: { screen: 'Home', examId: exam.id },
-          sound: true,
+          sound: STANDARD_SOUND,
         },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: triggerDate },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: triggerDate, channelId: STANDARD_CHANNEL_ID },
       });
 
       return id;
@@ -246,9 +281,13 @@ export const notificationService = {
       content: {
         title: "🚨 SIREN TEST: Emergency",
         body: "This is a test of the emergency alert sound.",
-        sound: true,
+        sound: EMERGENCY_SOUND,
       },
-      trigger: null,
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: 1,
+        channelId: EMERGENCY_CHANNEL_ID,
+      },
     });
   },
 
@@ -257,9 +296,13 @@ export const notificationService = {
       content: {
         title: "📢 TEST: Standard Notification",
         body: "This is a test of the standard notification sound.",
-        sound: true,
+        sound: STANDARD_SOUND,
       },
-      trigger: null,
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: 1,
+        channelId: STANDARD_CHANNEL_ID,
+      },
     });
   },
 
