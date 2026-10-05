@@ -1,13 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Alert, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, Linking, StyleSheet } from 'react-native';
+import { ChevronLeft, ChevronRight, FileText, Inbox, ShieldCheck, Trash2 } from 'lucide-react-native';
 import { useLanguage } from '../context/LanguageContext';
 import { privacyService } from '../services/api';
 
 export function PrivacyControls({ admin = false, signedIn = true }: { admin?: boolean; signedIn?: boolean }) {
-  const { language } = useLanguage();
+  const { language, isRTL } = useLanguage();
   const [busy, setBusy] = useState(false);
   const ar = language === 'ar', fr = language === 'fr';
   const title = ar ? 'الخصوصية وحسابك' : fr ? 'Confidentialité et compte' : 'Privacy and account';
+  const subtitle = ar
+    ? 'تحكم في بياناتك وطلبات حسابك'
+    : fr
+      ? 'Vos données restent sous votre contrôle'
+      : 'Your data stays under your control';
   const deletion = ar ? 'طلب حذف الحساب' : fr ? 'Demander la suppression du compte' : 'Request account deletion';
   const open = async (path: string) => {
     try { await Linking.openURL(`https://www.snapschool.academy/${path}`); }
@@ -25,15 +31,135 @@ export function PrivacyControls({ admin = false, signedIn = true }: { admin?: bo
       } catch { Alert.alert(title, ar ? 'تعذر إرسال الطلب. حاول مجدداً أو تواصل مع مدرستك.' : fr ? 'Envoi impossible. Réessayez ou contactez votre établissement.' : 'Unable to send. Try again or contact your school.'); }
       finally { setBusy(false); }
     } }]);
-  const button = (label: string, action: () => void, disabled = false) => <TouchableOpacity accessibilityRole="button" disabled={disabled} onPress={action} style={{ paddingVertical: 14, opacity: disabled ? 0.5 : 1 }}><Text style={{ color: '#005bd4', textAlign: ar ? 'right' : 'left', fontSize: 14 }}>{label}</Text></TouchableOpacity>;
-  return <View style={{ padding: 16, marginVertical: 16, borderRadius: 20, backgroundColor: '#fff' }}>
-    <Text style={{ fontWeight: '700', color: '#17243b', textAlign: ar ? 'right' : 'left' }}>{title}</Text>
-    {button(ar ? 'سياسة الخصوصية' : fr ? 'Politique de confidentialité' : 'Privacy policy', () => { void open('privacy'); })}
-    {signedIn && button(busy ? '…' : deletion, request, busy)}
-    {!signedIn && button(deletion, () => { void open('account-deletion'); })}
-    {admin && button(ar ? 'طلبات الخصوصية والإبلاغ' : fr ? 'Demandes et signalements à traiter' : 'Review privacy requests and reports', () => { void open('admin/privacy-requests'); })}
-  </View>;
+  const row = (
+    label: string,
+    action: () => void,
+    Icon: typeof FileText,
+    tone: 'blue' | 'red' = 'blue',
+    disabled = false,
+  ) => (
+    <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      disabled={disabled}
+      onPress={action}
+      activeOpacity={0.72}
+      style={[styles.row, { flexDirection: isRTL ? 'row-reverse' : 'row' }, disabled && styles.disabled]}
+    >
+      <View style={[styles.rowIcon, tone === 'red' ? styles.rowIconDanger : styles.rowIconPrimary]}>
+        <Icon size={18} color={tone === 'red' ? '#DC2626' : '#0055D4'} strokeWidth={2.2} />
+      </View>
+      <Text style={[styles.rowLabel, { textAlign: isRTL ? 'right' : 'left' }]} numberOfLines={2}>
+        {label}
+      </Text>
+      {isRTL ? <ChevronLeft size={18} color="#94A3B8" /> : <ChevronRight size={18} color="#94A3B8" />}
+    </TouchableOpacity>
+  );
+
+  return (
+    <View style={styles.section}>
+      <View style={[styles.header, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+        <View style={styles.headerIcon}>
+          <ShieldCheck size={20} color="#0055D4" strokeWidth={2.3} />
+        </View>
+        <View style={styles.headerCopy}>
+          <Text style={[styles.title, { textAlign: isRTL ? 'right' : 'left' }]}>{title}</Text>
+          <Text style={[styles.subtitle, { textAlign: isRTL ? 'right' : 'left' }]}>{subtitle}</Text>
+        </View>
+      </View>
+
+      <View style={styles.rows}>
+        {row(ar ? 'سياسة الخصوصية' : fr ? 'Politique de confidentialité' : 'Privacy policy', () => { void open('privacy'); }, FileText)}
+        <View style={styles.divider} />
+        {signedIn
+          ? row(busy ? (ar ? 'جاري الإرسال…' : fr ? 'Envoi en cours…' : 'Sending…') : deletion, request, Trash2, 'red', busy)
+          : row(deletion, () => { void open('account-deletion'); }, Trash2, 'red')}
+        {admin && <View style={styles.divider} />}
+        {admin && row(ar ? 'طلبات الخصوصية والإبلاغ' : fr ? 'Demandes et signalements à traiter' : 'Review privacy requests and reports', () => { void open('admin/privacy-requests'); }, Inbox)}
+      </View>
+    </View>
+  );
 }
+
+const styles = StyleSheet.create({
+  section: {
+    marginTop: 22,
+    marginBottom: 6,
+    padding: 14,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  header: {
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  headerIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#EAF3FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerCopy: {
+    flex: 1,
+  },
+  title: {
+    color: '#17243B',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  subtitle: {
+    marginTop: 2,
+    color: '#64748B',
+    fontSize: 11.5,
+    fontWeight: '500',
+    lineHeight: 16,
+  },
+  rows: {
+    overflow: 'hidden',
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  row: {
+    minHeight: 54,
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    gap: 10,
+  },
+  rowIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowIconPrimary: {
+    backgroundColor: '#EFF6FF',
+  },
+  rowIconDanger: {
+    backgroundColor: '#FEF2F2',
+  },
+  rowLabel: {
+    flex: 1,
+    color: '#26344D',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 12,
+    backgroundColor: '#E2E8F0',
+  },
+  disabled: {
+    opacity: 0.5,
+  },
+});
 
 export function ReportAIResponse({ content }: { content: string }) {
   const { language } = useLanguage();

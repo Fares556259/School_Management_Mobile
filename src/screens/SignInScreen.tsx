@@ -94,7 +94,7 @@ export const SignInScreen = ({
     try {
       const result = await authService.checkPhoneStatus(phone.trim(), role);
       if (result.success && result.status) {
-        setTempParent({ name: result.name || 'User', img: result.img || null });
+        setTempParent({ name: result.name || '', img: result.img || null });
         setStep(result.status);
       } else {
         if (role === 'parent' && result.notFound) {
@@ -192,6 +192,23 @@ export const SignInScreen = ({
 
   useHardwareBack(handleBack);
 
+  const rawFirstName = tempParent?.name?.trim().split(/\s+/)[0] || '';
+  const displayFirstName =
+    language === 'ar' || !rawFirstName
+      ? rawFirstName
+      : `${rawFirstName.charAt(0).toLocaleUpperCase(language === 'fr' ? 'fr-FR' : 'en-US')}${rawFirstName.slice(1)}`;
+  const identifiedParentTitle = displayFirstName
+    ? language === 'ar'
+      ? `${displayFirstName}، ادخل إلى فضاء الولي`
+      : language === 'en'
+        ? `${displayFirstName}, access your parent space`
+        : `${displayFirstName}, accédez à votre espace parent`
+    : language === 'ar'
+      ? 'ادخل إلى فضاء الولي'
+      : language === 'en'
+        ? 'Access your parent space'
+        : 'Accédez à votre espace parent';
+
   const stepTitle =
     role === 'admin'
       ? language === 'ar'
@@ -199,15 +216,13 @@ export const SignInScreen = ({
         : language === 'en' ? 'School team sign-in' : 'Connexion Direction'
       : step === 'PHONE'
       ? language === 'ar'
-        ? 'مرحباً بك مجدداً !'
-        : language === 'en' ? 'Welcome back!' : 'Bon retour parmi nous !'
+        ? 'ادخل إلى فضاء الولي'
+        : language === 'en' ? 'Access your parent space' : 'Accédez à votre espace parent'
       : step === 'NEEDS_SETUP'
       ? language === 'ar'
         ? 'تعيين كلمة المرور'
         : language === 'en' ? 'Create your password' : 'Créez votre mot de passe'
-      : language === 'ar'
-      ? `مرحباً، ${tempParent?.name?.split(' ')[0]} 👋`
-      : language === 'en' ? `Hello, ${tempParent?.name?.split(' ')[0]} 👋` : `Bonjour, ${tempParent?.name?.split(' ')[0]} 👋`;
+      : identifiedParentTitle;
 
   const stepSub =
     role === 'admin'
@@ -216,15 +231,15 @@ export const SignInScreen = ({
         : language === 'en' ? 'Enter your administrator credentials' : 'Entrez vos identifiants administrateur'
       : step === 'PHONE'
       ? language === 'ar'
-        ? 'أدخل رقم هاتفك للوصول ومتابعة الأبناء'
-        : language === 'en' ? 'Enter your phone number to access your school space' : 'Entrez votre numéro pour accéder au suivi scolaire'
+        ? 'تابع دراسة أبنائك باستعمال رقم هاتفك'
+        : language === 'en' ? 'Follow your child’s schooling using your phone number' : 'Suivez la scolarité de votre enfant avec votre numéro de téléphone'
       : step === 'NEEDS_SETUP'
       ? language === 'ar'
         ? 'اختر كلمة مرور آمنة لحسابك'
         : language === 'en' ? 'Choose a password for your first sign-in' : 'Choisissez un mot de passe pour votre premier accès'
       : language === 'ar'
-      ? 'أدخل كلمة المرور للمتابعة'
-      : language === 'en' ? 'Enter your password to continue' : 'Entrez votre mot de passe pour continuer';
+      ? 'أدخل كلمة المرور لمتابعة دراسة ابنك'
+      : language === 'en' ? 'Enter your password to continue to your child’s school follow-up' : 'Saisissez votre mot de passe pour retrouver le suivi de votre enfant';
 
   const loadingLabel =
     role === 'admin' || (step !== 'PHONE' && step !== 'NEEDS_SETUP')

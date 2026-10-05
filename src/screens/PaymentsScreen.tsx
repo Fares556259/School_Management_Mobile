@@ -1,335 +1,337 @@
-import React, { useMemo, useState, useCallback } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, ScrollView, TouchableOpacity, Image, Platform, RefreshControl, StatusBar, Dimensions, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { 
-  Bell, 
-  Info, 
-  Filter, 
-  DownloadCloud, 
-  ReceiptText, 
-  Calendar, 
-  AlertCircle, 
-  CheckCircle2, 
-  Wallet, 
-  ChevronRight, 
-  ArrowUpRight,
-  TrendingDown,
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {
+  AlertCircle,
+  Calendar,
+  CheckCircle2,
   Clock,
-  CreditCard,
-  Check
+  ReceiptText,
+  Wallet,
 } from 'lucide-react-native';
-import { useAppStore } from '../store/useAppStore';
-import { useLanguage } from '../context/LanguageContext';
-import { studentService } from '../services/api';
-import { PaymentRecord } from '../types';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { GlobalHeader } from '../components/GlobalHeader';
 import { SkeletonBlock } from '../components/SkeletonView';
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useLanguage } from '../context/LanguageContext';
+import { studentService } from '../services/api';
+import { useAppStore } from '../store/useAppStore';
 
-const { width } = Dimensions.get('window');
+type PaymentFilter = 'Due' | 'Paid';
+
+const MONTHS_AR: Record<string, string> = {
+  SEP: 'سبتمبر',
+  OCT: 'أكتوبر',
+  NOV: 'نوفمبر',
+  DEC: 'ديسمبر',
+  JAN: 'يناير',
+  FEB: 'فبراير',
+  MAR: 'مارس',
+  APR: 'أبريل',
+  MAY: 'ماي',
+  JUN: 'جوان',
+  JUL: 'جويلية',
+  AUG: 'أوت',
+};
 
 export const PaymentsScreen = ({ navigation }: any) => {
-  const selectedChildId = useAppStore((s) => s.selectedChildId);
-  const { t, isRTL } = useLanguage();
-  const [activeFilter, setActiveFilter] = useState<'Due' | 'Paid'>('Due');
+  const selectedChildId = useAppStore((state) => state.selectedChildId);
+  const { t, isRTL, language } = useLanguage();
+  const [activeFilter, setActiveFilter] = useState<PaymentFilter>('Due');
 
-  const { data: history = [], isLoading: loading, isRefetching: refreshing, refetch } = useQuery({
+  const {
+    data: history = [],
+    isLoading: loading,
+    isRefetching: refreshing,
+    refetch,
+  } = useQuery({
     queryKey: ['payments', selectedChildId],
     queryFn: () => studentService.fetchPayments(selectedChildId!, false),
-    enabled: !!selectedChildId,
+    enabled: Boolean(selectedChildId),
     staleTime: 60_000,
     placeholderData: keepPreviousData,
   });
 
-  const onRefresh = () => {
-    refetch();
-  };
+  const actionablePayments = useMemo(
+    () => history.filter((payment) => payment.status !== 'Locked'),
+    [history],
+  );
 
-  // Sorting & Filtering Logic: Ignore "Locked" entirely.
-  const processedList = useMemo(() => {
-    const actionable = history.filter(p => p.status !== 'Locked');
-    if (activeFilter === 'Due') {
-      return actionable.filter(p => p.status === 'Due' || p.status === 'Partial');
-    } else {
-      return actionable.filter(p => p.status === 'Paid' || p.status === 'Partial');
-    }
-  }, [history, activeFilter]);
+  const duePayments = useMemo(
+    () => actionablePayments.filter((payment) => payment.status === 'Due' || payment.status === 'Partial'),
+    [actionablePayments],
+  );
 
-  // Summary Logic: Total outstanding for currently due items
+  const paidPayments = useMemo(
+    () => actionablePayments.filter((payment) => payment.status === 'Paid' || payment.status === 'Partial'),
+    [actionablePayments],
+  );
+
+  const processedList = activeFilter === 'Due' ? duePayments : paidPayments;
+
   const summary = useMemo(() => {
-    const actionable = history.filter(p => p.status !== 'Locked');
-    const totalOutstanding = actionable.reduce((acc, p) =>
-      p.status !== 'Paid' ? acc + Math.max(0, p.totalAmount - p.paidAmount) : acc, 0);
+    const outstanding = duePayments.reduce(
+      (total, payment) => total + Math.max(0, payment.totalAmount - payment.paidAmount),
+      0,
+    );
     return {
-      outstanding: totalOutstanding,
-      allPaid: totalOutstanding === 0 && actionable.length > 0,
+      outstanding,
+      overdueCount: duePayments.filter((payment) => payment.isOverdue).length,
+      dueCount: duePayments.length,
     };
-  }, [history]);
+  }, [duePayments]);
 
-  // Removed full-screen ActivityIndicator loading state
+  const schoolYear = useMemo(() => {
+    const now = new Date();
+    const startYear = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+    return `${startYear}/${startYear + 1}`;
+  }, []);
+
+  const onRefresh = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+
+  const paymentCountLabel = useMemo(() => {
+    const count = summary.overdueCount || summary.dueCount;
+    if (summary.overdueCount > 0) {
+      if (language === 'ar') return `${count} ${count === 1 ? 'قسط متأخر' : 'أقساط متأخرة'}`;
+      if (language === 'en') return `${count} overdue ${count === 1 ? 'payment' : 'payments'}`;
+      return `${count} ${count === 1 ? 'paiement en retard' : 'paiements en retard'}`;
+    }
+    if (language === 'ar') return `${count} ${count === 1 ? 'قسط للدفع' : 'أقساط للدفع'}`;
+    if (language === 'en') return `${count} ${count === 1 ? 'payment' : 'payments'} to settle`;
+    return `${count} ${count === 1 ? 'paiement à régler' : 'paiements à régler'}`;
+  }, [language, summary.dueCount, summary.overdueCount]);
+
+  const formatAmount = (amount: number) => Math.max(0, amount).toLocaleString();
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
+    <SafeAreaView style={styles.screen}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F6F8FC" />
       <GlobalHeader navigation={navigation} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0055d4" />}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#075ED1" />}
+        contentContainerStyle={styles.scrollContent}
       >
-        {/* Summary Card */}
-        {summary.outstanding > 0 && (
-          <View style={{ paddingHorizontal: 20, marginTop: 16, marginBottom: 28 }}>
-            <View style={{
-              backgroundColor: '#0055d4',
-              borderRadius: 32,
-              padding: 28,
-              shadowColor: '#0055d4',
-              shadowOffset: { width: 0, height: 12 },
-              shadowOpacity: 0.25,
-              shadowRadius: 24,
-              elevation: 12,
-              overflow: 'hidden'
-            }}>
-              {/* Background design elements */}
-              <View style={{ position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.1)' }} />
-              <View style={{ position: 'absolute', bottom: -20, left: -20, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.08)' }} />
-              
-              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
-                  <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginBottom: 12, alignSelf: isRTL ? 'flex-end' : 'flex-start' }}>
-                    <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                      {t.totalDueNow || (isRTL ? 'المبلغ المستحق حالياً' : 'Total Due Now')}
-                    </Text>
-                  </View>
-                  <Text style={{ color: '#ffffff', fontSize: 44, fontWeight: '900', letterSpacing: -1.5, textAlign: isRTL ? 'right' : 'left' }}>
-                    {summary.outstanding.toLocaleString()} <Text style={{ fontSize: 20, fontWeight: '800', color: 'rgba(255,255,255,0.8)' }}>{t.currencyTnd}</Text>
+        <View style={styles.summaryWrap}>
+          <View style={styles.summaryCard}>
+            <View style={[styles.summaryTop, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+              <View style={[styles.summaryHeading, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                <View style={styles.summaryIcon}>
+                  <Wallet size={20} color="#075ED1" strokeWidth={2.4} />
+                </View>
+                <Text style={[styles.summaryLabel, { textAlign: isRTL ? 'right' : 'left' }]}>
+                  {t.totalDueNow}
+                </Text>
+              </View>
+              {summary.dueCount > 0 && (
+                <View style={[styles.countBadge, summary.overdueCount > 0 && styles.countBadgeDanger]}>
+                  <Text style={[styles.countBadgeText, summary.overdueCount > 0 && styles.countBadgeTextDanger]}>
+                    {paymentCountLabel}
                   </Text>
                 </View>
-                <View style={{ 
-                  width: 52, height: 52, 
-                  borderRadius: 20, 
-                  backgroundColor: '#ffffff',
-                  alignItems: 'center', justifyContent: 'center',
-                  shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8
-                }}>
-                  <CreditCard size={26} color="#0055d4" strokeWidth={2.5} />
-                </View>
-              </View>
+              )}
             </View>
-          </View>
-        )}
 
-        {/* Filter Tabs */}
-        <View style={{ marginBottom: 24, paddingHorizontal: 20 }}>
-          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 12 }}>
+            <View style={[styles.amountRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+              <Text style={styles.summaryAmount}>{formatAmount(summary.outstanding)}</Text>
+              <Text style={styles.summaryCurrency}>{t.currencyTnd}</Text>
+            </View>
+            <Text style={[styles.summaryHint, { textAlign: isRTL ? 'right' : 'left' }]}>
+              {summary.outstanding > 0
+                ? language === 'ar'
+                  ? 'الرصيد المتبقي المسجل لدى المدرسة'
+                  : language === 'en'
+                    ? 'Outstanding balance recorded by the school'
+                    : 'Solde restant enregistré par l’école'
+                : language === 'ar'
+                  ? 'لا توجد مستحقات حالياً'
+                  : language === 'en'
+                    ? 'No outstanding balance right now'
+                    : 'Aucun solde à régler actuellement'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.filtersWrap}>
+          <View style={[styles.segmentedControl, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
             {[
-              { key: 'Due' as const, label: t.requiredActions || (isRTL ? 'المطلوب سداده' : 'Required Actions'), icon: <AlertCircle size={18} /> },
-              { key: 'Paid' as const, label: t.paidHistoryTab || (isRTL ? 'سجل الدفعات' : 'Paid History'), icon: <CheckCircle2 size={18} /> }
-            ].map(tab => {
-              const isActive = activeFilter === tab.key;
+              { key: 'Due' as const, label: t.requiredActions, count: duePayments.length, Icon: AlertCircle },
+              { key: 'Paid' as const, label: t.paidHistoryTab, count: paidPayments.length, Icon: CheckCircle2 },
+            ].map(({ key, label, count, Icon }) => {
+              const selected = activeFilter === key;
               return (
                 <TouchableOpacity
-                  key={tab.key}
-                  onPress={() => setActiveFilter(tab.key)}
-                  activeOpacity={0.85}
-                  style={{
-                    flex: 1,
-                    flexDirection: isRTL ? 'row-reverse' : 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                    paddingVertical: 14,
-                    paddingHorizontal: 8,
-                    borderRadius: 20,
-                    backgroundColor: isActive ? '#0055d4' : '#ffffff',
-                    borderWidth: isActive ? 0 : 1,
-                    borderColor: '#e2e8f0',
-                    shadowColor: isActive ? '#0055d4' : '#000',
-                    shadowOffset: { width: 0, height: isActive ? 4 : 2 },
-                    shadowOpacity: isActive ? 0.3 : 0.03,
-                    shadowRadius: isActive ? 8 : 4,
-                    elevation: isActive ? 4 : 1,
-                  }}
+                  key={key}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected }}
+                  onPress={() => setActiveFilter(key)}
+                  activeOpacity={0.75}
+                  style={[styles.segment, selected && styles.segmentActive]}
                 >
-                  {React.cloneElement(tab.icon, { color: isActive ? '#ffffff' : '#64748b' })}
-                  <Text 
-                    numberOfLines={1} 
-                    adjustsFontSizeToFit
-                    style={{ fontSize: 13, fontWeight: '800', color: isActive ? '#ffffff' : '#64748b', flexShrink: 1 }}
-                  >
-                    {tab.label}
-                  </Text>
+                  <View style={[styles.segmentContent, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                    <Icon size={17} color={selected ? '#075ED1' : '#64748B'} strokeWidth={2.2} />
+                    <Text style={[styles.segmentLabel, selected && styles.segmentLabelActive]} numberOfLines={1}>
+                      {label}
+                    </Text>
+                    <View style={[styles.segmentCount, selected && styles.segmentCountActive]}>
+                      <Text style={[styles.segmentCountText, selected && styles.segmentCountTextActive]}>{count}</Text>
+                    </View>
+                  </View>
                 </TouchableOpacity>
               );
             })}
           </View>
         </View>
 
-        {/* Payment History Title */}
-        <View style={{ paddingHorizontal: 24, flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <Text style={{ fontSize: 20, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>
-            {activeFilter === 'Due' ? (t.dueInstallmentsTitle || (isRTL ? 'الأقساط المستحقة' : 'Due Installments')) : (t.paidInstallmentsTitle || (isRTL ? 'الأقساط المدفوعة' : 'Paid Installments'))}
-          </Text>
-          <View style={{ backgroundColor: '#e0e7ff', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
-            <Text style={{ fontSize: 13, fontWeight: '800', color: '#4338ca' }}>
-              {new Date().getMonth() >= 6 ? new Date().getFullYear() : new Date().getFullYear() - 1}/
-              {new Date().getMonth() >= 6 ? new Date().getFullYear() + 1 : new Date().getFullYear()}
+        <View style={[styles.sectionHeader, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.sectionTitle, { textAlign: isRTL ? 'right' : 'left' }]}>
+              {activeFilter === 'Due' ? t.dueInstallmentsTitle : t.paidInstallmentsTitle}
             </Text>
+            <Text style={[styles.sectionSubtitle, { textAlign: isRTL ? 'right' : 'left' }]}>
+              {language === 'ar' ? `السنة الدراسية ${schoolYear}` : language === 'en' ? `School year ${schoolYear}` : `Année scolaire ${schoolYear}`}
+            </Text>
+          </View>
+          <View style={styles.yearBadge}>
+            <Text style={styles.yearBadgeText}>{schoolYear}</Text>
           </View>
         </View>
 
-        {/* Payment List */}
-        <View style={{ paddingHorizontal: 20 }}>
+        <View style={styles.listWrap}>
           {loading && !refreshing ? (
-             <View style={{ gap: 16 }}>
-               {[1, 2, 3].map(i => (
-                 <View key={i} style={{ backgroundColor: '#ffffff', borderRadius: 24, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.04, shadowRadius: 16, elevation: 2, borderWidth: 1, borderColor: 'rgba(0,0,0,0.02)' }}>
-                   <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'flex-start', flex: 1 }}>
-                        <SkeletonBlock width={54} height={54} borderRadius={18} style={{ marginRight: isRTL ? 0 : 16, marginLeft: isRTL ? 16 : 0 }} />
-                        <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start', flex: 1, marginTop: 4 }}>
-                          <SkeletonBlock width={120} height={16} marginBottom={8} />
-                          <SkeletonBlock width={80} height={14} />
-                        </View>
-                      </View>
-                      <View style={{ alignItems: isRTL ? 'flex-start' : 'flex-end' }}>
-                         <SkeletonBlock width={90} height={20} marginBottom={12} />
-                         <SkeletonBlock width={70} height={24} borderRadius={12} />
-                      </View>
-                   </View>
-                 </View>
-               ))}
-             </View>
+            <View style={styles.listGap}>
+              {[1, 2].map((item) => (
+                <View key={item} style={styles.paymentCard}>
+                  <View style={[styles.cardTop, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                    <SkeletonBlock width={46} height={46} borderRadius={14} />
+                    <View style={styles.skeletonCopy}>
+                      <SkeletonBlock width={135} height={16} marginBottom={9} />
+                      <SkeletonBlock width={90} height={13} />
+                    </View>
+                    <SkeletonBlock width={76} height={20} />
+                  </View>
+                </View>
+              ))}
+            </View>
           ) : processedList.length > 0 ? (
-            <View style={{ gap: 16 }}>
+            <View style={styles.listGap}>
               {processedList.map((item) => {
-                const isPaid = item.status === 'Paid' || (item.status === 'Partial' && activeFilter === 'Paid');
-                const isOverdue = item.isOverdue;
+                const showingPaid = activeFilter === 'Paid';
                 const isPartial = item.status === 'Partial';
-
-                const statusConfig: any = {
-                  Paid:    { label: t.paid || 'Paid',        color: '#10b981', bg: '#d1fae5', icon: <CheckCircle2 size={16} color="#10b981" strokeWidth={3} /> },
-                  Partial: { label: t.pending || 'Partial',  color: '#f59e0b', bg: '#fef3c7', icon: <Clock size={16} color="#f59e0b" strokeWidth={3} /> },
-                  Due:     { label: isOverdue ? (t.overdueBadge || 'Overdue') : (t.pending || 'Pending'), color: isOverdue ? '#ef4444' : '#f59e0b', bg: isOverdue ? '#fee2e2' : '#fef3c7', icon: isOverdue ? <AlertCircle size={16} color="#ef4444" strokeWidth={3} /> : <Clock size={16} color="#f59e0b" strokeWidth={3} /> },
-                };
-                const config = statusConfig[isPaid ? 'Paid' : item.status] || statusConfig.Due;
-
-                const monthNamesAr: Record<string, string> = {
-                  SEP: 'سبتمبر', OCT: 'أكتوبر', NOV: 'نوفمبر', DEC: 'ديسمبر', JAN: 'يناير', FEB: 'فبراير', MAR: 'مارس', APR: 'أبريل', MAY: 'ماي', JUN: 'جوان', JUL: 'جويلية', AUG: 'أوت'
-                };
-
-                const [monthStr, yearStr] = item.month.split(' ');
-                const rawShortMonth = monthStr ? monthStr.substring(0, 3).toUpperCase() : '';
-                const displayMonth = isRTL ? (monthNamesAr[rawShortMonth] || rawShortMonth) : rawShortMonth;
+                const isPaid = item.status === 'Paid' || (isPartial && showingPaid);
+                const isOverdue = item.isOverdue && !showingPaid;
+                const statusColor = isPaid ? '#07865C' : isOverdue ? '#DC2626' : '#B45309';
+                const statusBackground = isPaid ? '#E8F8F1' : isOverdue ? '#FEF2F2' : '#FFF7E6';
+                const statusLabel = isPaid
+                  ? t.paid
+                  : isPartial
+                    ? language === 'ar'
+                      ? 'مدفوع جزئياً'
+                      : language === 'en'
+                        ? 'Partially paid'
+                        : 'Partiellement payé'
+                    : isOverdue
+                      ? t.overdueBadge
+                      : t.pending;
+                const [monthName = '', year = ''] = item.month.split(' ');
+                const shortMonth = monthName.slice(0, 3).toUpperCase();
+                const displayMonth = isRTL ? MONTHS_AR[shortMonth] || shortMonth : shortMonth;
+                const displayedAmount = showingPaid
+                  ? isPartial
+                    ? item.paidAmount
+                    : item.totalAmount
+                  : Math.max(0, item.totalAmount - item.paidAmount);
+                const paidRatio = item.totalAmount > 0
+                  ? Math.min(100, Math.round((item.paidAmount / item.totalAmount) * 100))
+                  : 0;
 
                 return (
-                  <View
-                    key={`${item.id}-${item.month}`}
-                    style={{
-                      backgroundColor: isPaid ? '#f8fafc' : '#ffffff', 
-                      borderRadius: 24,
-                      padding: 20,
-                      shadowColor: '#000', 
-                      shadowOffset: { width: 0, height: 8 },
-                      shadowOpacity: 0.06, 
-                      shadowRadius: 16, 
-                      elevation: 2,
-                      borderWidth: isPaid ? 1.5 : 1,
-                      borderColor: isPaid ? '#cbd5e1' : 'rgba(0,0,0,0.02)',
-                      borderStyle: isPaid ? 'dashed' : 'solid',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    {/* Background Paid Watermark */}
-                    {isPaid && (
-                      <View style={{ position: 'absolute', right: -20, top: 10, opacity: 0.04, transform: [{ rotate: '-15deg' }] }}>
-                        <Text style={{ fontSize: 80, fontWeight: '900', color: '#10b981' }}>{t.paidWatermark || (isRTL ? 'خالص' : 'PAID')}</Text>
-                      </View>
-                    )}
-
-                    <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      
-                      {/* Left: Month Icon + Details */}
-                      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'flex-start', flex: 1 }}>
-                        <View style={{ 
-                          width: 54, height: 54, 
-                          borderRadius: 18, 
-                          backgroundColor: config.bg,
-                          alignItems: 'center', justifyContent: 'center',
-                          marginRight: isRTL ? 0 : 16,
-                          marginLeft: isRTL ? 16 : 0
-                        }}>
+                  <View key={`${item.id}-${item.month}-${activeFilter}`} style={styles.paymentCard}>
+                    <View style={[styles.cardTop, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                      <View style={[styles.cardIdentity, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                        <View style={[styles.paymentIcon, { backgroundColor: statusBackground }]}>
                           {isPaid ? (
-                            <ReceiptText color={config.color} size={24} strokeWidth={2.5} />
+                            <ReceiptText size={22} color={statusColor} strokeWidth={2.3} />
                           ) : (
-                            <Calendar color={config.color} size={24} strokeWidth={2.5} />
+                            <Calendar size={22} color={statusColor} strokeWidth={2.3} />
                           )}
                         </View>
-
-                        <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start', flex: 1, marginTop: 4 }}>
-                          <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>
-                            {t.tuitionFees || 'Tuition Installment'}
+                        <View style={styles.cardCopy}>
+                          <Text style={[styles.cardTitle, { textAlign: isRTL ? 'right' : 'left' }]} numberOfLines={2}>
+                            {t.tuitionFees}
                           </Text>
-                          <Text style={{ fontSize: 13, fontWeight: '800', color: config.color, marginTop: 4 }}>
-                            {displayMonth} {yearStr}
+                          <Text style={[styles.cardMonth, { color: statusColor, textAlign: isRTL ? 'right' : 'left' }]}>
+                            {displayMonth} {year}
                           </Text>
-                          
-                          {isOverdue && (
-                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#94a3b8', marginTop: 8 }}>
-                              {t.overdueDays} {item.overdueDays} {t.daysLabel}
-                            </Text>
-                          )}
                         </View>
                       </View>
 
-                      {/* Right: Amount & Status */}
-                      <View style={{ alignItems: isRTL ? 'flex-start' : 'flex-end' }}>
-                        <Text style={{ fontSize: 20, fontWeight: '900', color: '#0f172a', textAlign: isRTL ? 'left' : 'right' }}>
-                          {activeFilter === 'Due' ? 
-                            (isPartial ? Math.max(0, item.totalAmount - item.paidAmount).toLocaleString() : item.totalAmount.toLocaleString())
-                          : (isPartial ? item.paidAmount.toLocaleString() : item.totalAmount.toLocaleString())} 
-                          <Text style={{ fontSize: 12, fontWeight: '800', color: '#64748b' }}> {t.currencyTnd}</Text>
+                      <View style={[styles.cardAmountWrap, { alignItems: isRTL ? 'flex-start' : 'flex-end' }]}>
+                        <Text style={styles.cardAmount}>
+                          {formatAmount(displayedAmount)} <Text style={styles.cardCurrency}>{t.currencyTnd}</Text>
                         </Text>
-                        
-                        <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: config.bg, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, marginTop: 12, gap: 6 }}>
-                          {config.icon}
-                          <Text style={{ fontSize: 11, fontWeight: '800', color: config.color, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                            {config.label}
-                          </Text>
+                        <View style={[styles.statusBadge, { backgroundColor: statusBackground, flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                          {isPaid ? (
+                            <CheckCircle2 size={13} color={statusColor} strokeWidth={2.8} />
+                          ) : isOverdue ? (
+                            <AlertCircle size={13} color={statusColor} strokeWidth={2.8} />
+                          ) : (
+                            <Clock size={13} color={statusColor} strokeWidth={2.8} />
+                          )}
+                          <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
                         </View>
                       </View>
                     </View>
 
-                    {/* Paid Actions Footer */}
-                    {isPaid && (
-                      <>
-                        <View style={{ height: 1, backgroundColor: '#e2e8f0', marginVertical: 16, borderStyle: 'dashed', borderWidth: 1, borderColor: '#e2e8f0' }} />
-                        <TouchableOpacity style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 4 }}>
-                          <DownloadCloud size={16} color="#0055d4" strokeWidth={2.5} />
-                          <Text style={{ fontSize: 13, fontWeight: '800', color: '#0055d4' }}>{t.downloadReceiptAction || (isRTL ? 'تحميل الوصل' : 'Download Receipt')}</Text>
-                        </TouchableOpacity>
-                      </>
+                    {isOverdue && (
+                      <View style={[styles.noticeRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                        <AlertCircle size={15} color="#DC2626" strokeWidth={2.2} />
+                        <Text style={[styles.noticeText, { textAlign: isRTL ? 'right' : 'left' }]}>
+                          {t.overdueDays} {item.overdueDays || 0} {t.daysLabel}
+                        </Text>
+                      </View>
                     )}
+
+                    {isPartial && !showingPaid && (
+                      <View style={styles.progressSection}>
+                        <View style={[styles.progressLabels, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                          <Text style={styles.progressLabel}>{t.totalPaid}: {formatAmount(item.paidAmount)} {t.currencyTnd}</Text>
+                          <Text style={styles.progressValue}>{paidRatio}%</Text>
+                        </View>
+                        <View style={styles.progressTrack}>
+                          <View style={[styles.progressFill, { width: `${paidRatio}%` }]} />
+                        </View>
+                      </View>
+                    )}
+
                   </View>
                 );
               })}
             </View>
           ) : (
-            <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 64, backgroundColor: '#ffffff', borderRadius: 28, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.04, shadowRadius: 16, elevation: 2 }}>
-              <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: activeFilter === 'Due' ? '#dcfce7' : '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+            <View style={styles.emptyState}>
+              <View style={[styles.emptyIcon, activeFilter === 'Due' && styles.emptyIconSuccess]}>
                 {activeFilter === 'Paid' ? (
-                  <Wallet size={36} color="#64748b" strokeWidth={2} />
+                  <ReceiptText size={30} color="#64748B" strokeWidth={2} />
                 ) : (
-                  <CheckCircle2 size={40} color="#10b981" strokeWidth={2.5} />
+                  <CheckCircle2 size={32} color="#07865C" strokeWidth={2.3} />
                 )}
               </View>
-              <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', textAlign: 'center', marginBottom: 8 }}>
-                {activeFilter === 'Paid' ? (t.noPaidInstallments || (isRTL ? 'لا توجد وصولات مدفوعة' : 'No Paid Installments')) : (t.allCaughtUpState || (isRTL ? 'أنت في السليم!' : 'All Caught Up!'))}
+              <Text style={styles.emptyTitle}>
+                {activeFilter === 'Paid' ? t.noPaidInstallments : t.allCaughtUpState}
               </Text>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#94a3b8', textAlign: 'center', paddingHorizontal: 40, lineHeight: 22 }}>
-                {activeFilter === 'Paid' ? (t.noPaymentsYet || (isRTL ? 'لم تقم بخلاص أي أقساط بعد.' : 'You haven\'t made any payments yet.')) : (t.noPendingPayments || (isRTL ? 'ليس لديك أي أقساط أو مستحقات متأخرة حالياً.' : 'You have no pending or overdue payments right now.'))}
+              <Text style={styles.emptyText}>
+                {activeFilter === 'Paid' ? t.noPaymentsYet : t.noPendingPayments}
               </Text>
             </View>
           )}
@@ -338,3 +340,348 @@ export const PaymentsScreen = ({ navigation }: any) => {
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: '#F6F8FC',
+  },
+  scrollContent: {
+    paddingBottom: 112,
+  },
+  summaryWrap: {
+    paddingHorizontal: 20,
+    paddingTop: 18,
+  },
+  summaryCard: {
+    padding: 20,
+    borderRadius: 24,
+    backgroundColor: '#075ED1',
+    shadowColor: '#075ED1',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 6,
+  },
+  summaryTop: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  summaryHeading: {
+    minWidth: 0,
+    flex: 1,
+    alignItems: 'center',
+    gap: 9,
+  },
+  summaryIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  summaryLabel: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  countBadge: {
+    maxWidth: '48%',
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+  },
+  countBadgeDanger: {
+    backgroundColor: '#FFFFFF',
+  },
+  countBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10.5,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  countBadgeTextDanger: {
+    color: '#C62828',
+  },
+  amountRow: {
+    marginTop: 20,
+    alignItems: 'baseline',
+    gap: 8,
+  },
+  summaryAmount: {
+    color: '#FFFFFF',
+    fontSize: 39,
+    lineHeight: 45,
+    fontWeight: '900',
+    letterSpacing: -1.2,
+  },
+  summaryCurrency: {
+    color: '#CFE2FF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  summaryHint: {
+    marginTop: 4,
+    color: '#DCEAFF',
+    fontSize: 11.5,
+    fontWeight: '600',
+  },
+  filtersWrap: {
+    paddingHorizontal: 20,
+    marginTop: 18,
+  },
+  segmentedControl: {
+    padding: 4,
+    borderRadius: 16,
+    backgroundColor: '#E9EEF6',
+    gap: 4,
+  },
+  segment: {
+    flex: 1,
+    minHeight: 46,
+    paddingHorizontal: 8,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  segmentContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  segmentLabel: {
+    flexShrink: 1,
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  segmentLabelActive: {
+    color: '#0F3E7A',
+    fontWeight: '800',
+  },
+  segmentCount: {
+    minWidth: 22,
+    height: 22,
+    paddingHorizontal: 6,
+    borderRadius: 11,
+    backgroundColor: '#DCE3ED',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentCountActive: {
+    backgroundColor: '#E8F2FF',
+  },
+  segmentCountText: {
+    color: '#64748B',
+    fontSize: 10.5,
+    fontWeight: '900',
+  },
+  segmentCountTextActive: {
+    color: '#075ED1',
+  },
+  sectionHeader: {
+    paddingHorizontal: 22,
+    marginTop: 24,
+    marginBottom: 14,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  sectionTitle: {
+    color: '#17243B',
+    fontSize: 19,
+    fontWeight: '900',
+  },
+  sectionSubtitle: {
+    marginTop: 3,
+    color: '#7C8AA5',
+    fontSize: 11.5,
+    fontWeight: '600',
+  },
+  yearBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#EEF2FF',
+  },
+  yearBadgeText: {
+    color: '#4F46E5',
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  listWrap: {
+    paddingHorizontal: 20,
+  },
+  listGap: {
+    gap: 12,
+  },
+  paymentCard: {
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E4EAF2',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.045,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  cardTop: {
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  cardIdentity: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+    gap: 11,
+  },
+  paymentIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  cardTitle: {
+    color: '#17243B',
+    fontSize: 15,
+    lineHeight: 19,
+    fontWeight: '800',
+  },
+  cardMonth: {
+    marginTop: 4,
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  cardAmountWrap: {
+    flexShrink: 0,
+  },
+  cardAmount: {
+    color: '#17243B',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  cardCurrency: {
+    color: '#64748B',
+    fontSize: 10.5,
+    fontWeight: '800',
+  },
+  statusBadge: {
+    marginTop: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 999,
+    alignItems: 'center',
+    gap: 4,
+  },
+  statusText: {
+    fontSize: 9.5,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  noticeRow: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E4EAF2',
+    alignItems: 'center',
+    gap: 7,
+  },
+  noticeText: {
+    flex: 1,
+    color: '#B42318',
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  progressSection: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E4EAF2',
+  },
+  progressLabels: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  progressLabel: {
+    color: '#64748B',
+    fontSize: 10.5,
+    fontWeight: '700',
+  },
+  progressValue: {
+    color: '#075ED1',
+    fontSize: 10.5,
+    fontWeight: '900',
+  },
+  progressTrack: {
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: '#E8EDF4',
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: '#075ED1',
+  },
+  skeletonCopy: {
+    flex: 1,
+    marginTop: 3,
+  },
+  emptyState: {
+    paddingHorizontal: 28,
+    paddingVertical: 46,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E4EAF2',
+    alignItems: 'center',
+  },
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    marginBottom: 16,
+    borderRadius: 32,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyIconSuccess: {
+    backgroundColor: '#E8F8F1',
+  },
+  emptyTitle: {
+    color: '#17243B',
+    fontSize: 17,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  emptyText: {
+    maxWidth: 290,
+    marginTop: 7,
+    color: '#7C8AA5',
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+});
