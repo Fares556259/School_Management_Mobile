@@ -287,7 +287,12 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
           );
           return;
         }
-        if (userId) await authService.registerPushToken(userId, pushToken);
+        if (userId) {
+          const registration = await authService.registerPushToken(userId, pushToken);
+          if (!registration?.success) {
+            throw new Error(registration?.error || 'Le serveur n’a pas confirmé cet appareil.');
+          }
+        }
         await notificationService.setEnabled(true);
         
         showToast(
@@ -328,7 +333,10 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
         return;
       }
       if (userId) {
-        await authService.registerPushToken(userId, pushToken);
+        const registration = await authService.registerPushToken(userId, pushToken);
+        if (!registration?.success) {
+          throw new Error(registration?.error || 'Le serveur n’a pas confirmé cet appareil.');
+        }
       }
       await notificationService.setEnabled(true);
       setNotificationsEnabled(true);

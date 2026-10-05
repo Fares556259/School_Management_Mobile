@@ -292,11 +292,11 @@ export default function App() {
     }
   }, [setChildren, setSelectedChildId, setSchoolName, setUserAvatarUrl, setUserName]);
 
-  const registerPush = React.useCallback((uid: string) => {
+  const registerPush = React.useCallback((uid: string, force = false) => {
     const state = pushRegistrationRef.current;
     const now = Date.now();
     if (state.userId === uid && state.pending) return state.pending;
-    if (state.userId === uid && now - state.lastAt < 6 * 60 * 60 * 1000) return Promise.resolve();
+    if (!force && state.userId === uid && now - state.lastAt < 6 * 60 * 60 * 1000) return Promise.resolve();
 
     const pending = (async () => {
       try {
@@ -304,8 +304,12 @@ export default function App() {
         await notificationService.initChannels();
         const token = await notificationService.getPushToken();
         if (token) {
-          await authService.registerPushToken(uid, token);
+          const result = await authService.registerPushToken(uid, token);
+          if (!result?.success) {
+            throw new Error(result?.error || 'Push token registration was not confirmed by the server.');
+          }
           pushRegistrationRef.current.lastAt = Date.now();
+          console.log('[PUSH-REG-OK]', { registeredDevices: result.registeredDevices || 1 });
         }
       } catch (error) {
         if (pushRegistrationRef.current.userId === uid) {
@@ -433,9 +437,16 @@ export default function App() {
       }
     });
 
+    const pushTokenSub = Notifications.addPushTokenListener(() => {
+      authStorage.getUserId().then((storedUid) => {
+        if (storedUid) void registerPush(storedUid, true);
+      });
+    });
+
     return () => {
       authSubscription.remove();
       appStateSub.remove();
+      pushTokenSub.remove();
     };
   }, [applySessionSnapshot, checkAndApplyUpdates, clearLocalSession, registerPush, setUserId, setUserRole]);
 
