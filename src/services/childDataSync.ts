@@ -1,10 +1,11 @@
 import type { QueryClient } from '@tanstack/react-query';
 import type { Student } from '../types';
 import { studentService } from './api';
+import { formatLocalDateKey } from '../utils/dateUtils';
 
 type ChildWithRaw = Student & { raw?: { classId?: number | null } };
 
-const getTodayKey = () => new Date().toISOString().split('T')[0];
+const getTodayKey = () => formatLocalDateKey();
 
 const fetchExamOverview = async (studentId: string, date: string) => {
   const data = await studentService.fetchHomeData(studentId, date);

@@ -9,6 +9,7 @@ import { studentService } from '../services/api';
 import { downloadAndPreviewPDF } from '../utils/fileUtils';
 import { useQuery } from '@tanstack/react-query';
 import { useFocusEffect } from '@react-navigation/native';
+import { formatLocalDateKey } from '../utils/dateUtils';
 
 const TermCard = React.memo(({ period, pdfUrl }: { period: number, pdfUrl?: string }) => {
   const { t, isRTL } = useLanguage();
@@ -117,7 +118,7 @@ export const ExamsScreen = ({ navigation }: any) => {
   const { data = { examPeriods: [], upcomingExams: [] }, isLoading: loading, isRefetching: refreshing, refetch } = useQuery({
     queryKey: ['exams', selectedChildId],
     queryFn: async () => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = formatLocalDateKey();
       const data = await studentService.fetchHomeData(selectedChildId!, today);
       let periods: any[] = [];
       let upcoming: any[] = [];

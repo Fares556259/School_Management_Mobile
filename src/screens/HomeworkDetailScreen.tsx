@@ -22,6 +22,7 @@ import {
 } from 'lucide-react-native';
 import { downloadAndPreviewPDF } from '../utils/fileUtils';
 import * as ImagePicker from 'expo-image-picker';
+import { formatLocalDateKey } from '../utils/dateUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -254,7 +255,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
         try {
           setLoading(true);
           const { studentService } = await import('../services/api');
-          const taskDate = homework.startDate ? homework.startDate.split('T')[0] : new Date().toISOString().split('T')[0];
+          const taskDate = homework.startDate ? homework.startDate.split('T')[0] : formatLocalDateKey();
           const data = await studentService.fetchDayData(studentId, taskDate);
           const found = [...(data.homeworkGiven || []), ...(data.homeworkDue || [])].find((h: any) => h.id === homework.id);
           if (found) {

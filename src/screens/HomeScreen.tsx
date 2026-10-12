@@ -24,6 +24,7 @@ import { GlobalHeader } from '../components/GlobalHeader';
 import { SkeletonBlock } from '../components/SkeletonView';
 import { useFocusEffect } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
+import { formatLocalDateKey } from '../utils/dateUtils';
 
 const Monitor = (props: any) => <Layout {...props} />;
 
@@ -169,7 +170,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
     }
   }, [route?.params?.targetDate]);
 
-  const dateStr = React.useMemo(() => selectedDate.toISOString().split('T')[0], [selectedDate]);
+  const dateStr = React.useMemo(() => formatLocalDateKey(selectedDate), [selectedDate]);
 
 
   // ─── React Query: stale-while-revalidate with persistent cache ──────────

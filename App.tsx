@@ -593,7 +593,7 @@ export default function App() {
   return (
       <PersistQueryClientProvider 
         client={queryClient}
-        persistOptions={{ persister: asyncStoragePersister, buster: "account-isolation-v2" }}
+        persistOptions={{ persister: asyncStoragePersister, buster: "local-date-tenant-v3" }}
       >
         <LanguageProvider>
           <SafeAreaProvider>
