@@ -245,7 +245,7 @@ export default function App() {
   const setUserId = useAppStore(state => state.setUserId);
   const userRole = useAppStore(state => state.userRole);
   const userId = useAppStore(state => state.userId);
-  const [authState, setAuthState] = useState<'loading' | 'onboarding' | 'landing' | 'signedIn' | 'signedOut' | 'signUp'>('onboarding');
+  const [authState, setAuthState] = useState<'loading' | 'onboarding' | 'landing' | 'signedIn' | 'signedOut' | 'signUp'>('loading');
   const [signUpInitialPhone, setSignUpInitialPhone] = useState('');
   const [isLaunchScreenVisible, setIsLaunchScreenVisible] = useState(true);
   const [selectedRole, setSelectedRole] = useState<'parent' | 'teacher' | 'admin'>('parent');
@@ -617,7 +617,9 @@ export default function App() {
                     routeNameRef.current = currentRouteName;
                   }}
                 >
-                  {authState === 'onboarding' || authState === 'loading' ? (
+                  {authState === 'loading' ? (
+                    <View style={{ flex: 1, backgroundColor: '#F8FBFF' }} />
+                  ) : authState === 'onboarding' ? (
                     <OnboardingScreen
                       onComplete={async () => {
                         await AsyncStorage.setItem('@has_seen_onboarding', 'true');
