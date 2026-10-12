@@ -37,12 +37,10 @@ export const SignInScreen = ({
   role,
   onSignIn,
   onBack,
-  onNavigateToSignUp,
 }: {
   role: 'parent' | 'teacher' | 'admin';
   onSignIn: () => void;
   onBack: () => void;
-  onNavigateToSignUp?: (phone?: string) => void;
 }) => {
   const { setUserName, setUserAvatarUrl, setChildren, setSelectedChildId, setUserId, setUserRole } =
     useAppStore();
@@ -661,22 +659,13 @@ export const SignInScreen = ({
                       ? 'هذا الرقم غير مسجل بعد في فضاء الأولياء.'
                       : 'Ce numéro n’est pas encore associé à un compte parent.'}
                   </Text>
-                  <TouchableOpacity
-                    onPress={() => onNavigateToSignUp && onNavigateToSignUp(phone.trim())}
-                    style={{
-                      backgroundColor: '#0055D4',
-                      borderRadius: 16,
-                      paddingVertical: 12,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Text style={{ color: '#ffffff', fontWeight: '600', fontSize: 14 }}>
-                      {language === 'ar'
-                        ? 'إنشاء حساب وربط التلميذ الآن ←'
-                        : 'Créer mon compte et lier mon enfant →'}
-                    </Text>
-                  </TouchableOpacity>
+                  <Text style={{ color: '#1E40AF', fontWeight: '600', fontSize: 13, textAlign: 'center' }}>
+                    {language === 'ar'
+                      ? 'يرجى الاتصال بإدارة المؤسسة لإنشاء حساب آمن.'
+                      : language === 'en'
+                        ? 'Contact your school administration to create a secure account.'
+                        : 'Contactez l’administration de votre établissement pour créer un compte sécurisé.'}
+                  </Text>
                 </View>
               )}
 
@@ -730,23 +719,14 @@ export const SignInScreen = ({
 
               {/* Bottom Navigation Link: For PARENT ONLY */}
               {role === 'parent' ? (
-                <View
-                  style={{
-                    flexDirection: isRTL ? 'row-reverse' : 'row',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    marginTop: 22,
-                    gap: 6,
-                  }}
-                >
-                  <Text style={{ fontSize: 14, color: '#5B6B8C', fontWeight: '500' }}>
-                    {language === 'ar' ? 'جديد على التطبيق ؟' : language === 'en' ? 'New here?' : 'Nouveau sur l’application ?'}
+                <View style={{ alignItems: 'center', marginTop: 24 }}>
+                  <Text style={{ fontSize: 12, color: '#8FA3C7', fontWeight: '600', textAlign: 'center' }}>
+                    {language === 'ar'
+                      ? '🔒 يتم إنشاء حسابات الأولياء وتأمينها من طرف إدارة المؤسسة.'
+                      : language === 'en'
+                        ? '🔒 Parent accounts are created and secured by the school.'
+                        : '🔒 Les comptes parents sont créés et sécurisés par l’établissement.'}
                   </Text>
-                  <TouchableOpacity onPress={() => onNavigateToSignUp && onNavigateToSignUp(phone.trim())}>
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#0055D4' }}>
-                      {language === 'ar' ? 'تسجيل حساب' : language === 'en' ? 'Create an account' : 'S’inscrire'}
-                    </Text>
-                  </TouchableOpacity>
                 </View>
               ) : (
                 /* For Teacher and Admin: Hide self sign-up and show administrative notice */

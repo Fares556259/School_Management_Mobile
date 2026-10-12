@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput, ActivityIndicator, StatusBar, Dimensions, Switch, Linking } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bell, Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, ChevronLeft, User, Pencil, FileText, Info, PhoneCall, MapPin, Image as ImageIcon, Award, Globe, Sparkles, RefreshCw } from 'lucide-react-native';
+import { Bell, Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, ChevronLeft, User, Pencil, FileText, Info, PhoneCall, MapPin, Image as ImageIcon, Award, Globe, Sparkles, RefreshCw, KeyRound } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Svg, Circle } from 'react-native-svg';
 import { useAppStore } from '../store/useAppStore';
@@ -231,6 +231,9 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
   const [editChildModalVisible, setEditChildModalVisible] = useState(false);
   const [editChildData, setEditChildData] = useState({ id: '', name: '', surname: '' });
   const [updatingChild, setUpdatingChild] = useState(false);
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ current: '', next: '', confirm: '' });
+  const [changingPassword, setChangingPassword] = useState(false);
 
   // Status Toast State
   const [toast, setToast] = useState<ToastConfig>({
@@ -595,6 +598,42 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     ]);
   };
 
+  const handleChangePassword = async () => {
+    if (passwordForm.next.length < 8) {
+      showToast(
+        'error',
+        language === 'ar' ? 'كلمة مرور قصيرة' : 'Mot de passe trop court',
+        language === 'ar' ? 'يجب أن تحتوي كلمة المرور على 8 أحرف على الأقل.' : 'Utilisez au moins 8 caractères.'
+      );
+      return;
+    }
+    if (passwordForm.next !== passwordForm.confirm) {
+      showToast(
+        'error',
+        language === 'ar' ? 'كلمتا المرور غير متطابقتين' : 'Confirmation incorrecte'
+      );
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      const result = await authService.changePassword(passwordForm.current, passwordForm.next);
+      if (!result.success) {
+        showToast('error', language === 'ar' ? 'تعذر التعديل' : 'Modification impossible', result.error);
+        return;
+      }
+      setPasswordModalVisible(false);
+      setPasswordForm({ current: '', next: '', confirm: '' });
+      showToast(
+        'success',
+        language === 'ar' ? 'تم تغيير كلمة المرور' : 'Mot de passe modifié',
+        language === 'ar' ? 'استخدم كلمة المرور الجديدة عند تسجيل الدخول.' : 'Utilisez votre nouveau mot de passe lors de la prochaine connexion.'
+      );
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   const calculateCompletion = () => {
     if (!profile) return 0;
     const fields = ['name', 'surname', 'phone', 'img'];
@@ -831,6 +870,15 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
               subtitle={checkingUpdate ? (language === 'ar' ? 'جارٍ التحقق...' : 'Vérification en cours...') : `SnapSchool v${Constants.expoConfig?.version || '1.0.3'}`}
               onPress={handleCheckUpdate}
             />
+            {userRole === 'parent' && (
+              <SettingItemV3
+                icon={KeyRound}
+                color="#0055d4" iconBg="bg-blue-50"
+                label={language === 'ar' ? 'تغيير كلمة المرور' : language === 'en' ? 'Change password' : 'Changer le mot de passe'}
+                subtitle={language === 'ar' ? 'تحديث كلمة مرور حسابك بأمان' : language === 'en' ? 'Securely update your account password' : 'Mettre à jour votre accès en toute sécurité'}
+                onPress={() => setPasswordModalVisible(true)}
+              />
+            )}
             <SettingItemV3 
               icon={LogOut} 
               color="#ef4444" iconBg="bg-red-50"
@@ -1313,6 +1361,68 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
               </TouchableOpacity>
             </View>
           </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Authenticated parent password change */}
+      <Modal
+        visible={passwordModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !changingPassword && setPasswordModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(15,27,61,0.55)', justifyContent: 'center', padding: 22 }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 28, padding: 22, borderWidth: 1, borderColor: '#e2e8f0' }}>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                <Text style={{ fontSize: 20, fontWeight: '900', color: '#0f1b3d' }}>
+                  {language === 'ar' ? 'تغيير كلمة المرور' : language === 'en' ? 'Change password' : 'Changer le mot de passe'}
+                </Text>
+                <Text style={{ marginTop: 4, fontSize: 13, color: '#64748b', textAlign: isRTL ? 'right' : 'left' }}>
+                  {language === 'ar' ? 'أدخل كلمة المرور الحالية ثم اختر كلمة جديدة.' : language === 'en' ? 'Enter your current password, then choose a new one.' : 'Saisissez votre mot de passe actuel, puis choisissez-en un nouveau.'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setPasswordModalVisible(false)}
+                disabled={changingPassword}
+                style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0 }}
+              >
+                <X size={18} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            {[
+              { key: 'current', label: language === 'ar' ? 'كلمة المرور الحالية' : language === 'en' ? 'Current password' : 'Mot de passe actuel' },
+              { key: 'next', label: language === 'ar' ? 'كلمة المرور الجديدة' : language === 'en' ? 'New password' : 'Nouveau mot de passe' },
+              { key: 'confirm', label: language === 'ar' ? 'تأكيد كلمة المرور' : language === 'en' ? 'Confirm password' : 'Confirmer le mot de passe' },
+            ].map((field, index) => (
+              <View key={field.key} style={{ marginTop: index === 0 ? 22 : 14 }}>
+                <Text style={{ marginBottom: 7, fontSize: 12, fontWeight: '700', color: '#475569', textAlign: isRTL ? 'right' : 'left' }}>{field.label}</Text>
+                <TextInput
+                  value={passwordForm[field.key as keyof typeof passwordForm]}
+                  onChangeText={(value) => setPasswordForm(previous => ({ ...previous, [field.key]: value }))}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  style={{ height: 52, borderRadius: 16, borderWidth: 1.5, borderColor: '#dbe3ef', backgroundColor: '#f8fafc', paddingHorizontal: 16, fontSize: 16, color: '#0f1b3d', textAlign: isRTL ? 'right' : 'left' }}
+                />
+              </View>
+            ))}
+
+            <TouchableOpacity
+              onPress={handleChangePassword}
+              disabled={changingPassword}
+              style={{ marginTop: 22, height: 52, borderRadius: 16, backgroundColor: '#0055d4', alignItems: 'center', justifyContent: 'center', opacity: changingPassword ? 0.7 : 1 }}
+            >
+              {changingPassword ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={{ color: 'white', fontSize: 15, fontWeight: '800' }}>
+                  {language === 'ar' ? 'حفظ كلمة المرور' : language === 'en' ? 'Save password' : 'Enregistrer le mot de passe'}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
 

@@ -15,7 +15,6 @@ import { ExamDetailScreen } from './src/screens/ExamDetailScreen';
 import { SignInScreen } from './src/screens/SignInScreen';
 import { LinkChildScreen } from './src/screens/LinkChildScreen';
 import { AnnouncementDetailScreen } from './src/screens/AnnouncementDetailScreen';
-import { ParentSignUpScreen } from './src/screens/ParentSignUpScreen';
 import { LandingScreen } from './src/screens/LandingScreen';
 import { AppLaunchScreen } from './src/screens/AppLaunchScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
@@ -245,8 +244,7 @@ export default function App() {
   const setUserId = useAppStore(state => state.setUserId);
   const userRole = useAppStore(state => state.userRole);
   const userId = useAppStore(state => state.userId);
-  const [authState, setAuthState] = useState<'loading' | 'onboarding' | 'landing' | 'signedIn' | 'signedOut' | 'signUp'>('onboarding');
-  const [signUpInitialPhone, setSignUpInitialPhone] = useState('');
+  const [authState, setAuthState] = useState<'loading' | 'onboarding' | 'landing' | 'signedIn' | 'signedOut'>('onboarding');
   const [isLaunchScreenVisible, setIsLaunchScreenVisible] = useState(true);
   const [selectedRole, setSelectedRole] = useState<'parent' | 'teacher' | 'admin'>('parent');
   const [isBootstrapDone, setIsBootstrapDone] = useState(false);
@@ -629,16 +627,6 @@ export default function App() {
                       role={selectedRole}
                       onSignIn={handleSignIn}
                       onBack={() => setAuthState('landing')}
-                      onNavigateToSignUp={(prefilledPhone) => {
-                        setSignUpInitialPhone(prefilledPhone || '');
-                        setAuthState('signUp');
-                      }}
-                    />
-                  ) : authState === 'signUp' ? (
-                    <ParentSignUpScreen
-                      initialPhone={signUpInitialPhone}
-                      onBack={() => setAuthState('signedOut')}
-                      onSignUpSuccess={handleSignIn}
                     />
                   ) : (
                     <Stack.Navigator screenOptions={{ headerShown: false }}>

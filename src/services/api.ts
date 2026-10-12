@@ -434,6 +434,17 @@ export const authService = {
     return { success: true };
   },
 
+  changePassword: async (currentPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
+    const response = await apiFetch('/api/mobile/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    if (!response || !response.success) {
+      return { success: false, error: response?.error || 'Impossible de modifier le mot de passe.' };
+    }
+    return { success: true };
+  },
+
   logout: async () => {
     await authStorage.clear();
   },
@@ -505,10 +516,9 @@ export const parentService = {
   },
 
   linkStudent: async (studentId: string, birthday: string) => {
-    const pId = await authStorage.getUserId();
     return apiFetch('/api/mobile/students', {
       method: 'POST',
-      body: JSON.stringify({ studentId, parentId: pId, birthday }),
+      body: JSON.stringify({ studentId, birthday }),
     });
   },
 

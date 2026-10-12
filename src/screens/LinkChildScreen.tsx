@@ -42,7 +42,10 @@ export const LinkChildScreen = ({ navigation }: any) => {
           }
         ]);
       } else {
-        Alert.alert('Linking Failed', 'We couldn\'t verify this student. Please check the ID and Birthday and try again.');
+        Alert.alert(
+          'Linking Failed',
+          response?.error || 'We couldn\'t verify this student. Please check the ID and Birthday or contact the school.'
+        );
       }
     } catch (error) {
       Alert.alert('Error', 'An unexpected error occurred. Please try again later.');
