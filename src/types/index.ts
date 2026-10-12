@@ -28,7 +28,7 @@ export interface Session {
   id: number;
   subject: string;
   room: string;
-  time: string;
+  time?: string;
   attendance: 'Pres' | 'Abs' | 'Rtr' | 'Exclu' | '-';
   iconName: string;
   color: string;

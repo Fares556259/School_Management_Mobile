@@ -16,6 +16,18 @@ const { width } = Dimensions.get('window');
 
 type FilterType = 'All' | 'Unread' | 'Urgent';
 
+function formatNotificationTime(createdAt: string, language: 'ar' | 'fr' | 'en') {
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return '';
+  const elapsed = Math.max(0, Date.now() - date.getTime());
+  const minutes = Math.floor(elapsed / 60_000);
+  if (minutes < 1) return language === 'ar' ? 'الآن' : language === 'fr' ? 'À l’instant' : 'Just now';
+  if (minutes < 60) return language === 'ar' ? `منذ ${minutes} د` : language === 'fr' ? `Il y a ${minutes} min` : `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return language === 'ar' ? `منذ ${hours} س` : language === 'fr' ? `Il y a ${hours} h` : `${hours}h ago`;
+  return date.toLocaleDateString(language === 'ar' ? 'ar-TN' : language === 'fr' ? 'fr-TN' : 'en-GB', { day: '2-digit', month: 'short' });
+}
+
 const ICON_CONFIG: Record<string, { icon: any, color: string, bgColor: string, accentColor: string }> = {
   URGENT: { icon: AlertTriangle, color: '#f97316', bgColor: '#fff7ed', accentColor: '#ef4444' },
   ANNOUNCEMENT: { icon: Info, color: '#0055d4', bgColor: '#eff6ff', accentColor: '#4f46e5' },
@@ -25,7 +37,7 @@ const ICON_CONFIG: Record<string, { icon: any, color: string, bgColor: string, a
 };
 
 const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onPress: (n: Notification) => void, onDelete: (id: number) => void }) => {
-  const { t, isRTL, getTranslatedSubject, formatNotification } = useLanguage();
+  const { t, isRTL, language, getTranslatedSubject, formatNotification } = useLanguage();
   const absenceCount = item.message.match(/(\d+) absences/)?.[1] || item.message.match(/missed (\d+) sessions/)?.[1];
   
   let dynamicType = item.type;
@@ -105,7 +117,7 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
                   {dynamicTitle}
                 </Text>
               </View>
-              <Text style={[styles.timeText, item.isNew && styles.unreadTimeText]}>{item.time}</Text>
+              <Text style={[styles.timeText, item.isNew && styles.unreadTimeText]}>{formatNotificationTime(item.createdAt, language)}</Text>
             </View>
             
             <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginBottom: 6 }}>
