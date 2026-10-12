@@ -40,16 +40,9 @@ import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
 
 interface VerifiedStudent {
-  id: string;
-  name: string;
-  surname: string;
-  sex: 'MALE' | 'FEMALE';
-  nationalId: string;
-  levelName: string;
-  className: string;
+  claimToken: string;
+  reference: string;
   schoolName: string;
-  bloodType: string;
-  address: string;
 }
 
 export const ParentSignUpScreen = ({
@@ -109,6 +102,8 @@ export const ParentSignUpScreen = ({
 
   // Step 1: Student detection
   const [nationalIdInput, setNationalIdInput] = useState('');
+  const [schoolCode, setSchoolCode] = useState('');
+  const [birthday, setBirthday] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState('');
   const [studentFieldFocused, setStudentFieldFocused] = useState(false);
@@ -132,7 +127,7 @@ export const ParentSignUpScreen = ({
   // Password strength calculation
   const getPasswordStrength = (pwd: string) => {
     if (!pwd) return { score: 0, label: '', color: '#e2e8f0' };
-    if (pwd.length < 6)
+    if (pwd.length < 8)
       return { score: 1, label: language === 'ar' ? 'ضعيفة جداً' : 'Trop court', color: '#ef4444' };
     const hasLetters = /[a-zA-Z]/.test(pwd);
     const hasNumbers = /[0-9]/.test(pwd);
@@ -162,6 +157,10 @@ export const ParentSignUpScreen = ({
         'Entrez le matricule fourni par votre école pour retrouver votre enfant.',
       nationalIdLabel: 'Matricule de l’élève',
       nationalIdPlaceholder: '118728385289',
+      schoolCodeLabel: 'Code de l’établissement',
+      schoolCodePlaceholder: 'Ex: leaders',
+      birthdayLabel: 'Date de naissance',
+      birthdayPlaceholder: 'AAAA-MM-JJ',
       btnVerify: 'Vérifier l’élève',
       verifiedBadge: 'Élève reconnu',
       school: 'Établissement',
@@ -194,7 +193,7 @@ export const ParentSignUpScreen = ({
       passwordSubtitle:
         'Définissez un mot de passe pour accéder en toute sécurité aux notes et informations scolaires.',
       pwdLabel: 'Mot de passe',
-      pwdPlaceholder: 'Au moins 6 caractères',
+      pwdPlaceholder: 'Au moins 8 caractères',
       confirmPwdLabel: 'Confirmez le mot de passe',
       confirmPwdPlaceholder: 'Répétez votre mot de passe',
       pwdMismatch: 'Les mots de passe ne correspondent pas',
@@ -219,6 +218,10 @@ export const ParentSignUpScreen = ({
         'أدخل المعرف الوحيد أو التربوي للتلميذ للتعرف على ملفه الدراسي وربطه بحسابك.',
       nationalIdLabel: 'المعرف التربوي / الوحيد للتلميذ',
       nationalIdPlaceholder: 'مثال: 118728385289',
+      schoolCodeLabel: 'رمز المؤسسة',
+      schoolCodePlaceholder: 'مثال: leaders',
+      birthdayLabel: 'تاريخ الولادة',
+      birthdayPlaceholder: 'YYYY-MM-DD',
       btnVerify: 'التحقق من التلميذ',
       verifiedBadge: 'تم التعرف على التلميذ',
       school: 'المؤسسة',
@@ -251,7 +254,7 @@ export const ParentSignUpScreen = ({
       passwordSubtitle:
         'عيّن كلمة مرور خاصة بك لمتابعة الأعداد والغيابات وتقارير أبنائك في سرية تامة.',
       pwdLabel: 'كلمة المرور',
-      pwdPlaceholder: '6 أحرف أو أرقام على الأقل',
+      pwdPlaceholder: '8 أحرف أو أرقام على الأقل',
       confirmPwdLabel: 'تأكيد كلمة المرور',
       confirmPwdPlaceholder: 'أعد إدخال كلمة المرور',
       pwdMismatch: 'كلمتا المرور غير متطابقتين',
@@ -276,6 +279,10 @@ export const ParentSignUpScreen = ({
         'Enter the student ID or National educational ID provided by the school.',
       nationalIdLabel: 'Student ID / Matricule',
       nationalIdPlaceholder: '118728385289',
+      schoolCodeLabel: 'School code',
+      schoolCodePlaceholder: 'e.g. leaders',
+      birthdayLabel: 'Date of birth',
+      birthdayPlaceholder: 'YYYY-MM-DD',
       btnVerify: 'Verify Student',
       verifiedBadge: 'Student Verified',
       school: 'School',
@@ -308,7 +315,7 @@ export const ParentSignUpScreen = ({
       passwordSubtitle:
         'Set a secure password to access your children’s grades, attendance, and school reports.',
       pwdLabel: 'Password',
-      pwdPlaceholder: 'At least 6 characters',
+      pwdPlaceholder: 'At least 8 characters',
       confirmPwdLabel: 'Confirm Password',
       confirmPwdPlaceholder: 'Re-enter your password',
       pwdMismatch: 'Passwords do not match',
@@ -329,16 +336,16 @@ export const ParentSignUpScreen = ({
   // Verify Student Action
   const handleVerify = async () => {
     Keyboard.dismiss();
-    if (!nationalIdInput.trim()) {
+    if (!schoolCode.trim() || !nationalIdInput.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(birthday)) {
       setVerifyError(
         language === 'ar'
-          ? 'الرجاء إدخال المعرف الوحيد للتلميذ'
-          : language === 'en' ? 'Please enter your child’s student ID.' : 'Veuillez entrer le matricule de votre enfant.'
+          ? 'الرجاء إدخال رمز المؤسسة والمعرف وتاريخ الولادة'
+          : language === 'en' ? 'Enter the school code, student ID, and date of birth.' : 'Saisissez le code école, le matricule et la date de naissance.'
       );
       return;
     }
 
-    if (verifiedStudents.some((s) => s.nationalId === nationalIdInput.trim())) {
+    if (verifiedStudents.some((s) => s.reference.endsWith(nationalIdInput.trim().slice(-4)))) {
       setVerifyError(
         language === 'ar'
           ? 'هذا التلميذ مضاف بالفعل إلى القائمة'
@@ -351,10 +358,11 @@ export const ParentSignUpScreen = ({
     setVerifyError('');
 
     try {
-      const res = await authService.verifyStudent(nationalIdInput.trim());
-      if (res.success && res.student) {
-        setVerifiedStudents((prev) => [...prev, res.student as VerifiedStudent]);
+      const res = await authService.verifyStudent(schoolCode, nationalIdInput.trim(), birthday);
+      if (res.success && res.student && res.claimToken) {
+        setVerifiedStudents((prev) => [...prev, { ...res.student!, claimToken: res.claimToken! }]);
         setNationalIdInput('');
+        setBirthday('');
         setShowAddSibling(false);
       } else {
         setVerifyError(
@@ -374,7 +382,7 @@ export const ParentSignUpScreen = ({
   };
 
   const handleRemoveStudent = (id: string) => {
-    setVerifiedStudents((prev) => prev.filter((s) => s.id !== id));
+    setVerifiedStudents((prev) => prev.filter((s) => s.claimToken !== id));
   };
 
   const handleGoToStep2 = () => {
@@ -386,9 +394,6 @@ export const ParentSignUpScreen = ({
           : 'Veuillez vérifier au moins un élève avant de continuer.'
       );
       return;
-    }
-    if (!parentSurname && verifiedStudents[0]?.surname) {
-      setParentSurname(verifiedStudents[0].surname);
     }
     setCurrentStep(2);
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
@@ -411,11 +416,11 @@ export const ParentSignUpScreen = ({
 
   const handleFinalSubmit = async () => {
     Keyboard.dismiss();
-    if (!password.trim() || password.length < 6) {
+    if (!password.trim() || password.length < 8) {
       setSubmitError(
         language === 'ar'
-          ? 'كلمة المرور يجب أن تتكون من 6 أحرف على الأقل.'
-          : 'Le mot de passe doit comporter au moins 6 caractères.'
+          ? 'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل.'
+          : language === 'en' ? 'The password must contain at least 8 characters.' : 'Le mot de passe doit comporter au moins 8 caractères.'
       );
       return;
     }
@@ -433,7 +438,7 @@ export const ParentSignUpScreen = ({
 
     try {
       const res = await authService.signUpParent({
-        studentIds: verifiedStudents.map((s) => s.id),
+        claimTokens: verifiedStudents.map((s) => s.claimToken),
         parentName: parentName.trim(),
         parentSurname: parentSurname.trim(),
         phone: phone.trim(),
@@ -656,7 +661,7 @@ export const ParentSignUpScreen = ({
                   {/* VERIFIED STUDENTS CARD STACK */}
                   {verifiedStudents.map((st) => (
                     <View
-                      key={st.id}
+                      key={st.claimToken}
                       style={{
                         backgroundColor: '#ffffff',
                         borderRadius: 24,
@@ -704,7 +709,7 @@ export const ParentSignUpScreen = ({
 
                         {verifiedStudents.length > 1 && (
                           <TouchableOpacity
-                            onPress={() => handleRemoveStudent(st.id)}
+                            onPress={() => handleRemoveStudent(st.claimToken)}
                             style={{
                               width: 32,
                               height: 32,
@@ -750,7 +755,7 @@ export const ParentSignUpScreen = ({
                               textAlign: isRTL ? 'right' : 'left',
                             }}
                           >
-                            {st.name} {st.surname}
+                            {t.verifiedBadge}
                           </Text>
 
                           <View
@@ -770,7 +775,7 @@ export const ParentSignUpScreen = ({
                               }}
                             >
                               <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#1E40AF' }}>
-                                {st.levelName}
+                                {st.schoolName}
                               </Text>
                             </View>
                             <View
@@ -782,7 +787,7 @@ export const ParentSignUpScreen = ({
                               }}
                             >
                               <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#475569' }}>
-                                Classe {st.className}
+                                {st.reference}
                               </Text>
                             </View>
                           </View>
@@ -797,7 +802,7 @@ export const ParentSignUpScreen = ({
                               textAlign: isRTL ? 'right' : 'left',
                             }}
                           >
-                            N° National : {st.nationalId}
+                            {language === 'ar' ? 'تم التحقق دون كشف بيانات التلميذ' : language === 'en' ? 'Verified without exposing student data' : 'Vérifié sans exposer les données de l’élève'}
                           </Text>
                         </View>
                       </View>
@@ -807,6 +812,23 @@ export const ParentSignUpScreen = ({
                   {/* INPUT BOX (DRIBBLE PILL SQUIRCLE) */}
                   {(verifiedStudents.length === 0 || showAddSibling) && (
                     <View style={{ marginBottom: 18 }}>
+                      <Text style={{ fontSize: 12.5, fontWeight: '600', color: '#475569', marginBottom: 8, textAlign: isRTL ? 'right' : 'left' }}>
+                        {t.schoolCodeLabel}
+                      </Text>
+                      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 16, borderWidth: 1.5, borderColor: '#E2E8F0', paddingHorizontal: 18, height: 54, marginBottom: 14 }}>
+                        <Building2 size={20} color="#8FA3C7" />
+                        <View style={{ width: 1, height: 20, backgroundColor: '#E2E8F0', marginHorizontal: 12 }} />
+                        <TextInput
+                          value={schoolCode}
+                          onChangeText={(value) => { setSchoolCode(value.toLowerCase().replace(/\s+/g, '')); setVerifyError(''); }}
+                          placeholder={t.schoolCodePlaceholder}
+                          placeholderTextColor="#94A3B8"
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          style={{ flex: 1, fontSize: 16, color: '#0F1B3D', fontWeight: '500', textAlign: 'left' }}
+                        />
+                      </View>
+
                       <View
                         style={{
                           flexDirection: isRTL ? 'row-reverse' : 'row',
@@ -878,6 +900,23 @@ export const ParentSignUpScreen = ({
                             textAlign: 'left',
                             writingDirection: 'ltr',
                           }}
+                        />
+                      </View>
+
+                      <Text style={{ fontSize: 12.5, fontWeight: '600', color: '#475569', marginBottom: 8, textAlign: isRTL ? 'right' : 'left' }}>
+                        {t.birthdayLabel}
+                      </Text>
+                      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 16, borderWidth: 1.5, borderColor: '#E2E8F0', paddingHorizontal: 18, height: 54, marginBottom: 12 }}>
+                        <MapPin size={20} color="#8FA3C7" />
+                        <View style={{ width: 1, height: 20, backgroundColor: '#E2E8F0', marginHorizontal: 12 }} />
+                        <TextInput
+                          value={birthday}
+                          onChangeText={(value) => { setBirthday(value); setVerifyError(''); }}
+                          placeholder={t.birthdayPlaceholder}
+                          placeholderTextColor="#94A3B8"
+                          keyboardType="numbers-and-punctuation"
+                          maxLength={10}
+                          style={{ flex: 1, fontSize: 16, color: '#0F1B3D', fontWeight: '500', textAlign: 'left' }}
                         />
                       </View>
 
@@ -1627,7 +1666,7 @@ export const ParentSignUpScreen = ({
                       </Text>
                       {verifiedStudents.map((child) => (
                         <View
-                          key={child.id}
+                          key={child.claimToken}
                           style={{
                             flexDirection: isRTL ? 'row-reverse' : 'row',
                             alignItems: 'center',
@@ -1650,7 +1689,7 @@ export const ParentSignUpScreen = ({
                               textAlign: isRTL ? 'right' : 'left',
                             }}
                           >
-                            {child.name} {child.surname}
+                            {t.verifiedBadge} · {child.reference}
                           </Text>
                           <View
                             style={{
@@ -1661,7 +1700,7 @@ export const ParentSignUpScreen = ({
                             }}
                           >
                             <Text style={{ fontSize: 11, fontWeight: '700', color: '#1E40AF' }}>
-                              {child.levelName} • {child.className}
+                              {child.schoolName}
                             </Text>
                           </View>
                         </View>

@@ -266,29 +266,18 @@ export const authService = {
     };
   },
 
-  verifyStudent: async (nationalId: string): Promise<{
+  verifyStudent: async (schoolCode: string, nationalId: string, birthday: string): Promise<{
     success: boolean;
     error?: string;
-    alreadyLinked?: boolean;
-    linkedParentPhone?: string;
+    claimToken?: string;
     student?: {
-      id: string;
-      name: string;
-      surname: string;
-      sex: "MALE" | "FEMALE";
-      nationalId: string;
-      levelId: number;
-      levelName: string;
-      className: string;
-      schoolId: string;
+      reference: string;
       schoolName: string;
-      bloodType: string;
-      address: string;
     };
   }> => {
     const data = await apiFetch('/api/mobile/student/verify', {
       method: 'POST',
-      body: JSON.stringify({ nationalId: nationalId.trim() }),
+      body: JSON.stringify({ schoolCode: schoolCode.trim(), nationalId: nationalId.trim(), birthday }),
     });
 
     if (!data) return { success: false, error: 'Erreur réseau. Veuillez réessayer.' };
@@ -296,7 +285,7 @@ export const authService = {
   },
 
   signUpParent: async (payload: {
-    studentIds: string[];
+    claimTokens: string[];
     parentName: string;
     parentSurname: string;
     phone: string;
