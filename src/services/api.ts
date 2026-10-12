@@ -266,7 +266,7 @@ export const authService = {
     };
   },
 
-  verifyStudent: async (schoolCode: string, nationalId: string, birthday: string): Promise<{
+  verifyStudent: async (nationalId: string): Promise<{
     success: boolean;
     error?: string;
     claimToken?: string;
@@ -277,7 +277,7 @@ export const authService = {
   }> => {
     const data = await apiFetch('/api/mobile/student/verify', {
       method: 'POST',
-      body: JSON.stringify({ schoolCode: schoolCode.trim(), nationalId: nationalId.trim(), birthday }),
+      body: JSON.stringify({ nationalId: nationalId.trim() }),
     });
 
     if (!data) return { success: false, error: 'Erreur réseau. Veuillez réessayer.' };

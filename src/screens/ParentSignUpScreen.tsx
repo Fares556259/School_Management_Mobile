@@ -29,7 +29,6 @@ import {
   Eye,
   EyeOff,
   ShieldCheck,
-  Building2,
   MapPin,
   ArrowRight,
   Check,
@@ -102,8 +101,6 @@ export const ParentSignUpScreen = ({
 
   // Step 1: Student detection
   const [nationalIdInput, setNationalIdInput] = useState('');
-  const [schoolCode, setSchoolCode] = useState('');
-  const [birthday, setBirthday] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState('');
   const [studentFieldFocused, setStudentFieldFocused] = useState(false);
@@ -157,10 +154,6 @@ export const ParentSignUpScreen = ({
         'Entrez le matricule fourni par votre école pour retrouver votre enfant.',
       nationalIdLabel: 'Matricule de l’élève',
       nationalIdPlaceholder: '118728385289',
-      schoolCodeLabel: 'Code de l’établissement',
-      schoolCodePlaceholder: 'Ex: leaders',
-      birthdayLabel: 'Date de naissance',
-      birthdayPlaceholder: 'AAAA-MM-JJ',
       btnVerify: 'Vérifier l’élève',
       verifiedBadge: 'Élève reconnu',
       school: 'Établissement',
@@ -218,10 +211,6 @@ export const ParentSignUpScreen = ({
         'أدخل المعرف الوحيد أو التربوي للتلميذ للتعرف على ملفه الدراسي وربطه بحسابك.',
       nationalIdLabel: 'المعرف التربوي / الوحيد للتلميذ',
       nationalIdPlaceholder: 'مثال: 118728385289',
-      schoolCodeLabel: 'رمز المؤسسة',
-      schoolCodePlaceholder: 'مثال: leaders',
-      birthdayLabel: 'تاريخ الولادة',
-      birthdayPlaceholder: 'YYYY-MM-DD',
       btnVerify: 'التحقق من التلميذ',
       verifiedBadge: 'تم التعرف على التلميذ',
       school: 'المؤسسة',
@@ -279,10 +268,6 @@ export const ParentSignUpScreen = ({
         'Enter the student ID or National educational ID provided by the school.',
       nationalIdLabel: 'Student ID / Matricule',
       nationalIdPlaceholder: '118728385289',
-      schoolCodeLabel: 'School code',
-      schoolCodePlaceholder: 'e.g. leaders',
-      birthdayLabel: 'Date of birth',
-      birthdayPlaceholder: 'YYYY-MM-DD',
       btnVerify: 'Verify Student',
       verifiedBadge: 'Student Verified',
       school: 'School',
@@ -336,11 +321,11 @@ export const ParentSignUpScreen = ({
   // Verify Student Action
   const handleVerify = async () => {
     Keyboard.dismiss();
-    if (!schoolCode.trim() || !nationalIdInput.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(birthday)) {
+    if (!nationalIdInput.trim()) {
       setVerifyError(
         language === 'ar'
-          ? 'الرجاء إدخال رمز المؤسسة والمعرف وتاريخ الولادة'
-          : language === 'en' ? 'Enter the school code, student ID, and date of birth.' : 'Saisissez le code école, le matricule et la date de naissance.'
+          ? 'الرجاء إدخال معرف التلميذ'
+          : language === 'en' ? 'Enter the student matricule.' : 'Saisissez le matricule de l’élève.'
       );
       return;
     }
@@ -358,11 +343,10 @@ export const ParentSignUpScreen = ({
     setVerifyError('');
 
     try {
-      const res = await authService.verifyStudent(schoolCode, nationalIdInput.trim(), birthday);
+      const res = await authService.verifyStudent(nationalIdInput.trim());
       if (res.success && res.student && res.claimToken) {
         setVerifiedStudents((prev) => [...prev, { ...res.student!, claimToken: res.claimToken! }]);
         setNationalIdInput('');
-        setBirthday('');
         setShowAddSibling(false);
       } else {
         setVerifyError(
@@ -812,23 +796,6 @@ export const ParentSignUpScreen = ({
                   {/* INPUT BOX (DRIBBLE PILL SQUIRCLE) */}
                   {(verifiedStudents.length === 0 || showAddSibling) && (
                     <View style={{ marginBottom: 18 }}>
-                      <Text style={{ fontSize: 12.5, fontWeight: '600', color: '#475569', marginBottom: 8, textAlign: isRTL ? 'right' : 'left' }}>
-                        {t.schoolCodeLabel}
-                      </Text>
-                      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 16, borderWidth: 1.5, borderColor: '#E2E8F0', paddingHorizontal: 18, height: 54, marginBottom: 14 }}>
-                        <Building2 size={20} color="#8FA3C7" />
-                        <View style={{ width: 1, height: 20, backgroundColor: '#E2E8F0', marginHorizontal: 12 }} />
-                        <TextInput
-                          value={schoolCode}
-                          onChangeText={(value) => { setSchoolCode(value.toLowerCase().replace(/\s+/g, '')); setVerifyError(''); }}
-                          placeholder={t.schoolCodePlaceholder}
-                          placeholderTextColor="#94A3B8"
-                          autoCapitalize="none"
-                          autoCorrect={false}
-                          style={{ flex: 1, fontSize: 16, color: '#0F1B3D', fontWeight: '500', textAlign: 'left' }}
-                        />
-                      </View>
-
                       <View
                         style={{
                           flexDirection: isRTL ? 'row-reverse' : 'row',
@@ -900,23 +867,6 @@ export const ParentSignUpScreen = ({
                             textAlign: 'left',
                             writingDirection: 'ltr',
                           }}
-                        />
-                      </View>
-
-                      <Text style={{ fontSize: 12.5, fontWeight: '600', color: '#475569', marginBottom: 8, textAlign: isRTL ? 'right' : 'left' }}>
-                        {t.birthdayLabel}
-                      </Text>
-                      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 16, borderWidth: 1.5, borderColor: '#E2E8F0', paddingHorizontal: 18, height: 54, marginBottom: 12 }}>
-                        <MapPin size={20} color="#8FA3C7" />
-                        <View style={{ width: 1, height: 20, backgroundColor: '#E2E8F0', marginHorizontal: 12 }} />
-                        <TextInput
-                          value={birthday}
-                          onChangeText={(value) => { setBirthday(value); setVerifyError(''); }}
-                          placeholder={t.birthdayPlaceholder}
-                          placeholderTextColor="#94A3B8"
-                          keyboardType="numbers-and-punctuation"
-                          maxLength={10}
-                          style={{ flex: 1, fontSize: 16, color: '#0F1B3D', fontWeight: '500', textAlign: 'left' }}
                         />
                       </View>
 
