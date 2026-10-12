@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Linking, Modal, Image, Dimensions, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
@@ -11,10 +11,11 @@ import { studentService } from '../services/api';
 import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GlobalHeader } from '../components/GlobalHeader';
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import * as WebBrowser from 'expo-web-browser';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import { useFocusEffect } from '@react-navigation/native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -58,13 +59,17 @@ export const CoursesScreen = ({ navigation }: any) => {
 
   const [viewingMedia, setViewingMedia] = useState<{ url: string; title: string; subject?: string } | null>(null);
 
-  const { data: courses = [], isLoading: loading } = useQuery({
+  const { data: courses = [], isLoading: loading, refetch } = useQuery({
     queryKey: ['courses', selectedChildId],
     queryFn: () => studentService.fetchCourses(selectedChildId!),
     enabled: !!selectedChildId,
-    staleTime: 120_000,
-    placeholderData: keepPreviousData,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
+
+  useFocusEffect(useCallback(() => {
+    if (selectedChildId) void refetch();
+  }, [refetch, selectedChildId]));
 
   useEffect(() => {
     loadViewedResources();

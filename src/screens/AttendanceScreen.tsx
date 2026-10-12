@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, Calendar, AlertCircle, CheckCircle2, Clock, Filter, FileUp, Star } from 'lucide-react-native';
@@ -8,7 +8,8 @@ import { useLanguage } from '../context/LanguageContext';
 import { studentService, uiService } from '../services/api';
 import { AttendanceHistoryDay } from '../types';
 import { GlobalHeader } from '../components/GlobalHeader';
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { useFocusEffect } from '@react-navigation/native';
 
 const STATUS_MAP = {
   PRESENT: { label: 'Present', color: '#16a34a', bg: '#dcfce7', border: '#86efac', icon: CheckCircle2 },
@@ -165,9 +166,13 @@ export const AttendanceScreen = ({ navigation }: any) => {
     queryKey: ['attendanceHistory', selectedChildId],
     queryFn: () => studentService.fetchAttendanceHistory(selectedChildId!),
     enabled: !!selectedChildId,
-    staleTime: 60_000,
-    placeholderData: keepPreviousData,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
+
+  useFocusEffect(useCallback(() => {
+    if (selectedChildId) void refetch();
+  }, [refetch, selectedChildId]));
 
   const onRefresh = async () => {
     refetch();

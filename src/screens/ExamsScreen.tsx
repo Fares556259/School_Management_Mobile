@@ -7,7 +7,8 @@ import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
 import { studentService } from '../services/api';
 import { downloadAndPreviewPDF } from '../utils/fileUtils';
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { useFocusEffect } from '@react-navigation/native';
 
 const TermCard = React.memo(({ period, pdfUrl }: { period: number, pdfUrl?: string }) => {
   const { t, isRTL } = useLanguage();
@@ -136,9 +137,13 @@ export const ExamsScreen = ({ navigation }: any) => {
       return { examPeriods: periods, upcomingExams: upcoming };
     },
     enabled: !!selectedChildId,
-    staleTime: 60_000,
-    placeholderData: keepPreviousData,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
+
+  useFocusEffect(React.useCallback(() => {
+    if (selectedChildId) void refetch();
+  }, [refetch, selectedChildId]));
 
   const { examPeriods, upcomingExams } = data;
 

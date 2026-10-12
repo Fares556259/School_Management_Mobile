@@ -10,7 +10,8 @@ import { RectButton, Swipeable } from 'react-native-gesture-handler';
 import Animated, { FadeInUp, Layout } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import { SkeletonBlock } from '../components/SkeletonView';
-import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useFocusEffect } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
@@ -160,9 +161,13 @@ export const NotificationsScreen = ({ navigation }: any) => {
       return data;
     },
     enabled: !!userId,
-    staleTime: 30_000,
-    placeholderData: keepPreviousData,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
+
+  useFocusEffect(useCallback(() => {
+    if (userId) void refetch();
+  }, [refetch, userId, selectedChildId]));
 
   const onRefresh = useCallback(() => {
     refetch();

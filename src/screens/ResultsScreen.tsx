@@ -9,7 +9,8 @@ import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
 import { studentService } from '../services/api';
 import { GlobalHeader } from '../components/GlobalHeader';
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { useFocusEffect } from '@react-navigation/native';
 
 const SUBJECT_THEMES: Record<string, { icon: any }> = {
   'Mathematics': { icon: Calculator },
@@ -90,9 +91,13 @@ export const ResultsScreen = ({ navigation }: any) => {
       return data;
     },
     enabled: !!selectedChildId,
-    staleTime: 60_000,
-    placeholderData: keepPreviousData,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
+
+  useFocusEffect(useCallback(() => {
+    if (selectedChildId) void refetch();
+  }, [refetch, selectedChildId]));
 
   useEffect(() => {
     if (resultsData.summary?.latestTerm) {

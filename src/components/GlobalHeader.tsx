@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, StatusBar } from 'react-native';
 import { Bell, ChevronDown, Check, X, User, ChevronRight, ChevronLeft } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
 import { authStorage, studentService } from '../services/api';
 import { Image } from 'expo-image';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { prefetchChildSnapshot } from '../services/childDataSync';
 
 interface GlobalHeaderProps {
   navigation: any;
@@ -24,25 +25,42 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
   const unreadNotificationsCount = useAppStore(s => s.unreadNotificationsCount);
   const setUnreadNotificationsCount = useAppStore(s => s.setUnreadNotificationsCount);
   const studentStatuses = useAppStore(s => s.studentStatuses);
+  const queryClient = useQueryClient();
   
   const [showSwitcher, setShowSwitcher] = useState(false);
   const selectedChild = children.find((c: any) => c.id === selectedChildId);
   const status = selectedChildId ? studentStatuses[selectedChildId] || 'Present' : 'Present';
 
-  // Use React Query for notification count — fast countOnly query, cached 60s across all screens
-  useQuery({
+  // Keep the badge child-scoped; cached data renders immediately and is then refreshed.
+  const { data: selectedUnreadCount = 0 } = useQuery({
     queryKey: ['notifCount', userId, selectedChildId],
     queryFn: async () => {
       const uid = userId || await authStorage.getUserId();
       if (!uid) return 0;
-      const count = await studentService.fetchUnreadNotificationCount(uid, selectedChildId);
-      setUnreadNotificationsCount(count);
-      return count;
+      return studentService.fetchUnreadNotificationCount(uid, selectedChildId);
     },
-    enabled: !!(userId || selectedChildId),
-    staleTime: 60_000,   // 60s — don't refetch across screen switches
+    enabled: userRole === 'parent' && !!userId && !!selectedChildId,
+    staleTime: 0,
+    refetchOnMount: 'always',
     gcTime: 5 * 60_000,
   });
+
+  useEffect(() => {
+    if (userRole === 'parent') setUnreadNotificationsCount(selectedUnreadCount);
+  }, [selectedUnreadCount, setUnreadNotificationsCount, userRole]);
+
+  const warmFamilySnapshots = useCallback(() => {
+    if (userRole !== 'parent') return;
+    for (const child of children) {
+      if (child.id !== selectedChildId) {
+        void prefetchChildSnapshot(queryClient, child, userId);
+      }
+    }
+  }, [children, queryClient, selectedChildId, userId, userRole]);
+
+  useEffect(() => {
+    warmFamilySnapshots();
+  }, [warmFamilySnapshots]);
 
   const handleSwitchChild = (id: string) => {
     setSelectedChildId(id);
@@ -51,6 +69,7 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
 
   const toggleSwitcher = () => {
     if (userRole === 'teacher') return;
+    if (!showSwitcher) warmFamilySnapshots();
     setShowSwitcher(!showSwitcher);
   };
 

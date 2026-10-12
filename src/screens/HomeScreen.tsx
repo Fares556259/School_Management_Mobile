@@ -23,7 +23,7 @@ import { StudentDayData } from '../types';
 import { GlobalHeader } from '../components/GlobalHeader';
 import { SkeletonBlock } from '../components/SkeletonView';
 import { useFocusEffect } from '@react-navigation/native';
-import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 
 const Monitor = (props: any) => <Layout {...props} />;
 
@@ -159,8 +159,6 @@ export const HomeScreen = ({ navigation, route }: any) => {
   const [selectedDate, setSelectedDate] = React.useState(new Date());
   const [showDatePicker, setShowDatePicker] = React.useState(false);
   const [selectedRemark, setSelectedRemark] = React.useState<any>(null);
-  const queryClient = useQueryClient();
-
   const scrollViewRef = React.useRef<ScrollView>(null);
   const [tasksYPosition, setTasksYPosition] = React.useState<number>(0);
 
@@ -179,9 +177,9 @@ export const HomeScreen = ({ navigation, route }: any) => {
     queryKey: ['studentDay', selectedChildId, dateStr],
     queryFn: () => studentService.fetchDayData(selectedChildId!, dateStr),
     enabled: !!selectedChildId,
-    staleTime: 30_000,        // 30s: tab switches within 30s show cache, no network
+    staleTime: 0,
+    refetchOnMount: 'always',
     gcTime: 5 * 60_000,       // 5min: keep old data in memory for quick revisits
-    placeholderData: keepPreviousData,  // Keep previous date's data visible while loading next
     retry: 1,
   });
 
@@ -195,14 +193,12 @@ export const HomeScreen = ({ navigation, route }: any) => {
     }
   }, [dayData, selectedChildId]);
 
-  // Revalidate on screen focus — only if data is stale (>30s)
+  // Revalidate on every focus while keeping this child's snapshot visible.
   useFocusEffect(
     React.useCallback(() => {
       if (!selectedChildId) return;
-      const state = queryClient.getQueryState(['studentDay', selectedChildId, dateStr]);
-      const isStale = !state?.dataUpdatedAt || Date.now() - state.dataUpdatedAt > 30_000;
-      if (isStale) refetch();
-    }, [selectedChildId, dateStr])
+      void refetch();
+    }, [selectedChildId, dateStr, refetch])
   );
 
   React.useEffect(() => {

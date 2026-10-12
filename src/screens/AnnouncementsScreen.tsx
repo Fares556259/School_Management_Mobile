@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StatusBar, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Megaphone, ChevronRight } from 'lucide-react-native';
 import { studentService } from '../services/api';
 import { Announcement } from '../types';
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
 import { GlobalHeader } from '../components/GlobalHeader';
 import { Image } from 'expo-image';
 import { SkeletonBlock } from '../components/SkeletonView';
 import moment from 'moment';
+import { useFocusEffect } from '@react-navigation/native';
 
 // ─── Announcement Card ────────────────────────────────────────────────────────
 const AnnouncementCard = ({ item, onPress }: any) => {
@@ -96,9 +97,13 @@ export const AnnouncementsScreen = ({ navigation }: any) => {
     queryKey: ['announcements', classId, studentId],
     queryFn: () => studentService.fetchAnnouncements(classId, studentId),
     enabled: !!studentId,
-    staleTime: 60_000,
-    placeholderData: keepPreviousData,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
+
+  useFocusEffect(useCallback(() => {
+    if (studentId) void refetch();
+  }, [refetch, studentId]));
 
   const filtered = announcements;
 
