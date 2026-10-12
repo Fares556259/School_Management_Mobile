@@ -380,9 +380,14 @@ export default function App() {
   useEffect(() => {
     const bootstrap = async () => {
       let nextPostOnboarding: 'signedIn' | 'landing' = 'landing';
+      let hasSeenOnboarding = false;
       try {
         await authStorage.preload();
-        const loggedIn = await authStorage.isLoggedIn();
+        const [loggedIn, storedOnboarding] = await Promise.all([
+          authStorage.isLoggedIn(),
+          AsyncStorage.getItem('@has_seen_onboarding'),
+        ]);
+        hasSeenOnboarding = storedOnboarding === 'true';
 
         if (loggedIn) {
           const uid = await authStorage.getUserId();
@@ -414,8 +419,7 @@ export default function App() {
         }
       } finally {
         postOnboardingStateRef.current = nextPostOnboarding;
-        // In testing: always show onboarding after launch animation
-        targetAuthStateRef.current = 'onboarding';
+        targetAuthStateRef.current = hasSeenOnboarding ? nextPostOnboarding : 'onboarding';
         setIsBootstrapDone(true);
       }
     };
@@ -664,19 +668,6 @@ export default function App() {
                       <Stack.Screen name="TeacherGrades" component={TeacherGradeEntryScreen} />
                       <Stack.Screen name="TeacherProfile">
                         {(props) => <ProfileScreen {...props} onSignOut={handleSignOut} />}
-                      </Stack.Screen>
-                      <Stack.Screen name="Onboarding">
-                        {(props) => (
-                          <OnboardingScreen
-                            onComplete={() => {
-                              if (props.navigation.canGoBack()) {
-                                props.navigation.goBack();
-                              } else {
-                                setAuthState('landing');
-                              }
-                            }}
-                          />
-                        )}
                       </Stack.Screen>
                     </Stack.Navigator>
                   )}
