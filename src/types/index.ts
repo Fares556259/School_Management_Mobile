@@ -22,6 +22,7 @@ export interface PaymentRecord {
   isOverdue: boolean;
   dueDate?: string;
   overdueDays?: number;
+  academicYear?: string;
 }
 
 export interface Session {

@@ -1,6 +1,8 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   RefreshControl,
+  ActivityIndicator,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -14,10 +16,11 @@ import {
   CheckCircle2,
   Clock,
   ReceiptText,
+  RefreshCw,
   Wallet,
 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { GlobalHeader } from '../components/GlobalHeader';
 import { SkeletonBlock } from '../components/SkeletonView';
 import { useLanguage } from '../context/LanguageContext';
@@ -50,14 +53,19 @@ export const PaymentsScreen = ({ navigation }: any) => {
     data: history = [],
     isLoading: loading,
     isRefetching: refreshing,
+    dataUpdatedAt,
     refetch,
   } = useQuery({
     queryKey: ['payments', selectedChildId],
     queryFn: () => studentService.fetchPayments(selectedChildId!, false),
     enabled: Boolean(selectedChildId),
-    staleTime: 60_000,
-    placeholderData: keepPreviousData,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
+
+  useFocusEffect(useCallback(() => {
+    if (selectedChildId) void refetch();
+  }, [refetch, selectedChildId]));
 
   const actionablePayments = useMemo(
     () => history.filter((payment) => payment.status !== 'Locked'),
@@ -89,10 +97,23 @@ export const PaymentsScreen = ({ navigation }: any) => {
   }, [duePayments]);
 
   const schoolYear = useMemo(() => {
+    const serverYear = history.find((payment) => payment.academicYear)?.academicYear;
+    if (serverYear) return serverYear.replace('-', '/');
     const now = new Date();
     const startYear = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
     return `${startYear}/${startYear + 1}`;
-  }, []);
+  }, [history]);
+
+  const lastUpdatedLabel = useMemo(() => {
+    if (!dataUpdatedAt) return '';
+    const time = new Date(dataUpdatedAt).toLocaleTimeString(language === 'ar' ? 'ar-TN' : 'fr-TN', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    if (language === 'ar') return `آخر تحديث ${time}`;
+    if (language === 'en') return `Updated at ${time}`;
+    return `Mis à jour à ${time}`;
+  }, [dataUpdatedAt, language]);
 
   const onRefresh = useCallback(() => {
     void refetch();
@@ -127,7 +148,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
             <View style={[styles.summaryTop, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
               <View style={[styles.summaryHeading, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                 <View style={styles.summaryIcon}>
-                  <Wallet size={20} color="#075ED1" strokeWidth={2.4} />
+                  <Wallet size={20} color="#FFFFFF" strokeWidth={2.4} />
                 </View>
                 <Text style={[styles.summaryLabel, { textAlign: isRTL ? 'right' : 'left' }]}>
                   {t.totalDueNow}
@@ -200,11 +221,20 @@ export const PaymentsScreen = ({ navigation }: any) => {
             </Text>
             <Text style={[styles.sectionSubtitle, { textAlign: isRTL ? 'right' : 'left' }]}>
               {language === 'ar' ? `السنة الدراسية ${schoolYear}` : language === 'en' ? `School year ${schoolYear}` : `Année scolaire ${schoolYear}`}
+              {lastUpdatedLabel ? `  •  ${lastUpdatedLabel}` : ''}
             </Text>
           </View>
-          <View style={styles.yearBadge}>
-            <Text style={styles.yearBadgeText}>{schoolYear}</Text>
-          </View>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={language === 'ar' ? 'تحديث الدفعات' : language === 'en' ? 'Refresh payments' : 'Actualiser les paiements'}
+            onPress={onRefresh}
+            disabled={refreshing}
+            style={styles.refreshButton}
+          >
+            {refreshing
+              ? <ActivityIndicator size="small" color="#075ED1" />
+              : <RefreshCw size={18} color="#075ED1" strokeWidth={2.4} />}
+          </TouchableOpacity>
         </View>
 
         <View style={styles.listWrap}>
@@ -356,8 +386,10 @@ const styles = StyleSheet.create({
   summaryCard: {
     padding: 20,
     borderRadius: 24,
-    backgroundColor: '#075ED1',
-    shadowColor: '#075ED1',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#DCE6F4',
+    shadowColor: '#15345F',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.18,
     shadowRadius: 18,
@@ -378,13 +410,13 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#075ED1',
     alignItems: 'center',
     justifyContent: 'center',
   },
   summaryLabel: {
     flex: 1,
-    color: '#FFFFFF',
+    color: '#334155',
     fontSize: 13,
     fontWeight: '800',
   },
@@ -393,13 +425,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: '#EAF3FF',
   },
   countBadgeDanger: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFF1F2',
   },
   countBadgeText: {
-    color: '#FFFFFF',
+    color: '#075ED1',
     fontSize: 10.5,
     fontWeight: '800',
     textAlign: 'center',
@@ -413,20 +445,20 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   summaryAmount: {
-    color: '#FFFFFF',
+    color: '#10213D',
     fontSize: 39,
     lineHeight: 45,
     fontWeight: '900',
     letterSpacing: -1.2,
   },
   summaryCurrency: {
-    color: '#CFE2FF',
+    color: '#075ED1',
     fontSize: 16,
     fontWeight: '800',
   },
   summaryHint: {
     marginTop: 4,
-    color: '#DCEAFF',
+    color: '#64748B',
     fontSize: 11.5,
     fontWeight: '600',
   },
@@ -510,16 +542,15 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     fontWeight: '600',
   },
-  yearBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: '#EEF2FF',
-  },
-  yearBadgeText: {
-    color: '#4F46E5',
-    fontSize: 11.5,
-    fontWeight: '800',
+  refreshButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#DCE6F4',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   listWrap: {
     paddingHorizontal: 20,

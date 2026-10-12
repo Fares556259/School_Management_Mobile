@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, FileText, Inbox, ShieldCheck, Trash2 } from 
 import { useLanguage } from '../context/LanguageContext';
 import { privacyService } from '../services/api';
 
-export function PrivacyControls({ admin = false, signedIn = true }: { admin?: boolean; signedIn?: boolean }) {
+export function PrivacyControls({ admin = false, signedIn = true, inset = false }: { admin?: boolean; signedIn?: boolean; inset?: boolean }) {
   const { language, isRTL } = useLanguage();
   const [busy, setBusy] = useState(false);
   const ar = language === 'ar', fr = language === 'fr';
@@ -57,7 +57,7 @@ export function PrivacyControls({ admin = false, signedIn = true }: { admin?: bo
   );
 
   return (
-    <View style={styles.section}>
+    <View style={[styles.section, inset && styles.sectionInset]}>
       <View style={[styles.header, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
         <View style={styles.headerIcon}>
           <ShieldCheck size={20} color="#0055D4" strokeWidth={2.3} />
@@ -90,6 +90,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+  },
+  sectionInset: {
+    marginHorizontal: 24,
   },
   header: {
     alignItems: 'center',

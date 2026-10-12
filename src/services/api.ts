@@ -604,11 +604,13 @@ export const studentService = {
     return Array.isArray(data) ? data : [];
   },
 
-  fetchPayments: async (studentId: string, forceRefresh = false): Promise<PaymentRecord[]> => {
+  fetchPayments: async (studentId: string, _forceRefresh = false): Promise<PaymentRecord[]> => {
     const generation = authGeneration;
     // Fetch payments directly from the new backend API endpoint
     const data = await apiFetch(`/api/mobile/payments?studentId=${studentId}`);
-    const payments = Array.isArray(data) ? data : [];
+    const rows = Array.isArray(data) ? data : [];
+    const metadata = rows.find((item: any) => item?.kind === 'metadata');
+    const payments = rows.filter((item: any) => item?.kind !== 'metadata');
 
     const MONTH_NAMES = [
       '', 'January', 'February', 'March', 'April', 'May', 'June',
@@ -621,7 +623,12 @@ export const studentService = {
     const currentYear = today.getFullYear();
 
     // If we are in July (6) or later, the school year starts this year. Otherwise, it started last year.
-    const schoolYearStartYear = (currentMonthIndex >= 6) ? currentYear : currentYear - 1;
+    const academicYearMatch = typeof metadata?.academicYear === 'string'
+      ? metadata.academicYear.match(/(\d{4})\D+(\d{4})/)
+      : null;
+    const schoolYearStartYear = academicYearMatch
+      ? Number(academicYearMatch[1])
+      : (currentMonthIndex >= 6) ? currentYear : currentYear - 1;
 
     // Define the academic cycle: Sep (9) to Jun (6)
     const academicMonths = [
@@ -642,7 +649,10 @@ export const studentService = {
     const students = await readStudentsCache(userId, schoolId);
     if (generation !== authGeneration) return [];
     const s = students.find((x) => x.id === studentId);
-    const tuitionFee = s?.class?.level?.tuitionFee || 120;
+    const tuitionFee = Number(metadata?.tuitionFee)
+      || Number(s?.customTuition)
+      || Number(s?.class?.level?.tuitionFee)
+      || 450;
 
     const timeline: PaymentRecord[] = academicMonths.map((cycle, index) => {
       // Look for a payment record for this specific month/year
@@ -675,6 +685,7 @@ export const studentService = {
           isOverdue,
           dueDate,
           overdueDays: isOverdue ? overdueDays : 0,
+          academicYear: metadata?.academicYear || `${schoolYearStartYear}/${schoolYearStartYear + 1}`,
         };
       } else {
         // Placeholder month
@@ -699,6 +710,7 @@ export const studentService = {
           dueDate,
           overdueDays: isOverdue ? overdueDays : 0,
           daysUntil: isFuture ? daysUntil : 0,
+          academicYear: metadata?.academicYear || `${schoolYearStartYear}/${schoolYearStartYear + 1}`,
         };
       }
     });

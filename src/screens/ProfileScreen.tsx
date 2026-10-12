@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput, ActivityIndicator, StatusBar, Dimensions, Switch, Linking } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bell, Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, ChevronLeft, User, Pencil, FileText, Info, PhoneCall, MapPin, Image as ImageIcon, Award, Globe, Sparkles, RefreshCw, KeyRound } from 'lucide-react-native';
+import { Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, ChevronLeft, User, Pencil, FileText, Info, PhoneCall, MapPin, Image as ImageIcon, Award, Globe, Sparkles, RefreshCw, KeyRound } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Svg, Circle } from 'react-native-svg';
 import { useAppStore } from '../store/useAppStore';
@@ -223,6 +223,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
   
   // Edit Modal State
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [preparingEdit, setPreparingEdit] = useState(false);
   const [langModalVisible, setLangModalVisible] = useState(false);
   const [editData, setEditData] = useState({ name: '', surname: '', phone: '' });
   const [editChildrenDataBulk, setEditChildrenDataBulk] = useState<{id: string, name: string, surname: string, avatarUrl?: string}[]>([]);
@@ -323,37 +324,6 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     }
   };
 
-  const handleTestPushNotification = async () => {
-    try {
-      showToast('info', 'Synchronisation...', 'Vérification de la connexion push en cours...');
-      await notificationService.initChannels();
-      const pushToken = await notificationService.getPushToken();
-      if (!pushToken) {
-        Alert.alert(
-          t?.permissionsRequired || 'Permissions requises',
-          t?.pleaseEnablePushNotificationPermissions || 'Veuillez autoriser les notifications dans les Paramètres de votre téléphone pour recevoir les alertes.'
-        );
-        return;
-      }
-      if (userId) {
-        const registration = await authService.registerPushToken(userId, pushToken);
-        if (!registration?.success) {
-          throw new Error(registration?.error || 'Le serveur n’a pas confirmé cet appareil.');
-        }
-      }
-      await notificationService.setEnabled(true);
-      setNotificationsEnabled(true);
-      await notificationService.testStandardNotification();
-      
-      Alert.alert(
-        '✅ Notifications actives !',
-        `Votre smartphone est correctement synchronisé avec l'établissement.\n\nToken: ${pushToken.slice(0, 22)}...`
-      );
-    } catch (e: any) {
-      Alert.alert('Erreur', e?.message || 'Échec du test de notification.');
-    }
-  };
-
   const openEditChildModal = (child: any) => {
     const nameParts = (child.name || '').split(' ');
     setEditChildData({ 
@@ -381,17 +351,13 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
   };
 
   const { isLoading: loading, refetch: loadProfile } = useQuery({
-    queryKey: ['profile', userRole],
+    queryKey: ['profile', userRole, userId],
     queryFn: async () => {
       try {
-        let userProfile: any = null;
-        if (userRole === 'teacher') {
-          userProfile = await teacherService.fetchProfile();
-        } else {
-          userProfile = await parentService.fetchParentProfile();
-        }
-        
-        const school = await parentService.fetchSchoolInfo();
+        const [userProfile, school] = await Promise.all([
+          userRole === 'teacher' ? teacherService.fetchProfile() : parentService.fetchParentProfile(),
+          parentService.fetchSchoolInfo(),
+        ]);
         
         if (userProfile) {
           setProfile(userProfile);
@@ -413,6 +379,53 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
       }
     }
   });
+
+  const openEditProfile = async () => {
+    if (preparingEdit) return;
+    setPreparingEdit(true);
+    try {
+      const [refreshed, freshChildren] = await Promise.all([
+        loadProfile(),
+        userRole === 'parent' ? parentService.fetchChildren() : Promise.resolve(children),
+      ]);
+      const freshProfile = refreshed.data?.userProfile || profile;
+      if (!freshProfile) {
+        showToast(
+          'error',
+          language === 'ar' ? 'تعذر تحميل الملف الشخصي' : language === 'en' ? 'Profile unavailable' : 'Profil indisponible',
+          language === 'ar' ? 'تحقق من الاتصال ثم حاول مجدداً.' : language === 'en' ? 'Check your connection and try again.' : 'Vérifiez votre connexion puis réessayez.'
+        );
+        return;
+      }
+
+      if (userRole === 'parent') setChildren(freshChildren);
+      const childrenForEdit = userRole === 'parent' ? freshChildren : children;
+
+      setEditData({
+        name: freshProfile.name || '',
+        surname: freshProfile.surname || '',
+        phone: freshProfile.phone || '',
+      });
+      setEditChildrenDataBulk(childrenForEdit.map((child) => {
+        const parts = (child.name || '').trim().split(/\s+/);
+        return {
+          id: child.id,
+          name: parts[0] || '',
+          surname: parts.slice(1).join(' '),
+          avatarUrl: child.avatarUrl || undefined,
+        };
+      }));
+      setEditModalVisible(true);
+    } catch {
+      showToast(
+        'error',
+        language === 'ar' ? 'تعذر تحميل الملف الشخصي' : language === 'en' ? 'Profile unavailable' : 'Profil indisponible',
+        language === 'ar' ? 'تحقق من الاتصال ثم حاول مجدداً.' : language === 'en' ? 'Check your connection and try again.' : 'Vérifiez votre connexion puis réessayez.'
+      );
+    } finally {
+      setPreparingEdit(false);
+    }
+  };
 
   // Photo Modal State
   const [photoModalVisible, setPhotoModalVisible] = useState(false);
@@ -793,20 +806,8 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
               color="#0055d4" iconBg="bg-blue-50"
               label={t.editProfileItem} 
               subtitle={t.editProfileSub}
-              onPress={() => {
-                if (profile) {
-                  setEditData({
-                    name: profile.name || '',
-                    surname: profile.surname || '',
-                    phone: profile.phone || ''
-                  });
-                }
-                setEditChildrenDataBulk(children.map(c => {
-                  const parts = (c.name || '').split(' ');
-                  return { id: c.id, name: parts[0] || '', surname: parts.slice(1).join(' ') || '', avatarUrl: c.avatarUrl || undefined };
-                }));
-                setEditModalVisible(true);
-              }}
+              onPress={() => { void openEditProfile(); }}
+              rightElement={preparingEdit ? <ActivityIndicator size="small" color="#0055D4" /> : undefined}
               isLast={userRole === 'teacher'}
             />
             {userRole === 'parent' && (
@@ -841,13 +842,6 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
               label={t.notificationsItem} 
               subtitle={t.notificationsSub}
               rightElement={<Switch value={notificationsEnabled} onValueChange={toggleNotifications} trackColor={{ false: '#e2e8f0', true: '#0055d4' }} style={{ transform: [{ scale: 0.8 }] }} />}
-            />
-            <SettingItemV3 
-              icon={Bell} 
-              color="#0055d4" iconBg="bg-blue-50"
-              label={language === 'ar' ? 'اختبار ومزامنة الإشعارات' : language === 'fr' ? 'Tester & Synchroniser les notifications' : 'Test & Sync Push Notifications'}
-              subtitle={language === 'ar' ? 'إرسال تنبيه تجريبي لتأكيد وصول الإشعارات' : language === 'fr' ? 'Envoyer une alerte test pour vérifier cet appareil' : 'Send a test push to confirm this device'}
-              onPress={handleTestPushNotification}
             />
             <SettingItemV3 
               icon={Info} 
@@ -890,11 +884,11 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
             />
           </View>
 
-          <PrivacyControls />
+          <PrivacyControls inset />
           {/* App Version Tag */}
           <View style={{ alignItems: 'center', marginTop: 20, marginBottom: 8 }}>
             <Text style={{ fontSize: 12, fontWeight: '700', color: '#94a3b8' }}>
-              SnapSchool v{Constants.expoConfig?.version || '1.0.3'} {Updates.channel ? `(${Updates.channel})` : ''}
+              SnapSchool v{Constants.expoConfig?.version || '1.0.3'}
             </Text>
           </View>
         </View>
@@ -1052,8 +1046,8 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
                             <Camera size={12} color="white" />
                           </TouchableOpacity>
                         </View>
-                        <Text className="text-sm font-jakarta font-bold text-text-primary">
-                          Child {index + 1}
+                        <Text className="text-sm font-jakarta font-bold text-text-primary" numberOfLines={1}>
+                          {`${childData.name} ${childData.surname}`.trim() || (language === 'ar' ? `الطفل ${index + 1}` : language === 'en' ? `Child ${index + 1}` : `Enfant ${index + 1}`)}
                         </Text>
                       </View>
                       

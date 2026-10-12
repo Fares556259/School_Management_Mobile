@@ -237,6 +237,25 @@ it('saves login children with account ownership and preserves the tuition cache'
   expect(payments.every(payment => payment.totalAmount === 350)).toBe(true);
 });
 
+it('uses authoritative payment metadata instead of stale cached tuition settings', async () => {
+  const children = [{ id: 'child-a', name: 'Child', surname: 'A', class: { level: { tuitionFee: 350 } } }];
+  fetch.mockResolvedValueOnce(response({ success: true, token: 'account-a', userId: 'parent-a', userType: 'parent', schoolId: 'school-a', students: children }));
+  await api.authService.authenticate('000', 'synthetic-password', 'signin', 'parent');
+  fetch.mockResolvedValue(response([
+    { kind: 'metadata', tuitionFee: 444, academicYear: '2026-2027' },
+    { id: 7, month: 9, year: 2026, amount: 100, status: 'PARTIAL', dueDate: '2026-09-01' },
+  ]));
+
+  const payments = await api.studentService.fetchPayments('child-a');
+  const september = payments.find(payment => payment.month === 'September 2026');
+  expect(september).toMatchObject({
+    totalAmount: 444,
+    paidAmount: 100,
+    status: 'Partial',
+    academicYear: '2026-2027',
+  });
+});
+
 
 it('never reports rejected attendance as saved, and accepts a confirmed save', async () => {
   await login('teacher-token', 'school-a', 'teacher-a');
