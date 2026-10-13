@@ -18,6 +18,7 @@ import { AnnouncementDetailScreen } from './src/screens/AnnouncementDetailScreen
 import { ParentSignUpScreen } from './src/screens/ParentSignUpScreen';
 import { LandingScreen } from './src/screens/LandingScreen';
 import { AppLaunchScreen } from './src/screens/AppLaunchScreen';
+import { AppErrorBoundary } from './src/components/AppErrorBoundary';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { ExamsScreen } from './src/screens/ExamsScreen';
 import { ResultsScreen } from './src/screens/ResultsScreen';
@@ -647,6 +648,7 @@ export default function App() {
   };
 
   return (
+    <AppErrorBoundary>
       <PersistQueryClientProvider 
         client={queryClient}
         persistOptions={{
@@ -755,5 +757,6 @@ export default function App() {
           </SafeAreaProvider>
         </LanguageProvider>
       </PersistQueryClientProvider>
+    </AppErrorBoundary>
   );
 }
