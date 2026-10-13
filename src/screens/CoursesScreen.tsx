@@ -17,6 +17,7 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useFocusEffect } from '@react-navigation/native';
 import { downloadAndPreviewPDF } from '../utils/fileUtils';
+import { SkeletonBlock } from '../components/SkeletonView';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -65,7 +66,7 @@ export const CoursesScreen = ({ navigation }: any) => {
     queryKey: ['courses', selectedChildId],
     queryFn: () => studentService.fetchCourses(selectedChildId!),
     enabled: !!selectedChildId,
-    staleTime: 30_000,
+    staleTime: 5 * 60_000,
     gcTime: 24 * 60 * 60 * 1000,
     refetchOnMount: false,
   });
@@ -143,14 +144,6 @@ export const CoursesScreen = ({ navigation }: any) => {
     return sortedGroups;
   }, [courses]);
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f6f8fb' }}>
-        <ActivityIndicator size="large" color="#0055d4" />
-      </View>
-    );
-  }
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f6f8fb' }}>
       <GlobalHeader navigation={navigation} />
@@ -169,7 +162,51 @@ export const CoursesScreen = ({ navigation }: any) => {
           </Text>
         </View>
 
-        {courses.length === 0 ? (
+        {loading && courses.length === 0 ? (
+          <View style={{ gap: 14 }}>
+            {[0, 1].map((groupIndex) => (
+              <View
+                key={groupIndex}
+                style={{
+                  backgroundColor: 'white',
+                  borderRadius: 22,
+                  padding: 16,
+                  borderWidth: 1,
+                  borderColor: '#e2e8f0',
+                }}
+              >
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginBottom: 8 }}>
+                  <SkeletonBlock width={34} height={34} borderRadius={10} />
+                  <SkeletonBlock
+                    width={groupIndex === 0 ? 104 : 82}
+                    height={14}
+                    borderRadius={7}
+                    style={{ marginHorizontal: 10 }}
+                  />
+                </View>
+                {[0, 1, 2].map((rowIndex) => (
+                  <View
+                    key={rowIndex}
+                    style={{
+                      flexDirection: isRTL ? 'row-reverse' : 'row',
+                      alignItems: 'center',
+                      paddingVertical: 14,
+                      borderTopWidth: rowIndex === 0 ? 0 : 1,
+                      borderTopColor: '#eef2f7',
+                    }}
+                  >
+                    <SkeletonBlock width={42} height={42} borderRadius={12} />
+                    <View style={{ flex: 1, marginHorizontal: 12, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                      <SkeletonBlock width={rowIndex === 1 ? 126 : 152} height={16} borderRadius={8} marginBottom={7} />
+                      <SkeletonBlock width={110} height={11} borderRadius={6} />
+                    </View>
+                    <SkeletonBlock width={52} height={28} borderRadius={10} />
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
+        ) : courses.length === 0 ? (
           <View style={{ padding: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: 'white', borderRadius: 28, borderWidth: 1, borderColor: '#f1f5f9' }}>
             <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
               <BookOpen size={32} color="#cbd5e1" />

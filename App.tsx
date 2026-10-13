@@ -284,6 +284,16 @@ export default function App() {
       setChildren(children);
       setSelectedChildId(selectedId);
       void savePreferredChildId(uid, selectedId);
+
+      // Warm the next tab while the launch screen is still visible. This is
+      // intentionally limited to the selected child's lightweight course
+      // summary so it does not compete with the home screen for bandwidth.
+      void queryClient.prefetchQuery({
+        queryKey: ['courses', selectedId],
+        queryFn: () => studentService.fetchCourses(selectedId),
+        staleTime: 5 * 60 * 1000,
+        gcTime: 24 * 60 * 60 * 1000,
+      });
     };
 
     // Paint the signed-in parent experience from the device before the first

@@ -350,35 +350,50 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     }
   };
 
-  const { isLoading: loading, refetch: loadProfile } = useQuery({
+  const cachedIdentity = React.useMemo(() => {
+    const parts = (userName || '').trim().split(/\s+/).filter(Boolean);
+    return {
+      name: parts[0] && parts[0] !== 'User' ? parts[0] : '',
+      surname: parts.slice(1).join(' '),
+      phone: '',
+      img: userAvatarUrl || null,
+    };
+  }, [userAvatarUrl, userName]);
+
+  const { data: profileData, isLoading: loading, refetch: loadProfile } = useQuery({
     queryKey: ['profile', userRole, userId],
     queryFn: async () => {
-      try {
-        const [userProfile, school] = await Promise.all([
-          userRole === 'teacher' ? teacherService.fetchProfile() : parentService.fetchParentProfile(),
-          parentService.fetchSchoolInfo(),
-        ]);
-        
-        if (userProfile) {
-          setProfile(userProfile);
-          setUserName(`${userProfile.name} ${userProfile.surname}`);
-          setUserAvatarUrl(userProfile.img);
-          setEditData({
-            name: userProfile.name || '',
-            surname: userProfile.surname || '',
-            phone: userProfile.phone || ''
-          });
-        }
-        if (school) {
-          setSchoolInfo(school);
-        }
-        return { userProfile, school };
-      } catch (error) {
-        console.error('Failed to load profile:', error);
-        return null;
-      }
-    }
+      const [userProfile, school] = await Promise.all([
+        userRole === 'teacher' ? teacherService.fetchProfile() : parentService.fetchParentProfile(),
+        parentService.fetchSchoolInfo(),
+      ]);
+      return { userProfile, school };
+    },
+    placeholderData: {
+      userProfile: cachedIdentity,
+      school: null,
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
+    refetchOnMount: false,
   });
+
+  useEffect(() => {
+    const userProfile = profileData?.userProfile;
+    if (userProfile) {
+      setProfile(userProfile);
+      if (userProfile.name) {
+        setUserName(`${userProfile.name} ${userProfile.surname || ''}`.trim());
+      }
+      if (userProfile.img) setUserAvatarUrl(userProfile.img);
+      setEditData({
+        name: userProfile.name || '',
+        surname: userProfile.surname || '',
+        phone: userProfile.phone || '',
+      });
+    }
+    if (profileData?.school) setSchoolInfo(profileData.school);
+  }, [profileData, setUserAvatarUrl, setUserName]);
 
   const openEditProfile = async () => {
     if (preparingEdit) return;
@@ -660,7 +675,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     editData.phone !== profile.phone
   );
 
-  if (loading) {
+  if (loading && !userName && !profile) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }} edges={['top']}>
         <StatusBar barStyle="dark-content" />
