@@ -479,6 +479,18 @@ export const parentService = {
     return generation === authGeneration ? data.map(mapStudent) : [];
   },
 
+  /**
+   * Reads the last verified family list from the device only. This lets the
+   * signed-in shell select a child before the first network round trip while
+   * fetchChildren refreshes the list in the background.
+   */
+  fetchCachedChildren: async (): Promise<(Student & { raw?: any })[]> => {
+    const [uid, schoolId] = await Promise.all([authStorage.getUserId(), authStorage.getSchoolId()]);
+    if (!uid) return [];
+    const cached = await readStudentsCache(uid, schoolId);
+    return cached.map(mapStudent);
+  },
+
   fetchParentProfile: async (): Promise<{ name: string; surname: string; phone: string; img: string | null } | null> => {
     const uid = await authStorage.getUserId();
     const role = await authStorage.getUserRole();
@@ -518,7 +530,7 @@ export const parentService = {
 
 // ─── Student Data Service ─────────────────────────────────────────────────────
 export const studentService = {
-  fetchHomeData: async (studentId: string, dateStr?: string): Promise<{
+  fetchHomeData: async (studentId: string, dateStr?: string, view: 'full' | 'day' = 'full'): Promise<{
     sessions: any[];
     tasksDue: any[];
     tasksGiven: any[];
@@ -531,7 +543,9 @@ export const studentService = {
     homeworkGiven?: any[];
     files?: any[];
   }> => {
-    const url = dateStr ? `/api/mobile/home?studentId=${studentId}&date=${dateStr}` : `/api/mobile/home?studentId=${studentId}`;
+    const params = new URLSearchParams({ studentId, view });
+    if (dateStr) params.set('date', dateStr);
+    const url = `/api/mobile/home?${params.toString()}`;
     const data = await apiFetch(url);
     if (!data || !data.sessions) {
       return { sessions: [], tasksDue: [], tasksGiven: [], upcomingExams: [], teacherRemarks: [], examPeriods: [] };
@@ -541,7 +555,7 @@ export const studentService = {
 
   // Legacy alias — keep HomeScreen working during migration
   fetchDayData: async (studentId: string, _date: string): Promise<StudentDayData> => {
-    const home = await studentService.fetchHomeData(studentId, _date);
+    const home = await studentService.fetchHomeData(studentId, _date, 'day');
     return {
       holidayName: home.holidayName || undefined,
       sessions: (home.sessions || []).map((s: any, i: number) => ({

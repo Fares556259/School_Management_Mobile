@@ -7,6 +7,7 @@ import { authStorage, studentService } from '../services/api';
 import { Image } from 'expo-image';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { prefetchChildSnapshot } from '../services/childDataSync';
+import { savePreferredChildId } from '../services/sessionHydration';
 
 interface GlobalHeaderProps {
   navigation: any;
@@ -41,8 +42,8 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
     },
     enabled: userRole === 'parent' && !!userId && !!selectedChildId,
     staleTime: 0,
-    refetchOnMount: 'always',
-    gcTime: 5 * 60_000,
+    refetchOnMount: false,
+    gcTime: 24 * 60 * 60_000,
   });
 
   useEffect(() => {
@@ -59,11 +60,15 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
   }, [children, queryClient, selectedChildId, userId, userRole]);
 
   useEffect(() => {
-    warmFamilySnapshots();
+    // Give the visible child's home request first use of the connection on a
+    // cold launch. Other children are warmed once the first screen has settled.
+    const timeout = setTimeout(warmFamilySnapshots, 1800);
+    return () => clearTimeout(timeout);
   }, [warmFamilySnapshots]);
 
   const handleSwitchChild = (id: string) => {
     setSelectedChildId(id);
+    void savePreferredChildId(userId, id);
     setShowSwitcher(false);
   };
 

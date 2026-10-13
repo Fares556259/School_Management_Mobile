@@ -56,7 +56,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 
 import { identifyUser, resetUser, trackScreen } from './src/services/posthog';
-import { loadSessionSnapshot, type SessionRole } from './src/services/sessionHydration';
+import { loadCachedParentChildren, loadPreferredChildId, loadSessionSnapshot, savePreferredChildId, type SessionRole } from './src/services/sessionHydration';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -271,13 +271,34 @@ export default function App() {
 
   const applySessionSnapshot = React.useCallback(async (uid: string, role: SessionRole) => {
     const revision = ++sessionRevisionRef.current;
+    const applyParentChildren = async (children: any[]) => {
+      if (!Array.isArray(children) || children.length === 0) return;
+      const currentUid = await authStorage.getUserId();
+      if (revision !== sessionRevisionRef.current || currentUid !== uid) return;
+
+      const currentSelection = useAppStore.getState().selectedChildId;
+      const storedSelection = await loadPreferredChildId(uid);
+      const selectedId = [currentSelection, storedSelection]
+        .find(candidate => candidate && children.some(child => child.id === candidate)) || children[0].id;
+
+      setChildren(children);
+      setSelectedChildId(selectedId);
+      void savePreferredChildId(uid, selectedId);
+    };
+
+    // Paint the signed-in parent experience from the device before the first
+    // API round trip. The verified server snapshot below quietly reconciles it.
+    if (role === 'parent') {
+      const cachedChildren = await loadCachedParentChildren();
+      await applyParentChildren(cachedChildren);
+    }
+
     const snapshot = await loadSessionSnapshot(role);
     const currentUid = await authStorage.getUserId();
     if (revision !== sessionRevisionRef.current || currentUid !== uid) return;
 
     if (snapshot.role === 'parent' && snapshot.children.length > 0) {
-      setChildren(snapshot.children);
-      setSelectedChildId(snapshot.children[0].id);
+      await applyParentChildren(snapshot.children);
     }
 
     if (snapshot.profile?.name) {

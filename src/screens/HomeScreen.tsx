@@ -174,13 +174,13 @@ export const HomeScreen = ({ navigation, route }: any) => {
 
 
   // ─── React Query: stale-while-revalidate with persistent cache ──────────
-  const { data: dayData = EMPTY_DAY, isLoading: loading, isFetching, refetch } = useQuery({
+  const { data: dayData = EMPTY_DAY, isLoading: loading, isFetching, dataUpdatedAt, refetch } = useQuery({
     queryKey: ['studentDay', selectedChildId, dateStr],
     queryFn: () => studentService.fetchDayData(selectedChildId!, dateStr),
     enabled: !!selectedChildId,
-    staleTime: 0,
-    refetchOnMount: 'always',
-    gcTime: 5 * 60_000,       // 5min: keep old data in memory for quick revisits
+    staleTime: 15_000,
+    refetchOnMount: false,
+    gcTime: 24 * 60 * 60_000,
     retry: 1,
   });
 
@@ -194,12 +194,13 @@ export const HomeScreen = ({ navigation, route }: any) => {
     }
   }, [dayData, selectedChildId]);
 
-  // Revalidate on every focus while keeping this child's snapshot visible.
+  // Revalidate stale snapshots on focus. Fresh or restored data paints first;
+  // the background request never replaces it with a full-screen skeleton.
   useFocusEffect(
     React.useCallback(() => {
       if (!selectedChildId) return;
-      void refetch();
-    }, [selectedChildId, dateStr, refetch])
+      if (!dataUpdatedAt || Date.now() - dataUpdatedAt > 15_000) void refetch();
+    }, [selectedChildId, dateStr, dataUpdatedAt, refetch])
   );
 
   React.useEffect(() => {

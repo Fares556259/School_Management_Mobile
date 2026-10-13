@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { adminService, parentService, teacherService } from './api';
 
 export type SessionRole = 'parent' | 'teacher' | 'admin';
@@ -8,6 +9,23 @@ type SessionServices = {
   teacherProfile: () => Promise<any>;
   adminProfile: () => Promise<any>;
 };
+
+const selectedChildKey = (userId: string) => `@snapschool_selected_child:${userId}`;
+
+export async function loadPreferredChildId(userId: string): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(selectedChildKey(userId));
+  } catch {
+    return null;
+  }
+}
+
+export async function savePreferredChildId(userId: string | null, childId: string): Promise<void> {
+  if (!userId) return;
+  try {
+    await AsyncStorage.setItem(selectedChildKey(userId), childId);
+  } catch {}
+}
 
 const defaultServices: SessionServices = {
   parentProfile: parentService.fetchParentProfile,
@@ -39,4 +57,13 @@ export async function loadSessionSnapshot(
     ? await services.teacherProfile().catch(() => null)
     : await services.adminProfile().catch(() => null);
   return { role, profile, children: [] };
+}
+
+/** Device-only parent hydration used before any API request on cold launch. */
+export async function loadCachedParentChildren(): Promise<any[]> {
+  try {
+    return await parentService.fetchCachedChildren();
+  } catch {
+    return [];
+  }
 }
