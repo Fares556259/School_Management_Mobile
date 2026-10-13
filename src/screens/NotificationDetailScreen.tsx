@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLanguage } from '../context/LanguageContext';
 import { ChevronLeft, ChevronRight, AlertTriangle, Calendar, Bell, Info, MessageCircle } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
+import { useFonts } from 'expo-font';
 
 const ICON_CONFIG: Record<string, { icon: any, color: string, bgColor: string }> = {
   URGENT: { icon: AlertTriangle, color: '#ef4444', bgColor: '#fee2e2' },
@@ -26,6 +27,10 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
     time: 'À l\'instant',
   };
   const { t, isRTL, language, formatNotification } = useLanguage();
+  const [arabicFontLoaded] = useFonts({
+    NotoSansArabic: require('../../assets/fonts/NotoSansArabic.ttf'),
+  });
+  const arabicText = isRTL && arabicFontLoaded ? styles.arabicText : undefined;
   const setSelectedChildId = useAppStore((state) => state.setSelectedChildId);
   const isResource = notification.type === 'RESOURCE' || /(?:ملخص جديد|nouveau support|new course material)/i.test(notification.title || '');
   const isUrgent = /(?:عاجل|URGENT)/i.test(`${notification.title || ''} ${notification.message || ''}`);
@@ -37,6 +42,11 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
   // Attendance Logic
   const message = notification.message || "";
   const absenceCount = message.match(/(\d+) absences/)?.[1] || message.match(/reached (\d+) absences/)?.[1] || '—';
+  const attendanceState = /(?:late|retard|تأخير)/i.test(`${notification.title || ''} ${message}`)
+    ? t.late
+    : /(?:absent|absence|غياب|غائب)/i.test(`${notification.title || ''} ${message}`)
+      ? t.absent
+      : t.attendance;
   const formattedTitle = formatNotification(notification.title) || t.officialMessage;
   const formattedMessage = formatNotification(notification.message);
   const sourceLabel = notification.studentName?.toUpperCase() === 'SCHOOL'
@@ -111,7 +121,7 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           {isRTL ? <ChevronRight size={20} color="#0f172a" strokeWidth={3} /> : <ChevronLeft size={20} color="#0f172a" strokeWidth={3} />}
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t.details}</Text>
+        <Text style={[styles.headerTitle, arabicText]}>{t.details}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -121,9 +131,9 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
             <Icon size={22} color={config.color} strokeWidth={2.4} />
           </View>
           <View style={[styles.summaryText, isRTL && { alignItems: 'flex-end' }]}>
-            <Text style={[styles.typeLabel, { color: config.color }]}>{typeLabel}</Text>
-            <Text style={[styles.notificationTitle, isRTL && { textAlign: 'right' }]}>{formattedTitle}</Text>
-            <Text style={[styles.timeLabel, isRTL && { textAlign: 'right' }]}>
+            <Text style={[styles.typeLabel, arabicText, { color: config.color }]}>{typeLabel}</Text>
+            <Text style={[styles.notificationTitle, arabicText, isRTL && { textAlign: 'right' }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.86}>{formattedTitle}</Text>
+            <Text style={[styles.timeLabel, arabicText, isRTL && { textAlign: 'right' }]}>
               {[sourceLabel, timeLabel].filter(Boolean).join(' • ')}
             </Text>
           </View>
@@ -134,41 +144,37 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
             {/* Stats Cards */}
             <View style={styles.statsRow}>
               <View style={[styles.statCard, { width: '47%' }]}>
-                <Text style={[styles.statValue, { color: '#ef4444' }]}>{absenceCount}</Text>
-                <Text style={styles.statLabel}>{t.absencesThisMonth}</Text>
+                <Text style={[styles.statValue, arabicText, { color: '#ef4444' }]}>{absenceCount === '—' ? attendanceState : absenceCount}</Text>
+                <Text style={[styles.statLabel, arabicText]}>{absenceCount === '—' ? typeLabel : t.absencesThisMonth}</Text>
               </View>
               <View style={[styles.statCard, { width: '47%' }]}>
-                <Text style={[styles.statValue, { color: '#94a3b8' }]}>{notification.className || 'N/A'}</Text>
-                <Text style={styles.statLabel}>{t.grade}</Text>
+                <Text style={[styles.statValue, arabicText, { color: '#64748B' }]}>{notification.className || '—'}</Text>
+                <Text style={[styles.statLabel, arabicText]}>{t.grade}</Text>
               </View>
-            </View>
-
-            {/* Sessions Section */}
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionLabel}>{t.sessionsHistory}</Text>
             </View>
 
             {realSessions.length > 0 ? (
-              realSessions.map((session: any) => (
-                <View key={session.id} style={styles.sessionCard}>
-                  <View style={[styles.statusDot, { backgroundColor: '#ef4444' }]} />
-                  <View style={styles.sessionInfo}>
-                    <Text style={styles.sessionDate}>{session.date}</Text>
-                    <Text style={styles.sessionSub}>{session.subject} — {session.time}</Text>
-                  </View>
+              <>
+                <View style={styles.sectionHeader}>
+                  <Text style={[styles.sectionLabel, arabicText]}>{t.sessionsHistory}</Text>
                 </View>
-              ))
-            ) : (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>{t.detailedSessionData}</Text>
-              </View>
-            )}
+                {realSessions.map((session: any) => (
+                  <View key={session.id} style={[styles.sessionCard, isRTL && { flexDirection: 'row-reverse' }]}>
+                    <View style={[styles.statusDot, { backgroundColor: '#ef4444', marginRight: isRTL ? 0 : 16, marginLeft: isRTL ? 16 : 0 }]} />
+                    <View style={styles.sessionInfo}>
+                      <Text style={[styles.sessionDate, arabicText, isRTL && { textAlign: 'right' }]}>{session.date}</Text>
+                      <Text style={[styles.sessionSub, arabicText, isRTL && { textAlign: 'right' }]}>{session.subject} — {session.time}</Text>
+                    </View>
+                  </View>
+                ))}
+              </>
+            ) : null}
 
           </>
         ) : (
           <View style={styles.announcementContainer}>
             <View style={styles.messageBubble}>
-              <Text style={[styles.announcementMessage, { textAlign: isRTL ? 'right' : 'left', lineHeight: 24 }]}>
+              <Text style={[styles.announcementMessage, arabicText, { textAlign: isRTL ? 'right' : 'left', lineHeight: isRTL ? 30 : 24 }]}>
                 {formattedMessage}
               </Text>
             </View>
@@ -178,7 +184,7 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
 
         {action && (
           <TouchableOpacity onPress={action.run} activeOpacity={0.85} style={[styles.contextAction, isRTL && { flexDirection: 'row-reverse' }]}>
-            <Text style={styles.contextActionText}>{action.label}</Text>
+            <Text style={[styles.contextActionText, arabicText]}>{action.label}</Text>
             <ChevronRight size={18} color="#FFFFFF" style={{ transform: [{ rotate: isRTL ? '180deg' : '0deg' }] }} />
           </TouchableOpacity>
         )}
@@ -229,5 +235,6 @@ const styles = StyleSheet.create({
   contextAction: { height: 52, marginHorizontal: 20, marginTop: 16, paddingHorizontal: 18, borderRadius: 15, backgroundColor: '#0B57D0', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   contextActionText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
   emptyContainer: { paddingHorizontal: 24, paddingVertical: 20, alignItems: 'center' },
-  emptyText: { color: '#94a3b8', fontSize: 14, fontStyle: 'italic' }
+  emptyText: { color: '#94a3b8', fontSize: 14, fontStyle: 'italic' },
+  arabicText: { fontFamily: 'NotoSansArabic', fontWeight: 'normal', letterSpacing: 0 },
 });

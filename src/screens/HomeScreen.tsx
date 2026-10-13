@@ -23,6 +23,15 @@ import { SkeletonBlock } from '../components/SkeletonView';
 import { useFocusEffect } from '@react-navigation/native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatLocalDateKey } from '../utils/dateUtils';
+import { useFonts } from 'expo-font';
+
+const readablePersonName = (value: any, fallback: string) => {
+  if (typeof value === 'string') return value.replace(/\[object Object\]/gi, '').trim() || fallback;
+  if (value && typeof value === 'object') {
+    return [value.name || value.firstName, value.surname || value.lastName].filter(Boolean).join(' ').trim() || fallback;
+  }
+  return fallback;
+};
 
 // ─── Date Card ───────────────────────────────────────────────────────────────
 const DateItem = React.memo(({ day, date, active, isToday, onPress }: any) => {
@@ -67,7 +76,7 @@ const SUBJECT_TONES = [
   { ink: '#70518D', soft: '#F2ECF8' },
 ];
 
-const SessionCard = React.memo(({ session, isLast }: any) => {
+const SessionCard = React.memo(({ session, isLast, arabicFontLoaded }: any) => {
   const { t, isRTL, getTranslatedSubject } = useLanguage();
   const attendance = String(session?.attendance || '').toUpperCase();
   const isAbsent = attendance === 'ABSENT' || attendance === 'ABS';
@@ -91,7 +100,7 @@ const SessionCard = React.memo(({ session, isLast }: any) => {
       <View style={[styles.sessionContentV2, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
         <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', width: '100%', alignItems: 'flex-start' }}>
           <View style={{ flex: 1, paddingRight: isRTL ? 0 : 10, paddingLeft: isRTL ? 10 : 0 }}>
-            <Text style={[styles.sessionTitleV2, { textAlign: isRTL ? 'right' : 'left' }]} numberOfLines={2}>
+            <Text style={[styles.sessionTitleV2, isRTL && arabicFontLoaded && styles.arabicText, { textAlign: isRTL ? 'right' : 'left' }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
               {translatedSubject}
             </Text>
             <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginTop: 6 }}>
@@ -106,7 +115,7 @@ const SessionCard = React.memo(({ session, isLast }: any) => {
 
         <View style={[styles.teacherLine, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
           <UserIcon size={13} color="#98A2B3" strokeWidth={2.2} />
-          <Text style={[styles.sessionTeacherV2, { marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }]} numberOfLines={1}>{String(session?.teacher || t.teacher)}</Text>
+          <Text style={[styles.sessionTeacherV2, isRTL && arabicFontLoaded && styles.arabicText, { marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }]} numberOfLines={1}>{readablePersonName(session?.teacher, t.teacher)}</Text>
           {session?.room ? <Text style={styles.roomText}> · {String(session.room)}</Text> : null}
         </View>
       </View>
@@ -129,12 +138,17 @@ const EmptySessionsUI = React.memo(() => {
 });
 
 // ─── Section Header ───────────────────────────────────────────────────────────
-const SectionHeader = React.memo(({ title, action, onAction, count }: any) => {
+const SectionHeader = React.memo(({ title, action, onAction, count, arabicFontLoaded }: any) => {
   const { isRTL } = useLanguage();
   return (
     <View style={[styles.sectionHeaderRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
-        <Text style={[styles.sectionTitle, { textAlign: isRTL ? 'right' : 'left' }]}>{title}</Text>
+      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', flex: 1, minWidth: 0 }}>
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.78}
+          style={[styles.sectionTitle, isRTL && arabicFontLoaded && styles.arabicHeading, { textAlign: isRTL ? 'right' : 'left' }]}
+        >{title}</Text>
         {typeof count === 'number' && count > 0 ? (
           <View style={[styles.sectionCount, { marginLeft: isRTL ? 0 : 9, marginRight: isRTL ? 9 : 0 }]}>
             <Text style={styles.sectionCountText}>{count}</Text>
@@ -158,6 +172,9 @@ export const HomeScreen = ({ navigation, route }: any) => {
   const selectedChildId = useAppStore(s => s.selectedChildId);
   const setStudentStatus = useAppStore(s => s.setStudentStatus);
   const { t, isRTL, language, getTranslatedSubject } = useLanguage();
+  const [arabicFontLoaded] = useFonts({
+    NotoSansArabic: require('../../assets/fonts/NotoSansArabic.ttf'),
+  });
   const [selectedDate, setSelectedDate] = React.useState(new Date());
   const [showDatePicker, setShowDatePicker] = React.useState(false);
   const [selectedRemark, setSelectedRemark] = React.useState<any>(null);
@@ -313,7 +330,12 @@ export const HomeScreen = ({ navigation, route }: any) => {
 
           {/* Date Slider */}
           <View style={[styles.sectionHeaderRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-            <Text style={styles.sectionTitle}>{t.todaysSchedule}</Text>
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+              style={[styles.sectionTitle, styles.scheduleTitle, isRTL && arabicFontLoaded && styles.arabicHeading, { textAlign: isRTL ? 'right' : 'left' }]}
+            >{t.todaysSchedule}</Text>
             <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 16 }}>
               {selectedDate.toDateString() !== new Date().toDateString() && (
                 <TouchableOpacity 
@@ -400,7 +422,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
             <View style={sessions.length > 0 ? styles.scheduleSurface : { marginTop: 14 }}>
               {sessions.length > 0 ? (
                 sessions.map((session: any, index: number) => (
-                  <SessionCard key={session.id || `${dateStr}-${index}`} session={session} isLast={index === sessions.length - 1} />
+                  <SessionCard key={session.id || `${dateStr}-${index}`} session={session} isLast={index === sessions.length - 1} arabicFontLoaded={arabicFontLoaded} />
                 ))
               ) : (
                 <EmptySessionsUI />
@@ -413,7 +435,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
             onLayout={(e) => setTasksYPosition(e.nativeEvent.layout.y)}
             style={{ height: 0 }}
           />
-          <SectionHeader title={t.tasks} count={allTasks.length} />
+          <SectionHeader title={t.tasks} count={allTasks.length} arabicFontLoaded={arabicFontLoaded} />
           
           {loading ? (
             <View style={{ gap: 12 }}>
@@ -442,10 +464,10 @@ export const HomeScreen = ({ navigation, route }: any) => {
                         <CheckCircle2 size={18} color={task.isCompleted ? '#16a34a' : '#0072e6'} />
                       </View>
                     </View>
-                    <Text style={[styles.listRowTitle, { textAlign: isRTL ? 'right' : 'left' }]}>{getTranslatedSubject(task.subject)} — {task.title}</Text>
+                    <Text style={[styles.listRowTitle, isRTL && arabicFontLoaded && styles.arabicText, { textAlign: isRTL ? 'right' : 'left' }]}>{getTranslatedSubject(task.subject)} — {String(task.title || '')}</Text>
                     <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginTop: 8 }}>
                       <UserIcon size={14} color="#64748b" style={{ marginRight: isRTL ? 0 : 6, marginLeft: isRTL ? 6 : 0 }} />
-                      <Text style={[styles.listRowMeta, { marginTop: 0 }]}>{t.teacher}: {task.teacher || t.teacher}</Text>
+                      <Text style={[styles.listRowMeta, isRTL && arabicFontLoaded && styles.arabicText, { marginTop: 0 }]}>{t.teacher}: {readablePersonName(task.teacher, t.teacher)}</Text>
                     </View>
                   </TouchableOpacity>
                 ))
@@ -454,14 +476,14 @@ export const HomeScreen = ({ navigation, route }: any) => {
                   <View style={[styles.compactEmptyIcon, { backgroundColor: '#EAF5F0' }]}>
                     <CheckCircle2 size={21} color="#39725E" />
                   </View>
-                  <Text style={[styles.compactEmptyText, { textAlign: isRTL ? 'right' : 'left' }]}>{emptyTaskLabel}</Text>
+                  <Text style={[styles.compactEmptyText, isRTL && arabicFontLoaded && styles.arabicText, { textAlign: isRTL ? 'right' : 'left' }]}>{emptyTaskLabel}</Text>
                 </View>
               )}
             </View>
           )}
 
           {/* Teacher Remarks */}
-          <SectionHeader title={t.teacherRemarks} count={visibleNotes.length} />
+          <SectionHeader title={t.teacherRemarks} count={visibleNotes.length} arabicFontLoaded={arabicFontLoaded} />
           
           {loading ? (
              <View style={{ gap: 12 }}>
@@ -486,7 +508,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
                       </View>
                       <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginTop: 4 }}>
                         <UserIcon size={12} color="#64748b" style={{ marginRight: isRTL ? 0 : 6, marginLeft: isRTL ? 6 : 0 }} />
-                        <Text style={[styles.remarkMeta, { marginTop: 0 }]}>{t.teacher}: {note.author || t.teacher}</Text>
+                        <Text style={[styles.remarkMeta, isRTL && arabicFontLoaded && styles.arabicText, { marginTop: 0 }]}>{t.teacher}: {readablePersonName(note.author, t.teacher)}</Text>
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -496,7 +518,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
                   <View style={[styles.compactEmptyIcon, { backgroundColor: '#EAF3FB' }]}>
                     <MessageSquare size={21} color="#185FA5" />
                   </View>
-                  <Text style={[styles.compactEmptyText, { textAlign: isRTL ? 'right' : 'left' }]}>{t.noRemarks}</Text>
+                  <Text style={[styles.compactEmptyText, isRTL && arabicFontLoaded && styles.arabicText, { textAlign: isRTL ? 'right' : 'left' }]}>{t.noRemarks}</Text>
                 </View>
               )}
             </View>
@@ -516,6 +538,9 @@ const styles = StyleSheet.create({
   // Section Headers
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, marginTop: 24 },
   sectionTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b', letterSpacing: -0.3 },
+  scheduleTitle: { flexShrink: 1, marginEnd: 12 },
+  arabicHeading: { fontFamily: 'NotoSansArabic', fontWeight: 'normal', letterSpacing: 0, lineHeight: 31 },
+  arabicText: { fontFamily: 'NotoSansArabic', fontWeight: 'normal', letterSpacing: 0 },
   sectionCount: { minWidth: 24, height: 24, borderRadius: 12, paddingHorizontal: 7, backgroundColor: '#EAF3FB', alignItems: 'center', justifyContent: 'center' },
   sectionCountText: { fontSize: 11, fontWeight: '900', color: '#185FA5' },
   sectionActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 2 },

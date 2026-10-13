@@ -21,7 +21,7 @@ const translations = {
     freeDay: "اليوم راحة، نتمنى لك يوماً سعيداً!",
     tasks: "مهام",
     allCaughtUp: "ممتاز! تم إنجاز جميع الواجبات.",
-    teacherRemarks: "ملاحظات وتوصيات المعلمين",
+    teacherRemarks: "ملاحظات اليوم",
     noRemarks: "لا توجد ملاحظات جديدة اليوم.",
     quickActions: "وصول سريع",
     examCenter: "مركز الامتحانات",
@@ -1720,6 +1720,9 @@ const SUBJECT_DICTIONARY: Record<string, { ar: string; fr: string; en: string }>
   'éveil scientifique': { ar: 'الإيقاظ العلمي', fr: 'Éveil Scientifique', en: 'Scientific Awakening' },
   'الإيقاظ العلمي': { ar: 'الإيقاظ العلمي', fr: 'Éveil Scientifique', en: 'Scientific Awakening' },
   'ايقاظ علمي': { ar: 'الإيقاظ العلمي', fr: 'Éveil Scientifique', en: 'Scientific Awakening' },
+  'free period': { ar: 'حصة فراغ', fr: 'Heure libre', en: 'Free Period' },
+  'free time': { ar: 'حصة فراغ', fr: 'Heure libre', en: 'Free Period' },
+  'study hall': { ar: 'حصة مطالعة', fr: 'Étude', en: 'Study Hall' },
   'العلوم': { ar: 'العلوم', fr: 'Sciences', en: 'Science' },
   'علوم': { ar: 'العلوم', fr: 'Sciences', en: 'Science' },
 

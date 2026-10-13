@@ -3,7 +3,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(),
 }));
 
-const { formatNotificationText } = require('../LanguageContext');
+const { formatNotificationText, formatSubjectName } = require('../LanguageContext');
 
 describe('notification language formatting', () => {
   it('removes legacy Arabic urgency markers from French announcements', () => {
@@ -29,5 +29,10 @@ describe('notification language formatting', () => {
     expect(formatNotificationText('📚 ملخص جديد: Chapitre 3', 'en')).toBe('New course material: Chapitre 3');
     expect(formatNotificationText('تمت إضافة مواد تعليمية جديدة في مادة Mathématiques.', 'fr'))
       .toBe('Un nouveau support a été ajouté en Mathématiques.');
+  });
+
+  it('localizes free periods instead of leaking English into Arabic', () => {
+    expect(formatSubjectName('Free Period', 'ar')).toBe('حصة فراغ');
+    expect(formatSubjectName('Free Period', 'fr')).toBe('Heure libre');
   });
 });

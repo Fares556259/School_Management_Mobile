@@ -559,20 +559,29 @@ export const studentService = {
     const home = await studentService.fetchHomeData(studentId, _date, 'day', signal);
     return {
       holidayName: home.holidayName || undefined,
-      sessions: (home.sessions || []).map((s: any, i: number) => ({
-        id: s.id || i,
-        subject: s.subject,
-        room: s.room,
-        startTime: s.startTime,
-        endTime: s.endTime,
-        time: `${s.startTime} - ${s.endTime}`,
-        attendance: s.attendance,
-        score: s.score || 0,
-        teacher: s.teacher,
-        iconName: 'Book',
-        color: '#0055d4',
-      })),
-      notes: (home.teacherRemarks || [])
+      sessions: (Array.isArray(home.sessions) ? home.sessions : []).map((s: any, i: number) => {
+        const teacherValue = s.teacher;
+        const teacherName = typeof teacherValue === 'string'
+          ? teacherValue.replace(/\[object Object\]/gi, '').trim()
+          : [teacherValue?.name || teacherValue?.firstName, teacherValue?.surname || teacherValue?.lastName]
+              .filter(Boolean)
+              .join(' ')
+              .trim();
+        return {
+          id: s.id || i,
+          subject: s.subject,
+          room: s.room,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          time: `${s.startTime} - ${s.endTime}`,
+          attendance: s.attendance,
+          score: s.score || 0,
+          teacher: teacherName || 'Teacher',
+          iconName: 'Book',
+          color: '#0055d4',
+        };
+      }),
+      notes: (Array.isArray(home.teacherRemarks) ? home.teacherRemarks : [])
         .filter((r: any) => r && r.note && !r.note.includes("AUTO_SYNCED") && !r.note.includes("INITIALIZED_BULK"))
         .map((r: any) => {
         let timeString = r.time || '';
@@ -584,7 +593,9 @@ export const studentService = {
           id: r.id,
           text: r.note,
           subject: r.subject,
-          author: r.teacher || 'Teacher',
+          author: typeof r.teacher === 'string'
+            ? (r.teacher.replace(/\[object Object\]/gi, '').trim() || 'Teacher')
+            : ([r.teacher?.name || r.teacher?.firstName, r.teacher?.surname || r.teacher?.lastName].filter(Boolean).join(' ').trim() || 'Teacher'),
           time: timeString
         };
       }),
