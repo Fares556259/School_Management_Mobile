@@ -179,17 +179,7 @@ export const NotificationsScreen = ({ navigation }: any) => {
       }
     }
 
-    if (item.type === 'HOMEWORK' && item.homeworkId && item.studentId) {
-      useAppStore.getState().setSelectedChildId(item.studentId);
-      navigation.navigate('HomeworkDetail', {
-        homework: { id: item.homeworkId },
-        studentId: item.studentId,
-      });
-    } else if (item.type === 'PAYMENT') {
-      navigation.navigate('MainTabs', { screen: 'Payments' });
-    } else {
-      navigation.navigate('NotificationDetail', { notification: item });
-    }
+    navigation.navigate('NotificationDetail', { notification: item });
   };
 
   const handleMarkAllAsRead = async () => {

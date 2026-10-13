@@ -74,6 +74,8 @@ export interface Notification {
   type: string;
   studentId?: string | null;
   homeworkId?: number;
+  noticeId?: number;
+  resourceId?: number;
   studentName: string;
   studentAvatar?: string | null;
   title?: string;

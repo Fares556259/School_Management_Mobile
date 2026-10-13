@@ -3,12 +3,14 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLanguage } from '../context/LanguageContext';
 import { ChevronLeft, ChevronRight, AlertTriangle, Calendar, Bell, Info, MessageCircle } from 'lucide-react-native';
+import { useAppStore } from '../store/useAppStore';
 
 const ICON_CONFIG: Record<string, { icon: any, color: string, bgColor: string }> = {
   URGENT: { icon: AlertTriangle, color: '#ef4444', bgColor: '#fee2e2' },
   ANNOUNCEMENT: { icon: Info, color: '#0055d4', bgColor: '#eff6ff' },
   ATTENDANCE: { icon: AlertTriangle, color: '#ef4444', bgColor: '#fee2e2' },
   PAYMENT: { icon: Calendar, color: '#f59e0b', bgColor: '#fef3c7' },
+  RESOURCE: { icon: Info, color: '#416C9B', bgColor: '#EDF3F8' },
   MESSAGE: { icon: Bell, color: '#0055d4', bgColor: '#eff6ff' },
   REMARK: { icon: MessageCircle, color: '#8b5cf6', bgColor: '#f5f3ff' },
   DEFAULT: { icon: Bell, color: '#64748b', bgColor: '#f1f5f9' },
@@ -24,8 +26,10 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
     time: 'À l\'instant',
   };
   const { t, isRTL, language, formatNotification } = useLanguage();
+  const setSelectedChildId = useAppStore((state) => state.setSelectedChildId);
+  const isResource = notification.type === 'RESOURCE' || /(?:ملخص جديد|nouveau support|new course material)/i.test(notification.title || '');
   const isUrgent = /(?:عاجل|URGENT)/i.test(`${notification.title || ''} ${notification.message || ''}`);
-  const config = isUrgent ? ICON_CONFIG.URGENT : (ICON_CONFIG[notification.type] || ICON_CONFIG.DEFAULT);
+  const config = isUrgent ? ICON_CONFIG.URGENT : (isResource ? ICON_CONFIG.RESOURCE : (ICON_CONFIG[notification.type] || ICON_CONFIG.DEFAULT));
   const Icon = config.icon;
 
   const isAttendance = notification.type === 'ATTENDANCE' || (notification.message || '').includes('missed');
@@ -45,10 +49,13 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
     MESSAGE: { ar: 'رسالة من الإدارة', fr: 'Message', en: 'Message' },
     REMARK: { ar: 'ملاحظة تربوية', fr: 'Remarque', en: 'Teacher note' },
     PAYMENT: { ar: 'الدفع', fr: 'Paiement', en: 'Payment' },
+    RESOURCE: { ar: 'مورد دراسي', fr: 'Support de cours', en: 'Course material' },
   };
   const typeLabel = isUrgent
     ? (language === 'ar' ? 'عاجل' : language === 'fr' ? 'Urgent' : 'Urgent')
-    : (typeLabels[notification.type]?.[language] || (language === 'ar' ? 'إشعار' : language === 'fr' ? 'Notification' : 'Notification'));
+    : (isResource
+      ? typeLabels.RESOURCE[language]
+      : (typeLabels[notification.type]?.[language] || (language === 'ar' ? 'إشعار' : language === 'fr' ? 'Notification' : 'Notification')));
   const createdAt = new Date(notification.createdAt || notification.rawDate || Date.now());
   const timeLabel = Number.isNaN(createdAt.getTime())
     ? ''
@@ -67,6 +74,33 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
       return { id: i, date, subject: subject.trim(), time: (time || 'Session').trim() };
     });
   }
+
+  const action = (() => {
+    if (isResource) return {
+      label: language === 'ar' ? 'فتح المواد والدروس' : language === 'fr' ? 'Ouvrir les cours' : 'Open courses',
+      run: () => navigation.navigate('MainTabs', { screen: 'Courses' }),
+    };
+    if (notification.type === 'ATTENDANCE') return {
+      label: language === 'ar' ? 'عرض سجل الحضور' : language === 'fr' ? 'Voir les présences' : 'View attendance',
+      run: () => navigation.navigate('Attendance'),
+    };
+    if (notification.type === 'HOMEWORK' && notification.homeworkId && notification.studentId) return {
+      label: language === 'ar' ? 'فتح الواجب' : language === 'fr' ? 'Ouvrir le devoir' : 'Open homework',
+      run: () => {
+        setSelectedChildId(notification.studentId);
+        navigation.navigate('HomeworkDetail', { homework: { id: notification.homeworkId }, studentId: notification.studentId });
+      },
+    };
+    if (notification.type === 'PAYMENT') return {
+      label: language === 'ar' ? 'عرض الدفوعات' : language === 'fr' ? 'Voir les paiements' : 'View payments',
+      run: () => navigation.navigate('MainTabs', { screen: 'Payments' }),
+    };
+    if (notification.type === 'ANNOUNCEMENT') return {
+      label: language === 'ar' ? 'عرض إعلانات المدرسة' : language === 'fr' ? 'Voir les annonces' : 'View announcements',
+      run: () => navigation.navigate('MainTabs', { screen: 'Announcements' }),
+    };
+    return null;
+  })();
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -139,18 +173,14 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
               </Text>
             </View>
 
-            {notification.message?.toLowerCase().includes('task') && (
-              <TouchableOpacity
-                onPress={() => navigation.navigate('MainTabs', {
-                  screen: 'Home',
-                  params: { targetDate: notification.rawDate, scrollTo: 'tasks' }
-                })}
-                style={[styles.callButton, { backgroundColor: '#0055d4', borderWidth: 0, marginTop: 24, marginHorizontal: 0 }]}
-              >
-                <Text style={[styles.callButtonText, { color: 'white' }]}>{t.viewTask}</Text>
-              </TouchableOpacity>
-            )}
           </View>
+        )}
+
+        {action && (
+          <TouchableOpacity onPress={action.run} activeOpacity={0.85} style={[styles.contextAction, isRTL && { flexDirection: 'row-reverse' }]}>
+            <Text style={styles.contextActionText}>{action.label}</Text>
+            <ChevronRight size={18} color="#FFFFFF" style={{ transform: [{ rotate: isRTL ? '180deg' : '0deg' }] }} />
+          </TouchableOpacity>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -196,6 +226,8 @@ const styles = StyleSheet.create({
   announcementContainer: { paddingHorizontal: 20 },
   messageBubble: { backgroundColor: '#FFFFFF', borderRadius: 18, padding: 18, borderWidth: 1, borderColor: '#E4E9F0' },
   announcementMessage: { fontSize: 15, color: '#435064', lineHeight: 24, fontWeight: '500' },
+  contextAction: { height: 52, marginHorizontal: 20, marginTop: 16, paddingHorizontal: 18, borderRadius: 15, backgroundColor: '#0B57D0', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  contextActionText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
   emptyContainer: { paddingHorizontal: 24, paddingVertical: 20, alignItems: 'center' },
   emptyText: { color: '#94a3b8', fontSize: 14, fontStyle: 'italic' }
 });
