@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Image, Dimensions, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   Calculator, Book, Languages, Globe, Palette, Microscope, Music, BookOpen, 
-  FileText, Download, ChevronDown, ChevronUp, X, Share2, Eye, LibraryBig
+  FileText, Download, ChevronDown, ChevronUp, X, Share2, Eye
 } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
@@ -34,12 +34,12 @@ const SUBJECT_THEMES: Record<string, { icon: any }> = {
 };
 
 const DOMAIN_GROUPS = [
-  { id: 'SCIENCES', title: 'SCIENCES', color: '#0055d4', bg: '#eff6ff', keywords: ['Science', 'Math', 'الإيقاظ', 'الرياضيات', 'Scientifique', 'Mathématiques', 'إعلامية', 'تكنولوجية'] },
-  { id: 'LANGUAGES', title: 'LANGUAGES', color: '#0055d4', bg: '#eff6ff', keywords: ['Language', 'Arabe', 'Français', 'English', 'اللغة'] },
-  { id: 'ARTS_TECH', title: 'ARTS & TECHNOLOGY', color: '#0055d4', bg: '#eff6ff', keywords: ['Art', 'Technologique', 'Musicale', 'تكنولوجية', 'موسيقية', 'تشكيلية', 'Plastiques', 'فنية'] },
-  { id: 'HUMANITIES', title: 'HUMANITIES', color: '#0055d4', bg: '#eff6ff', keywords: ['History', 'Geography', 'التاريخ', 'الجغرافيا', 'Histoire', 'Géographie'] },
-  { id: 'RELIGION', title: 'RELIGION & VALUES', color: '#0055d4', bg: '#eff6ff', keywords: ['Islamique', 'Civique', 'إسلامية', 'مدنية'] },
-  { id: 'SPORT', title: 'SPORT', color: '#0055d4', bg: '#eff6ff', keywords: ['Sport', 'Physique', 'بدنية'] },
+  { id: 'SCIENCES', title: 'SCIENCES', color: '#0b57d0', bg: '#eff6ff', keywords: ['Science', 'Math', 'الإيقاظ', 'الرياضيات', 'Scientifique', 'Mathématiques', 'إعلامية', 'تكنولوجية'] },
+  { id: 'LANGUAGES', title: 'LANGUAGES', color: '#174ea6', bg: '#eef4ff', keywords: ['Language', 'Arabe', 'Français', 'English', 'اللغة'] },
+  { id: 'ARTS_TECH', title: 'ARTS & TECHNOLOGY', color: '#5b45af', bg: '#f5f3ff', keywords: ['Art', 'Technologique', 'Musicale', 'تكنولوجية', 'موسيقية', 'تشكيلية', 'Plastiques', 'فنية'] },
+  { id: 'HUMANITIES', title: 'HUMANITIES', color: '#146c75', bg: '#ecfeff', keywords: ['History', 'Geography', 'التاريخ', 'الجغرافيا', 'Histoire', 'Géographie'] },
+  { id: 'RELIGION', title: 'RELIGION & VALUES', color: '#7c4a03', bg: '#fffbeb', keywords: ['Islamique', 'Civique', 'إسلامية', 'مدنية'] },
+  { id: 'SPORT', title: 'SPORT', color: '#126b4f', bg: '#ecfdf5', keywords: ['Sport', 'Physique', 'بدنية'] },
 ];
 
 const getSubjectDomain = (subjectName: string) => {
@@ -48,7 +48,7 @@ const getSubjectDomain = (subjectName: string) => {
       return domain;
     }
   }
-  return { id: 'OTHER', title: 'OTHER SUBJECTS', color: '#0055d4', bg: '#eff6ff', keywords: [] };
+  return { id: 'OTHER', title: 'OTHER SUBJECTS', color: '#334155', bg: '#f1f5f9', keywords: [] };
 };
 
 export const CoursesScreen = ({ navigation }: any) => {
@@ -129,20 +129,15 @@ export const CoursesScreen = ({ navigation }: any) => {
     setExpandedCourses(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const groupedCourses = useMemo(() => {
-    const groups: Record<string, typeof courses> = {};
-    courses.forEach(c => {
-      const domain = getSubjectDomain(c.name);
-      if (!groups[domain.id]) groups[domain.id] = [];
-      groups[domain.id].push(c);
-    });
-    
-    const sortedGroups = DOMAIN_GROUPS.map(d => ({ domain: d, items: groups[d.id] || [] })).filter(g => g.items.length > 0);
-    if (groups['OTHER'] && groups['OTHER'].length > 0) {
-      sortedGroups.push({ domain: getSubjectDomain('OTHER'), items: groups['OTHER'] });
-    }
-    return sortedGroups;
-  }, [courses]);
+  const getDomainTitle = (domain: ReturnType<typeof getSubjectDomain>) => (
+    domain.id === 'SCIENCES' ? ((t as any).domainSciences || domain.title) :
+    domain.id === 'LANGUAGES' ? ((t as any).domainLanguages || domain.title) :
+    domain.id === 'ARTS_TECH' ? ((t as any).domainArtsTech || domain.title) :
+    domain.id === 'HUMANITIES' ? ((t as any).domainHumanities || domain.title) :
+    domain.id === 'RELIGION' ? ((t as any).domainReligion || domain.title) :
+    domain.id === 'SPORT' ? ((t as any).domainSport || domain.title) :
+    ((t as any).domainOther || domain.title)
+  );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f6f8fb' }}>
@@ -151,58 +146,49 @@ export const CoursesScreen = ({ navigation }: any) => {
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 18, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={{ marginBottom: 22, width: '100%' }}>
-          <Text style={{ fontSize: 11, fontWeight: '800', color: '#0055d4', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 5, textAlign: isRTL ? 'right' : 'left' }}>
-            {(t as any).academicPortal || 'ACADEMIC PORTAL'}
-          </Text>
-          <Text style={{ fontSize: 28, fontWeight: '800', color: '#0f172a', letterSpacing: -0.4, textAlign: isRTL ? 'right' : 'left' }}>{(t as any).coursesHub || 'Courses Hub'}</Text>
-          <Text style={{ fontSize: 14, color: '#64748b', marginTop: 5, fontWeight: '500', lineHeight: 20, textAlign: isRTL ? 'right' : 'left' }}>
-            {(t as any).coursesSub || 'Your registered courses'} {child?.name || 'التلميذ'}.
+        <View style={{ marginBottom: 20, width: '100%' }}>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'flex-end' }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 11, fontWeight: '800', color: '#0b57d0', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 5, textAlign: isRTL ? 'right' : 'left' }}>
+                {(t as any).academicPortal || 'ESPACE DE CLASSE'}
+              </Text>
+              <Text style={{ fontSize: 28, fontWeight: '800', color: '#0f172a', letterSpacing: -0.4, textAlign: isRTL ? 'right' : 'left' }}>
+                {(t as any).coursesHub || 'Mes cours'}
+              </Text>
+            </View>
+            {!!child?.class && (
+              <View style={{ backgroundColor: '#e8f0fe', borderRadius: 12, paddingHorizontal: 11, paddingVertical: 7, marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0 }}>
+                <Text style={{ color: '#174ea6', fontSize: 12, fontWeight: '800' }}>{child.class}</Text>
+              </View>
+            )}
+          </View>
+          <Text style={{ fontSize: 14, color: '#64748b', marginTop: 6, fontWeight: '500', lineHeight: 20, textAlign: isRTL ? 'right' : 'left' }}>
+            {(t as any).coursesSub || 'Cours et documents pour'} {child?.name || 'التلميذ'}.
           </Text>
         </View>
 
         {loading && courses.length === 0 ? (
           <View style={{ gap: 14 }}>
-            {[0, 1].map((groupIndex) => (
+            {[0, 1, 2].map((cardIndex) => (
               <View
-                key={groupIndex}
+                key={cardIndex}
                 style={{
                   backgroundColor: 'white',
-                  borderRadius: 22,
-                  padding: 16,
+                  borderRadius: 20,
+                  overflow: 'hidden',
                   borderWidth: 1,
                   borderColor: '#e2e8f0',
                 }}
               >
-                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginBottom: 8 }}>
-                  <SkeletonBlock width={34} height={34} borderRadius={10} />
-                  <SkeletonBlock
-                    width={groupIndex === 0 ? 104 : 82}
-                    height={14}
-                    borderRadius={7}
-                    style={{ marginHorizontal: 10 }}
-                  />
+                <View style={{ height: 112, padding: 18, backgroundColor: '#e8eef6' }}>
+                  <SkeletonBlock width={74} height={18} borderRadius={9} marginBottom={14} />
+                  <SkeletonBlock width={cardIndex === 1 ? 180 : 214} height={22} borderRadius={8} marginBottom={9} />
+                  <SkeletonBlock width={128} height={12} borderRadius={6} />
                 </View>
-                {[0, 1, 2].map((rowIndex) => (
-                  <View
-                    key={rowIndex}
-                    style={{
-                      flexDirection: isRTL ? 'row-reverse' : 'row',
-                      alignItems: 'center',
-                      paddingVertical: 14,
-                      borderTopWidth: rowIndex === 0 ? 0 : 1,
-                      borderTopColor: '#eef2f7',
-                    }}
-                  >
-                    <SkeletonBlock width={42} height={42} borderRadius={12} />
-                    <View style={{ flex: 1, marginHorizontal: 12, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
-                      <SkeletonBlock width={rowIndex === 1 ? 126 : 152} height={16} borderRadius={8} marginBottom={7} />
-                      <SkeletonBlock width={110} height={11} borderRadius={6} />
-                    </View>
-                    <SkeletonBlock width={52} height={28} borderRadius={10} />
-                  </View>
-                ))}
+                <View style={{ height: 56, paddingHorizontal: 18, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <SkeletonBlock width={94} height={14} borderRadius={7} />
+                  <SkeletonBlock width={74} height={28} borderRadius={10} />
+                </View>
               </View>
             ))}
           </View>
@@ -218,122 +204,133 @@ export const CoursesScreen = ({ navigation }: any) => {
           </View>
         ) : (
           <View style={{ gap: 14 }}>
-            {groupedCourses.map((group) => (
-              <View key={group.domain.id} style={{ backgroundColor: 'white', borderRadius: 22, padding: 16, borderWidth: 1, borderColor: '#e2e8f0', shadowColor: '#0f172a', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 1 }}>
-                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginBottom: 8, paddingHorizontal: 2 }}>
-                  <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginRight: isRTL ? 0 : 10, marginLeft: isRTL ? 10 : 0 }}>
-                    <LibraryBig size={17} color="#0055d4" strokeWidth={2.3} />
-                  </View>
-                  <Text style={{ flex: 1, color: '#0f172a', fontWeight: '800', fontSize: 14, letterSpacing: 0.4, textAlign: isRTL ? 'right' : 'left' }}>
-                    {group.domain.id === 'SCIENCES' ? ((t as any).domainSciences || group.domain.title) :
-                     group.domain.id === 'LANGUAGES' ? ((t as any).domainLanguages || group.domain.title) :
-                     group.domain.id === 'ARTS_TECH' ? ((t as any).domainArtsTech || group.domain.title) :
-                     group.domain.id === 'HUMANITIES' ? ((t as any).domainHumanities || group.domain.title) :
-                     group.domain.id === 'RELIGION' ? ((t as any).domainReligion || group.domain.title) :
-                     group.domain.id === 'SPORT' ? ((t as any).domainSport || group.domain.title) :
-                     group.domain.id === 'OTHER' ? ((t as any).domainOther || group.domain.title) : group.domain.title}
-                  </Text>
-                  <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999 }}>
-                    <Text style={{ color: '#64748b', fontSize: 11, fontWeight: '700' }}>{group.items.length}</Text>
-                  </View>
-                </View>
-                
-                <View>
-                  {group.items.map((course, index) => {
-                    const theme = Object.values(SUBJECT_THEMES).find((tTheme: any) => course.name.includes(Object.keys(SUBJECT_THEMES).find(k => SUBJECT_THEMES[k] === tTheme) || '')) || SUBJECT_THEMES.Default;
-                    const ThemeIcon = theme.icon;
-                    const arabicName = getTranslatedSubject(course.name);
-                    const isExpanded = expandedCourses[course.id];
+            {courses.map((course) => {
+              const domain = getSubjectDomain(course.name);
+              const themeKey = Object.keys(SUBJECT_THEMES).find((key) =>
+                key !== 'Default' && course.name.toLowerCase().includes(key.toLowerCase())
+              );
+              const ThemeIcon = SUBJECT_THEMES[themeKey || 'Default'].icon;
+              const courseName = getTranslatedSubject(course.name);
+              const isExpanded = expandedCourses[course.id];
+              const resources = course.resources || [];
+              const newCount = resources.filter((resource: any) => !viewedResources.includes(resource.id.toString())).length;
+              const teacherName = course.teacher === 'Multiple Teachers'
+                ? (isRTL ? 'الفريق التربوي' : 'Équipe pédagogique')
+                : (course.teacher || '—');
 
-                    return (
-                      <View key={course.id} style={{ borderTopWidth: index === 0 ? 0 : 1, borderTopColor: '#eef2f7' }}>
-                        <TouchableOpacity
-                          activeOpacity={0.8}
-                          onPress={() => toggleCourse(course.id)}
-                          style={{
-                            flexDirection: isRTL ? 'row-reverse' : 'row',
-                            alignItems: 'center',
-                            paddingVertical: 14,
-                          }}
-                        >
-                          <View style={{ width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: group.domain.bg, borderWidth: 1, borderColor: '#bfdbfe' }}>
-                            <ThemeIcon color={group.domain.color} size={20} strokeWidth={2.5} />
-                          </View>
-                          <View style={{ flex: 1, marginHorizontal: 12, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
-                            <Text style={{ fontSize: 16, fontWeight: '800', color: '#1e293b' }}>{arabicName}</Text>
-                            <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '500', marginTop: 3 }} numberOfLines={1}>
-                              {(t as any).teacher || 'Teacher'}: {course.teacher === 'Multiple Teachers' ? (isRTL ? 'الفريق التربوي' : 'Équipe pédagogique') : (course.teacher || '—')}
+              return (
+                <View
+                  key={course.id}
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: 20,
+                    overflow: 'hidden',
+                    borderWidth: 1,
+                    borderColor: '#dfe5ed',
+                    shadowColor: '#0f172a',
+                    shadowOffset: { width: 0, height: 3 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 10,
+                    elevation: 2,
+                  }}
+                >
+                  <TouchableOpacity activeOpacity={0.9} onPress={() => toggleCourse(course.id)}>
+                    <View style={{ minHeight: 118, padding: 18, backgroundColor: domain.color }}>
+                      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'flex-start' }}>
+                        <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                          <View style={{ backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 12 }}>
+                            <Text style={{ color: 'white', fontSize: 10, fontWeight: '800', letterSpacing: 0.6 }}>
+                              {getDomainTitle(domain)}
                             </Text>
                           </View>
-                          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: '#f8fafc', paddingHorizontal: 9, paddingVertical: 6, borderRadius: 10, gap: 5 }}>
-                            <Text style={{ fontSize: 12, fontWeight: '800', color: '#334155' }}>{course.resources?.length || 0}</Text>
-                            <FileText size={13} color="#94a3b8" />
-                            {isExpanded ? <ChevronUp size={15} color="#64748b" /> : <ChevronDown size={15} color="#64748b" />}
-                          </View>
-                        </TouchableOpacity>
+                          <Text style={{ color: 'white', fontSize: 21, fontWeight: '900', letterSpacing: -0.2, textAlign: isRTL ? 'right' : 'left' }} numberOfLines={2}>
+                            {courseName}
+                          </Text>
+                          <Text style={{ color: 'rgba(255,255,255,0.82)', fontSize: 12, fontWeight: '600', marginTop: 6, textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>
+                            {teacherName}
+                          </Text>
+                        </View>
+                        <View style={{ width: 48, height: 48, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center', marginLeft: isRTL ? 0 : 14, marginRight: isRTL ? 14 : 0 }}>
+                          <ThemeIcon color="white" size={24} strokeWidth={2.2} />
+                        </View>
+                      </View>
+                    </View>
 
-                        {/* Resources Expanded View */}
-                        {isExpanded && course.resources?.length > 0 && (
-                          <View style={{ paddingBottom: 10, paddingLeft: isRTL ? 0 : 54, paddingRight: isRTL ? 54 : 0 }}>
-                            {course.resources.map((res: any, idx: number) => {
-                              const isNew = !viewedResources.includes(res.id.toString());
-                              const ext = res.url?.split('.').pop()?.toLowerCase();
-                              const isPdf = ext === 'pdf';
-                              const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext || '');
-
-                              return (
-                                <TouchableOpacity
-                                  key={res.id}
-                                  onPress={() => handleOpenResource(res, arabicName)}
-                                  activeOpacity={0.85}
-                                  style={{
-                                    flexDirection: isRTL ? 'row-reverse' : 'row',
-                                    alignItems: 'center',
-                                    borderRadius: 12,
-                                    padding: 11,
-                                    marginBottom: 7,
-                                    borderWidth: 1,
-                                    borderColor: isNew ? '#bfdbfe' : '#f1f5f9',
-                                    backgroundColor: isNew ? '#eff6ff' : '#f8fafc',
-                                  }}
-                                >
-                                  <View style={{
-                                    width: 40, height: 40, borderRadius: 10,
-                                    backgroundColor: isPdf ? '#fee2e2' : isImage ? '#dbeafe' : '#f1f5f9',
-                                    alignItems: 'center', justifyContent: 'center',
-                                    marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0
-                                  }}>
-                                    {isPdf ? (
-                                      <FileText color="#ef4444" size={18} />
-                                    ) : isImage ? (
-                                      <Eye color="#0055d4" size={18} />
-                                    ) : (
-                                      <FileText color={isNew ? "#3b82f6" : "#64748b"} size={18} />
-                                    )}
-                                  </View>
-                                  <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
-                                    <Text style={{ fontSize: 14, fontWeight: '800', color: '#1e293b' }} numberOfLines={1}>{res.title}</Text>
-                                    <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '700', marginTop: 2 }}>{moment(res.createdAt).format('MMM D, YYYY')}</Text>
-                                  </View>
-                                  <View style={{ width: 34, height: 34, alignItems: 'center', justifyContent: 'center', backgroundColor: 'white', borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0' }}>
-                                    {openingResourceId === res.id ? <ActivityIndicator size="small" color="#0055d4" /> : <Download color="#0055d4" size={16} />}
-                                  </View>
-                                </TouchableOpacity>
-                              );
-                            })}
-                          </View>
-                        )}
-                        {isExpanded && course.resources?.length === 0 && (
-                          <View style={{ paddingVertical: 16, alignItems: 'center' }}>
-                            <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>{(t as any).noFiles || 'No materials available'}</Text>
+                    <View style={{ minHeight: 58, paddingHorizontal: 18, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
+                      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', flex: 1 }}>
+                        <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: domain.bg, alignItems: 'center', justifyContent: 'center' }}>
+                          <FileText size={16} color={domain.color} />
+                        </View>
+                        <Text style={{ marginHorizontal: 9, color: '#334155', fontSize: 13, fontWeight: '800' }}>
+                          {resources.length} {resources.length === 1 ? 'document' : 'documents'}
+                        </Text>
+                        {newCount > 0 && (
+                          <View style={{ backgroundColor: '#e8f0fe', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 }}>
+                            <Text style={{ color: '#174ea6', fontSize: 10, fontWeight: '900' }}>{newCount} nouveau</Text>
                           </View>
                         )}
                       </View>
-                    );
-                  })}
+                      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
+                        <Text style={{ color: '#0b57d0', fontSize: 12, fontWeight: '800', marginRight: isRTL ? 0 : 6, marginLeft: isRTL ? 6 : 0 }}>
+                          {isExpanded ? 'Fermer' : 'Ouvrir'}
+                        </Text>
+                        {isExpanded ? <ChevronUp size={17} color="#0b57d0" /> : <ChevronDown size={17} color="#0b57d0" />}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+
+                  {isExpanded && (
+                    <View style={{ borderTopWidth: 1, borderTopColor: '#edf1f5', padding: 14, backgroundColor: '#fbfcfe' }}>
+                      {resources.length > 0 ? resources.map((res: any) => {
+                        const isNew = !viewedResources.includes(res.id.toString());
+                        const ext = res.url?.split('?')[0].split('.').pop()?.toLowerCase();
+                        const isPdf = ext === 'pdf';
+                        const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext || '');
+
+                        return (
+                          <TouchableOpacity
+                            key={res.id}
+                            onPress={() => handleOpenResource(res, courseName)}
+                            activeOpacity={0.82}
+                            style={{
+                              flexDirection: isRTL ? 'row-reverse' : 'row',
+                              alignItems: 'center',
+                              borderRadius: 13,
+                              padding: 11,
+                              marginBottom: 8,
+                              borderWidth: 1,
+                              borderColor: isNew ? '#b8cdf8' : '#e2e8f0',
+                              backgroundColor: 'white',
+                            }}
+                          >
+                            <View style={{ width: 40, height: 40, borderRadius: 11, backgroundColor: isPdf ? '#fff1f0' : isImage ? '#eef4ff' : domain.bg, alignItems: 'center', justifyContent: 'center', marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }}>
+                              {isImage ? <Eye color={domain.color} size={18} /> : <FileText color={isPdf ? '#d93025' : domain.color} size={18} />}
+                            </View>
+                            <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
+                                <Text style={{ flexShrink: 1, fontSize: 14, fontWeight: '800', color: '#172033' }} numberOfLines={1}>{res.title}</Text>
+                                {isNew && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#0b57d0', marginHorizontal: 7 }} />}
+                              </View>
+                              <Text style={{ fontSize: 11, color: '#718096', fontWeight: '600', marginTop: 3 }}>{moment(res.createdAt).format('D MMM YYYY')}</Text>
+                            </View>
+                            <View style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', borderRadius: 11, borderWidth: 1, borderColor: '#e2e8f0' }}>
+                              {openingResourceId === res.id ? <ActivityIndicator size="small" color="#0b57d0" /> : <Download color="#0b57d0" size={17} />}
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      }) : (
+                        <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: domain.bg, alignItems: 'center', justifyContent: 'center', marginBottom: 9 }}>
+                            <FileText size={20} color={domain.color} />
+                          </View>
+                          <Text style={{ color: '#64748b', fontSize: 13, fontWeight: '700' }}>{(t as any).noFiles || 'Aucun document disponible'}</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         )}
       </ScrollView>
