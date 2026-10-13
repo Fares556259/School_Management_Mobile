@@ -34,12 +34,12 @@ const SUBJECT_THEMES: Record<string, { icon: any }> = {
 };
 
 const DOMAIN_GROUPS = [
-  { id: 'SCIENCES', title: 'SCIENCES', color: '#0b57d0', bg: '#eff6ff', keywords: ['Science', 'Math', 'الإيقاظ', 'الرياضيات', 'Scientifique', 'Mathématiques', 'إعلامية', 'تكنولوجية'] },
-  { id: 'LANGUAGES', title: 'LANGUAGES', color: '#174ea6', bg: '#eef4ff', keywords: ['Language', 'Arabe', 'Français', 'English', 'اللغة'] },
-  { id: 'ARTS_TECH', title: 'ARTS & TECHNOLOGY', color: '#5b45af', bg: '#f5f3ff', keywords: ['Art', 'Technologique', 'Musicale', 'تكنولوجية', 'موسيقية', 'تشكيلية', 'Plastiques', 'فنية'] },
-  { id: 'HUMANITIES', title: 'HUMANITIES', color: '#146c75', bg: '#ecfeff', keywords: ['History', 'Geography', 'التاريخ', 'الجغرافيا', 'Histoire', 'Géographie'] },
-  { id: 'RELIGION', title: 'RELIGION & VALUES', color: '#7c4a03', bg: '#fffbeb', keywords: ['Islamique', 'Civique', 'إسلامية', 'مدنية'] },
-  { id: 'SPORT', title: 'SPORT', color: '#126b4f', bg: '#ecfdf5', keywords: ['Sport', 'Physique', 'بدنية'] },
+  { id: 'SCIENCES', title: 'SCIENCES', color: '#416C9B', bg: '#EDF3F8', soft: '#DCE8F2', border: '#D7E3ED', keywords: ['Science', 'Math', 'الإيقاظ', 'الرياضيات', 'Scientifique', 'Mathématiques', 'إعلامية', 'تكنولوجية'] },
+  { id: 'LANGUAGES', title: 'LANGUAGES', color: '#4E6590', bg: '#F0F3F8', soft: '#E0E6F0', border: '#DCE2EB', keywords: ['Language', 'Arabe', 'Français', 'English', 'اللغة'] },
+  { id: 'ARTS_TECH', title: 'ARTS & TECHNOLOGY', color: '#74658E', bg: '#F5F2F7', soft: '#E9E3EE', border: '#E3DCE8', keywords: ['Art', 'Technologique', 'Musicale', 'تكنولوجية', 'موسيقية', 'تشكيلية', 'Plastiques', 'فنية'] },
+  { id: 'HUMANITIES', title: 'HUMANITIES', color: '#4F7478', bg: '#EFF5F4', soft: '#DDEAE8', border: '#D8E6E3', keywords: ['History', 'Geography', 'التاريخ', 'الجغرافيا', 'Histoire', 'Géographie'] },
+  { id: 'RELIGION', title: 'RELIGION & VALUES', color: '#836943', bg: '#F8F4EC', soft: '#EDE3D2', border: '#E9DFCE', keywords: ['Islamique', 'Civique', 'إسلامية', 'مدنية'] },
+  { id: 'SPORT', title: 'SPORT', color: '#4F7664', bg: '#EFF5F1', soft: '#DDEAE2', border: '#D7E5DC', keywords: ['Sport', 'Physique', 'بدنية'] },
 ];
 
 const getSubjectDomain = (subjectName: string) => {
@@ -48,7 +48,7 @@ const getSubjectDomain = (subjectName: string) => {
       return domain;
     }
   }
-  return { id: 'OTHER', title: 'OTHER SUBJECTS', color: '#334155', bg: '#f1f5f9', keywords: [] };
+  return { id: 'OTHER', title: 'OTHER SUBJECTS', color: '#5C6878', bg: '#F3F5F7', soft: '#E5E9ED', border: '#DEE3E8', keywords: [] };
 };
 
 export const CoursesScreen = ({ navigation }: any) => {
@@ -226,32 +226,46 @@ export const CoursesScreen = ({ navigation }: any) => {
                     borderRadius: 20,
                     overflow: 'hidden',
                     borderWidth: 1,
-                    borderColor: '#dfe5ed',
+                    borderColor: domain.border,
                     shadowColor: '#0f172a',
-                    shadowOffset: { width: 0, height: 3 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 10,
-                    elevation: 2,
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.035,
+                    shadowRadius: 8,
+                    elevation: 1,
                   }}
                 >
                   <TouchableOpacity activeOpacity={0.9} onPress={() => toggleCourse(course.id)}>
-                    <View style={{ minHeight: 118, padding: 18, backgroundColor: domain.color }}>
+                    <View style={{ minHeight: 118, padding: 18, backgroundColor: domain.bg }}>
+                      <View
+                        style={{
+                          position: 'absolute',
+                          top: 18,
+                          bottom: 18,
+                          [isRTL ? 'right' : 'left']: 0,
+                          width: 4,
+                          borderTopRightRadius: isRTL ? 0 : 4,
+                          borderBottomRightRadius: isRTL ? 0 : 4,
+                          borderTopLeftRadius: isRTL ? 4 : 0,
+                          borderBottomLeftRadius: isRTL ? 4 : 0,
+                          backgroundColor: domain.color,
+                        }}
+                      />
                       <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'flex-start' }}>
                         <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
-                          <View style={{ backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 12 }}>
-                            <Text style={{ color: 'white', fontSize: 10, fontWeight: '800', letterSpacing: 0.6 }}>
+                          <View style={{ backgroundColor: domain.soft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 12 }}>
+                            <Text style={{ color: domain.color, fontSize: 10, fontWeight: '800', letterSpacing: 0.6 }}>
                               {getDomainTitle(domain)}
                             </Text>
                           </View>
-                          <Text style={{ color: 'white', fontSize: 21, fontWeight: '900', letterSpacing: -0.2, textAlign: isRTL ? 'right' : 'left' }} numberOfLines={2}>
+                          <Text style={{ color: '#172033', fontSize: 21, fontWeight: '900', letterSpacing: -0.2, textAlign: isRTL ? 'right' : 'left' }} numberOfLines={2}>
                             {courseName}
                           </Text>
-                          <Text style={{ color: 'rgba(255,255,255,0.82)', fontSize: 12, fontWeight: '600', marginTop: 6, textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>
+                          <Text style={{ color: '#657184', fontSize: 12, fontWeight: '600', marginTop: 6, textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>
                             {teacherName}
                           </Text>
                         </View>
-                        <View style={{ width: 48, height: 48, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center', marginLeft: isRTL ? 0 : 14, marginRight: isRTL ? 14 : 0 }}>
-                          <ThemeIcon color="white" size={24} strokeWidth={2.2} />
+                        <View style={{ width: 48, height: 48, borderRadius: 15, backgroundColor: domain.soft, alignItems: 'center', justifyContent: 'center', marginLeft: isRTL ? 0 : 14, marginRight: isRTL ? 14 : 0 }}>
+                          <ThemeIcon color={domain.color} size={24} strokeWidth={2.2} />
                         </View>
                       </View>
                     </View>
