@@ -483,9 +483,13 @@ export default function App() {
       return;
     }
     if (data.type === 'HOMEWORK' && data.homeworkId) {
+      const targetStudentId = data.studentId || useAppStore.getState().selectedChildId;
+      if (data.studentId) {
+        useAppStore.getState().setSelectedChildId(data.studentId);
+      }
       (navigationRef as any).navigate('HomeworkDetail', { 
         homework: { id: data.homeworkId },
-        studentId: data.studentId
+        studentId: targetStudentId
       });
     } else if (data.type === 'RESOURCE' && data.resourceId) {
       (navigationRef as any).navigate('Courses');

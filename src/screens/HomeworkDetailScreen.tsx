@@ -17,17 +17,17 @@ import {
   Paperclip, 
   BookOpen, 
   User, 
-  AlertCircle,
-  Sparkles
+  AlertCircle
 } from 'lucide-react-native';
 import { downloadAndPreviewPDF } from '../utils/fileUtils';
 import * as ImagePicker from 'expo-image-picker';
-import { formatLocalDateKey } from '../utils/dateUtils';
+import { useQueryClient } from '@tanstack/react-query';
 
 const { width } = Dimensions.get('window');
 
 export const HomeworkDetailScreen = ({ route, navigation }: any) => {
   const { homework: initialHomework } = route.params;
+  const queryClient = useQueryClient();
   const [homework, setHomework] = React.useState(initialHomework);
   const [loading, setLoading] = React.useState(!initialHomework.title);
   const [downloading, setDownloading] = React.useState<string | null>(null);
@@ -55,6 +55,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
 
   // Fetch task status
   React.useEffect(() => {
+    if (!initialHomework.title) return;
     if (!homework.id || !studentId) {
       setStatusLoading(false);
       return;
@@ -79,7 +80,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
       }
     };
     checkStatus();
-  }, [homework.id, studentId]);
+  }, [homework.id, studentId, initialHomework.title]);
 
   const pickSubmissionImage = async () => {
     if (submissionFiles.length >= 4) {
@@ -207,38 +208,20 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
       })));
       
       setIsCompleted(true);
-      homework.isCompleted = true;
-
-      // Optimistically update AsyncStorage cache for HomeScreen so task completion status is INSTANT (0ms delay)
-      try {
-        const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
-        const keys = await AsyncStorage.getAllKeys();
-        const studentKeys = keys.filter(k => k.startsWith(`home_data_${studentId}`));
-        for (const k of studentKeys) {
-          const cachedStr = await AsyncStorage.getItem(k);
-          if (cachedStr) {
-            const cached = JSON.parse(cachedStr);
-            let updated = false;
-            if (cached.homeworkGiven) {
-              cached.homeworkGiven = cached.homeworkGiven.map((h: any) => {
-                if (h.id === homework.id) { updated = true; return { ...h, isCompleted: true }; }
-                return h;
-              });
-            }
-            if (cached.homeworkDue) {
-              cached.homeworkDue = cached.homeworkDue.map((h: any) => {
-                if (h.id === homework.id) { updated = true; return { ...h, isCompleted: true }; }
-                return h;
-              });
-            }
-            if (updated) {
-              await AsyncStorage.setItem(k, JSON.stringify(cached));
-            }
-          }
-        }
-      } catch (cacheErr) {
-        console.warn('Cache update error:', cacheErr);
-      }
+      setHomework((current: any) => ({ ...current, isCompleted: true }));
+      queryClient.setQueriesData({ queryKey: ['studentDay', studentId] }, (cached: any) => {
+        if (!cached) return cached;
+        const markCompleted = (items: any[] = []) => items.map((item) =>
+          item.id === homework.id ? { ...item, isCompleted: true } : item
+        );
+        return {
+          ...cached,
+          tasksGiven: markCompleted(cached.tasksGiven),
+          homeworkGiven: markCompleted(cached.homeworkGiven),
+          tasksDue: markCompleted(cached.tasksDue),
+          homeworkDue: markCompleted(cached.homeworkDue),
+        };
+      });
 
       // Show beautiful custom celebratory popup
       setShowSuccessModal(true);
@@ -254,20 +237,31 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
       const fetchTask = async () => {
         try {
           setLoading(true);
+          if (!studentId) throw new Error('Missing student');
           const { studentService } = await import('../services/api');
-          const taskDate = homework.startDate ? homework.startDate.split('T')[0] : formatLocalDateKey();
-          const data = await studentService.fetchDayData(studentId, taskDate);
-          const found = [...(data.homeworkGiven || []), ...(data.homeworkDue || [])].find((h: any) => h.id === homework.id);
+          const found = await studentService.fetchTask(studentId, homework.id);
           if (found) {
             setHomework(found);
+            setIsCompleted(found.isCompleted === true);
+            if (found.submissionImg) {
+              setSubmissionFiles(found.submissionImg.split(',').map((url: string, idx: number) => ({
+                name: `File_${idx + 1}`,
+                url: getFullImageUrl(url) as string,
+                type: url.toLowerCase().split('?')[0].endsWith('.pdf') ? 'PDF' : 'IMAGE',
+              })));
+            }
+            setStatusLoading(false);
           } else {
             Alert.alert("Error", t.taskNotFound);
             navigation.goBack();
           }
         } catch (e) {
           console.error(e);
+          Alert.alert("Error", t.taskNotFound);
+          navigation.goBack();
         } finally {
           setLoading(false);
+          setStatusLoading(false);
         }
       };
       fetchTask();
@@ -930,21 +924,21 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
         )}
       </View>
 
-      {/* Celebratory Modern Success Modal */}
+      {/* Submission confirmation */}
       <Modal visible={showSuccessModal} transparent animationType="fade" onRequestClose={() => setShowSuccessModal(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.65)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.52)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
           <View style={{
             backgroundColor: '#ffffff',
-            borderRadius: 30,
-            padding: 28,
+            borderRadius: 24,
+            padding: 24,
             width: '100%',
             maxWidth: 360,
             alignItems: 'center',
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 12 },
-            shadowOpacity: 0.2,
-            shadowRadius: 24,
-            elevation: 16,
+            shadowOpacity: 0.14,
+            shadowRadius: 20,
+            elevation: 12,
             position: 'relative'
           }}>
             {/* Close X button top corner */}
@@ -952,8 +946,8 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
               onPress={() => setShowSuccessModal(false)}
               style={{
                 position: 'absolute',
-                top: 18,
-                [isRTL ? 'left' : 'right']: 18,
+                top: 16,
+                [isRTL ? 'left' : 'right']: 16,
                 width: 32,
                 height: 32,
                 borderRadius: 16,
@@ -965,29 +959,26 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
               <X size={16} color="#64748b" strokeWidth={2.5} />
             </TouchableOpacity>
 
-            {/* Celebratory Icon */}
             <View style={{
-              width: 76,
-              height: 76,
-              borderRadius: 38,
-              backgroundColor: '#dcfce7',
+              width: 60,
+              height: 60,
+              borderRadius: 30,
+              backgroundColor: '#ecfdf5',
               alignItems: 'center',
               justifyContent: 'center',
-              marginBottom: 20,
-              borderWidth: 3,
-              borderColor: '#bbf7d0'
+              marginBottom: 18,
+              borderWidth: 1,
+              borderColor: '#a7f3d0'
             }}>
-              <CheckCircle2 size={40} color="#16a34a" strokeWidth={2.5} />
+              <CheckCircle2 size={30} color="#059669" strokeWidth={2.4} />
             </View>
 
-            {/* Title */}
-            <Text style={{ fontSize: 22, fontWeight: '900', color: '#0f172a', textAlign: 'center', marginBottom: 8 }}>
-              {language === 'ar' ? 'تم التسليم بنجاح! 🎉' : language === 'fr' ? 'Devoir rendu avec succès ! 🎉' : 'Submitted Successfully! 🎉'}
+            <Text style={{ fontSize: 21, fontWeight: '800', color: '#0f172a', textAlign: 'center', marginBottom: 8 }}>
+              {language === 'ar' ? 'تم إرسال العمل' : language === 'fr' ? 'Travail envoyé' : 'Work submitted'}
             </Text>
 
-            {/* Message */}
-            <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '600', textAlign: 'center', lineHeight: 22, marginBottom: submissionFiles.length > 0 ? 16 : 24 }}>
-              {t?.taskCompletedWellDone || (language === 'ar' ? 'تم وضع علامة على المهمة كمكتملة وإرسال عملك إلى المعلم.' : language === 'fr' ? 'Votre devoir a été marqué comme terminé et transmis.' : 'Your work has been marked as complete and sent to your teacher.')}
+            <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '500', textAlign: 'center', lineHeight: 21, marginBottom: submissionFiles.length > 0 ? 16 : 24 }}>
+              {language === 'ar' ? 'تم تسليم الواجب إلى المعلّم.' : language === 'fr' ? "Le devoir a été transmis à l’enseignant." : 'The assignment was sent to the teacher.'}
             </Text>
 
             {/* Attached files badge if any */}
@@ -996,17 +987,17 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
                 backgroundColor: '#eff6ff',
                 paddingHorizontal: 16,
                 paddingVertical: 10,
-                borderRadius: 14,
+                borderRadius: 12,
                 flexDirection: isRTL ? 'row-reverse' : 'row',
                 alignItems: 'center',
                 gap: 8,
                 marginBottom: 24,
                 borderWidth: 1,
-                borderColor: '#dbeafe'
+                borderColor: '#bfdbfe'
               }}>
                 <FileText size={16} color="#0055d4" />
                 <Text style={{ fontSize: 13, fontWeight: '700', color: '#0055d4' }}>
-                  {submissionFiles.length} {language === 'ar' ? 'ملفات مرفقة بنجاح' : language === 'fr' ? 'fichiers joints avec succès' : 'files attached successfully'}
+                  {submissionFiles.length} {language === 'ar' ? 'ملفات مرفقة' : language === 'fr' ? 'fichier(s) joint(s)' : 'file(s) attached'}
                 </Text>
               </View>
             )}
@@ -1016,21 +1007,21 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
               activeOpacity={0.85}
               onPress={() => setShowSuccessModal(false)}
               style={{
-                backgroundColor: '#16a34a',
+                backgroundColor: '#0055d4',
                 height: 52,
                 borderRadius: 16,
                 width: '100%',
                 alignItems: 'center',
                 justifyContent: 'center',
-                shadowColor: '#16a34a',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                elevation: 4
+                shadowColor: '#0055d4',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.18,
+                shadowRadius: 5,
+                elevation: 2
               }}
             >
               <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '800' }}>
-                {language === 'ar' ? 'رائع، استمرار' : language === 'fr' ? 'Super, continuer' : 'Great, Continue'}
+                {language === 'ar' ? 'تم' : language === 'fr' ? 'Terminé' : 'Done'}
               </Text>
             </TouchableOpacity>
           </View>

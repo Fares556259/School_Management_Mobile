@@ -847,6 +847,15 @@ export const studentService = {
     }
   },
 
+  fetchTask: async (studentId: string, assignmentId: number): Promise<any | null> => {
+    const data = await apiFetch(`/api/mobile/tasks/submit?studentId=${studentId}&assignmentId=${assignmentId}`);
+    return data?.task ? {
+      ...data.task,
+      isCompleted: data?.isCompleted === true,
+      submissionImg: data?.img || null,
+    } : null;
+  },
+
   submitTask: async (studentId: string, assignmentId: number, imageUrl?: string) => {
     return apiFetch('/api/mobile/tasks/submit', {
       method: 'POST',
