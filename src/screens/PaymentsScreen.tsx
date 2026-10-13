@@ -48,19 +48,19 @@ export const PaymentsScreen = ({ navigation }: any) => {
   const selectedChildId = useAppStore((state) => state.selectedChildId);
   const { t, isRTL, language } = useLanguage();
   const [activeFilter, setActiveFilter] = useState<PaymentFilter>('Due');
+  const [manualRefreshing, setManualRefreshing] = useState(false);
 
   const {
     data: history = [],
     isLoading: loading,
-    isRefetching: refreshing,
     dataUpdatedAt,
     refetch,
   } = useQuery({
     queryKey: ['payments', selectedChildId],
     queryFn: () => studentService.fetchPayments(selectedChildId!, false),
     enabled: Boolean(selectedChildId),
-    staleTime: 0,
-    refetchOnMount: 'always',
+    staleTime: 15_000,
+    refetchOnMount: false,
   });
 
   useFocusEffect(useCallback(() => {
@@ -115,9 +115,21 @@ export const PaymentsScreen = ({ navigation }: any) => {
     return `Mis à jour à ${time}`;
   }, [dataUpdatedAt, language]);
 
-  const onRefresh = useCallback(() => {
-    void refetch();
-  }, [refetch]);
+  const onRefresh = useCallback(async () => {
+    if (manualRefreshing) return;
+    setManualRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setManualRefreshing(false);
+    }
+  }, [manualRefreshing, refetch]);
+
+  const filterLabels = useMemo(() => {
+    if (language === 'ar') return { Due: 'للدفع', Paid: 'المدفوعة' };
+    if (language === 'en') return { Due: 'To pay', Paid: 'Paid' };
+    return { Due: 'À payer', Paid: 'Payés' };
+  }, [language]);
 
   const paymentCountLabel = useMemo(() => {
     const count = summary.overdueCount || summary.dueCount;
@@ -140,7 +152,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#075ED1" />}
+        refreshControl={<RefreshControl refreshing={manualRefreshing} onRefresh={onRefresh} tintColor="#075ED1" />}
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.summaryWrap}>
@@ -186,8 +198,8 @@ export const PaymentsScreen = ({ navigation }: any) => {
         <View style={styles.filtersWrap}>
           <View style={[styles.segmentedControl, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
             {[
-              { key: 'Due' as const, label: t.requiredActions, count: duePayments.length, Icon: AlertCircle },
-              { key: 'Paid' as const, label: t.paidHistoryTab, count: paidPayments.length, Icon: CheckCircle2 },
+              { key: 'Due' as const, label: filterLabels.Due, count: duePayments.length, Icon: AlertCircle },
+              { key: 'Paid' as const, label: filterLabels.Paid, count: paidPayments.length, Icon: CheckCircle2 },
             ].map(({ key, label, count, Icon }) => {
               const selected = activeFilter === key;
               return (
@@ -228,17 +240,17 @@ export const PaymentsScreen = ({ navigation }: any) => {
             accessibilityRole="button"
             accessibilityLabel={language === 'ar' ? 'تحديث الدفعات' : language === 'en' ? 'Refresh payments' : 'Actualiser les paiements'}
             onPress={onRefresh}
-            disabled={refreshing}
-            style={styles.refreshButton}
+            disabled={manualRefreshing}
+            style={[styles.refreshButton, manualRefreshing && styles.refreshButtonPressed]}
           >
-            {refreshing
+            {manualRefreshing
               ? <ActivityIndicator size="small" color="#075ED1" />
               : <RefreshCw size={18} color="#075ED1" strokeWidth={2.4} />}
           </TouchableOpacity>
         </View>
 
         <View style={styles.listWrap}>
-          {loading && !refreshing ? (
+          {loading ? (
             <View style={styles.listGap}>
               {[1, 2].map((item) => (
                 <View key={item} style={styles.paymentCard}>
@@ -551,6 +563,10 @@ const styles = StyleSheet.create({
     borderColor: '#DCE6F4',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  refreshButtonPressed: {
+    backgroundColor: '#EEF5FF',
+    borderColor: '#C9DCF6',
   },
   listWrap: {
     paddingHorizontal: 20,
