@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Book, Microscope, Clock, Globe, Palette, Coffee, Calculator, Music, Languages,
   MessageSquare, FileText, ChevronRight, BookOpen,
-  Calendar as CalendarIcon, Star, Layout, Briefcase, CheckCircle2,
+  Calendar as CalendarIcon, Layout, Briefcase, CheckCircle2,
   Download, X, Award, User as UserIcon
 } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
@@ -68,51 +68,53 @@ const StatPill = React.memo(({ count, label, color, bgColor, borderColor }: any)
 ));
 
 // ─── Session Card ─────────────────────────────────────────────────────────────
-const SessionCard = React.memo(({ session }: any) => {
+const SUBJECT_TONES = [
+  { ink: '#185FA5', soft: '#EAF3FB' },
+  { ink: '#39725E', soft: '#EAF5F0' },
+  { ink: '#7A5A24', soft: '#F7F1E5' },
+  { ink: '#70518D', soft: '#F2ECF8' },
+];
+
+const SessionCard = React.memo(({ session, isLast }: any) => {
   const { t, isRTL, getTranslatedSubject } = useLanguage();
   const isAbsent = session.attendance === 'ABSENT';
   const isPresent = session.attendance === 'PRESENT';
   const isLate = session.attendance === 'LATE';
 
-  const pillColor = isAbsent ? '#ef4444' : isPresent ? '#22c55e' : isLate ? '#f59e0b' : '#cbd5e1';
   const badgeBg = isAbsent ? '#fee2e2' : isPresent ? '#dcfce7' : isLate ? '#fef3c7' : '#f1f5f9';
   const badgeText = isAbsent ? '#dc2626' : isPresent ? '#16a34a' : isLate ? '#d97706' : '#64748b';
   const statusLabel = isAbsent ? t.absent : isPresent ? t.present : isLate ? t.late : t.upcoming;
+  const translatedSubject = getTranslatedSubject(session.subject);
+  const toneIndex = Array.from(String(session.subject || '')).reduce((sum, char) => sum + char.charCodeAt(0), 0) % SUBJECT_TONES.length;
+  const tone = SUBJECT_TONES[toneIndex];
+  const SubjectIcon = ICON_MAP[session.iconName] || BookOpen;
 
   return (
-    <View style={[styles.sessionCardV2, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-      {/* Accent Pill Bar */}
-      <View style={[styles.sessionPill, { backgroundColor: pillColor, borderTopRightRadius: isRTL ? 16 : 0, borderBottomRightRadius: isRTL ? 16 : 0, borderTopLeftRadius: isRTL ? 0 : 16, borderBottomLeftRadius: isRTL ? 0 : 16 }]} />
-      
+    <View style={[styles.sessionRow, !isLast && styles.sessionRowDivider, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+      <View style={[styles.subjectMark, { backgroundColor: tone.soft }]}>
+        <SubjectIcon size={20} color={tone.ink} strokeWidth={2.2} />
+      </View>
+
       <View style={[styles.sessionContentV2, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
-        <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-          <Text style={styles.sessionTimeV2}>{session.startTime} - {session.endTime}</Text>
+        <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', width: '100%', alignItems: 'flex-start' }}>
+          <View style={{ flex: 1, paddingRight: isRTL ? 0 : 10, paddingLeft: isRTL ? 10 : 0 }}>
+            <Text style={[styles.sessionTitleV2, { textAlign: isRTL ? 'right' : 'left' }]} numberOfLines={2}>
+              {translatedSubject}
+            </Text>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginTop: 6 }}>
+              <Clock size={13} color="#667085" strokeWidth={2.2} />
+              <Text style={[styles.sessionTimeV2, { marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }]}>{session.startTime} – {session.endTime}</Text>
+            </View>
+          </View>
           <View style={[styles.statusBadgeV2, { backgroundColor: badgeBg }]}>
             <Text style={[styles.statusBadgeTextV2, { color: badgeText }]}>{statusLabel}</Text>
           </View>
         </View>
 
-        <Text style={[styles.sessionTitleV2, { textAlign: isRTL ? 'right' : 'left', width: '100%' }]} numberOfLines={2}>
-          {getTranslatedSubject(session.subject)}
-        </Text>
-
-        <View style={styles.sessionDividerV2} />
-
-        <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
-            <UserIcon size={14} color="#64748b" strokeWidth={2.5} style={{ marginRight: isRTL ? 0 : 6, marginLeft: isRTL ? 6 : 0 }} />
-            <Text style={styles.sessionTeacherV2}>{session.teacher || t.teacher}</Text>
-          </View>
-          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 2 }}>
-            {[1, 2, 3, 4, 5].map((starIndex) => (
-              <Star 
-                key={starIndex} 
-                size={12} 
-                color={session.score >= starIndex ? "#eab308" : "#cbd5e1"} 
-                fill={session.score >= starIndex ? "#eab308" : "transparent"} 
-              />
-            ))}
-          </View>
+        <View style={[styles.teacherLine, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+          <UserIcon size={13} color="#98A2B3" strokeWidth={2.2} />
+          <Text style={[styles.sessionTeacherV2, { marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }]} numberOfLines={1}>{session.teacher || t.teacher}</Text>
+          {session.room ? <Text style={styles.roomText}> · {session.room}</Text> : null}
         </View>
       </View>
     </View>
@@ -134,11 +136,18 @@ const EmptySessionsUI = React.memo(() => {
 });
 
 // ─── Section Header ───────────────────────────────────────────────────────────
-const SectionHeader = React.memo(({ title, action, onAction }: any) => {
+const SectionHeader = React.memo(({ title, action, onAction, count }: any) => {
   const { isRTL } = useLanguage();
   return (
     <View style={[styles.sectionHeaderRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-      <Text style={[styles.sectionTitle, { textAlign: isRTL ? 'right' : 'left' }]}>{title}</Text>
+      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
+        <Text style={[styles.sectionTitle, { textAlign: isRTL ? 'right' : 'left' }]}>{title}</Text>
+        {typeof count === 'number' && count > 0 ? (
+          <View style={[styles.sectionCount, { marginLeft: isRTL ? 0 : 9, marginRight: isRTL ? 9 : 0 }]}>
+            <Text style={styles.sectionCountText}>{count}</Text>
+          </View>
+        ) : null}
+      </View>
       {action && (
         <TouchableOpacity onPress={onAction} style={[styles.sectionActionBtn, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
           <Text style={styles.sectionActionText}>{action}</Text>
@@ -155,7 +164,7 @@ const EMPTY_DAY: StudentDayData = { sessions: [], notes: [], files: [], homework
 export const HomeScreen = ({ navigation, route }: any) => {
   const selectedChildId = useAppStore(s => s.selectedChildId);
   const setStudentStatus = useAppStore(s => s.setStudentStatus);
-  const { t, isRTL, getTranslatedSubject } = useLanguage();
+  const { t, isRTL, language, getTranslatedSubject } = useLanguage();
   const [selectedDate, setSelectedDate] = React.useState(new Date());
   const [showDatePicker, setShowDatePicker] = React.useState(false);
   const [selectedRemark, setSelectedRemark] = React.useState<any>(null);
@@ -255,6 +264,11 @@ export const HomeScreen = ({ navigation, route }: any) => {
     ),
     [dayData.homeworkGiven]
   );
+  const visibleNotes = React.useMemo(
+    () => (dayData.notes || []).filter((n: any) => n.text && !n.text.includes('INITIALIZED_BULK') && !n.text.includes('AUTO_SYNCED')),
+    [dayData.notes],
+  );
+  const emptyTaskLabel = language === 'ar' ? 'لا توجد مهام لهذا اليوم' : language === 'en' ? 'No tasks for this day' : 'Aucune tâche pour cette journée';
   const daysArr = [t.sunday, t.monday, t.tuesday, t.wednesday, t.thursday, t.friday, t.saturday];
 
   const changeDate = (days: number) => {
@@ -363,9 +377,9 @@ export const HomeScreen = ({ navigation, route }: any) => {
 
           {/* Sessions List */}
           {loading ? (
-            <View style={{ gap: 12, marginTop: 16 }}>
+            <View style={styles.scheduleSurface}>
               {[1, 2, 3].map(i => (
-                <View key={i} style={[styles.sessionCardV2, { padding: 16 }]} >
+                <View key={i} style={[styles.sessionRow, i < 3 && styles.sessionRowDivider]} >
                   <SkeletonBlock width="50%" height={14} marginBottom={10} />
                   <SkeletonBlock width="100%" height={12} marginBottom={6} />
                   <SkeletonBlock width="70%" height={12} />
@@ -373,10 +387,10 @@ export const HomeScreen = ({ navigation, route }: any) => {
               ))}
             </View>
           ) : (
-            <View style={{ gap: 12, marginTop: 16 }}>
+            <View style={dayData.sessions.length > 0 ? styles.scheduleSurface : { marginTop: 14 }}>
               {dayData.sessions.length > 0 ? (
-                dayData.sessions.map((s: any) => (
-                  <SessionCard key={s.id} session={s} />
+                dayData.sessions.map((s: any, index: number) => (
+                  <SessionCard key={s.id} session={s} isLast={index === dayData.sessions.length - 1} />
                 ))
               ) : (
                 <EmptySessionsUI />
@@ -389,7 +403,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
             onLayout={(e) => setTasksYPosition(e.nativeEvent.layout.y)}
             style={{ height: 0 }}
           />
-          <SectionHeader title={t.tasks} />
+          <SectionHeader title={t.tasks} count={allTasks.length} />
           
           {loading ? (
             <View style={{ gap: 12 }}>
@@ -426,18 +440,18 @@ export const HomeScreen = ({ navigation, route }: any) => {
                   </TouchableOpacity>
                 ))
               ) : (
-                <View style={styles.emptyStateBox}>
-                  <View style={{width: 56, height: 56, borderRadius: 28, backgroundColor: '#dcfce7', alignItems: 'center', justifyContent: 'center'}}>
-                    <CheckCircle2 size={28} color="#16a34a" />
+                <View style={[styles.compactEmpty, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                  <View style={[styles.compactEmptyIcon, { backgroundColor: '#EAF5F0' }]}>
+                    <CheckCircle2 size={21} color="#39725E" />
                   </View>
-                  <Text style={styles.emptyStateText}>{t.allCaughtUp}</Text>
+                  <Text style={[styles.compactEmptyText, { textAlign: isRTL ? 'right' : 'left' }]}>{emptyTaskLabel}</Text>
                 </View>
               )}
             </View>
           )}
 
           {/* Teacher Remarks */}
-          <SectionHeader title={t.teacherRemarks} />
+          <SectionHeader title={t.teacherRemarks} count={visibleNotes.length} />
           
           {loading ? (
              <View style={{ gap: 12 }}>
@@ -445,8 +459,8 @@ export const HomeScreen = ({ navigation, route }: any) => {
              </View>
           ) : (
             <View style={{ gap: 12 }}>
-              {dayData.notes?.filter((n: any) => n.text && !n.text.includes('INITIALIZED_BULK') && !n.text.includes('AUTO_SYNCED')).length > 0 ? (
-                dayData.notes.filter((n: any) => n.text && !n.text.includes('INITIALIZED_BULK') && !n.text.includes('AUTO_SYNCED')).map((note: any) => (
+              {visibleNotes.length > 0 ? (
+                visibleNotes.map((note: any) => (
                   <TouchableOpacity
                     key={note.id}
                     activeOpacity={0.8}
@@ -468,11 +482,11 @@ export const HomeScreen = ({ navigation, route }: any) => {
                   </TouchableOpacity>
                 ))
               ) : (
-                <View style={styles.emptyStateBox}>
-                  <View style={{width: 56, height: 56, borderRadius: 28, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center'}}>
-                    <MessageSquare size={28} color="#0072e6" />
+                <View style={[styles.compactEmpty, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                  <View style={[styles.compactEmptyIcon, { backgroundColor: '#EAF3FB' }]}>
+                    <MessageSquare size={21} color="#185FA5" />
                   </View>
-                  <Text style={styles.emptyStateText}>{t.noRemarks}</Text>
+                  <Text style={[styles.compactEmptyText, { textAlign: isRTL ? 'right' : 'left' }]}>{t.noRemarks}</Text>
                 </View>
               )}
             </View>
@@ -487,11 +501,13 @@ export const HomeScreen = ({ navigation, route }: any) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
-  content: { paddingHorizontal: 20, paddingTop: 12 },
+  content: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 110 },
 
   // Section Headers
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, marginTop: 24 },
   sectionTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b', letterSpacing: -0.3 },
+  sectionCount: { minWidth: 24, height: 24, borderRadius: 12, paddingHorizontal: 7, backgroundColor: '#EAF3FB', alignItems: 'center', justifyContent: 'center' },
+  sectionCountText: { fontSize: 11, fontWeight: '900', color: '#185FA5' },
   sectionActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   sectionActionText: { fontSize: 13, fontWeight: '800', color: '#0072e6' },
 
@@ -541,48 +557,51 @@ const styles = StyleSheet.create({
   },
   historyBtnText: { fontSize: 13, fontWeight: '900', color: '#1e293b' },
 
-  // Session Card V2 (New Design)
-  sessionCardV2: {
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 14,
+  // School-day schedule: one calm surface instead of repeated floating cards.
+  scheduleSurface: {
+    marginTop: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
+    borderColor: '#E4E9F0',
+    overflow: 'hidden',
+    shadowColor: '#172033',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.04,
+    shadowRadius: 14,
     elevation: 1,
-    marginBottom: 4,
   },
-  sessionPill: {
-    width: 4,
-    borderRadius: 2,
-    marginRight: 12,
+  sessionRow: {
+    paddingHorizontal: 14,
+    paddingVertical: 15,
+    alignItems: 'flex-start',
   },
-  sessionContentV2: {
-    flex: 1,
+  sessionRowDivider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E7EBF0',
   },
-  sessionHeaderV2: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  subjectMark: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
     alignItems: 'center',
-    marginBottom: 4,
+    justifyContent: 'center',
+    marginHorizontal: 1,
   },
+  sessionContentV2: { flex: 1, marginHorizontal: 12 },
   sessionTimeV2: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#64748b',
+    color: '#667085',
   },
   statusBadgeV2: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 999,
   },
   statusBadgeTextV2: {
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '900',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -590,24 +609,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '900',
     color: '#1e293b',
-    marginBottom: 10,
     textAlign: 'left',
-  },
-  sessionDividerV2: {
-    height: 1,
-    backgroundColor: '#f1f5f9',
-    marginBottom: 10,
-  },
-  sessionFooterV2: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   sessionTeacherV2: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748b',
-    marginLeft: 6,
+    color: '#667085',
   },
+  teacherLine: { alignItems: 'center', marginTop: 10, maxWidth: '100%' },
+  roomText: { fontSize: 12, color: '#98A2B3', fontWeight: '600' },
 
   // List Rows (remarks / tasks / exams)
   listRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderTopWidth: 1, borderTopColor: '#f1f5f9', gap: 12 },
@@ -618,13 +628,13 @@ const styles = StyleSheet.create({
   subjectTagText: { fontSize: 10, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 },
 
   // Tasks
-  taskCardItem: { backgroundColor: '#ffffff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#e2e8f0' },
+  taskCardItem: { backgroundColor: '#ffffff', borderRadius: 18, padding: 16, borderWidth: 1, borderColor: '#E4E9F0' },
   taskIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
 
   // Remarks
   remarkCard: {
-    backgroundColor: '#ffffff', borderRadius: 16, padding: 16,
-    borderWidth: 1, borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff', borderRadius: 18, padding: 16,
+    borderWidth: 1, borderColor: '#E4E9F0',
     flexDirection: 'row', gap: 12, alignItems: 'flex-start'
   },
   remarkIconWrapper: {
@@ -663,6 +673,9 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, color: '#94a3b8', fontWeight: '700', textAlign: 'center', paddingVertical: 16, fontStyle: 'italic' },
   emptyStateBox: { padding: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff', borderRadius: 24, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.02, shadowRadius: 4, elevation: 1 },
   emptyStateText: { fontSize: 15, color: '#64748b', fontWeight: '800', marginTop: 4 },
+  compactEmpty: { minHeight: 68, alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 18, borderWidth: 1, borderColor: '#E7EBF0', paddingHorizontal: 14, paddingVertical: 12 },
+  compactEmptyIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  compactEmptyText: { flex: 1, marginHorizontal: 12, color: '#475467', fontSize: 14, lineHeight: 20, fontWeight: '700' },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.5)', justifyContent: 'center', padding: 24 },
