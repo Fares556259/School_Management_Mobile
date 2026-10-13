@@ -6,7 +6,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { authStorage, studentService } from '../services/api';
 import { Image } from 'expo-image';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { prefetchChildSnapshot } from '../services/childDataSync';
+import { prefetchChildHome, prefetchChildTabs } from '../services/childDataSync';
 import { savePreferredChildId } from '../services/sessionHydration';
 
 interface GlobalHeaderProps {
@@ -50,23 +50,30 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
     if (userRole === 'parent') setUnreadNotificationsCount(selectedUnreadCount);
   }, [selectedUnreadCount, setUnreadNotificationsCount, userRole]);
 
-  const warmFamilySnapshots = useCallback((warmAll = false) => {
+  const warmFamilyHomes = useCallback(() => {
     if (userRole !== 'parent') return;
     const otherChildren = children.filter(child => child.id !== selectedChildId);
-    const targets = warmAll ? otherChildren : otherChildren.slice(0, 1);
-    targets.forEach((child, index) => {
-      setTimeout(() => void prefetchChildSnapshot(queryClient, child, userId), index * 350);
+    otherChildren.forEach((child, index) => {
+      setTimeout(() => void prefetchChildHome(queryClient, child), index * 450);
     });
-  }, [children, queryClient, selectedChildId, userId, userRole]);
+  }, [children, queryClient, selectedChildId, userRole]);
 
   useEffect(() => {
     // Give the visible child's home request first use of the connection on a
     // cold launch. Other children are warmed once the first screen has settled.
-    const timeout = setTimeout(() => warmFamilySnapshots(false), 1800);
+    const timeout = setTimeout(warmFamilyHomes, 700);
     return () => clearTimeout(timeout);
-  }, [warmFamilySnapshots]);
+  }, [warmFamilyHomes]);
 
   const handleSwitchChild = (id: string) => {
+    const nextChild = children.find(child => child.id === id);
+    if (nextChild) {
+      // Start the exact screen the parent will see before changing the key.
+      // React Query deduplicates this with HomeScreen's own request.
+      void prefetchChildHome(queryClient, nextChild).finally(() => {
+        setTimeout(() => void prefetchChildTabs(queryClient, nextChild), 300);
+      });
+    }
     setSelectedChildId(id);
     void savePreferredChildId(userId, id);
     setShowSwitcher(false);
@@ -74,7 +81,7 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
 
   const toggleSwitcher = () => {
     if (userRole === 'teacher') return;
-    if (!showSwitcher) warmFamilySnapshots(true);
+    if (!showSwitcher) warmFamilyHomes();
     setShowSwitcher(!showSwitcher);
   };
 

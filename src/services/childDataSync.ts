@@ -6,6 +6,7 @@ import { formatLocalDateKey } from '../utils/dateUtils';
 type ChildWithRaw = Student & { raw?: { classId?: number | null } };
 
 const getTodayKey = () => formatLocalDateKey();
+const primaryOptions = { staleTime: 2 * 60_000, gcTime: 24 * 60 * 60_000 };
 
 const fetchExamOverview = async (studentId: string, date: string) => {
   const data = await studentService.fetchHomeData(studentId, date);
@@ -30,21 +31,16 @@ export const prefetchChildSnapshot = (
   parentId: string | null,
 ) => {
   const studentId = child.id;
-  const classId = child.raw?.classId;
   const today = getTodayKey();
-  const options = { staleTime: 2 * 60_000 };
-
   const requests = [
-    queryClient.prefetchQuery({ queryKey: ['studentDay', studentId, today], queryFn: () => studentService.fetchDayData(studentId, today), ...options }),
-    queryClient.prefetchQuery({ queryKey: ['courses', studentId], queryFn: () => studentService.fetchCourses(studentId), ...options }),
-    queryClient.prefetchQuery({ queryKey: ['payments', studentId], queryFn: () => studentService.fetchPayments(studentId, false), ...options }),
-    queryClient.prefetchQuery({ queryKey: ['announcements', classId, studentId], queryFn: () => studentService.fetchAnnouncements(classId || undefined, studentId), ...options }),
+    prefetchChildHome(queryClient, child),
+    prefetchChildTabs(queryClient, child),
   ];
 
   if (parentId) {
     requests.push(
-      queryClient.prefetchQuery({ queryKey: ['notifications', parentId, studentId], queryFn: () => studentService.fetchNotifications(parentId, studentId), ...options }),
-      queryClient.prefetchQuery({ queryKey: ['notifCount', parentId, studentId], queryFn: () => studentService.fetchUnreadNotificationCount(parentId, studentId), ...options }),
+      queryClient.prefetchQuery({ queryKey: ['notifications', parentId, studentId], queryFn: () => studentService.fetchNotifications(parentId, studentId), ...primaryOptions }),
+      queryClient.prefetchQuery({ queryKey: ['notifCount', parentId, studentId], queryFn: () => studentService.fetchUnreadNotificationCount(parentId, studentId), ...primaryOptions }),
     );
   }
 
@@ -56,5 +52,25 @@ export const prefetchChildSnapshot = (
     await queryClient.prefetchQuery({ queryKey: ['exams', studentId], queryFn: () => fetchExamOverview(studentId, today), staleTime: 5 * 60_000 });
     return results;
   });
+};
+
+/** Warm only the first screen a parent sees after choosing a child. */
+export const prefetchChildHome = (queryClient: QueryClient, child: ChildWithRaw) => {
+  const today = getTodayKey();
+  return queryClient.prefetchQuery({
+    queryKey: ['studentDay', child.id, today],
+    queryFn: () => studentService.fetchDayData(child.id, today),
+    ...primaryOptions,
+  });
+};
+
+/** Warm the main tabs after the selected child's home snapshot has priority. */
+export const prefetchChildTabs = (queryClient: QueryClient, child: ChildWithRaw) => {
+  const classId = child.raw?.classId;
+  return Promise.allSettled([
+    queryClient.prefetchQuery({ queryKey: ['courses', child.id], queryFn: () => studentService.fetchCourses(child.id), ...primaryOptions }),
+    queryClient.prefetchQuery({ queryKey: ['payments', child.id], queryFn: () => studentService.fetchPayments(child.id, false), ...primaryOptions }),
+    queryClient.prefetchQuery({ queryKey: ['announcements', classId, child.id], queryFn: () => studentService.fetchAnnouncements(classId || undefined, child.id), ...primaryOptions }),
+  ]);
 };
 

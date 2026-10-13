@@ -11,7 +11,7 @@ interface AppLaunchScreenProps {
   onExit?: () => void;
 }
 
-export const AppLaunchScreen = ({ onFinish, minDurationMs = 1100, isReady = false, onExit }: AppLaunchScreenProps) => {
+export const AppLaunchScreen = ({ onFinish, minDurationMs = 360, isReady = false, onExit }: AppLaunchScreenProps) => {
   const { language } = useLanguage();
   const reducedMotion = useReducedMotion();
   const logo = useRef(new Animated.Value(0)).current;
@@ -36,18 +36,18 @@ export const AppLaunchScreen = ({ onFinish, minDurationMs = 1100, isReady = fals
       return;
     }
     const animation = Animated.parallel([
-      Animated.timing(logo, { toValue: 1, duration: 520, delay: 120, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.timing(snap, { toValue: 1, duration: 350, delay: 350, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.timing(school, { toValue: 1, duration: 350, delay: 470, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(logo, { toValue: 1, duration: 240, delay: 20, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(snap, { toValue: 1, duration: 210, delay: 100, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(school, { toValue: 1, duration: 210, delay: 150, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
     ]);
     animation.start();
-    const timer = setTimeout(complete, Math.max(850, minDurationMs));
+    const timer = setTimeout(complete, Math.max(360, minDurationMs));
     return () => { clearTimeout(timer); animation.stop(); };
   }, [logo, snap, school, reducedMotion, minDurationMs]);
 
   useEffect(() => {
     if (!isReady || reducedMotion === null) return;
-    const animation = Animated.timing(exit, { toValue: 0, duration: reducedMotion ? 0 : 220, easing: Easing.out(Easing.ease), useNativeDriver: true });
+    const animation = Animated.timing(exit, { toValue: 0, duration: reducedMotion ? 0 : 120, easing: Easing.out(Easing.ease), useNativeDriver: true });
     animation.start(({ finished: done }) => {
       if (done && !exited.current) { exited.current = true; exitRef.current?.(); }
     });

@@ -64,8 +64,8 @@ export const PaymentsScreen = ({ navigation }: any) => {
   });
 
   useFocusEffect(useCallback(() => {
-    if (selectedChildId) void refetch();
-  }, [refetch, selectedChildId]));
+    if (selectedChildId && (!dataUpdatedAt || Date.now() - dataUpdatedAt > 30_000)) void refetch();
+  }, [dataUpdatedAt, refetch, selectedChildId]));
 
   const actionablePayments = useMemo(
     () => history.filter((payment) => payment.status !== 'Locked'),

@@ -71,7 +71,16 @@ const queryClient = new QueryClient({
 
 const asyncStoragePersister = createAsyncStoragePersister({
   storage: AsyncStorage,
+  throttleTime: 2_000,
 });
+
+// Persist only parent-facing snapshots that make relaunch and child switching
+// feel immediate. Large admin/teacher queries made hydration and every cache
+// write progressively more expensive on lower-end phones.
+const persistedQueryRoots = new Set([
+  'studentDay', 'courses', 'payments', 'announcements', 'attendanceHistory',
+  'notifications', 'notifCount', 'results', 'exams',
+]);
 
 
 const clearAccountCache = async () => {
@@ -289,12 +298,14 @@ export default function App() {
       // Warm the next tab while the launch screen is still visible. This is
       // intentionally limited to the selected child's lightweight course
       // summary so it does not compete with the home screen for bandwidth.
-      void queryClient.prefetchQuery({
-        queryKey: ['courses', selectedId],
-        queryFn: () => studentService.fetchCourses(selectedId),
-        staleTime: 5 * 60 * 1000,
-        gcTime: 24 * 60 * 60 * 1000,
-      });
+      setTimeout(() => {
+        void queryClient.prefetchQuery({
+          queryKey: ['courses', selectedId],
+          queryFn: () => studentService.fetchCourses(selectedId),
+          staleTime: 5 * 60 * 1000,
+          gcTime: 24 * 60 * 60 * 1000,
+        });
+      }, 1_200);
     };
 
     // Paint the signed-in parent experience from the device before the first
@@ -428,7 +439,7 @@ export default function App() {
           if (uid) {
             setUserId(uid);
             setUserRole(role as any);
-            void registerPush(uid);
+            setTimeout(() => void registerPush(uid), 2_000);
             identifyUser(uid, { role });
           }
 
@@ -548,7 +559,10 @@ export default function App() {
 
   // Safe background OTA update check on launch
   useEffect(() => {
-    checkAndApplyUpdates();
+    // OTA discovery is useful, but it must not compete with the first screen's
+    // data and images on a cold launch.
+    const timer = setTimeout(() => void checkAndApplyUpdates(), 2_500);
+    return () => clearTimeout(timer);
   }, [checkAndApplyUpdates]);
 
   // Notification Response Listener
@@ -608,7 +622,7 @@ export default function App() {
 
     if (uid && (role === 'parent' || role === 'teacher' || role === 'admin')) {
       void applySessionSnapshot(uid, role);
-      void registerPush(uid);
+      setTimeout(() => void registerPush(uid), 1_500);
     }
   };
 
@@ -635,7 +649,15 @@ export default function App() {
   return (
       <PersistQueryClientProvider 
         client={queryClient}
-        persistOptions={{ persister: asyncStoragePersister, buster: "local-date-tenant-v3" }}
+        persistOptions={{
+          persister: asyncStoragePersister,
+          buster: "parent-fast-cache-v4",
+          maxAge: 24 * 60 * 60 * 1000,
+          dehydrateOptions: {
+            shouldDehydrateQuery: (query) =>
+              query.state.status === 'success' && persistedQueryRoots.has(String(query.queryKey[0])),
+          },
+        }}
       >
         <LanguageProvider>
           <SafeAreaProvider>
@@ -722,7 +744,7 @@ export default function App() {
                   <View style={[StyleSheet.absoluteFill, { zIndex: 999999 }]} pointerEvents="auto">
                     <AppLaunchScreen 
                       onFinish={() => setIsLaunchMinTimeDone(true)} 
-                      minDurationMs={1100}
+                      minDurationMs={360}
                       isReady={isBootstrapDone && isLaunchMinTimeDone}
                       onExit={() => setIsLaunchScreenVisible(false)}
                     />
