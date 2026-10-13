@@ -1861,7 +1861,86 @@ export const toWestern = (value: any): string => {
 
 export const formatNotificationText = (text: string | null | undefined, targetLang: Language = 'ar'): string => {
   if (!text) return '';
-  let result = text;
+  let result = text.trim();
+
+  // Urgency is presented by the notification UI. Remove legacy language-specific
+  // prefixes so French/English screens never receive an isolated Arabic label.
+  result = result
+    .replace(/(?:🚨|📢)\s*/gu, '')
+    .replace(/(?:عاجل|URGENT)\s*[:：-]\s*/gi, '')
+    .trim();
+
+  // Localize the generated assignment title while preserving the teacher's title.
+  const homeworkTitle = result.match(/^(?:📝\s*)?(?:مهمة جديدة|Nouveau devoir|New assignment)\s*[:：-]\s*(.+)$/i);
+  if (homeworkTitle) {
+    const assignmentTitle = homeworkTitle[1].trim();
+    if (targetLang === 'fr') return `Nouveau devoir : ${assignmentTitle}`;
+    if (targetLang === 'en') return `New assignment: ${assignmentTitle}`;
+    return `مهمة جديدة: ${assignmentTitle}`;
+  }
+
+  const resourceTitle = result.match(/^(?:📚\s*)?ملخص جديد\s*[:：-]\s*(.+)$/u);
+  if (resourceTitle) {
+    if (targetLang === 'fr') return `Nouveau support : ${resourceTitle[1].trim()}`;
+    if (targetLang === 'en') return `New course material: ${resourceTitle[1].trim()}`;
+    return `ملخص جديد: ${resourceTitle[1].trim()}`;
+  }
+
+  const resourceMessage = result.match(/^تمت إضافة مواد تعليمية جديدة في مادة (.+?)\.?$/u);
+  if (resourceMessage) {
+    const subject = formatSubjectName(resourceMessage[1], targetLang);
+    if (targetLang === 'fr') return `Un nouveau support a été ajouté en ${subject}.`;
+    if (targetLang === 'en') return `New course material was added for ${subject}.`;
+    return `تمت إضافة مواد تعليمية جديدة في مادة ${subject}.`;
+  }
+
+  const remarkTitle = result.match(/^(?:📝\s*)?ملاحظة المعلم\s*[—-]\s*(.+)$/u);
+  if (remarkTitle) {
+    const subject = formatSubjectName(remarkTitle[1], targetLang);
+    if (targetLang === 'fr') return `Remarque du professeur — ${subject}`;
+    if (targetLang === 'en') return `Teacher note — ${subject}`;
+    return `ملاحظة المعلم — ${subject}`;
+  }
+
+  const attendanceTitle = result.match(/^تنبيه الحضور\s*[:：-]\s*(غياب|تأخير)$/u);
+  if (attendanceTitle) {
+    const isAbsent = attendanceTitle[1] === 'غياب';
+    if (targetLang === 'fr') return isAbsent ? 'Absence enregistrée' : 'Retard enregistré';
+    if (targetLang === 'en') return isAbsent ? 'Absence recorded' : 'Late arrival recorded';
+    return isAbsent ? 'تم تسجيل غياب' : 'تم تسجيل تأخير';
+  }
+
+  const attendanceMessage = result.match(/^تم تسجيل (.+?) كـ (غائب|متأخر) يوم (.+?)(?: في حصة (.+?) على الساعة (.+?))?\.?$/u);
+  if (attendanceMessage) {
+    const [, student, status, date, rawSubject, sessionTime] = attendanceMessage;
+    const subject = rawSubject ? formatSubjectName(rawSubject, targetLang) : '';
+    if (targetLang === 'fr') {
+      return `${student} a été marqué(e) ${status === 'غائب' ? 'absent(e)' : 'en retard'} le ${date}${subject ? ` en ${subject}` : ''}${sessionTime ? ` à ${sessionTime}` : ''}.`;
+    }
+    if (targetLang === 'en') {
+      return `${student} was marked ${status === 'غائب' ? 'absent' : 'late'} on ${date}${subject ? ` for ${subject}` : ''}${sessionTime ? ` at ${sessionTime}` : ''}.`;
+    }
+  }
+
+  const examTitle = /^(?:📅\s*)?تحديث جدول الامتحانات$/u.test(result);
+  if (examTitle) {
+    if (targetLang === 'fr') return 'Mise à jour du calendrier des examens';
+    if (targetLang === 'en') return 'Exam schedule updated';
+    return 'تحديث جدول الامتحانات';
+  }
+
+  const examMessage = result.match(/^تم توفير جدول الامتحانات الرسمي للفترة (.+?)\.?$/u);
+  if (examMessage) {
+    if (targetLang === 'fr') return `Le calendrier officiel des examens de la période ${examMessage[1]} est disponible.`;
+    if (targetLang === 'en') return `The official exam schedule for period ${examMessage[1]} is available.`;
+  }
+
+  const paymentTitle = result.match(/^تذكير بالخلاص\s*•\s*(.+)$/u);
+  if (paymentTitle) {
+    if (targetLang === 'fr') return `Rappel de paiement • ${paymentTitle[1]}`;
+    if (targetLang === 'en') return `Payment reminder • ${paymentTitle[1]}`;
+    return `تذكير بالدفع • ${paymentTitle[1]}`;
+  }
 
   // 1. Clean any pipe-separated subjects embedded inside the string
   result = result.replace(/([^.\n\r,:!?()]+(?:\s*\|\s*[^.\n\r,:!?()]+)+)/g, (match) => {
@@ -1895,6 +1974,16 @@ export const formatNotificationText = (text: string | null | undefined, targetLa
     if (targetLang === 'fr') return `Le paiement pour ${stud} (${month}) est en attente.`;
     if (targetLang === 'ar') return `دفع الرسوم لـ ${stud} (${month}) قيد الانتظار.`;
     return `Payment for ${stud} for ${month} is pending.`;
+  }
+
+  // Older payment reminders contain an Arabic paragraph and a French paragraph.
+  // Select one paragraph rather than showing both languages in the same card.
+  const paragraphs = result.split(/\n\s*\n/).map((part) => part.trim()).filter(Boolean);
+  if (paragraphs.length > 1) {
+    const arabicParagraph = paragraphs.find((part) => /[\u0600-\u06FF]/.test(part));
+    const latinParagraph = paragraphs.find((part) => /[A-Za-zÀ-ÿ]/.test(part) && !/[\u0600-\u06FF]/.test(part));
+    if (targetLang === 'ar' && arabicParagraph) return arabicParagraph;
+    if (targetLang !== 'ar' && latinParagraph) return latinParagraph;
   }
 
   return result;

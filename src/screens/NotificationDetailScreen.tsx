@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLanguage } from '../context/LanguageContext';
 import { ChevronLeft, ChevronRight, AlertTriangle, Calendar, Bell, Info, MessageCircle } from 'lucide-react-native';
@@ -24,15 +24,38 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
     time: 'À l\'instant',
   };
   const { t, isRTL, language, formatNotification } = useLanguage();
-  const config = ICON_CONFIG[notification.type] || ICON_CONFIG.DEFAULT;
+  const isUrgent = /(?:عاجل|URGENT)/i.test(`${notification.title || ''} ${notification.message || ''}`);
+  const config = isUrgent ? ICON_CONFIG.URGENT : (ICON_CONFIG[notification.type] || ICON_CONFIG.DEFAULT);
   const Icon = config.icon;
 
   const isAttendance = notification.type === 'ATTENDANCE' || (notification.message || '').includes('missed');
 
   // Attendance Logic
   const message = notification.message || "";
-  const absenceCount = message.match(/(\d+) absences/)?.[1] || message.match(/reached (\d+) absences/)?.[1] || "3";
-  
+  const absenceCount = message.match(/(\d+) absences/)?.[1] || message.match(/reached (\d+) absences/)?.[1] || '—';
+  const formattedTitle = formatNotification(notification.title) || t.officialMessage;
+  const formattedMessage = formatNotification(notification.message);
+  const sourceLabel = notification.studentName?.toUpperCase() === 'SCHOOL'
+    ? (language === 'ar' ? 'المدرسة' : language === 'fr' ? 'École' : 'School')
+    : notification.studentName;
+  const typeLabels: Record<string, Record<'ar' | 'fr' | 'en', string>> = {
+    ANNOUNCEMENT: { ar: 'إعلان مدرسي', fr: 'Annonce', en: 'Announcement' },
+    ATTENDANCE: { ar: 'الحضور', fr: 'Présence', en: 'Attendance' },
+    HOMEWORK: { ar: 'واجب مدرسي', fr: 'Devoir', en: 'Homework' },
+    MESSAGE: { ar: 'رسالة من الإدارة', fr: 'Message', en: 'Message' },
+    REMARK: { ar: 'ملاحظة تربوية', fr: 'Remarque', en: 'Teacher note' },
+    PAYMENT: { ar: 'الدفع', fr: 'Paiement', en: 'Payment' },
+  };
+  const typeLabel = isUrgent
+    ? (language === 'ar' ? 'عاجل' : language === 'fr' ? 'Urgent' : 'Urgent')
+    : (typeLabels[notification.type]?.[language] || (language === 'ar' ? 'إشعار' : language === 'fr' ? 'Notification' : 'Notification'));
+  const createdAt = new Date(notification.createdAt || notification.rawDate || Date.now());
+  const timeLabel = Number.isNaN(createdAt.getTime())
+    ? ''
+    : createdAt.toLocaleDateString(language === 'ar' ? 'ar-TN' : language === 'fr' ? 'fr-TN' : 'en-GB', {
+        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+      });
+
   let realSessions = [];
   if (message.includes('Missed sessions:')) {
     const historyPart = message.split('Missed sessions: ')[1].split('.')[0];
@@ -48,7 +71,7 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" />
-      
+
       {/* Header */}
       <View style={[styles.header, isRTL && { flexDirection: 'row-reverse' }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -59,26 +82,18 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Top Icon Section */}
-        <View style={styles.topSection}>
+        <View style={[styles.summaryHeader, isRTL && { flexDirection: 'row-reverse' }]}>
           <View style={[styles.mainIconWrapper, { backgroundColor: config.bgColor }]}>
-            <Icon size={32} color={config.color} strokeWidth={2.5} />
+            <Icon size={22} color={config.color} strokeWidth={2.4} />
           </View>
-          <Text style={styles.typeLabel}>
-            {notification.type === 'ANNOUNCEMENT' ? (isRTL ? 'إعلان من المدرسة' : 'ANNONCE DE L\'ÉTABLISSEMENT') 
-            : notification.type === 'ATTENDANCE' ? (isRTL ? 'تنبيه حضور' : 'PRÉSENCE')
-            : notification.type === 'HOMEWORK' ? (isRTL ? 'واجب مدرسي' : 'DEVOIR')
-            : notification.type === 'MESSAGE' ? (isRTL ? 'إشعار من الإدارة' : 'MESSAGE ADMINISTRATIF')
-            : notification.type === 'REMARK' ? (isRTL ? 'ملاحظة تربوية' : 'REMARQUE')
-            : (notification.type || 'NOTIFICATION')}
-          </Text>
-          {Boolean(notification.studentName && notification.studentName !== 'SCHOOL') && (
-            <Text style={styles.studentName}>{notification.studentName}</Text>
-          )}
-          <Text style={styles.timeLabel}>{notification.time || t.ago1d}</Text>
+          <View style={[styles.summaryText, isRTL && { alignItems: 'flex-end' }]}>
+            <Text style={[styles.typeLabel, { color: config.color }]}>{typeLabel}</Text>
+            <Text style={[styles.notificationTitle, isRTL && { textAlign: 'right' }]}>{formattedTitle}</Text>
+            <Text style={[styles.timeLabel, isRTL && { textAlign: 'right' }]}>
+              {[sourceLabel, timeLabel].filter(Boolean).join(' • ')}
+            </Text>
+          </View>
         </View>
-
-        <View style={styles.divider} />
 
         {isAttendance ? (
           <>
@@ -115,51 +130,20 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
               </View>
             )}
 
-            {/* Contact Section */}
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionLabel}>{t.schoolContact}</Text>
-            </View>
-
-            <View style={styles.contactCard}>
-              <View style={styles.avatarCircle}>
-                <Text style={styles.avatarText}>AD</Text>
-              </View>
-              <View style={styles.contactInfo}>
-                <Text style={styles.contactLabel}>{t.administration}</Text>
-                <Text style={styles.contactName}>SnapSchool Admin</Text>
-                <TouchableOpacity onPress={() => Linking.openURL('tel:+21671000000')}>
-                  <Text style={styles.contactPhone}>+216 71 000 000</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Footer Button */}
-            <TouchableOpacity onPress={() => Linking.openURL('tel:+21671000000')} style={styles.callButton}>
-              <Text style={styles.callButtonText}>{t.callSchool}</Text>
-            </TouchableOpacity>
           </>
         ) : (
           <View style={styles.announcementContainer}>
             <View style={styles.messageBubble}>
-              <View style={[styles.bubbleHeader, isRTL && { flexDirection: 'row-reverse' }]}>
-                <MessageCircle size={20} color="#0055d4" />
-                <Text style={[styles.bubbleTitle, isRTL ? { marginRight: 10, marginLeft: 0 } : { marginLeft: 10 }]}>{formatNotification(notification.title) || t.officialMessage}</Text>
-              </View>
               <Text style={[styles.announcementMessage, { textAlign: isRTL ? 'right' : 'left', lineHeight: 24 }]}>
-                {formatNotification(notification.message)}
+                {formattedMessage}
               </Text>
-            </View>
-            
-            <View style={[styles.infoCard, isRTL && { flexDirection: 'row-reverse' }]}>
-              <Info size={18} color="#64748b" />
-              <Text style={[styles.infoText, { textAlign: isRTL ? 'right' : 'left', marginLeft: isRTL ? 0 : 10, marginRight: isRTL ? 10 : 0 }]}>{t.announcementInfo}</Text>
             </View>
 
             {notification.message?.toLowerCase().includes('task') && (
-              <TouchableOpacity 
-                onPress={() => navigation.navigate('MainTabs', { 
-                  screen: 'Home', 
-                  params: { targetDate: notification.rawDate, scrollTo: 'tasks' } 
+              <TouchableOpacity
+                onPress={() => navigation.navigate('MainTabs', {
+                  screen: 'Home',
+                  params: { targetDate: notification.rawDate, scrollTo: 'tasks' }
                 })}
                 style={[styles.callButton, { backgroundColor: '#0055d4', borderWidth: 0, marginTop: 24, marginHorizontal: 0 }]}
               >
@@ -174,23 +158,23 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'white' },
+  container: { flex: 1, backgroundColor: '#F7F9FC' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 10 },
   backButton: { width: 40, height: 40, borderRadius: 12, borderWidth: 1, borderColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '800', color: '#0f172a' },
-  scrollContent: { paddingBottom: 40 },
-  topSection: { alignItems: 'center', paddingTop: 30, paddingHorizontal: 24 },
-  mainIconWrapper: { width: 90, height: 90, borderRadius: 45, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  typeLabel: { fontSize: 11, fontWeight: '800', color: '#94a3b8', letterSpacing: 1, marginBottom: 8, textTransform: 'uppercase' },
-  studentName: { fontSize: 26, fontWeight: '900', color: '#1e293b', textAlign: 'center', lineHeight: 32 },
-  timeLabel: { fontSize: 14, color: '#94a3b8', fontWeight: '600', marginTop: 6 },
-  divider: { height: 1, backgroundColor: '#f1f5f9', marginHorizontal: 24, marginTop: 24, marginBottom: 24 },
-  
+  scrollContent: { paddingBottom: 40, paddingTop: 12 },
+  summaryHeader: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 20, paddingVertical: 20 },
+  summaryText: { flex: 1, marginHorizontal: 14 },
+  mainIconWrapper: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  typeLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5, marginBottom: 5 },
+  notificationTitle: { fontSize: 22, fontWeight: '900', color: '#172033', lineHeight: 28, letterSpacing: -0.3 },
+  timeLabel: { fontSize: 12, color: '#7B8899', fontWeight: '600', marginTop: 7 },
+
   statsRow: { flexDirection: 'row', paddingHorizontal: 24, justifyContent: 'space-between', marginBottom: 32 },
   statCard: { backgroundColor: '#f8fafc', borderRadius: 20, padding: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
   statValue: { fontSize: 20, fontWeight: '900', marginBottom: 4 },
   statLabel: { fontSize: 10, color: '#94a3b8', fontWeight: '800', textAlign: 'center' },
-  
+
   sectionHeader: { paddingHorizontal: 24, marginBottom: 16 },
   sectionLabel: { fontSize: 12, fontWeight: '900', color: '#94a3b8', letterSpacing: 1 },
   sessionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', marginHorizontal: 24, padding: 16, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9' },
@@ -198,7 +182,7 @@ const styles = StyleSheet.create({
   sessionInfo: { flex: 1 },
   sessionDate: { fontSize: 15, fontWeight: '800', color: '#1e293b' },
   sessionSub: { fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 2 },
-  
+
   contactCard: { flexDirection: 'row', backgroundColor: '#f8fafc', marginHorizontal: 24, padding: 20, borderRadius: 20, marginBottom: 24, borderWidth: 1, borderColor: '#f1f5f9', alignItems: 'center' },
   avatarCircle: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#e0e7ff', alignItems: 'center', justifyContent: 'center', marginRight: 16 },
   avatarText: { color: '#4f46e5', fontWeight: '800', fontSize: 16 },
@@ -209,13 +193,9 @@ const styles = StyleSheet.create({
   callButton: { marginHorizontal: 24, height: 56, borderRadius: 16, borderWidth: 1.5, borderColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginTop: 10 },
   callButtonText: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
 
-  announcementContainer: { paddingHorizontal: 24 },
-  messageBubble: { backgroundColor: '#f8fafc', borderRadius: 24, padding: 24, borderWidth: 1, borderColor: '#f1f5f9' },
-  bubbleHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  bubbleTitle: { fontSize: 18, fontWeight: '800', color: '#0f172a', marginLeft: 10 },
-  announcementMessage: { fontSize: 16, color: '#475569', lineHeight: 26, fontWeight: '600' },
-  infoCard: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 20, backgroundColor: '#f1f5f9', padding: 16, borderRadius: 16 },
-  infoText: { flex: 1, fontSize: 12, color: '#64748b', fontWeight: '700', marginLeft: 12, lineHeight: 18 },
+  announcementContainer: { paddingHorizontal: 20 },
+  messageBubble: { backgroundColor: '#FFFFFF', borderRadius: 18, padding: 18, borderWidth: 1, borderColor: '#E4E9F0' },
+  announcementMessage: { fontSize: 15, color: '#435064', lineHeight: 24, fontWeight: '500' },
   emptyContainer: { paddingHorizontal: 24, paddingVertical: 20, alignItems: 'center' },
   emptyText: { color: '#94a3b8', fontSize: 14, fontStyle: 'italic' }
 });

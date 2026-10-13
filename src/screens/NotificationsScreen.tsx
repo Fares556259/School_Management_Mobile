@@ -1,20 +1,16 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Alert, RefreshControl, View, Text, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, SectionList, StyleSheet, Dimensions } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { RefreshControl, View, Text, TouchableOpacity, StatusBar, SectionList, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, ChevronRight, AlertTriangle, Info, Check, Trash2, Calendar, Clock, Bell, MessageCircle, FileText } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, AlertTriangle, Info, Trash2, Calendar, Bell, MessageCircle, FileText } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
-import { studentService, authStorage } from '../services/api';
+import { studentService } from '../services/api';
 import { Notification } from '../types';
 import { RectButton, Swipeable } from 'react-native-gesture-handler';
-import Animated, { FadeInUp, Layout } from 'react-native-reanimated';
-import { Image } from 'expo-image';
 import { SkeletonBlock } from '../components/SkeletonView';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-const { width } = Dimensions.get('window');
-
-type FilterType = 'All' | 'Unread' | 'Urgent';
+type FilterType = 'All' | 'Unread';
 
 function formatNotificationTime(createdAt: string, language: 'ar' | 'fr' | 'en') {
   const date = new Date(createdAt);
@@ -38,12 +34,11 @@ const ICON_CONFIG: Record<string, { icon: any, color: string, bgColor: string, a
 
 const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onPress: (n: Notification) => void, onDelete: (id: number) => void }) => {
   const { t, isRTL, language, getTranslatedSubject, formatNotification } = useLanguage();
-  const absenceCount = item.message.match(/(\d+) absences/)?.[1] || item.message.match(/missed (\d+) sessions/)?.[1];
-  
+
   let dynamicType = item.type;
   let dynamicTitle = item.title || t.notifDefaultTitle;
   let displayMessage = item.message;
-  
+
   if (item.title && item.title.trim().length > 0 && item.title !== 'Notification') {
     dynamicTitle = item.title;
   } else if (item.message.includes('A remark was left')) {
@@ -76,6 +71,9 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
 
   displayMessage = formatNotification(displayMessage);
   dynamicTitle = formatNotification(dynamicTitle);
+  const sourceLabel = item.studentName?.toUpperCase() === 'SCHOOL'
+    ? (language === 'ar' ? 'المدرسة' : language === 'fr' ? 'École' : 'School')
+    : item.studentName;
 
   const extendedConfig = {
     ...ICON_CONFIG,
@@ -96,58 +94,44 @@ const NotificationCard = ({ item, onPress, onDelete }: { item: Notification, onP
 
   return (
     <Swipeable renderRightActions={renderRightActions} friction={2}>
-      <Animated.View 
-        entering={FadeInUp.duration(400)}
-        layout={Layout.springify()}
-        style={[styles.card, item.isNew && styles.unreadCardWrapper]}
-      >
-        <RectButton 
+      <View style={[styles.card, item.isNew && styles.unreadCardWrapper]}>
+        <RectButton
           onPress={() => onPress(item)}
           style={[styles.cardContent, item.isNew && styles.unreadCard, isRTL && { flexDirection: 'row-reverse' }]}
         >
           <View style={[styles.iconContainer, { backgroundColor: config.bgColor }, isRTL ? { marginLeft: 16, marginRight: 0 } : { marginRight: 16 }]}>
             <Icon size={18} color={config.color} strokeWidth={2.5} />
           </View>
-          
+
           <View style={[styles.textContainer, isRTL && { alignItems: 'flex-end' }]}>
             <View style={[styles.cardHeader, isRTL && { flexDirection: 'row-reverse' }]}>
-              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', flex: 1, paddingRight: isRTL ? 0 : 8, paddingLeft: isRTL ? 8 : 0 }}>
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', flex: 1, paddingRight: isRTL ? 0 : 10, paddingLeft: isRTL ? 10 : 0 }}>
                 {item.isNew && <View style={[styles.unreadDot, isRTL ? { marginLeft: 8, marginRight: 0 } : { marginRight: 8 }]} />}
-                <Text style={[styles.titleText, item.isNew && styles.unreadTitleText]} numberOfLines={1}>
+                <Text style={[styles.titleText, item.isNew && styles.unreadTitleText]} numberOfLines={2}>
                   {dynamicTitle}
                 </Text>
               </View>
               <Text style={[styles.timeText, item.isNew && styles.unreadTimeText]}>{formatNotificationTime(item.createdAt, language)}</Text>
             </View>
-            
-            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginBottom: 6 }}>
-              <Text style={styles.typeText}>{item.studentName}</Text>
-            </View>
-            
+
             <Text style={[styles.messageText, item.isNew && styles.unreadMessageText, isRTL && { textAlign: 'right' }]} numberOfLines={1}>
               {displayMessage}
             </Text>
-
-            {absenceCount && (
-              <View style={[styles.absencePill, isRTL && { alignSelf: 'flex-end', flexDirection: 'row-reverse' }]}>
-                <View style={[styles.pillDot, isRTL ? { marginLeft: 6, marginRight: 0 } : { marginRight: 6 }]} />
-                <Text style={styles.pillText}>{absenceCount} {t.notifAbsences || 'absences'}</Text>
-              </View>
-            )}
+            <Text style={[styles.typeText, isRTL && { textAlign: 'right' }]} numberOfLines={1}>{sourceLabel}</Text>
           </View>
 
           <View style={{ justifyContent: 'center', alignItems: 'center', paddingLeft: isRTL ? 0 : 8, paddingRight: isRTL ? 8 : 0, alignSelf: 'center' }}>
             {isRTL ? <ChevronLeft size={16} color="#cbd5e1" strokeWidth={2.5} /> : <ChevronRight size={16} color="#cbd5e1" strokeWidth={2.5} />}
           </View>
         </RectButton>
-      </Animated.View>
+      </View>
     </Swipeable>
   );
 };
 
 export const NotificationsScreen = ({ navigation }: any) => {
   const { userId, selectedChildId, setUnreadNotificationsCount } = useAppStore();
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, language } = useLanguage();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<FilterType>('All');
 
@@ -169,7 +153,7 @@ export const NotificationsScreen = ({ navigation }: any) => {
   }, [refetch]);
 
   const handleDelete = async (id: number) => {
-    queryClient.setQueryData(['notifications', userId, selectedChildId], (old: Notification[] | undefined) => 
+    queryClient.setQueryData(['notifications', userId, selectedChildId], (old: Notification[] | undefined) =>
       old ? old.filter(n => n.id !== id) : []
     );
     try {
@@ -182,7 +166,7 @@ export const NotificationsScreen = ({ navigation }: any) => {
 
   const handleMarkAsRead = async (item: Notification) => {
     if (item.isNew) {
-      queryClient.setQueryData(['notifications', userId, selectedChildId], (old: Notification[] | undefined) => 
+      queryClient.setQueryData(['notifications', userId, selectedChildId], (old: Notification[] | undefined) =>
         old ? old.map(n => n.id === item.id ? { ...n, isNew: false } : n) : []
       );
       try {
@@ -212,7 +196,7 @@ export const NotificationsScreen = ({ navigation }: any) => {
     const unreadIds = notifications.filter(n => n.isNew).map(n => n.id);
     if (unreadIds.length === 0) return;
 
-    queryClient.setQueryData(['notifications', userId, selectedChildId], (old: Notification[] | undefined) => 
+    queryClient.setQueryData(['notifications', userId, selectedChildId], (old: Notification[] | undefined) =>
       old ? old.map(n => ({ ...n, isNew: false })) : []
     );
     setUnreadNotificationsCount(0);
@@ -227,8 +211,7 @@ export const NotificationsScreen = ({ navigation }: any) => {
   const filteredNotifications = useMemo(() => {
     let list = notifications;
     if (filter === 'Unread') list = notifications.filter(n => n.isNew);
-    if (filter === 'Urgent') list = notifications.filter(n => n.type === 'ATTENDANCE' || n.message?.includes('URGENT'));
-    
+
     // Group by day
     const groups: { title: string; data: Notification[] }[] = [];
     list.forEach(n => {
@@ -248,6 +231,8 @@ export const NotificationsScreen = ({ navigation }: any) => {
 
     return groups;
   }, [notifications, filter, t.older, t.today, t.yesterday]);
+
+  const unreadCount = notifications.filter((notification) => notification.isNew).length;
 
   if (loading) {
     return (
@@ -278,14 +263,16 @@ export const NotificationsScreen = ({ navigation }: any) => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
-      
+
       <View style={[styles.header, isRTL && { flexDirection: 'row-reverse' }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           {isRTL ? <ChevronRight size={20} color="#0f172a" strokeWidth={3} /> : <ChevronLeft size={20} color="#0f172a" strokeWidth={3} />}
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleMarkAllAsRead} style={styles.markAllButton}>
-          <Text style={styles.markAllText}>{t.markAllAsRead || 'Mark all as read'}</Text>
-        </TouchableOpacity>
+        {unreadCount > 0 ? (
+          <TouchableOpacity onPress={handleMarkAllAsRead} style={styles.markAllButton}>
+            <Text style={styles.markAllText}>{t.markAllAsRead || 'Mark all as read'}</Text>
+          </TouchableOpacity>
+        ) : <View style={styles.headerSpacer} />}
       </View>
 
       <View style={[styles.titleSection, isRTL && { alignItems: 'flex-end' }]}>
@@ -293,16 +280,16 @@ export const NotificationsScreen = ({ navigation }: any) => {
       </View>
 
       <View style={[styles.filterContainer, isRTL && { flexDirection: 'row-reverse' }]}>
-        {(['All', 'Unread', 'Urgent'] as FilterType[]).map(f => {
-          const tabLabel = f === 'All' ? t.filterAll : f === 'Unread' ? t.filterUnread : t.filterUrgent;
+        {(['All', 'Unread'] as FilterType[]).map(f => {
+          const tabLabel = f === 'All' ? t.filterAll : t.filterUnread;
           return (
-          <TouchableOpacity 
+          <TouchableOpacity
             key={f}
             onPress={() => setFilter(f)}
             style={[styles.filterTab, filter === f && styles.activeFilterTab]}
           >
             <Text style={[styles.filterTabText, filter === f && styles.activeFilterTabText]}>
-              {tabLabel}{f === 'Unread' ? ` (${notifications.filter(n => n.isNew).length})` : ''}
+              {tabLabel}{f === 'Unread' && unreadCount > 0 ? ` (${unreadCount})` : ''}
             </Text>
           </TouchableOpacity>
         )})}
@@ -312,8 +299,8 @@ export const NotificationsScreen = ({ navigation }: any) => {
         sections={filteredNotifications}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <NotificationCard 
-            item={item} 
+          <NotificationCard
+            item={item}
             onPress={handleMarkAsRead}
             onDelete={handleDelete}
           />
@@ -324,6 +311,16 @@ export const NotificationsScreen = ({ navigation }: any) => {
           </View>
         )}
         contentContainerStyle={styles.listContent}
+        ListEmptyComponent={(
+          <View style={styles.emptyState}>
+            <Bell size={24} color="#8FA0B3" />
+            <Text style={styles.emptyStateTitle}>
+              {filter === 'Unread'
+                ? (language === 'ar' ? 'لا توجد إشعارات غير مقروءة' : language === 'fr' ? 'Tout est lu' : 'You are all caught up')
+                : (language === 'ar' ? 'لا توجد إشعارات' : language === 'fr' ? 'Aucune notification' : 'No notifications')}
+            </Text>
+          </View>
+        )}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0055d4" />
         }
@@ -336,7 +333,7 @@ export const NotificationsScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#F7F9FC',
   },
   header: {
     flexDirection: 'row',
@@ -359,17 +356,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   markAllText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#0055d4',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0B57D0',
   },
+  headerSpacer: { width: 40 },
   titleSection: {
     paddingHorizontal: 24,
     paddingTop: 10,
-    paddingBottom: 20,
+    paddingBottom: 16,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '900',
     color: '#0f172a',
     letterSpacing: -1,
@@ -377,25 +375,20 @@ const styles = StyleSheet.create({
   filterContainer: {
     flexDirection: 'row',
     paddingHorizontal: 24,
-    marginBottom: 24,
-    gap: 12,
+    marginBottom: 12,
+    gap: 8,
   },
   filterTab: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#EEF2F6',
     borderWidth: 1,
     borderColor: '#f1f5f9',
   },
   activeFilterTab: {
-    backgroundColor: '#ffffff',
-    borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: '#E8F0FE',
+    borderColor: '#D4E2FA',
   },
   filterTabText: {
     fontSize: 14,
@@ -403,48 +396,52 @@ const styles = StyleSheet.create({
     color: '#64748b',
   },
   activeFilterTabText: {
-    color: '#0f172a',
+    color: '#174EA6',
   },
   listContent: {
     paddingBottom: 40,
   },
   sectionHeader: {
     paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 12,
-    backgroundColor: '#ffffff',
+    paddingTop: 16,
+    paddingBottom: 8,
+    backgroundColor: '#F7F9FC',
   },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '800',
-    color: '#0f172a',
-    letterSpacing: 1,
+    color: '#708095',
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
   card: {
     backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    marginHorizontal: 20,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E5EAF0',
+    borderRadius: 16,
+    overflow: 'hidden',
   },
   unreadCardWrapper: {
-    borderBottomColor: '#e0e7ff',
+    borderColor: '#D5E2F5',
   },
   unreadCard: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#F8FAFD',
   },
   cardContent: {
     flexDirection: 'row',
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    alignItems: 'flex-start',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    alignItems: 'center',
   },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
   textContainer: {
     flex: 1,
@@ -456,14 +453,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   typeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#64748b',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#8390A2',
+    marginTop: 5,
   },
   timeText: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#94a3b8',
     fontWeight: '600',
   },
@@ -472,7 +468,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   titleText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: '#0f172a',
   },
@@ -480,43 +476,23 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#3b82f6',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#0B57D0',
     marginRight: 8,
   },
   messageText: {
-    fontSize: 14,
-    color: '#475569',
-    lineHeight: 22,
+    fontSize: 13,
+    color: '#5F6D7E',
+    lineHeight: 19,
   },
   unreadMessageText: {
     color: '#1e293b',
     fontWeight: '500',
   },
-  absencePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fee2e2',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 12,
-    alignSelf: 'flex-start',
-  },
-  pillDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#ef4444',
-    marginRight: 6,
-  },
-  pillText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#ef4444',
-  },
+  emptyState: { alignItems: 'center', paddingHorizontal: 32, paddingTop: 72, gap: 12 },
+  emptyStateTitle: { color: '#66758A', fontSize: 14, fontWeight: '700', textAlign: 'center' },
   deleteAction: {
     backgroundColor: '#ef4444',
     justifyContent: 'center',
