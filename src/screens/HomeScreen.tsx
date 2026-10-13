@@ -15,7 +15,6 @@ import {
 } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
-import Reanimated, { FadeInDown } from 'react-native-reanimated';
 import { FlingGestureHandler, Directions, State } from 'react-native-gesture-handler';
 import { studentService, authStorage, authService } from '../services/api';
 import { notificationService } from '../services/notificationService';
@@ -23,7 +22,7 @@ import { StudentDayData } from '../types';
 import { GlobalHeader } from '../components/GlobalHeader';
 import { SkeletonBlock } from '../components/SkeletonView';
 import { useFocusEffect } from '@react-navigation/native';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatLocalDateKey } from '../utils/dateUtils';
 
 const Monitor = (props: any) => <Layout {...props} />;
@@ -162,6 +161,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
   const [selectedRemark, setSelectedRemark] = React.useState<any>(null);
   const scrollViewRef = React.useRef<ScrollView>(null);
   const [tasksYPosition, setTasksYPosition] = React.useState<number>(0);
+  const queryClient = useQueryClient();
 
   React.useEffect(() => {
     if (route?.params?.targetDate) {
@@ -176,9 +176,9 @@ export const HomeScreen = ({ navigation, route }: any) => {
   // ─── React Query: stale-while-revalidate with persistent cache ──────────
   const { data: dayData = EMPTY_DAY, isLoading: loading, isFetching, dataUpdatedAt, refetch } = useQuery({
     queryKey: ['studentDay', selectedChildId, dateStr],
-    queryFn: () => studentService.fetchDayData(selectedChildId!, dateStr),
+    queryFn: ({ signal }) => studentService.fetchDayData(selectedChildId!, dateStr, signal),
     enabled: !!selectedChildId,
-    staleTime: 15_000,
+    staleTime: 2 * 60_000,
     refetchOnMount: false,
     gcTime: 24 * 60 * 60_000,
     retry: 1,
@@ -199,7 +199,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
   useFocusEffect(
     React.useCallback(() => {
       if (!selectedChildId) return;
-      if (!dataUpdatedAt || Date.now() - dataUpdatedAt > 15_000) void refetch();
+      if (!dataUpdatedAt || Date.now() - dataUpdatedAt > 2 * 60_000) void refetch();
     }, [selectedChildId, dateStr, dataUpdatedAt, refetch])
   );
 
@@ -229,6 +229,25 @@ export const HomeScreen = ({ navigation, route }: any) => {
     }),
     [selectedDate]
   );
+
+  // Cache the dates already visible in the strip. The closest dates are
+  // warmed first so the common previous/next action paints immediately.
+  React.useEffect(() => {
+    if (!selectedChildId || loading) return;
+    const adjacent = [1, -1, 2, -2, 3, -3].map(offset => {
+      const date = new Date(selectedDate);
+      date.setDate(date.getDate() + offset);
+      return formatLocalDateKey(date);
+    });
+    const timers = adjacent.map((key, index) => setTimeout(() => {
+      void queryClient.prefetchQuery({
+        queryKey: ['studentDay', selectedChildId, key],
+        queryFn: ({ signal }) => studentService.fetchDayData(selectedChildId, key, signal),
+        staleTime: 2 * 60_000,
+      });
+    }, index * 120));
+    return () => timers.forEach(clearTimeout);
+  }, [loading, queryClient, selectedChildId, selectedDate]);
 
   const allTasks = React.useMemo(() =>
     Array.from(
@@ -356,10 +375,8 @@ export const HomeScreen = ({ navigation, route }: any) => {
           ) : (
             <View style={{ gap: 12, marginTop: 16 }}>
               {dayData.sessions.length > 0 ? (
-                dayData.sessions.map((s: any, index: number) => (
-                  <Reanimated.View key={s.id} entering={FadeInDown.duration(400).delay(index * 100)}>
-                    <SessionCard session={s} />
-                  </Reanimated.View>
+                dayData.sessions.map((s: any) => (
+                  <SessionCard key={s.id} session={s} />
                 ))
               ) : (
                 <EmptySessionsUI />
@@ -381,8 +398,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
           ) : (
             <View style={{ gap: 12 }}>
               {allTasks.length > 0 ? (
-                allTasks.map((task: any, index: number) => (
-                  <Reanimated.View key={task.id} entering={FadeInDown.duration(400).delay(index * 100)}>
+                allTasks.map((task: any) => (
                   <TouchableOpacity
                     key={task.id}
                     onPress={() => navigation.navigate('HomeworkDetail', { homework: task, studentId: selectedChildId })}
@@ -408,7 +424,6 @@ export const HomeScreen = ({ navigation, route }: any) => {
                       <Text style={[styles.listRowMeta, { marginTop: 0 }]}>{t.teacher}: {task.teacher || t.teacher}</Text>
                     </View>
                   </TouchableOpacity>
-                  </Reanimated.View>
                 ))
               ) : (
                 <View style={styles.emptyStateBox}>
@@ -431,8 +446,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
           ) : (
             <View style={{ gap: 12 }}>
               {dayData.notes?.filter((n: any) => n.text && !n.text.includes('INITIALIZED_BULK') && !n.text.includes('AUTO_SYNCED')).length > 0 ? (
-                dayData.notes.filter((n: any) => n.text && !n.text.includes('INITIALIZED_BULK') && !n.text.includes('AUTO_SYNCED')).map((note: any, index: number) => (
-                    <Reanimated.View key={note.id} entering={FadeInDown.duration(400).delay(index * 100)}>
+                dayData.notes.filter((n: any) => n.text && !n.text.includes('INITIALIZED_BULK') && !n.text.includes('AUTO_SYNCED')).map((note: any) => (
                   <TouchableOpacity
                     key={note.id}
                     activeOpacity={0.8}
@@ -452,7 +466,6 @@ export const HomeScreen = ({ navigation, route }: any) => {
                       </View>
                     </View>
                   </TouchableOpacity>
-                  </Reanimated.View>
                 ))
               ) : (
                 <View style={styles.emptyStateBox}>

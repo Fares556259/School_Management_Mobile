@@ -140,7 +140,8 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   if (generation !== authGeneration) return null;
   if (options.signal?.aborted) return { aborted: true };
 
-  const timeoutMs = (options as any)?.timeout || (endpoint.includes('/agent/') ? 55000 : 30000);
+  const isRead = !options.method || options.method === 'GET';
+  const timeoutMs = (options as any)?.timeout || (endpoint.includes('/agent/') ? 55000 : isRead ? 12000 : 30000);
   // Independently cancelable requests must not share a network operation.
   // Preserve deduplication of identical submissions; never automatically retry writes.
   const canShare = !options.signal && !options.headers && (!options.body || typeof options.body === 'string');
@@ -530,7 +531,7 @@ export const parentService = {
 
 // ─── Student Data Service ─────────────────────────────────────────────────────
 export const studentService = {
-  fetchHomeData: async (studentId: string, dateStr?: string, view: 'full' | 'day' = 'full'): Promise<{
+  fetchHomeData: async (studentId: string, dateStr?: string, view: 'full' | 'day' = 'full', signal?: AbortSignal): Promise<{
     sessions: any[];
     tasksDue: any[];
     tasksGiven: any[];
@@ -546,7 +547,7 @@ export const studentService = {
     const params = new URLSearchParams({ studentId, view });
     if (dateStr) params.set('date', dateStr);
     const url = `/api/mobile/home?${params.toString()}`;
-    const data = await apiFetch(url);
+    const data = await apiFetch(url, { signal });
     if (!data || !data.sessions) {
       return { sessions: [], tasksDue: [], tasksGiven: [], upcomingExams: [], teacherRemarks: [], examPeriods: [] };
     }
@@ -554,8 +555,8 @@ export const studentService = {
   },
 
   // Legacy alias — keep HomeScreen working during migration
-  fetchDayData: async (studentId: string, _date: string): Promise<StudentDayData> => {
-    const home = await studentService.fetchHomeData(studentId, _date, 'day');
+  fetchDayData: async (studentId: string, _date: string, signal?: AbortSignal): Promise<StudentDayData> => {
+    const home = await studentService.fetchHomeData(studentId, _date, 'day', signal);
     return {
       holidayName: home.holidayName || undefined,
       sessions: (home.sessions || []).map((s: any, i: number) => ({
@@ -798,8 +799,8 @@ export const studentService = {
     });
   },
   
-  fetchAttendanceHistory: async (studentId: string): Promise<AttendanceHistoryDay[]> => {
-    const data = await apiFetch(`/api/mobile/attendance/history?studentId=${studentId}`);
+  fetchAttendanceHistory: async (studentId: string, signal?: AbortSignal): Promise<AttendanceHistoryDay[]> => {
+    const data = await apiFetch(`/api/mobile/attendance/history?studentId=${studentId}&days=30`, { signal });
     return Array.isArray(data) ? data : [];
   },
 

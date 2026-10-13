@@ -41,7 +41,7 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
       return studentService.fetchUnreadNotificationCount(uid, selectedChildId);
     },
     enabled: userRole === 'parent' && !!userId && !!selectedChildId,
-    staleTime: 0,
+    staleTime: 60_000,
     refetchOnMount: false,
     gcTime: 24 * 60 * 60_000,
   });
@@ -50,19 +50,19 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
     if (userRole === 'parent') setUnreadNotificationsCount(selectedUnreadCount);
   }, [selectedUnreadCount, setUnreadNotificationsCount, userRole]);
 
-  const warmFamilySnapshots = useCallback(() => {
+  const warmFamilySnapshots = useCallback((warmAll = false) => {
     if (userRole !== 'parent') return;
-    for (const child of children) {
-      if (child.id !== selectedChildId) {
-        void prefetchChildSnapshot(queryClient, child, userId);
-      }
-    }
+    const otherChildren = children.filter(child => child.id !== selectedChildId);
+    const targets = warmAll ? otherChildren : otherChildren.slice(0, 1);
+    targets.forEach((child, index) => {
+      setTimeout(() => void prefetchChildSnapshot(queryClient, child, userId), index * 350);
+    });
   }, [children, queryClient, selectedChildId, userId, userRole]);
 
   useEffect(() => {
     // Give the visible child's home request first use of the connection on a
     // cold launch. Other children are warmed once the first screen has settled.
-    const timeout = setTimeout(warmFamilySnapshots, 1800);
+    const timeout = setTimeout(() => warmFamilySnapshots(false), 1800);
     return () => clearTimeout(timeout);
   }, [warmFamilySnapshots]);
 
@@ -74,7 +74,7 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
 
   const toggleSwitcher = () => {
     if (userRole === 'teacher') return;
-    if (!showSwitcher) warmFamilySnapshots();
+    if (!showSwitcher) warmFamilySnapshots(true);
     setShowSwitcher(!showSwitcher);
   };
 

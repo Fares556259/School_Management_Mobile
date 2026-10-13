@@ -101,7 +101,7 @@ export interface AttendanceHistoryDay {
   date: string;
   status: 'PRESENT' | 'ABSENT' | 'LATE';
   sessions: {
-    id: number;
+    id: number | string;
     lessonId: number | null;
     subject: string;
     status: 'PRESENT' | 'ABSENT' | 'LATE';

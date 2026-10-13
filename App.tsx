@@ -63,7 +63,8 @@ const queryClient = new QueryClient({
     queries: {
       gcTime: 1000 * 60 * 60 * 24, // 24 hours in garbage collection
       staleTime: 1000 * 60 * 5, // 5 minutes
-      retry: 2,
+      retry: 1,
+      refetchOnWindowFocus: false,
     },
   },
 });
@@ -532,6 +533,12 @@ export default function App() {
       if (data?.type === 'ATTENDANCE' || data?.type === 'REMARK' || data?.type === 'GRADE') {
         queryClient.invalidateQueries({ queryKey: ['studentDay'] });
       }
+      if (data?.type === 'ATTENDANCE') queryClient.invalidateQueries({ queryKey: ['attendanceHistory'] });
+      if (data?.type === 'GRADE') queryClient.invalidateQueries({ queryKey: ['results'] });
+      if (data?.type === 'RESOURCE') queryClient.invalidateQueries({ queryKey: ['courses'] });
+      if (data?.type === 'HOMEWORK') queryClient.invalidateQueries({ queryKey: ['studentDay'] });
+      if (data?.type === 'ANNOUNCEMENT') queryClient.invalidateQueries({ queryKey: ['announcements'] });
+      if (data?.type === 'PAYMENT') queryClient.invalidateQueries({ queryKey: ['payments'] });
       // Always refresh notification count
       queryClient.invalidateQueries({ queryKey: ['notifCount'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });

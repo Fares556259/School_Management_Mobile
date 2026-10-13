@@ -32,16 +32,13 @@ export const prefetchChildSnapshot = (
   const studentId = child.id;
   const classId = child.raw?.classId;
   const today = getTodayKey();
-  const options = { staleTime: 15_000 };
+  const options = { staleTime: 2 * 60_000 };
 
   const requests = [
     queryClient.prefetchQuery({ queryKey: ['studentDay', studentId, today], queryFn: () => studentService.fetchDayData(studentId, today), ...options }),
     queryClient.prefetchQuery({ queryKey: ['courses', studentId], queryFn: () => studentService.fetchCourses(studentId), ...options }),
     queryClient.prefetchQuery({ queryKey: ['payments', studentId], queryFn: () => studentService.fetchPayments(studentId, false), ...options }),
     queryClient.prefetchQuery({ queryKey: ['announcements', classId, studentId], queryFn: () => studentService.fetchAnnouncements(classId || undefined, studentId), ...options }),
-    queryClient.prefetchQuery({ queryKey: ['attendanceHistory', studentId], queryFn: () => studentService.fetchAttendanceHistory(studentId), ...options }),
-    queryClient.prefetchQuery({ queryKey: ['results', studentId], queryFn: () => studentService.fetchResults(studentId), ...options }),
-    queryClient.prefetchQuery({ queryKey: ['exams', studentId], queryFn: () => fetchExamOverview(studentId, today), ...options }),
   ];
 
   if (parentId) {
@@ -51,6 +48,13 @@ export const prefetchChildSnapshot = (
     );
   }
 
-  return Promise.allSettled(requests);
+  return Promise.allSettled(requests).then(async results => {
+    // Lower-frequency screens warm after the navigation-critical snapshot so
+    // they never compete with the header, home, courses, or payments paint.
+    await queryClient.prefetchQuery({ queryKey: ['attendanceHistory', studentId, 30], queryFn: () => studentService.fetchAttendanceHistory(studentId), staleTime: 5 * 60_000 });
+    await queryClient.prefetchQuery({ queryKey: ['results', studentId], queryFn: () => studentService.fetchResults(studentId), staleTime: 5 * 60_000 });
+    await queryClient.prefetchQuery({ queryKey: ['exams', studentId], queryFn: () => fetchExamOverview(studentId, today), staleTime: 5 * 60_000 });
+    return results;
+  });
 };
 

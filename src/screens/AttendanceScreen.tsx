@@ -1,296 +1,207 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { RefreshControl, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StatusBar } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Alert, FlatList, RefreshControl, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Calendar, AlertCircle, CheckCircle2, Clock, Filter, FileUp, Star } from 'lucide-react-native';
+import { AlertCircle, CalendarDays, CheckCircle2, ChevronDown, ChevronUp, Clock3, FileUp, ShieldCheck } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { useQuery } from '@tanstack/react-query';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
 import { studentService, uiService } from '../services/api';
 import { AttendanceHistoryDay } from '../types';
 import { GlobalHeader } from '../components/GlobalHeader';
-import { useQuery } from '@tanstack/react-query';
-import { useFocusEffect } from '@react-navigation/native';
+import { SkeletonBlock } from '../components/SkeletonView';
 
-const STATUS_MAP = {
-  PRESENT: { label: 'Present', color: '#16a34a', bg: '#dcfce7', border: '#86efac', icon: CheckCircle2 },
-  ABSENT:  { label: 'Absent',  color: '#dc2626', bg: '#fee2e2', border: '#fca5a5', icon: AlertCircle },
-  LATE:    { label: 'Late',    color: '#d97706', bg: '#fef3c7', border: '#fcd34d', icon: Clock },
+type Filter = 'ALL' | 'ABSENT' | 'LATE';
+
+const COPY = {
+  fr: { title: 'Assiduité', subtitle: 'Suivi des 30 derniers jours', rate: 'Taux de présence', present: 'Présences', absent: 'Absences', late: 'Retards', all: 'Tout', activity: 'Historique récent', session: 'séance', sessions: 'séances', noEvents: 'Aucun événement pour ce filtre', remarks: 'Remarques', justify: 'Justifier', sent: 'Justificatif envoyé à l’école.', failed: 'Impossible d’envoyer le justificatif.' },
+  en: { title: 'Attendance', subtitle: 'Last 30 days', rate: 'Attendance rate', present: 'Present', absent: 'Absent', late: 'Late', all: 'All', activity: 'Recent history', session: 'session', sessions: 'sessions', noEvents: 'No activity for this filter', remarks: 'Notes', justify: 'Justify', sent: 'The document was sent to the school.', failed: 'The document could not be sent.' },
+  ar: { title: 'الحضور والمواظبة', subtitle: 'آخر 30 يوماً', rate: 'نسبة الحضور', present: 'حضور', absent: 'غياب', late: 'تأخير', all: 'الكل', activity: 'السجل الأخير', session: 'حصة', sessions: 'حصص', noEvents: 'لا توجد أحداث ضمن هذا الاختيار', remarks: 'ملاحظات', justify: 'إرسال تبرير', sent: 'تم إرسال التبرير إلى المدرسة.', failed: 'تعذر إرسال التبرير.' },
+} as const;
+
+const STATUS_STYLE = {
+  PRESENT: { color: '#16875B', bg: '#E9F8F1', icon: CheckCircle2 },
+  ABSENT: { color: '#C83D3D', bg: '#FFF0EF', icon: AlertCircle },
+  LATE: { color: '#B66A00', bg: '#FFF7E6', icon: Clock3 },
 };
 
-const AttendanceHistoryItem = ({ day, onJustify }: { day: AttendanceHistoryDay, onJustify: (sessionId: number) => void }) => {
-  const { getTranslatedSubject } = useLanguage();
+const AttendanceRow = React.memo(({ day, locale, copy, onJustify, submittingId }: {
+  day: AttendanceHistoryDay;
+  locale: string;
+  copy: typeof COPY.fr | typeof COPY.en | typeof COPY.ar;
+  onJustify: (id: number) => void;
+  submittingId: number | null;
+}) => {
   const [expanded, setExpanded] = useState(false);
-  const statusConfig = STATUS_MAP[day.status] || STATUS_MAP.PRESENT;
-  const Icon = statusConfig.icon;
-  const date = new Date(day.date);
-  const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-  const dayNum = date.getDate();
+  const { getTranslatedSubject, isRTL } = useLanguage();
+  const config = STATUS_STYLE[day.status] || STATUS_STYLE.PRESENT;
+  const Icon = config.icon;
+  const date = new Date(`${day.date}T12:00:00`);
+  const dateLabel = date.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
+  const statusLabel = day.status === 'ABSENT' ? copy.absent : day.status === 'LATE' ? copy.late : copy.present;
 
   return (
-    <View style={{ marginBottom: 12 }}>
-      <TouchableOpacity
-        onPress={() => setExpanded(!expanded)}
-        activeOpacity={0.85}
-        style={{
-          backgroundColor: 'white',
-          padding: 16,
-          borderRadius: 24,
-          flexDirection: 'row',
-          alignItems: 'center',
-          borderWidth: 2,
-          borderColor: expanded ? statusConfig.color : '#e2e8f0',
-          borderBottomWidth: 5,
-          borderBottomColor: expanded ? statusConfig.color : '#cbd5e1',
-        }}
-      >
-        {/* Date Box */}
-        <View style={{
-          width: 54, height: 54, borderRadius: 16,
-          backgroundColor: '#f8fafc',
-          alignItems: 'center', justifyContent: 'center',
-          marginRight: 16, borderWidth: 2, borderColor: '#e2e8f0',
-          borderBottomWidth: 4, borderBottomColor: '#cbd5e1'
-        }}>
-          <Text style={{ fontSize: 10, fontWeight: '900', color: '#64748b', textTransform: 'uppercase' }}>{dayName}</Text>
-          <Text style={{ fontSize: 22, fontWeight: '900', color: '#1e293b' }}>{dayNum}</Text>
+    <View style={{ backgroundColor: '#FFFFFF', borderRadius: 18, borderWidth: 1, borderColor: '#E3E8EF', marginBottom: 10, overflow: 'hidden' }}>
+      <TouchableOpacity onPress={() => setExpanded(value => !value)} activeOpacity={0.75} style={{ paddingHorizontal: 16, paddingVertical: 15, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
+        <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: config.bg, alignItems: 'center', justifyContent: 'center' }}>
+          <Icon size={19} color={config.color} strokeWidth={2.3} />
         </View>
-
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b' }}>
-            {statusConfig.label}
-          </Text>
-          <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '700', marginTop: 2 }}>
-            {day.sessions.length} {day.sessions.length === 1 ? 'Session' : 'Sessions'}
-          </Text>
+        <View style={{ flex: 1, marginHorizontal: 12, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+          <Text style={{ color: '#172033', fontSize: 15, fontWeight: '800' }}>{dateLabel}</Text>
+          <Text style={{ color: '#728096', fontSize: 12, fontWeight: '600', marginTop: 3 }}>{day.sessions.length} {day.sessions.length === 1 ? copy.session : copy.sessions}</Text>
         </View>
-
-        <View style={{
-          paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12,
-          backgroundColor: statusConfig.bg, borderWidth: 2, borderColor: statusConfig.border,
-          borderBottomWidth: 4, borderBottomColor: statusConfig.border,
-          flexDirection: 'row', alignItems: 'center', gap: 6,
-        }}>
-          <Icon size={14} color={statusConfig.color} strokeWidth={3} />
-          <Text style={{ color: statusConfig.color, fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            {day.status}
-          </Text>
+        <View style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: config.bg }}>
+          <Text style={{ color: config.color, fontSize: 11, fontWeight: '800' }}>{statusLabel}</Text>
         </View>
+        {expanded ? <ChevronUp size={18} color="#98A2B3" style={{ marginLeft: 8 }} /> : <ChevronDown size={18} color="#98A2B3" style={{ marginLeft: 8 }} />}
       </TouchableOpacity>
 
-      {/* Expanded Sessions */}
       {expanded && (
-        <View style={{
-          marginTop: -16,
-          paddingTop: 32, paddingBottom: 20, paddingHorizontal: 20,
-          backgroundColor: '#f8fafc',
-          borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
-          zIndex: -1,
-          borderWidth: 2, borderTopWidth: 0, borderColor: '#e2e8f0',
-        }}>
-          {day.sessions.map((s: any, i) => {
-            const getStatusConfig = (status: string | null) => {
-              const st = status?.toUpperCase();
-              if (st === 'PRES' || st === 'PRESENT') return { label: 'Present', color: '#16a34a', bg: '#dcfce7', border: '#86efac' };
-              if (st === 'ABS' || st === 'ABSENT')  return { label: 'Absent',  color: '#dc2626', bg: '#fee2e2', border: '#fca5a5' };
-              if (st === 'LATE') return { label: 'Late',    color: '#d97706', bg: '#fef3c7', border: '#fcd34d' };
-              return { label: 'Pending', color: '#64748b', bg: '#f1f5f9', border: '#e2e8f0' };
-            };
-            const config = getStatusConfig(s.status);
-
+        <View style={{ borderTopWidth: 1, borderTopColor: '#EEF1F5', padding: 14, backgroundColor: '#FAFBFC' }}>
+          {day.sessions.map(session => {
+            const sessionStyle = STATUS_STYLE[session.status] || STATUS_STYLE.PRESENT;
+            const label = session.status === 'ABSENT' ? copy.absent : session.status === 'LATE' ? copy.late : copy.present;
+            const canJustify = session.status === 'ABSENT' && typeof session.id === 'number';
             return (
-              <View key={i} style={{
-                backgroundColor: 'white',
-                padding: 16, borderRadius: 20, marginBottom: 12,
-                borderWidth: 2, borderColor: '#e2e8f0',
-              }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 16, color: '#1e293b', fontWeight: '900' }}>{getTranslatedSubject(s.subject)}</Text>
-                    <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: config.bg, borderWidth: 1.5, borderColor: config.border, alignSelf: 'flex-start', marginTop: 8 }}>
-                      <Text style={{ color: config.color, fontSize: 10, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 }}>{config.label}</Text>
-                    </View>
-                  </View>
-
-                  {s.status === 'ABSENT' && (
-                    <TouchableOpacity
-                      onPress={() => onJustify(s.id)}
-                      activeOpacity={0.8}
-                      style={{ backgroundColor: '#eff6ff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 2, borderColor: '#bfdbfe', borderBottomWidth: 4, borderBottomColor: '#93c5fd', flexDirection: 'row', alignItems: 'center' }}
-                    >
-                      <FileUp size={14} color="#0072e6" strokeWidth={2.5} />
-                      <Text style={{ fontSize: 12, color: '#0072e6', fontWeight: '900', marginLeft: 6 }}>Justify</Text>
-                    </TouchableOpacity>
-                  )}
+              <View key={String(session.id)} style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', paddingVertical: 10 }}>
+                <View style={{ width: 3, height: 34, borderRadius: 2, backgroundColor: sessionStyle.color }} />
+                <View style={{ flex: 1, marginHorizontal: 10, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                  <Text style={{ color: '#172033', fontSize: 14, fontWeight: '700' }}>{getTranslatedSubject(session.subject)}</Text>
+                  <Text style={{ color: sessionStyle.color, fontSize: 11, fontWeight: '700', marginTop: 3 }}>{label}</Text>
                 </View>
-
-                {s.score > 0 && (
-                  <View style={{ marginTop: 14, borderTopWidth: 2, borderTopColor: '#f1f5f9', paddingTop: 12, flexDirection: 'row', alignItems: 'center' }}>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        size={14}
-                        color={s.score >= star ? '#f59e0b' : '#e2e8f0'}
-                        fill={s.score >= star ? '#f59e0b' : 'none'}
-                        style={{ marginRight: 4 }}
-                      />
-                    ))}
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: '#f59e0b', marginLeft: 6 }}>{s.score}/5</Text>
-                  </View>
+                {canJustify && (
+                  <TouchableOpacity onPress={() => onJustify(session.id as number)} disabled={submittingId === session.id} style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, backgroundColor: '#EAF2FF' }}>
+                    <FileUp size={14} color="#0B57D0" />
+                    <Text style={{ color: '#0B57D0', fontSize: 11, fontWeight: '800', marginHorizontal: 5 }}>{submittingId === session.id ? '…' : copy.justify}</Text>
+                  </TouchableOpacity>
                 )}
               </View>
             );
           })}
-
           {day.notes.length > 0 && (
-            <View style={{ marginTop: 8, paddingTop: 16, borderTopWidth: 2, borderTopColor: '#e2e8f0' }}>
-              <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Remarks</Text>
-              {day.notes.map((n, i) => (
-                <View key={i} style={{ marginBottom: 10, backgroundColor: 'white', padding: 12, borderRadius: 16, borderWidth: 2, borderColor: '#e2e8f0' }}>
-                  <Text style={{ fontSize: 14, color: '#1e293b', fontStyle: 'italic', fontWeight: '700', lineHeight: 20 }}>
-                    "{n.text}"
-                  </Text>
-                  <Text style={{ fontSize: 11, color: '#0072e6', marginTop: 6, fontWeight: '900' }}>— {n.author}</Text>
-                </View>
-              ))}
+            <View style={{ marginTop: 8, padding: 12, borderRadius: 12, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E7EBF0' }}>
+              <Text style={{ color: '#667085', fontSize: 11, fontWeight: '800', marginBottom: 6 }}>{copy.remarks}</Text>
+              {day.notes.map((note, index) => <Text key={`${note.author}-${index}`} style={{ color: '#344054', fontSize: 13, lineHeight: 19, marginTop: index ? 5 : 0 }}>{note.text} · {note.author}</Text>)}
             </View>
           )}
         </View>
       )}
     </View>
   );
-};
+});
 
 export const AttendanceScreen = ({ navigation }: any) => {
-  const { selectedChildId } = useAppStore();
-  const { data: history = [], isLoading: loading, isRefetching: refreshing, refetch } = useQuery({
-    queryKey: ['attendanceHistory', selectedChildId],
-    queryFn: () => studentService.fetchAttendanceHistory(selectedChildId!),
+  const selectedChildId = useAppStore(state => state.selectedChildId);
+  const { language, isRTL } = useLanguage();
+  const copy = COPY[language];
+  const [filter, setFilter] = useState<Filter>('ALL');
+  const [submittingId, setSubmittingId] = useState<number | null>(null);
+  const { data: history = [], isLoading, isRefetching, refetch } = useQuery({
+    queryKey: ['attendanceHistory', selectedChildId, 30],
+    queryFn: ({ signal }) => studentService.fetchAttendanceHistory(selectedChildId!, signal),
     enabled: !!selectedChildId,
-    staleTime: 0,
-    refetchOnMount: 'always',
+    staleTime: 5 * 60_000,
+    gcTime: 24 * 60 * 60_000,
+    refetchOnMount: false,
+    retry: 1,
   });
 
-  useFocusEffect(useCallback(() => {
-    if (selectedChildId) void refetch();
-  }, [refetch, selectedChildId]));
+  const totals = useMemo(() => history.reduce((result, day) => {
+    result[day.status] += 1;
+    return result;
+  }, { PRESENT: 0, ABSENT: 0, LATE: 0 }), [history]);
+  const attendanceRate = history.length ? Math.round((totals.PRESENT / history.length) * 100) : 0;
+  const filtered = useMemo(() => filter === 'ALL' ? history : history.filter(day => day.status === filter), [filter, history]);
+  const locale = language === 'ar' ? 'ar-TN' : language === 'fr' ? 'fr-FR' : 'en-GB';
 
-  const onRefresh = async () => {
-    refetch();
-  };
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleJustify = async (sessionId: number) => {
+  const handleJustify = useCallback(async (attendanceId: number) => {
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, quality: 0.55 });
+    if (result.canceled || !result.assets[0]?.uri || !selectedChildId) return;
+    setSubmittingId(attendanceId);
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        quality: 0.3,
-      });
-
-      if (result.canceled || !result.assets[0].uri) return;
-
-      const uri = result.assets[0].uri;
-      setIsSubmitting(true);
-
-      const uploadRes = (await uiService.uploadImage(uri, 'student', selectedChildId!)) as any;
-      await studentService.justifyAttendance(sessionId, uploadRes.url, "Parent uploaded medical certificate via mobile app.");
+      const uploaded = await uiService.uploadImage(result.assets[0].uri, 'student', selectedChildId) as any;
+      await studentService.justifyAttendance(attendanceId, uploaded.url, 'Parent attendance justification');
       await refetch();
-      alert("Success! Your justification has been submitted for review.");
-    } catch (error) {
-      console.error("Justification error:", error);
-      alert("Failed to submit justification. Please try again.");
+      Alert.alert('', copy.sent);
+    } catch {
+      Alert.alert('', copy.failed);
     } finally {
-      setIsSubmitting(false);
+      setSubmittingId(null);
     }
-  };
+  }, [copy.failed, copy.sent, refetch, selectedChildId]);
 
-  const totalAbsences = history.filter(d => d.status === 'ABSENT').length;
-  const totalLates = history.filter(d => d.status === 'LATE').length;
-  const totalPresences = history.filter(d => d.status === 'PRESENT').length;
-  const last30Days = history.filter(d => (new Date().getTime() - new Date(d.date).getTime()) < 30 * 24 * 60 * 60 * 1000);
-  const monthlyPresentCount = last30Days.reduce((acc, curr) => acc + (curr.status === 'PRESENT' ? 1 : 0), 0);
-  const monthlyTotalCount = last30Days.length || 1;
-  const monthlyAvg = Math.round((monthlyPresentCount / monthlyTotalCount) * 100);
-
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-
-      {/* Shared Global Header */}
-      <GlobalHeader navigation={navigation} showBack />
-
-      <View style={{ paddingHorizontal: 20, paddingTop: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-        <Text style={{ fontSize: 30, fontWeight: '900', color: '#1e293b', letterSpacing: -0.5 }}>Attendance</Text>
-        <TouchableOpacity style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#e2e8f0' }}>
-          <Filter color="#64748b" size={20} />
-        </TouchableOpacity>
+  const header = (
+    <View>
+      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 18 }}>
+        <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+          <Text style={{ fontSize: 29, fontWeight: '800', letterSpacing: -0.7, color: '#172033' }}>{copy.title}</Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: '#728096', marginTop: 4 }}>{copy.subtitle}</Text>
+        </View>
+        <View style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: '#EAF2FF', alignItems: 'center', justifyContent: 'center' }}><CalendarDays size={20} color="#0B57D0" /></View>
       </View>
 
-      <ScrollView
+      {isLoading ? (
+        <View style={{ backgroundColor: '#FFFFFF', borderRadius: 20, borderWidth: 1, borderColor: '#E3E8EF', padding: 18, marginBottom: 18 }}>
+          <SkeletonBlock width="35%" height={14} marginBottom={12} />
+          <SkeletonBlock width="24%" height={38} marginBottom={16} />
+          <SkeletonBlock width="100%" height={8} />
+        </View>
+      ) : (
+        <View style={{ backgroundColor: '#FFFFFF', borderRadius: 20, borderWidth: 1, borderColor: '#E3E8EF', padding: 18, marginBottom: 18 }}>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+              <Text style={{ color: '#728096', fontSize: 12, fontWeight: '700' }}>{copy.rate}</Text>
+              <Text style={{ color: '#172033', fontSize: 38, fontWeight: '800', letterSpacing: -1.2, marginTop: 2 }}>{attendanceRate}%</Text>
+            </View>
+            <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: '#EAF2FF', alignItems: 'center', justifyContent: 'center' }}><ShieldCheck size={25} color="#0B57D0" /></View>
+          </View>
+          <View style={{ height: 7, borderRadius: 99, backgroundColor: '#E7ECF2', marginTop: 14, overflow: 'hidden' }}><View style={{ width: `${attendanceRate}%`, height: '100%', borderRadius: 99, backgroundColor: '#0B57D0' }} /></View>
+          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', marginTop: 18 }}>
+            {[
+              { value: totals.PRESENT, label: copy.present, color: '#16875B' },
+              { value: totals.ABSENT, label: copy.absent, color: '#C83D3D' },
+              { value: totals.LATE, label: copy.late, color: '#B66A00' },
+            ].map((item, index) => (
+              <View key={item.label} style={{ flex: 1, alignItems: 'center', borderLeftWidth: index && !isRTL ? 1 : 0, borderRightWidth: index && isRTL ? 1 : 0, borderColor: '#E7EBF0' }}>
+                <Text style={{ color: item.color, fontSize: 20, fontWeight: '800' }}>{item.value}</Text>
+                <Text style={{ color: '#728096', fontSize: 11, fontWeight: '600', marginTop: 3 }}>{item.label}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
+      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <Text style={{ color: '#172033', fontSize: 17, fontWeight: '800' }}>{copy.activity}</Text>
+        <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', backgroundColor: '#EEF2F6', borderRadius: 12, padding: 3 }}>
+          {([['ALL', copy.all], ['ABSENT', copy.absent], ['LATE', copy.late]] as [Filter, string][]).map(([value, label]) => (
+            <TouchableOpacity key={value} onPress={() => setFilter(value)} style={{ paddingHorizontal: 10, paddingVertical: 7, borderRadius: 9, backgroundColor: filter === value ? '#FFFFFF' : 'transparent' }}>
+              <Text style={{ color: filter === value ? '#172033' : '#728096', fontSize: 11, fontWeight: '700' }}>{label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F6F8FB' }} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <GlobalHeader navigation={navigation} showBack />
+      <FlatList
+        data={isLoading ? [] : filtered}
+        keyExtractor={item => item.date}
+        renderItem={({ item }) => <AttendanceRow day={item} locale={locale} copy={copy} onJustify={handleJustify} submittingId={submittingId} />}
+        ListHeaderComponent={header}
+        ListEmptyComponent={isLoading ? <View style={{ gap: 10 }}>{[1, 2, 3].map(item => <SkeletonBlock key={item} width="100%" height={72} borderRadius={18} />)}</View> : <View style={{ alignItems: 'center', paddingVertical: 42 }}><CheckCircle2 size={28} color="#98A2B3" /><Text style={{ color: '#667085', fontSize: 14, fontWeight: '600', marginTop: 10 }}>{copy.noEvents}</Text></View>}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 18, paddingBottom: 100, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0072e6" />}
-      >
-        {/* Trend Card */}
-        <View style={{
-          backgroundColor: '#0072e6', borderRadius: 24, padding: 20, marginBottom: 20, overflow: 'hidden',
-          borderWidth: 2, borderColor: '#0055b3',
-          borderBottomWidth: 6, borderBottomColor: '#004085'
-        }}>
-          <View style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.1)' }} />
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View>
-              <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1.5 }}>Performance</Text>
-              <Text style={{ fontSize: 32, fontWeight: '900', color: 'white', marginTop: 2 }}>{monthlyAvg}%</Text>
-              <Text style={{ fontSize: 12, color: 'white', fontWeight: '700', marginTop: 2 }}>Attendance in last 30 days</Text>
-            </View>
-            <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: 14, borderRadius: 20, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }}>
-              <CheckCircle2 color="white" size={28} />
-            </View>
-          </View>
-        </View>
-
-        {/* Summary Dashboard */}
-        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 32 }}>
-          <View style={{ flex: 1, backgroundColor: '#dcfce7', padding: 16, borderRadius: 20, borderWidth: 2, borderColor: '#86efac', borderBottomWidth: 5, borderBottomColor: '#4ade80' }}>
-            <Text style={{ fontSize: 24, fontWeight: '900', color: '#16a34a' }}>{totalPresences}</Text>
-            <Text style={{ fontSize: 11, color: '#16a34a', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4 }}>Presences</Text>
-          </View>
-          <View style={{ flex: 1, backgroundColor: '#fee2e2', padding: 16, borderRadius: 20, borderWidth: 2, borderColor: '#fca5a5', borderBottomWidth: 5, borderBottomColor: '#f87171' }}>
-            <Text style={{ fontSize: 24, fontWeight: '900', color: '#dc2626' }}>{totalAbsences}</Text>
-            <Text style={{ fontSize: 11, color: '#dc2626', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4 }}>Absences</Text>
-          </View>
-          <View style={{ flex: 1, backgroundColor: '#fef3c7', padding: 16, borderRadius: 20, borderWidth: 2, borderColor: '#fcd34d', borderBottomWidth: 5, borderBottomColor: '#fbbf24' }}>
-            <Text style={{ fontSize: 24, fontWeight: '900', color: '#d97706' }}>{totalLates}</Text>
-            <Text style={{ fontSize: 11, color: '#d97706', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4 }}>Lates</Text>
-          </View>
-        </View>
-
-        <Text style={{ fontSize: 16, fontWeight: '900', color: '#1e293b', marginBottom: 16, textTransform: 'uppercase', letterSpacing: 1 }}>
-          Recent Activity
-        </Text>
-
-        {loading || isSubmitting ? (
-          <View style={{ gap: 12 }}>
-             {[1,2,3,4].map(i => (
-                <View key={i} style={{ height: 80, borderRadius: 24, backgroundColor: '#f1f5f9', borderWidth: 2, borderColor: '#e2e8f0' }} />
-             ))}
-          </View>
-        ) : history.filter(d => d.status !== 'PRESENT').length === 0 ? (
-          <View style={{ alignItems: 'center', paddingVertical: 48, backgroundColor: '#f8fafc', borderRadius: 24, borderWidth: 2, borderColor: '#e2e8f0' }}>
-            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#f1f5f9', borderWidth: 2, borderColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <Calendar size={32} color="#94a3b8" />
-            </View>
-            <Text style={{ fontSize: 18, color: '#1e293b', fontWeight: '900' }}>No recent absences</Text>
-            <Text style={{ fontSize: 14, color: '#64748b', fontWeight: '700', marginTop: 6 }}>Attendance records are all clear!</Text>
-          </View>
-        ) : (
-          history.filter(d => d.status !== 'PRESENT').map((day, idx) => (
-            <AttendanceHistoryItem key={idx} day={day} onJustify={handleJustify} />
-          ))
-        )}
-      </ScrollView>
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        removeClippedSubviews
+        refreshControl={<RefreshControl refreshing={isRefetching && !isLoading} onRefresh={refetch} tintColor="#0B57D0" />}
+      />
     </SafeAreaView>
   );
 };

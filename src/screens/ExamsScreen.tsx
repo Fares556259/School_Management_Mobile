@@ -8,7 +8,6 @@ import { useLanguage } from '../context/LanguageContext';
 import { studentService } from '../services/api';
 import { downloadAndPreviewPDF } from '../utils/fileUtils';
 import { useQuery } from '@tanstack/react-query';
-import { useFocusEffect } from '@react-navigation/native';
 import { formatLocalDateKey } from '../utils/dateUtils';
 
 const TermCard = React.memo(({ period, pdfUrl }: { period: number, pdfUrl?: string }) => {
@@ -138,13 +137,9 @@ export const ExamsScreen = ({ navigation }: any) => {
       return { examPeriods: periods, upcomingExams: upcoming };
     },
     enabled: !!selectedChildId,
-    staleTime: 0,
-    refetchOnMount: 'always',
+    staleTime: 5 * 60_000,
+    refetchOnMount: false,
   });
-
-  useFocusEffect(React.useCallback(() => {
-    if (selectedChildId) void refetch();
-  }, [refetch, selectedChildId]));
 
   const { examPeriods, upcomingExams } = data;
 

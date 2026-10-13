@@ -11,7 +11,6 @@ import Animated, { FadeInUp, Layout } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import { SkeletonBlock } from '../components/SkeletonView';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useFocusEffect } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
@@ -161,13 +160,9 @@ export const NotificationsScreen = ({ navigation }: any) => {
       return data;
     },
     enabled: !!userId,
-    staleTime: 0,
-    refetchOnMount: 'always',
+    staleTime: 30_000,
+    refetchOnMount: false,
   });
-
-  useFocusEffect(useCallback(() => {
-    if (userId) void refetch();
-  }, [refetch, userId, selectedChildId]));
 
   const onRefresh = useCallback(() => {
     refetch();
