@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Image, Dimensions, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Image, Dimensions, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   Calculator, Book, Languages, Globe, Palette, Microscope, Music, BookOpen, 
@@ -12,7 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GlobalHeader } from '../components/GlobalHeader';
 import { useQuery } from '@tanstack/react-query';
 import * as WebBrowser from 'expo-web-browser';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { useFocusEffect } from '@react-navigation/native';
 import { downloadAndPreviewPDF } from '../utils/fileUtils';
@@ -72,6 +72,7 @@ export const CoursesScreen = ({ navigation }: any) => {
   const [viewedResources, setViewedResources] = useState<string[]>([]);
   const [expandedCourses, setExpandedCourses] = useState<Record<string, boolean>>({});
   const [openingResourceId, setOpeningResourceId] = useState<number | null>(null);
+  const [mediaAction, setMediaAction] = useState<'download' | 'share' | null>(null);
   const child = children.find(c => c.id === selectedChildId);
 
   const [viewingMedia, setViewingMedia] = useState<{ url: string; title: string; subject?: string } | null>(null);
@@ -114,6 +115,75 @@ export const CoursesScreen = ({ navigation }: any) => {
       } catch (e) {
         console.error('Failed to save viewed resources', e);
       }
+    }
+  };
+
+  const getMediaFile = (media: { url: string; title: string }) => {
+    const urlPath = media.url.split('?')[0];
+    const urlExtension = urlPath.match(/\.([a-z0-9]{2,5})$/i)?.[1]?.toLowerCase();
+    const extension = urlExtension && ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf'].includes(urlExtension) ? urlExtension : 'jpg';
+    const mimeType = extension === 'pdf' ? 'application/pdf' : extension === 'png' ? 'image/png' : extension === 'webp' ? 'image/webp' : extension === 'gif' ? 'image/gif' : 'image/jpeg';
+    const safeTitle = (media.title || 'SnapSchool')
+      .replace(/\.[a-z0-9]{2,5}$/i, '')
+      .replace(/[^a-z0-9\u0600-\u06ff _-]/gi, '')
+      .trim() || 'SnapSchool';
+    return { extension, mimeType, safeTitle, filename: `${safeTitle}.${extension}` };
+  };
+
+  const cacheMedia = async (media: { url: string; title: string }) => {
+    const file = getMediaFile(media);
+    const cacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || '';
+    const localUri = `${cacheDir}${Date.now()}_${file.filename}`;
+    const result = await FileSystem.downloadAsync(media.url, localUri);
+    return { ...file, localUri: result.uri };
+  };
+
+  const downloadViewingMedia = async () => {
+    if (!viewingMedia || mediaAction) return;
+    setMediaAction('download');
+    try {
+      const file = await cacheMedia(viewingMedia);
+      if (Platform.OS === 'android') {
+        const initialDirectory = FileSystem.StorageAccessFramework.getUriForDirectoryInRoot('Download');
+        const permission = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(initialDirectory);
+        if (!permission.granted) return;
+        const base64 = await FileSystem.readAsStringAsync(file.localUri, { encoding: FileSystem.EncodingType.Base64 });
+        const targetUri = await FileSystem.StorageAccessFramework.createFileAsync(permission.directoryUri, file.safeTitle, file.mimeType);
+        await FileSystem.StorageAccessFramework.writeAsStringAsync(targetUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+        Alert.alert(
+          language === 'ar' ? 'تم التنزيل' : language === 'fr' ? 'Téléchargement terminé' : 'Download complete',
+          language === 'ar' ? 'تم حفظ الملف في المجلد الذي اخترته.' : language === 'fr' ? 'Le fichier a été enregistré dans le dossier choisi.' : 'The file was saved in the folder you selected.',
+        );
+      } else if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(file.localUri, { mimeType: file.mimeType, dialogTitle: viewingMedia.title });
+      } else {
+        await WebBrowser.openBrowserAsync(viewingMedia.url);
+      }
+    } catch (error) {
+      console.warn('Media download failed', error);
+      Alert.alert(
+        language === 'ar' ? 'تعذر التنزيل' : language === 'fr' ? 'Téléchargement impossible' : 'Download failed',
+        language === 'ar' ? 'يرجى المحاولة مرة أخرى.' : language === 'fr' ? 'Veuillez réessayer.' : 'Please try again.',
+      );
+    } finally {
+      setMediaAction(null);
+    }
+  };
+
+  const shareViewingMedia = async () => {
+    if (!viewingMedia || mediaAction) return;
+    setMediaAction('share');
+    try {
+      const file = await cacheMedia(viewingMedia);
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(file.localUri, { mimeType: file.mimeType, dialogTitle: viewingMedia.title });
+      } else {
+        await WebBrowser.openBrowserAsync(viewingMedia.url);
+      }
+    } catch (error) {
+      console.warn('Media sharing failed', error);
+    } finally {
+      setMediaAction(null);
     }
   };
 
@@ -379,7 +449,7 @@ export const CoursesScreen = ({ navigation }: any) => {
           animationType="fade"
           onRequestClose={() => setViewingMedia(null)}
         >
-          <View style={{ flex: 1, backgroundColor: 'rgba(11, 15, 25, 0.96)', justifyContent: 'space-between', paddingVertical: Platform.OS === 'ios' ? 50 : 30 }}>
+          <View style={{ flex: 1, backgroundColor: '#0B1220', paddingTop: Platform.OS === 'ios' ? 50 : 24, paddingBottom: Platform.OS === 'ios' ? 34 : 22 }}>
             {/* Top Bar */}
             <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 }}>
               <View style={{ flex: 1, marginRight: isRTL ? 0 : 16, marginLeft: isRTL ? 16 : 0 }}>
@@ -394,56 +464,50 @@ export const CoursesScreen = ({ navigation }: any) => {
               </View>
               <TouchableOpacity
                 onPress={() => setViewingMedia(null)}
-                style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' }}
+                style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: '#1E293B', borderWidth: 1, borderColor: '#334155', alignItems: 'center', justifyContent: 'center' }}
               >
                 <X size={22} color="white" strokeWidth={2.5} />
               </TouchableOpacity>
             </View>
 
             {/* Main Image View */}
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10 }}>
-              <Image
-                source={{ uri: viewingMedia.url }}
-                style={{ width: SCREEN_WIDTH - 20, height: SCREEN_HEIGHT * 0.72 }}
-                resizeMode="contain"
-              />
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 18 }}>
+              <View style={{ width: SCREEN_WIDTH - 32, maxHeight: SCREEN_HEIGHT * 0.7, flex: 1, borderRadius: 22, overflow: 'hidden', backgroundColor: '#111827', borderWidth: 1, borderColor: '#263449', shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 18, elevation: 10 }}>
+                <Image
+                  source={{ uri: viewingMedia.url }}
+                  style={{ width: '100%', height: '100%' }}
+                  resizeMode="contain"
+                />
+              </View>
             </View>
 
             {/* Bottom Actions Bar */}
-            <View style={{ paddingHorizontal: 20, flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'center', gap: 16 }}>
+            <View style={{ paddingHorizontal: 20, flexDirection: isRTL ? 'row-reverse' : 'row', gap: 12 }}>
               <TouchableOpacity
-                onPress={async () => {
-                  try {
-                    const filename = viewingMedia.url.split('/').pop()?.split('?')[0] || `snapschool_${Date.now()}.jpg`;
-                    const cacheDir = (FileSystem as any).cacheDirectory || (FileSystem as any).documentDirectory || '';
-                    const localUri = `${cacheDir}${filename}`;
-                    const downloadResult = await FileSystem.downloadAsync(viewingMedia.url, localUri);
-
-                    if (await Sharing.isAvailableAsync()) {
-                      await Sharing.shareAsync(downloadResult.uri, {
-                        mimeType: downloadResult.uri.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
-                        dialogTitle: viewingMedia.title || 'SnapSchool Document',
-                      });
-                    } else {
-                      await WebBrowser.openBrowserAsync(viewingMedia.url);
-                    }
-                  } catch (err) {
-                    console.warn(err);
-                  }
-                }}
+                onPress={downloadViewingMedia}
                 style={{
-                  backgroundColor: '#0055d4',
-                  paddingHorizontal: 24,
+                  flex: 1,
+                  justifyContent: 'center',
+                  backgroundColor: '#0B6FE8',
                   paddingVertical: 14,
-                  borderRadius: 20,
+                  borderRadius: 16,
                   flexDirection: isRTL ? 'row-reverse' : 'row',
                   alignItems: 'center',
                   gap: 8
                 }}
               >
-                <Share2 size={18} color="white" />
+                {mediaAction === 'download' ? <ActivityIndicator size="small" color="white" /> : <Download size={18} color="white" />}
                 <Text style={{ color: 'white', fontWeight: '900', fontSize: 14 }}>
-                  {isRTL ? 'مشاركة أو حفظ' : 'Partager / Enregistrer'}
+                  {language === 'ar' ? 'تنزيل' : language === 'fr' ? 'Télécharger' : 'Download'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={shareViewingMedia}
+                style={{ flex: 1, justifyContent: 'center', backgroundColor: '#182235', paddingVertical: 14, borderRadius: 16, borderWidth: 1, borderColor: '#334155', flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 8 }}
+              >
+                {mediaAction === 'share' ? <ActivityIndicator size="small" color="white" /> : <Share2 size={18} color="white" />}
+                <Text style={{ color: 'white', fontWeight: '900', fontSize: 14 }}>
+                  {language === 'ar' ? 'مشاركة' : language === 'fr' ? 'Partager' : 'Share'}
                 </Text>
               </TouchableOpacity>
             </View>

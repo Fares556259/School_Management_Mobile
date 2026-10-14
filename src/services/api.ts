@@ -19,6 +19,21 @@ const SCHOOL_ID_KEY = 'snapschool_school_id';
 const JWT_TOKEN_KEY = 'snapschool_jwt_token';
 const STUDENTS_CACHE_KEY = 'snapschool_students_cache';
 
+const cleanPersonValue = (value: any): string => {
+  if (typeof value === 'string') return value.replace(/\[object\s+Object\]/gi, '').replace(/\s{2,}/g, ' ').trim();
+  if (typeof value === 'number') return String(value);
+  if (Array.isArray(value)) return value.map(cleanPersonValue).filter(Boolean).join(' / ');
+  if (value && typeof value === 'object') {
+    const direct = cleanPersonValue(value.fullName || value.displayName || value.teacherName || value.label);
+    if (direct) return direct;
+    return [
+      cleanPersonValue(value.firstName || value.name),
+      cleanPersonValue(value.lastName || value.surname),
+    ].filter(Boolean).join(' ').trim();
+  }
+  return '';
+};
+
 // ─── Helper for URL Normalization ───────────────────────────────────────────
 /**
  * Prepends the API base URL if the provided URL is a relative path.
@@ -560,13 +575,7 @@ export const studentService = {
     return {
       holidayName: home.holidayName || undefined,
       sessions: (Array.isArray(home.sessions) ? home.sessions : []).map((s: any, i: number) => {
-        const teacherValue = s.teacher;
-        const teacherName = typeof teacherValue === 'string'
-          ? teacherValue.replace(/\[object Object\]/gi, '').trim()
-          : [teacherValue?.name || teacherValue?.firstName, teacherValue?.surname || teacherValue?.lastName]
-              .filter(Boolean)
-              .join(' ')
-              .trim();
+        const teacherName = cleanPersonValue(s.teacher);
         return {
           id: s.id || i,
           subject: s.subject,

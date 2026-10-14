@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Clock, Coffee, MessageSquare, ChevronRight, BookOpen,
   Calendar as CalendarIcon, CheckCircle2,
-  Download, X, Award, User as UserIcon
+  Download, X, Award, User as UserIcon, Star
 } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
@@ -25,13 +25,24 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatLocalDateKey } from '../utils/dateUtils';
 import { useFonts } from 'expo-font';
 
-const readablePersonName = (value: any, fallback: string) => {
-  if (typeof value === 'string') return value.replace(/\[object Object\]/gi, '').trim() || fallback;
-  if (value && typeof value === 'object') {
-    return [value.name || value.firstName, value.surname || value.lastName].filter(Boolean).join(' ').trim() || fallback;
+const cleanPersonPart = (value: any): string => {
+  if (typeof value === 'string') {
+    return value.replace(/\[object\s+Object\]/gi, '').replace(/\s{2,}/g, ' ').trim();
   }
-  return fallback;
+  if (typeof value === 'number') return String(value);
+  if (Array.isArray(value)) return value.map(cleanPersonPart).filter(Boolean).join(' / ');
+  if (value && typeof value === 'object') {
+    const direct = cleanPersonPart(value.fullName || value.displayName || value.teacherName || value.label);
+    if (direct) return direct;
+    return [
+      cleanPersonPart(value.firstName || value.name),
+      cleanPersonPart(value.lastName || value.surname),
+    ].filter(Boolean).join(' ').trim();
+  }
+  return '';
 };
+
+const readablePersonName = (value: any, fallback: string) => cleanPersonPart(value) || fallback;
 
 // ─── Date Card ───────────────────────────────────────────────────────────────
 const DateItem = React.memo(({ day, date, active, isToday, onPress }: any) => {
@@ -79,9 +90,9 @@ const SUBJECT_TONES = [
 const SessionCard = React.memo(({ session, isLast, arabicFontLoaded }: any) => {
   const { t, isRTL, getTranslatedSubject } = useLanguage();
   const attendance = String(session?.attendance || '').toUpperCase();
-  const isAbsent = attendance === 'ABSENT' || attendance === 'ABS';
-  const isPresent = attendance === 'PRESENT';
-  const isLate = attendance === 'LATE';
+  const isAbsent = ['ABSENT', 'ABS', 'ABSENCE'].includes(attendance);
+  const isPresent = ['PRESENT', 'PRES', 'PRÉSENT'].includes(attendance);
+  const isLate = ['LATE', 'RTR', 'RETARD'].includes(attendance);
 
   const badgeBg = isAbsent ? '#fee2e2' : isPresent ? '#dcfce7' : isLate ? '#fef3c7' : '#f1f5f9';
   const badgeText = isAbsent ? '#dc2626' : isPresent ? '#16a34a' : isLate ? '#d97706' : '#64748b';
@@ -90,9 +101,13 @@ const SessionCard = React.memo(({ session, isLast, arabicFontLoaded }: any) => {
   const translatedSubject = getTranslatedSubject(subject) || subject || '—';
   const toneIndex = Array.from(subject).reduce((sum, char) => sum + char.charCodeAt(0), 0) % SUBJECT_TONES.length;
   const tone = SUBJECT_TONES[toneIndex];
+  const statusColor = isAbsent ? '#EF4444' : isPresent ? '#22C55E' : isLate ? '#F59E0B' : '#CBD5E1';
+  const rawScore = Number(session?.score);
+  const score = Number.isFinite(rawScore) ? Math.max(0, Math.min(5, rawScore)) : 0;
 
   return (
     <View style={[styles.sessionRow, !isLast && styles.sessionRowDivider, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+      <View style={[styles.sessionStatusRail, { backgroundColor: statusColor }]} />
       <View style={[styles.subjectMark, { backgroundColor: tone.soft }]}>
         <BookOpen size={20} color={tone.ink} strokeWidth={2.2} />
       </View>
@@ -114,9 +129,22 @@ const SessionCard = React.memo(({ session, isLast, arabicFontLoaded }: any) => {
         </View>
 
         <View style={[styles.teacherLine, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-          <UserIcon size={13} color="#98A2B3" strokeWidth={2.2} />
-          <Text style={[styles.sessionTeacherV2, isRTL && arabicFontLoaded && styles.arabicText, { marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }]} numberOfLines={1}>{readablePersonName(session?.teacher, t.teacher)}</Text>
-          {session?.room ? <Text style={styles.roomText}> · {String(session.room)}</Text> : null}
+          <View style={[styles.teacherIdentity, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            <UserIcon size={13} color="#98A2B3" strokeWidth={2.2} />
+            <Text style={[styles.sessionTeacherV2, isRTL && arabicFontLoaded && styles.arabicText, { marginLeft: isRTL ? 0 : 6, marginRight: isRTL ? 6 : 0 }]} numberOfLines={1}>{readablePersonName(session?.teacher, t.teacher)}</Text>
+            {session?.room ? <Text style={styles.roomText}> · {cleanPersonPart(session.room)}</Text> : null}
+          </View>
+          <View style={[styles.ratingRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            {[1, 2, 3, 4, 5].map((value) => (
+              <Star
+                key={value}
+                size={14}
+                color={value <= score ? '#F59E0B' : '#CBD5E1'}
+                fill={value <= score ? '#F59E0B' : 'transparent'}
+                strokeWidth={1.8}
+              />
+            ))}
+          </View>
         </View>
       </View>
     </View>
@@ -610,6 +638,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 15,
     alignItems: 'flex-start',
+    position: 'relative',
+  },
+  sessionStatusRail: {
+    position: 'absolute',
+    left: 0,
+    top: 14,
+    bottom: 14,
+    width: 4,
+    borderRadius: 4,
   },
   sessionRowDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -651,7 +688,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#667085',
   },
-  teacherLine: { alignItems: 'center', marginTop: 10, maxWidth: '100%' },
+  teacherLine: { alignItems: 'center', justifyContent: 'space-between', marginTop: 10, width: '100%' },
+  teacherIdentity: { alignItems: 'center', flex: 1, minWidth: 0 },
+  ratingRow: { alignItems: 'center', gap: 2, marginLeft: 8, marginRight: 8 },
   roomText: { fontSize: 12, color: '#98A2B3', fontWeight: '600' },
 
   // List Rows (remarks / tasks / exams)
