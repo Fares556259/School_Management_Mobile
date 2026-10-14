@@ -532,10 +532,10 @@ export const parentService = {
     });
   },
 
-  linkStudent: async (studentId: string, birthday: string) => {
+  linkStudent: async (studentId: string) => {
     return apiFetch('/api/mobile/students', {
       method: 'POST',
-      body: JSON.stringify({ studentId, birthday }),
+      body: JSON.stringify({ studentId: studentId.trim() }),
     });
   },
 

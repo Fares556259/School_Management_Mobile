@@ -1,143 +1,136 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import {
+  View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert,
+  KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, ScrollView,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, User, Calendar, ShieldCheck, Info } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Hash, ShieldCheck, UserPlus } from 'lucide-react-native';
+import { useFonts } from 'expo-font';
 import { parentService } from '../services/api';
 import { useAppStore } from '../store/useAppStore';
+import { useLanguage } from '../context/LanguageContext';
 
 export const LinkChildScreen = ({ navigation }: any) => {
   const [studentId, setStudentId] = useState('');
-  const [birthday, setBirthday] = useState(''); // Expected: YYYY-MM-DD
   const [loading, setLoading] = useState(false);
   const { setChildren, setSelectedChildId } = useAppStore();
+  const { t, isRTL } = useLanguage();
+  const [arabicFontLoaded] = useFonts({
+    NotoSansArabic: require('../../assets/fonts/NotoSansArabic.ttf'),
+  });
+  const arabicText = isRTL && arabicFontLoaded
+    ? { fontFamily: 'NotoSansArabic', fontWeight: 'normal' as const, letterSpacing: 0 }
+    : undefined;
+
+  const localizedFailure = (code?: string) => {
+    if (code === 'STUDENT_NOT_FOUND' || code === 'STUDENT_NUMBER_NOT_UNIQUE') return t.linkStudentNotFound;
+    if (code === 'STUDENT_ALREADY_LINKED') return t.linkStudentAlreadyLinked;
+    return t.linkStudentGenericError;
+  };
+
+  const finishSuccessfulLink = async (student: any) => {
+    const children = await parentService.fetchChildren();
+    setChildren(children);
+    if (student?.id) setSelectedChildId(student.id);
+    navigation.goBack();
+  };
 
   const handleLink = async () => {
-    if (!studentId || !birthday) {
-      Alert.alert('Missing Info', 'Please provide both the Student ID and Birthday.');
+    const normalizedId = studentId.trim();
+    if (!normalizedId) {
+      Alert.alert(t.linkStudentMissingTitle, t.linkStudentMissingMessage);
       return;
     }
 
-    // Basic date format validation (YYYY-MM-DD)
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(birthday)) {
-      Alert.alert('Invalid Format', 'Please enter the birthday in YYYY-MM-DD format (e.g., 2012-05-15).');
-      return;
-    }
-
+    Keyboard.dismiss();
     setLoading(true);
     try {
-      const response = await parentService.linkStudent(studentId, birthday);
-      
-      if (response && response.success) {
-        Alert.alert('Success ✨', `${response.student.name} has been linked to your account.`, [
-          {
-            text: 'Great!',
-            onPress: async () => {
-              // Refresh children list
-              const data = await parentService.fetchChildren();
-              setChildren(data);
-              if (data.length > 0) setSelectedChildId(response.student.id);
-              navigation.goBack();
-            }
-          }
-        ]);
-      } else {
+      const response = await parentService.linkStudent(normalizedId);
+      if (response?.success && response.student) {
+        const studentName = `${response.student.name || ''} ${response.student.surname || ''}`.trim();
         Alert.alert(
-          'Linking Failed',
-          response?.error || 'We couldn\'t verify this student. Please check the ID and Birthday or contact the school.'
+          t.linkStudentSuccessTitle,
+          studentName ? `${studentName} — ${t.linkStudentSuccessMessage}` : t.linkStudentSuccessMessage,
+          [{ text: t.done, onPress: () => void finishSuccessfulLink(response.student) }],
         );
+        return;
       }
-    } catch (error) {
-      Alert.alert('Error', 'An unexpected error occurred. Please try again later.');
+      Alert.alert(t.linkStudentFailedTitle, localizedFailure(response?.code));
+    } catch {
+      Alert.alert(t.linkStudentFailedTitle, t.linkStudentGenericError);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1"
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View className="flex-1 px-6">
-            {/* Header */}
-            <View className="flex-row items-center py-4 mb-4">
-              <TouchableOpacity 
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F6F8FB' }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20, paddingBottom: 28 }}
+          >
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', paddingVertical: 12 }}>
+              <TouchableOpacity
                 onPress={() => navigation.goBack()}
-                className="p-2 -ml-2 bg-surface-low rounded-full"
+                hitSlop={8}
+                style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E3E9F0', alignItems: 'center', justifyContent: 'center' }}
               >
-                <ChevronLeft size={24} color="#0055d4" />
+                {isRTL ? <ChevronRight size={23} color="#172033" strokeWidth={2.5} /> : <ChevronLeft size={23} color="#172033" strokeWidth={2.5} />}
               </TouchableOpacity>
-              <Text className="text-2xl font-jakarta font-black text-brand-primary ml-4">Link Student</Text>
-            </View>
-
-            {/* Info Message */}
-            <View className="bg-blue-50/50 p-4 rounded-3xl border border-brand-primary/10 mb-8">
-              <View className="flex-row items-center mb-2">
-                <Info size={18} color="#0055d4" />
-                <Text className="text-brand-primary font-jakarta font-bold ml-2 text-sm uppercase tracking-widest">Verification Required</Text>
-              </View>
-              <Text className="text-text-muted font-manrope text-sm leading-relaxed">
-                To securely link a child to your parent account, please provide their unique Student ID and Date of Birth as registered with the school administration.
+              <Text style={[{ flex: 1, marginHorizontal: 13, fontSize: 22, fontWeight: '900', color: '#172033', textAlign: isRTL ? 'right' : 'left' }, arabicText]}>
+                {t.linkStudentTitle}
               </Text>
             </View>
 
-            {/* Form */}
-            <View className="gap-6">
-              <View>
-                <Text className="text-text-muted font-jakarta font-bold text-[10px] tracking-widest uppercase mb-2 ml-1">Student unique ID</Text>
-                <View className="flex-row items-center bg-surface-low rounded-[24px] px-5 py-4 border border-surface-low focus:border-brand-primary">
-                  <User size={20} color="#0055d4" />
-                  <TextInput 
-                    className="flex-1 ml-3 text-lg text-text-primary font-manrope font-semibold"
-                    placeholder="e.g. STU12345"
-                    value={studentId}
-                    onChangeText={setStudentId}
-                    autoCapitalize="characters"
-                    autoCorrect={false}
-                  />
+            <View style={{ backgroundColor: '#EAF3FF', borderRadius: 22, padding: 18, marginTop: 10, borderWidth: 1, borderColor: '#D7E9FC' }}>
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
+                <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
+                  <UserPlus size={22} color="#0B63CE" strokeWidth={2.3} />
+                </View>
+                <View style={{ flex: 1, marginLeft: isRTL ? 0 : 13, marginRight: isRTL ? 13 : 0, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                  <Text style={[{ fontSize: 16, fontWeight: '900', color: '#174A80', textAlign: isRTL ? 'right' : 'left' }, arabicText]}>{t.linkStudentIntroTitle}</Text>
+                  <Text style={[{ marginTop: 5, fontSize: 13, lineHeight: 20, fontWeight: '600', color: '#52708F', textAlign: isRTL ? 'right' : 'left' }, arabicText]}>{t.linkStudentIntro}</Text>
                 </View>
               </View>
+            </View>
 
-              <View>
-                <Text className="text-text-muted font-jakarta font-bold text-[10px] tracking-widest uppercase mb-2 ml-1">Date of Birth (YYYY-MM-DD)</Text>
-                <View className="flex-row items-center bg-surface-low rounded-[24px] px-5 py-4 border border-surface-low">
-                  <Calendar size={20} color="#0055d4" />
-                  <TextInput 
-                    className="flex-1 ml-3 text-lg text-text-primary font-manrope font-semibold"
-                    placeholder="e.g. 2012-05-15"
-                    value={birthday}
-                    onChangeText={setBirthday}
-                    keyboardType="numeric"
-                  />
-                </View>
+            <View style={{ backgroundColor: '#FFFFFF', borderRadius: 24, padding: 18, marginTop: 18, borderWidth: 1, borderColor: '#E3E9F0', shadowColor: '#172033', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.04, shadowRadius: 14, elevation: 1 }}>
+              <Text style={[{ fontSize: 12, fontWeight: '800', color: '#475467', marginBottom: 9, textAlign: isRTL ? 'right' : 'left' }, arabicText]}>{t.studentNumberLabel}</Text>
+              <View style={{ minHeight: 60, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', borderRadius: 17, paddingHorizontal: 15, backgroundColor: '#F8FAFC', borderWidth: 1.5, borderColor: studentId ? '#8ABCEF' : '#DFE6EE' }}>
+                <Hash size={21} color="#0B63CE" strokeWidth={2.4} />
+                <TextInput
+                  style={[{ flex: 1, marginLeft: isRTL ? 0 : 11, marginRight: isRTL ? 11 : 0, fontSize: 17, color: '#172033', fontWeight: '700', textAlign: isRTL ? 'right' : 'left', paddingVertical: 0 }, arabicText]}
+                  placeholder={t.studentNumberPlaceholder}
+                  placeholderTextColor="#98A2B3"
+                  value={studentId}
+                  onChangeText={setStudentId}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  returnKeyType="done"
+                  onSubmitEditing={() => void handleLink()}
+                />
               </View>
+              <Text style={[{ marginTop: 10, fontSize: 12, lineHeight: 18, color: '#667085', textAlign: isRTL ? 'right' : 'left' }, arabicText]}>{t.studentNumberHelper}</Text>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={handleLink}
-                disabled={loading}
-                className={`flex-row items-center justify-center p-5 rounded-[24px] mt-4 shadow-xl shadow-brand-primary/20 ${loading ? 'bg-brand-primary/70' : 'bg-brand-primary'}`}
+                disabled={loading || !studentId.trim()}
+                activeOpacity={0.82}
+                style={{ minHeight: 56, marginTop: 18, borderRadius: 17, backgroundColor: loading || !studentId.trim() ? '#9FC5EE' : '#0B6FE8', flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'center', gap: 9 }}
               >
-                {loading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <>
-                    <ShieldCheck size={20} color="white" className="mr-2" />
-                    <Text className="text-white font-jakarta font-black text-lg">Verify & Link Profile</Text>
-                  </>
-                )}
+                {loading ? <ActivityIndicator color="#FFFFFF" /> : <ShieldCheck size={21} color="#FFFFFF" strokeWidth={2.4} />}
+                <Text style={[{ color: '#FFFFFF', fontSize: 16, fontWeight: '900' }, arabicText]}>{t.linkStudentAction}</Text>
               </TouchableOpacity>
             </View>
 
-            <View className="mt-auto mb-10 items-center">
-              <Text className="text-text-muted font-manrope text-[11px] text-center px-8">
-                By linking a student, you agree that you are their legal guardian or authorized parent. 
-                Data access will be logged for security.
-              </Text>
+            <View style={{ marginTop: 18, paddingHorizontal: 12, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'flex-start' }}>
+              <ShieldCheck size={17} color="#7B8794" style={{ marginTop: 1 }} />
+              <Text style={[{ flex: 1, marginLeft: isRTL ? 0 : 8, marginRight: isRTL ? 8 : 0, fontSize: 11, lineHeight: 17, color: '#7B8794', textAlign: isRTL ? 'right' : 'left' }, arabicText]}>{t.linkStudentSecurity}</Text>
             </View>
-          </View>
+          </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </SafeAreaView>

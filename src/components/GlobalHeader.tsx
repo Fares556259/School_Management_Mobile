@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { Bell, ChevronDown, Check, X, User, ChevronRight, ChevronLeft } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
@@ -15,7 +15,7 @@ interface GlobalHeaderProps {
 }
 
 const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
-  const { t, isRTL, language } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const selectedChildId = useAppStore(s => s.selectedChildId);
   const setSelectedChildId = useAppStore(s => s.setSelectedChildId);
   const children = useAppStore(s => s.children);
@@ -207,15 +207,19 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
             
             <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
               <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start', marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }}>
-                <Text style={{ fontSize: 24, fontWeight: '900', color: '#0B63CE', textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'أبنائي' : language === 'fr' ? 'Mes enfants' : 'My children'}</Text>
-                <Text style={{ fontSize: 14, color: '#737C7F', fontWeight: '500', marginTop: 4, textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'اختر الطفل الذي تريد متابعته' : language === 'fr' ? 'Choisissez le profil à consulter' : 'Choose the child you want to view'}</Text>
+                <Text style={{ fontSize: 24, fontWeight: '900', color: '#0B63CE', textAlign: isRTL ? 'right' : 'left' }}>{t.childPickerTitle}</Text>
+                <Text style={{ fontSize: 14, color: '#737C7F', fontWeight: '500', marginTop: 4, textAlign: isRTL ? 'right' : 'left' }}>{t.childPickerSubtitle}</Text>
               </View>
               <TouchableOpacity onPress={() => setShowSwitcher(false)} className="w-10 h-10 bg-surface-low rounded-full items-center justify-center">
                 <X size={20} color="#737c7f" />
               </TouchableOpacity>
             </View>
  
-            <View className="gap-3">
+            <ScrollView
+              style={{ maxHeight: 430 }}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, paddingBottom: 4 }}
+            >
               {children.map((child: any) => {
                 const isActive = selectedChildId === child.id;
                 return (
@@ -233,7 +237,7 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
                     </View>
                     <View style={{ flex: 1, marginLeft: isRTL ? 0 : 16, marginRight: isRTL ? 16 : 0, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
                       <Text style={{ fontSize: 18, fontWeight: '700', color: '#172033', textAlign: isRTL ? 'right' : 'left' }}>{child.name}</Text>
-                      <Text style={{ fontSize: 14, color: '#737C7F', fontWeight: '600', textAlign: isRTL ? 'right' : 'left' }}>{child.class || (language === 'ar' ? 'لم يتم تعيين فصل' : language === 'fr' ? 'Classe non attribuée' : 'No class assigned')}</Text>
+                      <Text style={{ fontSize: 14, color: '#737C7F', fontWeight: '600', textAlign: isRTL ? 'right' : 'left' }}>{child.class || t.noClassAssigned}</Text>
                     </View>
                     {isActive ? (
                       <View className="w-7 h-7 bg-brand-primary rounded-full items-center justify-center">
@@ -245,7 +249,7 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
                   </TouchableOpacity>
                 );
               })}
-            </View>
+            </ScrollView>
  
             <TouchableOpacity 
               className="flex-row items-center justify-center mt-6 p-4 rounded-2xl bg-surface-low"
@@ -255,7 +259,7 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
               }}
             >
               <User size={18} color="#0055d4" className="mr-2" />
-              <Text className="text-brand-primary font-jakarta font-bold text-sm uppercase tracking-widest">{language === 'ar' ? 'ربط تلميذ جديد' : language === 'fr' ? 'Ajouter un élève' : 'Link new student'}</Text>
+              <Text className="text-brand-primary font-jakarta font-bold text-sm uppercase tracking-widest">{t.linkChild}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
