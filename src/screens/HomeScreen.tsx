@@ -1,11 +1,10 @@
 import React from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, Platform,
+  View, Text, ScrollView, TouchableOpacity,
   RefreshControl, StatusBar, ActivityIndicator, Linking,
-  StyleSheet, Modal, Animated
+  StyleSheet, Animated
 } from 'react-native';
 import { Image } from 'expo-image';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Clock, Coffee, MessageSquare, ChevronRight, BookOpen,
@@ -14,7 +13,6 @@ import {
 } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
-import { FlingGestureHandler, Directions, State } from 'react-native-gesture-handler';
 import { studentService, authStorage, authService } from '../services/api';
 import { notificationService } from '../services/notificationService';
 import { StudentDayData } from '../types';
@@ -24,6 +22,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatLocalDateKey } from '../utils/dateUtils';
 import { useFonts } from 'expo-font';
+import { ScheduleCalendarModal } from '../components/ScheduleCalendarModal';
 
 const cleanPersonPart = (value: any): string => {
   if (typeof value === 'string') {
@@ -55,7 +54,7 @@ const DateItem = React.memo(({ day, date, active, isToday, onPress, accessibilit
     onPress();
   };
   return (
-    <Animated.View style={{ flex: 1, transform: [{ scale }] }}>
+    <Animated.View style={{ width: 58, transform: [{ scale }] }}>
       <TouchableOpacity
         onPress={handlePress}
         activeOpacity={1}
@@ -210,6 +209,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
   const [showDatePicker, setShowDatePicker] = React.useState(false);
   const [selectedRemark, setSelectedRemark] = React.useState<any>(null);
   const scrollViewRef = React.useRef<ScrollView>(null);
+  const dateStripRef = React.useRef<ScrollView>(null);
   const [tasksYPosition, setTasksYPosition] = React.useState<number>(0);
   const queryClient = useQueryClient();
 
@@ -286,13 +286,18 @@ export const HomeScreen = ({ navigation, route }: any) => {
 
   // ─── Memoized computed values (prevent re-creation every render) ──────────
   const sliderDates = React.useMemo(() =>
-    Array.from({ length: 4 }).map((_, i) => {
+    Array.from({ length: 18 }).map((_, i) => {
       const d = new Date(selectedDate);
-      d.setDate(d.getDate() - 1 + i);
+      d.setDate(d.getDate() - 3 + i);
       return d;
     }),
     [selectedDate]
   );
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => dateStripRef.current?.scrollTo({ x: 3 * 64, animated: false }), 0);
+    return () => clearTimeout(timer);
+  }, [selectedDate]);
 
   // Cache the dates already visible in the strip. The closest dates are
   // warmed first so the common previous/next action paints immediately.
@@ -339,30 +344,12 @@ export const HomeScreen = ({ navigation, route }: any) => {
   );
   const isSelectedToday = selectedDate.toDateString() === new Date().toDateString();
 
-  const changeDate = (days: number) => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() + days);
-    setSelectedDate(newDate);
-  };
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
       <GlobalHeader navigation={navigation} />
 
-      <FlingGestureHandler
-        direction={isRTL ? Directions.RIGHT : Directions.LEFT}
-        onHandlerStateChange={({ nativeEvent }) => {
-          if (nativeEvent.state === State.ACTIVE) changeDate(1);
-        }}
-      >
-        <FlingGestureHandler
-          direction={isRTL ? Directions.LEFT : Directions.RIGHT}
-          onHandlerStateChange={({ nativeEvent }) => {
-            if (nativeEvent.state === State.ACTIVE) changeDate(-1);
-          }}
-        >
-          <ScrollView
+      <ScrollView
         ref={scrollViewRef}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0072e6" />}
@@ -398,8 +385,18 @@ export const HomeScreen = ({ navigation, route }: any) => {
               <CalendarIcon size={20} color="#0B63CE" strokeWidth={2.3} />
               <Text numberOfLines={1} style={styles.calendarMonth}>{selectedMonthLabel}</Text>
             </TouchableOpacity>
-            <View style={[styles.dateItemsRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-              {(isRTL ? [...sliderDates].reverse() : sliderDates).map(d => (
+            <ScrollView
+              ref={dateStripRef}
+              horizontal
+              nestedScrollEnabled
+              showsHorizontalScrollIndicator={false}
+              directionalLockEnabled
+              decelerationRate="fast"
+              snapToInterval={64}
+              style={styles.dateScroller}
+              contentContainerStyle={[styles.dateScrollerContent, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
+            >
+              {sliderDates.map(d => (
                 <DateItem
                   key={d.toISOString()}
                   day={daysArr[d.getDay()]}
@@ -410,46 +407,16 @@ export const HomeScreen = ({ navigation, route }: any) => {
                   onPress={() => { setSelectedDate(d); }}
                 />
               ))}
-            </View>
+            </ScrollView>
           </View>
 
-          {showDatePicker && Platform.OS === 'ios' ? (
-            <Modal transparent animationType="fade" visible={showDatePicker}>
-              <View style={styles.modalOverlay}>
-                <View style={{ backgroundColor: 'white', borderRadius: 28, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 20 }, shadowOpacity: 0.15, shadowRadius: 30, elevation: 10, width: '90%', alignSelf: 'center' }}>
-                  <DateTimePicker
-                    value={selectedDate}
-                    mode="date"
-                    display="inline"
-                    themeVariant="light"
-                    style={{ height: 330 }}
-                    onChange={(event, date) => {
-                      if (event.type === 'set' && date) {
-                        setSelectedDate(date);
-                        setShowDatePicker(false);
-                      }
-                    }}
-                  />
-                  <TouchableOpacity 
-                    style={{ backgroundColor: '#f1f5f9', paddingVertical: 14, borderRadius: 16, alignItems: 'center', marginTop: 8 }}
-                    onPress={() => setShowDatePicker(false)}
-                  >
-                    <Text style={[{ fontWeight: '800', color: '#64748b', fontSize: 16 }, isRTL && arabicFontLoaded && styles.arabicText]}>{t.cancel}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </Modal>
-          ) : showDatePicker && (
-            <DateTimePicker
-              value={selectedDate}
-              mode="date"
-              display="default"
-              onChange={(event, date) => {
-                setShowDatePicker(false);
-                if (event.type === 'set' && date) setSelectedDate(date);
-              }}
-            />
-          )}
+          <ScheduleCalendarModal
+            visible={showDatePicker}
+            value={selectedDate}
+            language={language}
+            onClose={() => setShowDatePicker(false)}
+            onSelect={setSelectedDate}
+          />
 
           {/* Sessions List */}
           {loading ? (
@@ -569,8 +536,6 @@ export const HomeScreen = ({ navigation, route }: any) => {
           )}
         </View>
       </ScrollView>
-        </FlingGestureHandler>
-      </FlingGestureHandler>
     </SafeAreaView>
   );
 };
@@ -620,9 +585,10 @@ const styles = StyleSheet.create({
     maxWidth: 40, marginTop: 3, fontSize: 9, lineHeight: 11,
     fontWeight: '900', color: '#0B63CE', textTransform: 'uppercase',
   },
-  dateItemsRow: { flex: 1, gap: 6 },
+  dateScroller: { flex: 1 },
+  dateScrollerContent: { gap: 6, paddingHorizontal: 1 },
   dateCard: {
-    flex: 1, height: 64, borderRadius: 16,
+    width: 58, height: 64, borderRadius: 16,
     backgroundColor: '#F8FAFC', alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: 'transparent',
   },
