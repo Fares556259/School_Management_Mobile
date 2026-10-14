@@ -45,7 +45,7 @@ const cleanPersonPart = (value: any): string => {
 const readablePersonName = (value: any, fallback: string) => cleanPersonPart(value) || fallback;
 
 // ─── Date Card ───────────────────────────────────────────────────────────────
-const DateItem = React.memo(({ day, date, active, isToday, onPress }: any) => {
+const DateItem = React.memo(({ day, date, active, isToday, onPress, accessibilityLabel }: any) => {
   const scale = React.useRef(new Animated.Value(1)).current;
   const handlePress = () => {
     Animated.sequence([
@@ -55,13 +55,16 @@ const DateItem = React.memo(({ day, date, active, isToday, onPress }: any) => {
     onPress();
   };
   return (
-    <Animated.View style={{ transform: [{ scale }] }}>
+    <Animated.View style={{ flex: 1, transform: [{ scale }] }}>
       <TouchableOpacity
         onPress={handlePress}
         activeOpacity={1}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityState={{ selected: active }}
         style={[styles.dateCard, active && styles.activeDateCard]}
       >
-        <Text style={[styles.dateDay, active && styles.activeDateText]}>{day}</Text>
+        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[styles.dateDay, active && styles.activeDateText]}>{day}</Text>
         <Text style={[styles.dateNum, active && styles.activeDateText]}>{String(date)}</Text>
         {isToday && (
           <View style={[styles.todayDot, active && { backgroundColor: 'rgba(255,255,255,0.7)' }]} />
@@ -283,9 +286,9 @@ export const HomeScreen = ({ navigation, route }: any) => {
 
   // ─── Memoized computed values (prevent re-creation every render) ──────────
   const sliderDates = React.useMemo(() =>
-    Array.from({ length: 7 }).map((_, i) => {
+    Array.from({ length: 4 }).map((_, i) => {
       const d = new Date(selectedDate);
-      d.setDate(d.getDate() - 3 + i);
+      d.setDate(d.getDate() - 1 + i);
       return d;
     }),
     [selectedDate]
@@ -325,6 +328,16 @@ export const HomeScreen = ({ navigation, route }: any) => {
   );
   const emptyTaskLabel = language === 'ar' ? 'لا توجد مهام لهذا اليوم' : language === 'en' ? 'No tasks for this day' : 'Aucune tâche pour cette journée';
   const daysArr = [t.sunday, t.monday, t.tuesday, t.wednesday, t.thursday, t.friday, t.saturday];
+  const dateLocale = language === 'ar' ? 'ar-TN-u-nu-latn' : language === 'fr' ? 'fr-TN' : 'en-GB';
+  const selectedDateLabel = React.useMemo(
+    () => selectedDate.toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' }),
+    [dateLocale, selectedDate],
+  );
+  const selectedMonthLabel = React.useMemo(
+    () => selectedDate.toLocaleDateString(dateLocale, { month: 'short' }).replace('.', ''),
+    [dateLocale, selectedDate],
+  );
+  const isSelectedToday = selectedDate.toDateString() === new Date().toDateString();
 
   const changeDate = (days: number) => {
     const newDate = new Date(selectedDate);
@@ -357,33 +370,35 @@ export const HomeScreen = ({ navigation, route }: any) => {
         <View style={styles.content}>
 
           {/* Date Slider */}
-          <View style={[styles.sectionHeaderRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-            <Text
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.8}
-              style={[styles.sectionTitle, styles.scheduleTitle, isRTL && arabicFontLoaded && styles.arabicHeading, { textAlign: isRTL ? 'right' : 'left' }]}
-            >{t.todaysSchedule}</Text>
-            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 16 }}>
-              {selectedDate.toDateString() !== new Date().toDateString() && (
-                <TouchableOpacity 
-                  onPress={() => setSelectedDate(new Date())}
-                  style={{ backgroundColor: '#eff6ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: '#bfdbfe' }}
-                >
-                  <Text style={{ fontSize: 12, fontWeight: '900', color: '#0072e6' }}>{(t as any).today || 'Today'}</Text>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity onPress={() => navigation.navigate('Attendance')} style={styles.sectionActionBtn}>
-                <Text style={styles.sectionActionText}>{t.history}</Text>
-                <ChevronRight size={14} color="#0072e6" strokeWidth={3} />
-              </TouchableOpacity>
+          <View style={[styles.scheduleHeader, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            <View style={{ flex: 1, minWidth: 0, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+                style={[styles.sectionTitle, styles.scheduleTitle, isRTL && arabicFontLoaded && styles.arabicHeading, { textAlign: isRTL ? 'right' : 'left' }]}
+              >{t.todaysSchedule}</Text>
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginTop: 2, maxWidth: '100%' }}>
+                <Text numberOfLines={1} style={[styles.selectedDateLabel, isRTL && arabicFontLoaded && styles.arabicText, { textAlign: isRTL ? 'right' : 'left' }]}>{selectedDateLabel}</Text>
+                {!isSelectedToday && (
+                  <TouchableOpacity onPress={() => setSelectedDate(new Date())} hitSlop={6} style={styles.todayChip}>
+                    <Text style={styles.todayChipText}>{t.today}</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
-          </View>
-          <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
-            <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.calendarBtn}>
-              <CalendarIcon size={24} color="#64748b" />
+            <TouchableOpacity onPress={() => navigation.navigate('Attendance')} activeOpacity={0.75} style={[styles.historyAction, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
+              accessibilityRole="button" accessibilityLabel={t.history}>
+              <Text style={[styles.historyActionText, isRTL && arabicFontLoaded && styles.arabicText]}>{t.history}</Text>
+              <ChevronRight size={15} color="#0B63CE" strokeWidth={2.6} style={{ transform: [{ rotate: isRTL ? '180deg' : '0deg' }] }} />
             </TouchableOpacity>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateSlider} contentContainerStyle={{ paddingRight: 8 }}>
+          </View>
+          <View style={[styles.dateNavigationSurface, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            <TouchableOpacity onPress={() => setShowDatePicker(true)} activeOpacity={0.75} style={styles.calendarBtn} accessibilityRole="button">
+              <CalendarIcon size={20} color="#0B63CE" strokeWidth={2.3} />
+              <Text numberOfLines={1} style={styles.calendarMonth}>{selectedMonthLabel}</Text>
+            </TouchableOpacity>
+            <View style={[styles.dateItemsRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
               {(isRTL ? [...sliderDates].reverse() : sliderDates).map(d => (
                 <DateItem
                   key={d.toISOString()}
@@ -391,10 +406,11 @@ export const HomeScreen = ({ navigation, route }: any) => {
                   date={d.getDate()}
                   active={d.toDateString() === selectedDate.toDateString()}
                   isToday={d.toDateString() === new Date().toDateString()}
+                  accessibilityLabel={d.toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' })}
                   onPress={() => { setSelectedDate(d); }}
                 />
               ))}
-            </ScrollView>
+            </View>
           </View>
 
           {showDatePicker && Platform.OS === 'ios' ? (
@@ -418,7 +434,7 @@ export const HomeScreen = ({ navigation, route }: any) => {
                     style={{ backgroundColor: '#f1f5f9', paddingVertical: 14, borderRadius: 16, alignItems: 'center', marginTop: 8 }}
                     onPress={() => setShowDatePicker(false)}
                   >
-                    <Text style={{ fontWeight: '800', color: '#64748b', fontSize: 16 }}>Annuller</Text>
+                    <Text style={[{ fontWeight: '800', color: '#64748b', fontSize: 16 }, isRTL && arabicFontLoaded && styles.arabicText]}>{t.cancel}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -566,7 +582,7 @@ const styles = StyleSheet.create({
   // Section Headers
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, marginTop: 24 },
   sectionTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b', letterSpacing: -0.3 },
-  scheduleTitle: { flexShrink: 1, marginEnd: 12 },
+  scheduleTitle: { flexShrink: 1 },
   arabicHeading: { fontFamily: 'NotoSansArabic', fontWeight: 'normal', letterSpacing: 0, lineHeight: 31 },
   arabicText: { fontFamily: 'NotoSansArabic', fontWeight: 'normal', letterSpacing: 0 },
   sectionCount: { minWidth: 24, height: 24, borderRadius: 12, paddingHorizontal: 7, backgroundColor: '#EAF3FB', alignItems: 'center', justifyContent: 'center' },
@@ -575,26 +591,50 @@ const styles = StyleSheet.create({
   sectionActionText: { fontSize: 13, fontWeight: '800', color: '#0072e6' },
 
   // Date Slider
-  calendarBtn: {
-    width: 48, height: 76, borderRadius: 20,
-    backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center',
-    marginRight: 12, borderWidth: 1, borderColor: '#e2e8f0',
+  scheduleHeader: {
+    alignItems: 'center', justifyContent: 'space-between', gap: 12,
+    marginTop: 20, marginBottom: 11,
   },
-  dateSlider: { marginBottom: 0 },
+  selectedDateLabel: { flexShrink: 1, fontSize: 12, lineHeight: 17, fontWeight: '700', color: '#64748B' },
+  todayChip: {
+    marginHorizontal: 7, paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: 999, backgroundColor: '#EAF3FF',
+  },
+  todayChipText: { fontSize: 10, fontWeight: '900', color: '#0B63CE' },
+  historyAction: {
+    alignItems: 'center', gap: 3, paddingHorizontal: 11, paddingVertical: 9,
+    borderRadius: 12, backgroundColor: '#EAF3FF',
+  },
+  historyActionText: { fontSize: 12, fontWeight: '900', color: '#0B63CE' },
+  dateNavigationSurface: {
+    alignItems: 'stretch', gap: 7, padding: 8,
+    borderRadius: 22, borderWidth: 1, borderColor: '#E3E9F0', backgroundColor: '#FFFFFF',
+    shadowColor: '#172033', shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.05, shadowRadius: 14, elevation: 2,
+  },
+  calendarBtn: {
+    width: 48, height: 64, borderRadius: 16,
+    backgroundColor: '#EDF5FD', alignItems: 'center', justifyContent: 'center',
+  },
+  calendarMonth: {
+    maxWidth: 40, marginTop: 3, fontSize: 9, lineHeight: 11,
+    fontWeight: '900', color: '#0B63CE', textTransform: 'uppercase',
+  },
+  dateItemsRow: { flex: 1, gap: 6 },
   dateCard: {
-    width: 62, height: 76, borderRadius: 20,
-    backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center',
-    marginRight: 10, borderWidth: 1, borderColor: '#e2e8f0',
+    flex: 1, height: 64, borderRadius: 16,
+    backgroundColor: '#F8FAFC', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'transparent',
   },
   activeDateCard: {
-    backgroundColor: '#0072e6', borderColor: '#0072e6',
-    shadowColor: '#0072e6', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 8, elevation: 5
+    backgroundColor: '#0B6FE8', borderColor: '#0B6FE8',
+    shadowColor: '#0B6FE8', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.22, shadowRadius: 7, elevation: 4,
   },
-  dateDay: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
-  dateNum: { fontSize: 22, fontWeight: '800', color: '#1e293b' },
+  dateDay: { maxWidth: '92%', fontSize: 10, fontWeight: '800', color: '#8996A8', textTransform: 'uppercase', letterSpacing: 0.35, marginBottom: 1 },
+  dateNum: { fontSize: 20, lineHeight: 25, fontWeight: '900', color: '#1E293B' },
   activeDateText: { color: 'white' },
-  todayDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#0072e6', marginTop: 4 },
+  todayDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#0B6FE8', marginTop: 2 },
 
   // Card
   card: {
