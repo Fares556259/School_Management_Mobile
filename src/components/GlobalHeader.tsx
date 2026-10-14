@@ -15,7 +15,7 @@ interface GlobalHeaderProps {
 }
 
 const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, language } = useLanguage();
   const selectedChildId = useAppStore(s => s.selectedChildId);
   const setSelectedChildId = useAppStore(s => s.setSelectedChildId);
   const children = useAppStore(s => s.children);
@@ -86,29 +86,48 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
   };
 
   return (
-    <View className="bg-white border-b border-surface-low z-50">
-      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingVertical: 16 }}>
-        <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', flex: 1 }}>
+    <View style={{ backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#EEF2F6', zIndex: 50 }}>
+      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 11, gap: 12 }}>
+        <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', flex: 1, minWidth: 0 }}>
           {showBack ? (
             <TouchableOpacity 
               onPress={() => {
                 navigation.goBack();
               }}
-              style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#e2e8f0', marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }}
+              hitSlop={8}
+              style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#F8FAFC', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E3E9F0', marginRight: isRTL ? 0 : 10, marginLeft: isRTL ? 10 : 0 }}
             >
               {isRTL ? <ChevronRight size={24} color="#2b3437" strokeWidth={3} /> : <ChevronLeft size={24} color="#2b3437" strokeWidth={3} />}
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity 
-              onPress={() => {
-                navigation.navigate('Profile');
-              }}
-              activeOpacity={0.8}
-              className="relative"
-            >
-              <View className="w-11 h-11 rounded-full border-2 border-surface-low overflow-hidden bg-white shadow-sm">
+          ) : null}
+
+          <TouchableOpacity
+            onPress={userRole === 'parent' ? toggleSwitcher : () => navigation.navigate('Profile')}
+            activeOpacity={0.72}
+            hitSlop={{ top: 8, bottom: 8, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel={userRole === 'parent' ? t.switchChild : userName}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              minHeight: 54,
+              flexDirection: isRTL ? 'row-reverse' : 'row',
+              alignItems: 'center',
+              paddingHorizontal: 7,
+              paddingVertical: 5,
+              borderRadius: 18,
+              backgroundColor: userRole === 'parent' ? '#F8FAFC' : 'transparent',
+              borderWidth: userRole === 'parent' ? 1 : 0,
+              borderColor: '#E8EDF3',
+            }}
+          >
+            {!showBack && (
+              <View style={{ position: 'relative' }}>
+              <View style={{ width: 44, height: 44, borderRadius: 15, borderWidth: 1, borderColor: '#DDE5EE', overflow: 'hidden', backgroundColor: '#FFFFFF' }}>
                 <Image 
-                  source={userAvatarUrl ? { uri: userAvatarUrl } : require('../../assets/noavatar.png')} 
+                  source={userRole === 'parent' && selectedChild?.avatarUrl
+                    ? { uri: selectedChild.avatarUrl }
+                    : userAvatarUrl ? { uri: userAvatarUrl } : require('../../assets/noavatar.png')}
                   contentFit="cover"
                   transition={200}
                   cachePolicy="memory-disk"
@@ -118,9 +137,9 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
               </View>
               
               {userRole === 'parent' && (
-                <View className="absolute -right-1 -bottom-1 w-6 h-6 rounded-full border-2 border-white overflow-hidden bg-surface-low shadow-sm">
+                <View style={{ position: 'absolute', right: -4, bottom: -3, width: 22, height: 22, borderRadius: 8, borderWidth: 2, borderColor: '#FFFFFF', overflow: 'hidden', backgroundColor: '#EEF2F6' }}>
                   <Image 
-                    source={selectedChild?.avatarUrl ? { uri: selectedChild.avatarUrl } : require('../../assets/noavatar.png')} 
+                    source={userAvatarUrl ? { uri: userAvatarUrl } : require('../../assets/noavatar.png')}
                     contentFit="cover"
                     transition={200}
                     cachePolicy="memory-disk"
@@ -129,40 +148,43 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
                   />
                 </View>
               )}
-            </TouchableOpacity>
-          )}
+              </View>
+            )}
 
-          <View style={{ marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0, flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
-            <Text className="text-[10px] font-jakarta font-black text-text-muted opacity-40 uppercase tracking-[2px]" numberOfLines={1}>
+            <View style={{ marginLeft: isRTL ? 0 : 11, marginRight: isRTL ? 11 : 0, flex: 1, minWidth: 0, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+            <Text style={{ fontSize: 9, fontWeight: '800', color: '#98A2B3', letterSpacing: 1.5, textTransform: 'uppercase' }} numberOfLines={1}>
               {userRole === 'teacher' ? 'SnapSchool Teacher' : userName}
             </Text>
-            
-            <TouchableOpacity 
-              onPress={toggleSwitcher}
-              disabled={userRole === 'teacher'}
-              style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginTop: 2 }}
-            >
-              <Text className="text-xl font-jakarta font-black text-brand-primary tracking-tight" numberOfLines={1}>
+
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginTop: 1, maxWidth: '100%' }}>
+              <Text style={{ flexShrink: 1, fontSize: 19, fontWeight: '900', color: '#0B63CE', letterSpacing: -0.35 }} numberOfLines={1}>
                 {userRole === 'teacher' ? userName.split(' ')[0] : (selectedChild?.name?.split(' ')[0] || t.switchChild)}
               </Text>
               {userRole === 'parent' && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: isRTL ? 0 : 8, marginRight: isRTL ? 8 : 0 }}>
-                  <View className={`w-1.5 h-1.5 rounded-full mr-2 ${status === 'Absent' ? 'bg-brand-error' : status === 'Due' ? 'bg-orange-500' : 'bg-green-500'}`} />
-                  <ChevronDown size={14} color="#0055d4" strokeWidth={3} />
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginLeft: isRTL ? 0 : 7, marginRight: isRTL ? 7 : 0, gap: 6 }}>
+                  <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: status === 'Absent' ? '#EF4444' : status === 'Due' ? '#F59E0B' : '#22C55E' }} />
                 </View>
               )}
-            </TouchableOpacity>
+            </View>
+            </View>
+
+            {userRole === 'parent' && (
+              <View style={{ width: 32, height: 32, borderRadius: 11, backgroundColor: '#E9F2FD', alignItems: 'center', justifyContent: 'center', marginLeft: isRTL ? 0 : 5, marginRight: isRTL ? 5 : 0 }}>
+                <ChevronDown size={17} color="#0B63CE" strokeWidth={2.8} />
+              </View>
+            )}
+          </TouchableOpacity>
           </View>
-        </View>
 
         <TouchableOpacity
           onPress={() => {
             setUnreadNotificationsCount(0);
             navigation.navigate('Notifications');
           }}
-          className="w-11 h-11 rounded-full bg-white items-center justify-center border border-surface-low shadow-sm"
+          hitSlop={8}
+          style={{ width: 46, height: 46, borderRadius: 16, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E3E9F0', shadowColor: '#0F172A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 7, elevation: 1 }}
         >
-          <Bell size={22} color="#0055d4" strokeWidth={2.5} />
+          <Bell size={22} color="#0B63CE" strokeWidth={2.4} />
         {unreadNotificationsCount > 0 && (
           <View className="absolute top-0 right-0 bg-brand-error min-w-[18px] h-[18px] rounded-full items-center justify-center px-1 border-2 border-white">
             <Text className="text-[8px] font-black text-white">
@@ -183,10 +205,10 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
           <View className="bg-white rounded-t-[40px] p-8 pb-12">
             <View className="w-10 h-1 bg-surface-low rounded-full self-center mb-6" />
             
-            <View className="flex-row justify-between items-center mb-6">
-              <View>
-                <Text className="text-2xl font-jakarta font-black text-brand-primary">Family Profiles</Text>
-                <Text className="text-sm text-text-muted font-manrope font-medium mt-1">Switch between your children</Text>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start', marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }}>
+                <Text style={{ fontSize: 24, fontWeight: '900', color: '#0B63CE', textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'أبنائي' : language === 'fr' ? 'Mes enfants' : 'My children'}</Text>
+                <Text style={{ fontSize: 14, color: '#737C7F', fontWeight: '500', marginTop: 4, textAlign: isRTL ? 'right' : 'left' }}>{language === 'ar' ? 'اختر الطفل الذي تريد متابعته' : language === 'fr' ? 'Choisissez le profil à consulter' : 'Choose the child you want to view'}</Text>
               </View>
               <TouchableOpacity onPress={() => setShowSwitcher(false)} className="w-10 h-10 bg-surface-low rounded-full items-center justify-center">
                 <X size={20} color="#737c7f" />
@@ -200,7 +222,7 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
                    <TouchableOpacity
                     key={child.id}
                     onPress={() => handleSwitchChild(child.id)}
-                    className={`flex-row items-center p-4 rounded-[28px] border-2 ${isActive ? 'bg-blue-50/50 border-brand-primary' : 'bg-surface-lowest border-surface-low'}`}
+                    style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', padding: 16, borderRadius: 28, borderWidth: 2, borderColor: isActive ? '#0B63CE' : '#E8EDF3', backgroundColor: isActive ? '#EFF6FF' : '#FAFBFC' }}
                   >
                     <View className={`w-14 h-14 rounded-full overflow-hidden border-2 ${isActive ? 'border-brand-primary' : 'border-surface-low'}`}>
                       <Image 
@@ -209,9 +231,9 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
                         style={{ width: '100%', height: '100%' }}
                       />
                     </View>
-                    <View className="flex-1 ml-4">
-                      <Text className="text-lg font-jakarta font-bold text-text-primary">{child.name}</Text>
-                      <Text className="text-sm text-text-muted font-manrope font-semibold">{child.class || 'No Class Assigned'}</Text>
+                    <View style={{ flex: 1, marginLeft: isRTL ? 0 : 16, marginRight: isRTL ? 16 : 0, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                      <Text style={{ fontSize: 18, fontWeight: '700', color: '#172033', textAlign: isRTL ? 'right' : 'left' }}>{child.name}</Text>
+                      <Text style={{ fontSize: 14, color: '#737C7F', fontWeight: '600', textAlign: isRTL ? 'right' : 'left' }}>{child.class || (language === 'ar' ? 'لم يتم تعيين فصل' : language === 'fr' ? 'Classe non attribuée' : 'No class assigned')}</Text>
                     </View>
                     {isActive ? (
                       <View className="w-7 h-7 bg-brand-primary rounded-full items-center justify-center">
@@ -233,7 +255,7 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
               }}
             >
               <User size={18} color="#0055d4" className="mr-2" />
-              <Text className="text-brand-primary font-jakarta font-bold text-sm uppercase tracking-widest">Link New Student</Text>
+              <Text className="text-brand-primary font-jakarta font-bold text-sm uppercase tracking-widest">{language === 'ar' ? 'ربط تلميذ جديد' : language === 'fr' ? 'Ajouter un élève' : 'Link new student'}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
