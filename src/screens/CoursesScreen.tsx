@@ -42,6 +42,21 @@ const DOMAIN_GROUPS = [
   { id: 'SPORT', title: 'SPORT', color: '#4F7664', bg: '#EFF5F1', soft: '#DDEAE2', border: '#D7E5DC', keywords: ['Sport', 'Physique', 'بدنية'] },
 ];
 
+const COURSE_TONES = [
+  { color: '#416C9B', bg: '#EDF3F8', soft: '#DCE8F2', border: '#D7E3ED' },
+  { color: '#4F7664', bg: '#EFF5F1', soft: '#DDEAE2', border: '#D7E5DC' },
+  { color: '#74658E', bg: '#F5F2F7', soft: '#E9E3EE', border: '#E3DCE8' },
+  { color: '#836943', bg: '#F8F4EC', soft: '#EDE3D2', border: '#E9DFCE' },
+  { color: '#4F7478', bg: '#EFF5F4', soft: '#DDEAE8', border: '#D8E6E3' },
+  { color: '#895F6B', bg: '#F8F1F3', soft: '#F0E1E5', border: '#EAD9DE' },
+  { color: '#586A86', bg: '#F1F4F8', soft: '#E2E8F0', border: '#DCE3EC' },
+];
+
+const getCourseTone = (subjectName: string, index: number) => {
+  const hash = Array.from(subjectName).reduce((sum, char) => sum + char.charCodeAt(0), index * 17);
+  return COURSE_TONES[hash % COURSE_TONES.length];
+};
+
 const getSubjectDomain = (subjectName: string) => {
   for (const domain of DOMAIN_GROUPS) {
     if (domain.keywords.some(kw => subjectName.toLowerCase().includes(kw.toLowerCase()))) {
@@ -297,9 +312,10 @@ export const CoursesScreen = ({ navigation }: any) => {
           </View>
         ) : (
           <View style={{ gap: 14 }}>
-            {courses.map((course) => {
+            {courses.map((course, courseIndex) => {
               const rawCourseName = String(course.name || '');
               const domain = getSubjectDomain(rawCourseName);
+              const tone = getCourseTone(rawCourseName, courseIndex);
               const themeKey = Object.keys(SUBJECT_THEMES).find((key) =>
                 key !== 'Default' && rawCourseName.toLowerCase().includes(key.toLowerCase())
               );
@@ -318,7 +334,7 @@ export const CoursesScreen = ({ navigation }: any) => {
                     borderRadius: 20,
                     overflow: 'hidden',
                     borderWidth: 1,
-                    borderColor: domain.border,
+                    borderColor: tone.border,
                     shadowColor: '#0f172a',
                     shadowOffset: { width: 0, height: 2 },
                     shadowOpacity: 0.035,
@@ -327,7 +343,7 @@ export const CoursesScreen = ({ navigation }: any) => {
                   }}
                 >
                   <TouchableOpacity activeOpacity={0.9} onPress={() => toggleCourse(course.id)}>
-                    <View style={{ minHeight: 118, padding: 18, backgroundColor: domain.bg }}>
+                    <View style={{ height: 128, padding: 18, backgroundColor: tone.bg }}>
                       <View
                         style={{
                           position: 'absolute',
@@ -339,33 +355,33 @@ export const CoursesScreen = ({ navigation }: any) => {
                           borderBottomRightRadius: isRTL ? 0 : 4,
                           borderTopLeftRadius: isRTL ? 4 : 0,
                           borderBottomLeftRadius: isRTL ? 4 : 0,
-                          backgroundColor: domain.color,
+                          backgroundColor: tone.color,
                         }}
                       />
                       <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'flex-start' }}>
                         <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
-                          <View style={{ backgroundColor: domain.soft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 12 }}>
-                            <Text style={[{ color: domain.color, fontSize: 10, fontWeight: '800', letterSpacing: 0.6 }, arabicText]}>
+                          <View style={{ backgroundColor: tone.soft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 10 }}>
+                            <Text style={[{ color: tone.color, fontSize: 10, fontWeight: '800', letterSpacing: 0.6 }, arabicText]}>
                               {getDomainTitle(domain)}
                             </Text>
                           </View>
                           <Text style={[{ width: '100%', color: '#172033', fontSize: 21, fontWeight: '900', letterSpacing: -0.2, textAlign: isRTL ? 'right' : 'left' }, arabicText]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.86}>
                             {courseName}
                           </Text>
-                          <Text style={{ color: '#657184', fontSize: 12, fontWeight: '600', marginTop: 6, textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>
+                          <Text style={{ color: '#657184', fontSize: 12, fontWeight: '600', marginTop: 4, textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>
                             {teacherName}
                           </Text>
                         </View>
-                        <View style={{ width: 48, height: 48, borderRadius: 15, backgroundColor: domain.soft, alignItems: 'center', justifyContent: 'center', marginLeft: isRTL ? 0 : 14, marginRight: isRTL ? 14 : 0 }}>
-                          <ThemeIcon color={domain.color} size={24} strokeWidth={2.2} />
+                        <View style={{ width: 48, height: 48, borderRadius: 15, backgroundColor: tone.soft, alignItems: 'center', justifyContent: 'center', marginLeft: isRTL ? 0 : 14, marginRight: isRTL ? 14 : 0 }}>
+                          <ThemeIcon color={tone.color} size={24} strokeWidth={2.2} />
                         </View>
                       </View>
                     </View>
 
-                    <View style={{ minHeight: 58, paddingHorizontal: 18, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
+                    <View style={{ height: 58, paddingHorizontal: 18, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
                       <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', flex: 1 }}>
-                        <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: domain.bg, alignItems: 'center', justifyContent: 'center' }}>
-                          <FileText size={16} color={domain.color} />
+                        <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: tone.bg, alignItems: 'center', justifyContent: 'center' }}>
+                          <FileText size={16} color={tone.color} />
                         </View>
                         <Text style={[{ marginHorizontal: 9, color: '#334155', fontSize: 13, fontWeight: '800' }, arabicText]}>
                           {toWestern(resources.length)} {resources.length === 1 ? (t as any).courseDocument : (t as any).courseDocuments}
@@ -409,8 +425,8 @@ export const CoursesScreen = ({ navigation }: any) => {
                               backgroundColor: 'white',
                             }}
                           >
-                            <View style={{ width: 40, height: 40, borderRadius: 11, backgroundColor: isPdf ? '#fff1f0' : isImage ? '#eef4ff' : domain.bg, alignItems: 'center', justifyContent: 'center', marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }}>
-                              {isImage ? <Eye color={domain.color} size={18} /> : <FileText color={isPdf ? '#d93025' : domain.color} size={18} />}
+                            <View style={{ width: 40, height: 40, borderRadius: 11, backgroundColor: isPdf ? '#fff1f0' : isImage ? '#eef4ff' : tone.bg, alignItems: 'center', justifyContent: 'center', marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }}>
+                              {isImage ? <Eye color={tone.color} size={18} /> : <FileText color={isPdf ? '#d93025' : tone.color} size={18} />}
                             </View>
                             <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
                               <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
@@ -426,8 +442,8 @@ export const CoursesScreen = ({ navigation }: any) => {
                         );
                       }) : (
                         <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-                          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: domain.bg, alignItems: 'center', justifyContent: 'center', marginBottom: 9 }}>
-                            <FileText size={20} color={domain.color} />
+                          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: tone.bg, alignItems: 'center', justifyContent: 'center', marginBottom: 9 }}>
+                            <FileText size={20} color={tone.color} />
                           </View>
                           <Text style={[{ color: '#64748b', fontSize: 13, fontWeight: '700' }, arabicText]}>{(t as any).noCourseDocuments}</Text>
                         </View>

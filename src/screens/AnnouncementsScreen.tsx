@@ -39,60 +39,33 @@ const formatAnnouncementDate = (value: string, language: 'ar' | 'fr' | 'en') => 
   return date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' }).replace('.', '');
 };
 
-const AnnouncementCard = ({ item, onPress, featured, arabicFontLoaded }: any) => {
-  const { t, isRTL, language } = useLanguage();
+const AnnouncementCard = ({ item, onPress, arabicFontLoaded }: any) => {
+  const { isRTL, language } = useLanguage();
   const isUrgent = String(item.category || '').toUpperCase() === 'URGENT';
   const arabicText = isRTL && arabicFontLoaded ? styles.arabicText : undefined;
-  const badge = isUrgent ? t.urgentBadge : t.schoolNewsBadge;
   const hasImage = typeof item.image === 'string' && item.image.trim() && item.image !== 'null';
 
-  if (!featured) {
-    return (
-      <TouchableOpacity
-        onPress={onPress}
-        activeOpacity={0.78}
-        accessibilityRole="button"
-        style={[styles.compactCard, isUrgent && styles.urgentCard, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
-      >
-        {hasImage ? (
-          <Image source={item.image} style={styles.compactImage} contentFit="cover" transition={180} cachePolicy="memory-disk" />
-        ) : (
-          <View style={styles.compactFallback}><Megaphone size={24} color="#39725E" /></View>
-        )}
-        <View style={[styles.compactBody, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
-          <View style={[styles.metaRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-            <Text style={[styles.date, arabicText]}>{formatAnnouncementDate(item.date, language)}</Text>
-            {isUrgent && <View style={styles.miniUrgentDot} />}
-          </View>
-          <Text numberOfLines={2} style={[styles.compactTitle, arabicText, { textAlign: isRTL ? 'right' : 'left' }]}>{item.title}</Text>
-          <Text numberOfLines={1} style={[styles.compactExcerpt, arabicText, { textAlign: isRTL ? 'right' : 'left' }]}>{item.excerpt || item.content}</Text>
-        </View>
-        <ChevronRight size={17} color="#8B98A9" strokeWidth={2.4} style={{ transform: [{ rotate: isRTL ? '180deg' : '0deg' }] }} />
-      </TouchableOpacity>
-    );
-  }
-
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.82} accessibilityRole="button" style={[styles.featuredCard, isUrgent && styles.urgentFeaturedCard]}>
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.78}
+      accessibilityRole="button"
+      style={[styles.compactCard, isUrgent ? styles.urgentCard : styles.newsCard, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
+    >
       {hasImage ? (
-        <Image source={item.image} style={styles.featuredImage} contentFit="cover" transition={220} cachePolicy="memory-disk" />
+        <Image source={item.image} style={styles.compactImage} contentFit="cover" transition={180} cachePolicy="memory-disk" />
       ) : (
-        <View style={styles.featuredFallback}><Megaphone size={34} color="#39725E" /></View>
+        <View style={styles.compactFallback}><Megaphone size={24} color="#39725E" /></View>
       )}
-      <View style={styles.featuredBody}>
-        <View style={[styles.featuredMetaRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-          <View style={[styles.badge, isUrgent ? styles.urgentBadge : styles.newsBadge]}>
-            <Text style={[styles.badgeText, isUrgent ? styles.urgentBadgeText : styles.newsBadgeText, arabicText]}>{badge}</Text>
-          </View>
+      <View style={[styles.compactBody, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+        <View style={[styles.metaRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
           <Text style={[styles.date, arabicText]}>{formatAnnouncementDate(item.date, language)}</Text>
+          <View style={[styles.statusDot, { backgroundColor: isUrgent ? '#E46761' : '#5A8C79' }]} />
         </View>
-        <Text numberOfLines={2} style={[styles.featuredTitle, arabicText, { textAlign: isRTL ? 'right' : 'left' }]}>{item.title}</Text>
-        <Text numberOfLines={2} style={[styles.featuredExcerpt, arabicText, { textAlign: isRTL ? 'right' : 'left' }]}>{item.excerpt || item.content}</Text>
-        <View style={[styles.readAction, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-          <Text style={[styles.readActionText, arabicText]}>{t.readMore}</Text>
-          <ChevronRight size={15} color="#0B63CE" strokeWidth={2.6} style={{ transform: [{ rotate: isRTL ? '180deg' : '0deg' }] }} />
-        </View>
+        <Text numberOfLines={2} style={[styles.compactTitle, arabicText, { textAlign: isRTL ? 'right' : 'left' }]}>{item.title}</Text>
+        <Text numberOfLines={1} style={[styles.compactExcerpt, arabicText, { textAlign: isRTL ? 'right' : 'left' }]}>{item.excerpt || item.content}</Text>
       </View>
+      <ChevronRight size={17} color="#8B98A9" strokeWidth={2.4} style={{ transform: [{ rotate: isRTL ? '180deg' : '0deg' }] }} />
     </TouchableOpacity>
   );
 };
@@ -136,15 +109,7 @@ export const AnnouncementsScreen = ({ navigation }: any) => {
 
         {loading ? (
           <>
-            <View style={styles.featuredSkeleton}>
-              <SkeletonBlock height={150} borderRadius={0} />
-              <View style={styles.skeletonBody}>
-                <SkeletonBlock width={105} height={22} borderRadius={999} />
-                <SkeletonBlock width="88%" height={22} />
-                <SkeletonBlock width="100%" height={15} />
-              </View>
-            </View>
-            {[1, 2].map(item => <View key={item} style={styles.compactSkeleton}><SkeletonBlock width={92} height={92} borderRadius={15} /><View style={{ flex: 1, gap: 9 }}><SkeletonBlock width="45%" height={12} /><SkeletonBlock width="95%" height={18} /><SkeletonBlock width="72%" height={13} /></View></View>)}
+            {[1, 2, 3, 4].map(item => <View key={item} style={styles.compactSkeleton}><SkeletonBlock width={92} height={98} borderRadius={15} /><View style={{ flex: 1, gap: 9 }}><SkeletonBlock width="45%" height={12} /><SkeletonBlock width="95%" height={18} /><SkeletonBlock width="72%" height={13} /></View></View>)}
           </>
         ) : announcements.length === 0 ? (
           <View style={styles.emptyState}>
@@ -153,11 +118,10 @@ export const AnnouncementsScreen = ({ navigation }: any) => {
             <Text style={[styles.emptyText, arabicText]}>{copy.emptyText}</Text>
           </View>
         ) : (
-          announcements.map((item: any, index: number) => (
+          announcements.map((item: any) => (
             <AnnouncementCard
               key={item.id}
               item={item}
-              featured={index === 0}
               arabicFontLoaded={arabicFontLoaded}
               onPress={() => navigation.navigate('AnnouncementDetail', { announcement: item })}
             />
@@ -176,44 +140,25 @@ const styles = StyleSheet.create({
   eyebrow: { fontSize: 11, lineHeight: 16, fontWeight: '900', color: '#0B63CE', textTransform: 'uppercase', letterSpacing: 0.8 },
   pageTitle: { fontSize: 28, lineHeight: 34, fontWeight: '900', color: '#172033', letterSpacing: -0.55 },
   pageIntro: { marginTop: 5, fontSize: 14, lineHeight: 20, fontWeight: '600', color: '#667085' },
-  featuredCard: {
-    overflow: 'hidden', marginBottom: 12, borderRadius: 24, borderWidth: 1, borderColor: '#DFE5EC', backgroundColor: '#FFFFFF',
-    shadowColor: '#172033', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.06, shadowRadius: 14, elevation: 2,
-  },
-  urgentFeaturedCard: { borderColor: '#F2C9C6' },
-  featuredImage: { width: '100%', height: 150, backgroundColor: '#E8EEF4' },
-  featuredFallback: { height: 120, alignItems: 'center', justifyContent: 'center', backgroundColor: '#EDF5F1' },
-  featuredBody: { padding: 16 },
-  featuredMetaRow: { alignItems: 'center', gap: 9, marginBottom: 10 },
-  badge: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999 },
-  newsBadge: { backgroundColor: '#EAF3FF' },
-  urgentBadge: { backgroundColor: '#FDECEB' },
-  badgeText: { fontSize: 10, lineHeight: 14, fontWeight: '900' },
-  newsBadgeText: { color: '#0B63CE' },
-  urgentBadgeText: { color: '#C23C36' },
   date: { fontSize: 11, lineHeight: 16, fontWeight: '700', color: '#8996A8' },
-  featuredTitle: { fontSize: 19, lineHeight: 25, fontWeight: '900', color: '#172033', letterSpacing: -0.25 },
-  featuredExcerpt: { marginTop: 6, fontSize: 14, lineHeight: 21, fontWeight: '600', color: '#5E6C7E' },
-  readAction: { alignSelf: 'flex-start', alignItems: 'center', gap: 4, marginTop: 13 },
-  readActionText: { fontSize: 13, lineHeight: 18, fontWeight: '900', color: '#0B63CE' },
   compactCard: {
-    minHeight: 116, alignItems: 'center', gap: 12, marginBottom: 10, padding: 11,
-    borderRadius: 20, borderWidth: 1, borderColor: '#E3E8EF', backgroundColor: '#FFFFFF',
+    height: 122, overflow: 'hidden', alignItems: 'center', gap: 12, marginBottom: 10, padding: 11,
+    borderRadius: 20, borderWidth: 1, borderColor: '#E3E8EF', borderStartWidth: 3, backgroundColor: '#FFFFFF',
+    shadowColor: '#172033', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.035, shadowRadius: 7, elevation: 1,
   },
-  urgentCard: { borderStartWidth: 3, borderStartColor: '#E46761' },
-  compactImage: { width: 88, height: 92, borderRadius: 15, backgroundColor: '#E8EEF4' },
-  compactFallback: { width: 88, height: 92, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: '#EDF5F1' },
+  urgentCard: { borderStartColor: '#E46761' },
+  newsCard: { borderStartColor: '#5A8C79' },
+  compactImage: { width: 92, height: 98, borderRadius: 15, backgroundColor: '#E8EEF4' },
+  compactFallback: { width: 92, height: 98, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: '#EDF5F1' },
   compactBody: { flex: 1, minWidth: 0 },
   metaRow: { alignItems: 'center', gap: 6, marginBottom: 3 },
-  miniUrgentDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#E46761' },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
   compactTitle: { fontSize: 15, lineHeight: 20, fontWeight: '900', color: '#243044' },
   compactExcerpt: { marginTop: 4, fontSize: 12, lineHeight: 17, fontWeight: '600', color: '#748195' },
   emptyState: { minHeight: 330, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
   emptyIcon: { width: 62, height: 62, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#EAF3FF' },
   emptyTitle: { marginTop: 15, fontSize: 17, fontWeight: '900', color: '#243044', textAlign: 'center' },
   emptyText: { marginTop: 6, fontSize: 13, lineHeight: 20, fontWeight: '600', color: '#748195', textAlign: 'center' },
-  featuredSkeleton: { overflow: 'hidden', marginBottom: 12, borderRadius: 24, borderWidth: 1, borderColor: '#E3E8EF', backgroundColor: '#FFFFFF' },
-  skeletonBody: { padding: 16, gap: 11 },
-  compactSkeleton: { minHeight: 116, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10, padding: 11, borderRadius: 20, backgroundColor: '#FFFFFF' },
+  compactSkeleton: { height: 122, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10, padding: 11, borderRadius: 20, backgroundColor: '#FFFFFF' },
   arabicText: { fontFamily: 'NotoSansArabic', fontWeight: 'normal', letterSpacing: 0 },
 });
