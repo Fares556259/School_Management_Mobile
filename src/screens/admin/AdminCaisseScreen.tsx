@@ -550,7 +550,7 @@ export default function AdminCaisseScreen() {
   };
 
   const todayDateStr = new Date().toLocaleDateString(
-    language === 'ar' ? 'ar-TN' : language === 'en' ? 'en-US' : 'fr-FR',
+    language === 'ar' ? 'ar-TN-u-nu-latn' : language === 'en' ? 'en-US' : 'fr-FR',
     {
       weekday: 'long',
       day: 'numeric',
@@ -667,7 +667,7 @@ export default function AdminCaisseScreen() {
                 textAlign: isRTL ? 'right' : 'left',
               }}
             >
-              {summary.todayNet >= 0 ? `+${summary.todayNet.toLocaleString()} DT` : `${summary.todayNet.toLocaleString()} DT`}
+              {summary.todayNet >= 0 ? `+${summary.todayNet.toLocaleString('en-US')} DT` : `${summary.todayNet.toLocaleString('en-US')} DT`}
             </Text>
           </View>
 
@@ -677,7 +677,7 @@ export default function AdminCaisseScreen() {
               <ArrowDownLeft size={14} color="#059669" />
               <Text style={{ fontSize: 12, color: '#166534', fontWeight: '600' }}>{t.adminCaisseInflow}</Text>
               <Text style={{ fontSize: 13, fontWeight: '800', color: '#15803d', marginLeft: isRTL ? 0 : 'auto', marginRight: isRTL ? 'auto' : 0 }}>
-                +{summary.todayIncome.toLocaleString()} DT
+                +{summary.todayIncome.toLocaleString('en-US')} DT
               </Text>
             </View>
 
@@ -685,7 +685,7 @@ export default function AdminCaisseScreen() {
               <ArrowUpRight size={14} color="#dc2626" />
               <Text style={{ fontSize: 12, color: '#991b1b', fontWeight: '600' }}>{t.adminCaisseOutflow}</Text>
               <Text style={{ fontSize: 13, fontWeight: '800', color: '#b91c1c', marginLeft: isRTL ? 0 : 'auto', marginRight: isRTL ? 'auto' : 0 }}>
-                -{summary.todayExpense.toLocaleString()} DT
+                -{summary.todayExpense.toLocaleString('en-US')} DT
               </Text>
             </View>
           </View>
@@ -900,7 +900,7 @@ export default function AdminCaisseScreen() {
               {transactions.map((tx) => {
                 const isIncome = tx.type === 'IN';
                 const timeStr = new Date(tx.createdAt).toLocaleTimeString(
-                  language === 'ar' ? 'ar-TN' : language === 'en' ? 'en-US' : 'fr-FR',
+                  language === 'ar' ? 'ar-TN-u-nu-latn' : language === 'en' ? 'en-US' : 'fr-FR',
                   { hour: '2-digit', minute: '2-digit' }
                 );
 

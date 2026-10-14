@@ -21,7 +21,7 @@ function formatNotificationTime(createdAt: string, language: 'ar' | 'fr' | 'en')
   if (minutes < 60) return language === 'ar' ? `منذ ${minutes} د` : language === 'fr' ? `Il y a ${minutes} min` : `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return language === 'ar' ? `منذ ${hours} س` : language === 'fr' ? `Il y a ${hours} h` : `${hours}h ago`;
-  return date.toLocaleDateString(language === 'ar' ? 'ar-TN' : language === 'fr' ? 'fr-TN' : 'en-GB', { day: '2-digit', month: 'short' });
+  return date.toLocaleDateString(language === 'ar' ? 'ar-TN-u-nu-latn' : language === 'fr' ? 'fr-TN' : 'en-GB', { day: '2-digit', month: 'short' });
 }
 
 const ICON_CONFIG: Record<string, { icon: any, color: string, bgColor: string, accentColor: string }> = {

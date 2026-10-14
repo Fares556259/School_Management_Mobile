@@ -46,7 +46,7 @@ const MONTHS_AR: Record<string, string> = {
 
 export const PaymentsScreen = ({ navigation }: any) => {
   const selectedChildId = useAppStore((state) => state.selectedChildId);
-  const { t, isRTL, language } = useLanguage();
+  const { t, isRTL, language, toWestern } = useLanguage();
   const [activeFilter, setActiveFilter] = useState<PaymentFilter>('Due');
   const [manualRefreshing, setManualRefreshing] = useState(false);
 
@@ -106,7 +106,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
 
   const lastUpdatedLabel = useMemo(() => {
     if (!dataUpdatedAt) return '';
-    const time = new Date(dataUpdatedAt).toLocaleTimeString(language === 'ar' ? 'ar-TN' : 'fr-TN', {
+    const time = new Date(dataUpdatedAt).toLocaleTimeString(language === 'ar' ? 'ar-TN-u-nu-latn' : language === 'en' ? 'en-GB' : 'fr-TN', {
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -143,7 +143,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
     return `${count} ${count === 1 ? 'paiement à régler' : 'paiements à régler'}`;
   }, [language, summary.dueCount, summary.overdueCount]);
 
-  const formatAmount = (amount: number) => Math.max(0, amount).toLocaleString();
+  const formatAmount = (amount: number) => Math.max(0, amount).toLocaleString('en-US');
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -217,7 +217,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
                       {label}
                     </Text>
                     <View style={[styles.segmentCount, selected && styles.segmentCountActive]}>
-                      <Text style={[styles.segmentCountText, selected && styles.segmentCountTextActive]}>{count}</Text>
+                      <Text style={[styles.segmentCountText, selected && styles.segmentCountTextActive]}>{toWestern(count)}</Text>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -232,7 +232,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
               {activeFilter === 'Due' ? t.dueInstallmentsTitle : t.paidInstallmentsTitle}
             </Text>
             <Text style={[styles.sectionSubtitle, { textAlign: isRTL ? 'right' : 'left' }]}>
-              {language === 'ar' ? `السنة الدراسية ${schoolYear}` : language === 'en' ? `School year ${schoolYear}` : `Année scolaire ${schoolYear}`}
+              {language === 'ar' ? `السنة الدراسية ${toWestern(schoolYear)}` : language === 'en' ? `School year ${schoolYear}` : `Année scolaire ${schoolYear}`}
               {lastUpdatedLabel ? `  •  ${lastUpdatedLabel}` : ''}
             </Text>
           </View>
@@ -313,7 +313,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
                             {t.tuitionFees}
                           </Text>
                           <Text style={[styles.cardMonth, { color: statusColor, textAlign: isRTL ? 'right' : 'left' }]}>
-                            {displayMonth} {year}
+                            {displayMonth} {toWestern(year)}
                           </Text>
                         </View>
                       </View>
@@ -339,7 +339,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
                       <View style={[styles.noticeRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                         <AlertCircle size={15} color="#DC2626" strokeWidth={2.2} />
                         <Text style={[styles.noticeText, { textAlign: isRTL ? 'right' : 'left' }]}>
-                          {t.overdueDays} {item.overdueDays || 0} {t.daysLabel}
+                          {t.overdueDays} {toWestern(item.overdueDays || 0)} {t.daysLabel}
                         </Text>
                       </View>
                     )}
@@ -348,7 +348,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
                       <View style={styles.progressSection}>
                         <View style={[styles.progressLabels, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                           <Text style={styles.progressLabel}>{t.totalPaid}: {formatAmount(item.paidAmount)} {t.currencyTnd}</Text>
-                          <Text style={styles.progressValue}>{paidRatio}%</Text>
+                          <Text style={styles.progressValue}>{toWestern(paidRatio)}%</Text>
                         </View>
                         <View style={styles.progressTrack}>
                           <View style={[styles.progressFill, { width: `${paidRatio}%` }]} />

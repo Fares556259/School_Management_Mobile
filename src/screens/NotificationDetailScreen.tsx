@@ -69,7 +69,7 @@ export const NotificationDetailScreen = ({ route, navigation }: any) => {
   const createdAt = new Date(notification.createdAt || notification.rawDate || Date.now());
   const timeLabel = Number.isNaN(createdAt.getTime())
     ? ''
-    : createdAt.toLocaleDateString(language === 'ar' ? 'ar-TN' : language === 'fr' ? 'fr-TN' : 'en-GB', {
+    : createdAt.toLocaleDateString(language === 'ar' ? 'ar-TN-u-nu-latn' : language === 'fr' ? 'fr-TN' : 'en-GB', {
         day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
       });
 

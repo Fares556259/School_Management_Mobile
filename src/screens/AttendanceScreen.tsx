@@ -112,7 +112,7 @@ export const AttendanceScreen = ({ navigation }: any) => {
   }, { PRESENT: 0, ABSENT: 0, LATE: 0 }), [history]);
   const attendanceRate = history.length ? Math.round((totals.PRESENT / history.length) * 100) : 0;
   const filtered = useMemo(() => filter === 'ALL' ? history : history.filter(day => day.status === filter), [filter, history]);
-  const locale = language === 'ar' ? 'ar-TN' : language === 'fr' ? 'fr-FR' : 'en-GB';
+  const locale = language === 'ar' ? 'ar-TN-u-nu-latn' : language === 'fr' ? 'fr-FR' : 'en-GB';
 
   const handleJustify = useCallback(async (attendanceId: number) => {
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, quality: 0.55 });

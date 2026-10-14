@@ -404,7 +404,7 @@ export default function AdminDashboardScreen() {
     }
   };
 
-  const todayDateStr = new Date().toLocaleDateString(language === 'ar' ? 'ar-TN' : 'fr-FR', {
+  const todayDateStr = new Date().toLocaleDateString(language === 'ar' ? 'ar-TN-u-nu-latn' : 'fr-FR', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -475,7 +475,7 @@ export default function AdminDashboardScreen() {
                 </View>
                 <View style={[styles.statTextBox, { alignItems: isRTL ? 'flex-end' : 'flex-start', marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0 }]}>
                   <Text style={styles.statNumber}>
-                    {data?.operations.students.toLocaleString() || 0}
+                    {data?.operations.students.toLocaleString('en-US') || 0}
                   </Text>
                   <Text style={[styles.statLabel, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminRegisteredStudents}</Text>
                 </View>
@@ -488,7 +488,7 @@ export default function AdminDashboardScreen() {
                 </View>
                 <View style={[styles.statTextBox, { alignItems: isRTL ? 'flex-end' : 'flex-start', marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0 }]}>
                   <Text style={styles.statNumber}>
-                    {data?.operations.teachers.toLocaleString() || 0}
+                    {data?.operations.teachers.toLocaleString('en-US') || 0}
                   </Text>
                   <Text style={[styles.statLabel, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminTeachers}</Text>
                 </View>
@@ -501,7 +501,7 @@ export default function AdminDashboardScreen() {
                 </View>
                 <View style={[styles.statTextBox, { alignItems: isRTL ? 'flex-end' : 'flex-start', marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0 }]}>
                   <Text style={styles.statNumber}>
-                    {data?.operations.classes.toLocaleString() || 0}
+                    {data?.operations.classes.toLocaleString('en-US') || 0}
                   </Text>
                   <Text style={[styles.statLabel, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminClasses}</Text>
                 </View>
@@ -514,7 +514,7 @@ export default function AdminDashboardScreen() {
                 </View>
                 <View style={[styles.statTextBox, { alignItems: isRTL ? 'flex-end' : 'flex-start', marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0 }]}>
                   <Text style={styles.statNumber}>
-                    {data?.operations.staff.toLocaleString() || 0}
+                    {data?.operations.staff.toLocaleString('en-US') || 0}
                   </Text>
                   <Text style={[styles.statLabel, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminStaff}</Text>
                 </View>
@@ -547,12 +547,12 @@ export default function AdminDashboardScreen() {
               <View style={[styles.financialAmountsRow, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
                 <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
                   <Text style={styles.financialBigNumber}>
-                    {data?.financialPulse.collectedTuition.toLocaleString() || 0} DT
+                    {data?.financialPulse.collectedTuition.toLocaleString('en-US') || 0} DT
                   </Text>
                   <Text style={styles.financialSubtext}>{t.adminCollected}</Text>
                 </View>
                 <Text style={styles.financialExpectedText}>
-                  {t.adminOutOfExpected} {data?.financialPulse.expectedTuition.toLocaleString() || 0} DT
+                  {t.adminOutOfExpected} {data?.financialPulse.expectedTuition.toLocaleString('en-US') || 0} DT
                 </Text>
               </View>
 
@@ -579,7 +579,7 @@ export default function AdminDashboardScreen() {
                 </View>
                 <View style={styles.remainingPill}>
                   <Text style={styles.remainingPillText}>
-                    {t.adminRemainingToCollect} : {data?.financialPulse.remainingToCollect.toLocaleString() || 0} DT
+                    {t.adminRemainingToCollect} : {data?.financialPulse.remainingToCollect.toLocaleString('en-US') || 0} DT
                   </Text>
                 </View>
               </View>
@@ -639,7 +639,7 @@ export default function AdminDashboardScreen() {
                 </View>
                 <View style={styles.unpaidTotalBadge}>
                   <Text style={styles.unpaidTotalBadgeText}>
-                    {(unpaidStudentsTotal + unpaidEmployeesTotal).toLocaleString()} DT {t.adminTotalDue}
+                    {(unpaidStudentsTotal + unpaidEmployeesTotal).toLocaleString('en-US')} DT {t.adminTotalDue}
                   </Text>
                 </View>
               </View>
@@ -654,7 +654,7 @@ export default function AdminDashboardScreen() {
                     </View>
                   </View>
                   <Text style={[styles.ribbonAmount, { textAlign: isRTL ? 'right' : 'left' }]}>
-                    {unpaidStudentsTotal.toLocaleString()} DT
+                    {unpaidStudentsTotal.toLocaleString('en-US')} DT
                   </Text>
                 </View>
 
@@ -666,7 +666,7 @@ export default function AdminDashboardScreen() {
                     </View>
                   </View>
                   <Text style={[styles.ribbonAmount, { textAlign: isRTL ? 'right' : 'left' }]}>
-                    {unpaidEmployeesTotal.toLocaleString()} DT
+                    {unpaidEmployeesTotal.toLocaleString('en-US')} DT
                   </Text>
                 </View>
               </View>

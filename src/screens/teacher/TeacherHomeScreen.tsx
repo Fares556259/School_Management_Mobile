@@ -161,7 +161,7 @@ export const TeacherHomeScreen = ({ navigation }: any) => {
     refetch();
   };
 
-  const locale = language === 'ar' ? 'ar-TN' : language === 'fr' ? 'fr-FR' : 'en-US';
+  const locale = language === 'ar' ? 'ar-TN-u-nu-latn' : language === 'fr' ? 'fr-FR' : 'en-US';
   const today = new Date().toLocaleDateString(locale, { 
     weekday: 'long', 
     month: 'short', 

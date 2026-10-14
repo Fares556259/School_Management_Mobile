@@ -333,7 +333,7 @@ export const HomeworkDetailScreen = ({ route, navigation }: any) => {
       tomorrow.setDate(now.getDate() + 1);
       const isTomorrow = date.toDateString() === tomorrow.toDateString();
       
-      const locale = language === 'fr' ? 'fr-FR' : language === 'ar' ? 'ar-TN' : 'en-US';
+      const locale = language === 'fr' ? 'fr-FR' : language === 'ar' ? 'ar-TN-u-nu-latn' : 'en-US';
       const options: any = { month: 'short', day: 'numeric', year: 'numeric' };
       const formatted = date.toLocaleDateString(locale, options);
       

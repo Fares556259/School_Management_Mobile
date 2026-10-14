@@ -8,7 +8,6 @@ import {
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
 import { studentService } from '../services/api';
-import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GlobalHeader } from '../components/GlobalHeader';
 import { useQuery } from '@tanstack/react-query';
@@ -18,6 +17,7 @@ import * as Sharing from 'expo-sharing';
 import { useFocusEffect } from '@react-navigation/native';
 import { downloadAndPreviewPDF } from '../utils/fileUtils';
 import { SkeletonBlock } from '../components/SkeletonView';
+import { useFonts } from 'expo-font';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -51,10 +51,24 @@ const getSubjectDomain = (subjectName: string) => {
   return { id: 'OTHER', title: 'OTHER SUBJECTS', color: '#5C6878', bg: '#F3F5F7', soft: '#E5E9ED', border: '#DEE3E8', keywords: [] };
 };
 
+const getTeacherName = (value: any, language: 'ar' | 'fr' | 'en') => {
+  const teamLabel = language === 'ar' ? 'الفريق التربوي' : language === 'fr' ? 'Équipe pédagogique' : 'Teaching team';
+  if (!value || value === 'Multiple Teachers') return value === 'Multiple Teachers' ? teamLabel : '—';
+  if (typeof value === 'string') return value.replace(/\[object Object\]/gi, '').trim() || '—';
+  if (typeof value === 'object') {
+    return [value.name || value.firstName, value.surname || value.lastName].filter(Boolean).join(' ').trim() || teamLabel;
+  }
+  return '—';
+};
+
 export const CoursesScreen = ({ navigation }: any) => {
   const selectedChildId = useAppStore((s) => s.selectedChildId);
   const children = useAppStore((s) => s.children);
-  const { t, isRTL, getTranslatedSubject } = useLanguage();
+  const { t, isRTL, language, getTranslatedSubject, toWestern } = useLanguage();
+  const [arabicFontLoaded] = useFonts({
+    NotoSansArabic: require('../../assets/fonts/NotoSansArabic.ttf'),
+  });
+  const arabicText = isRTL && arabicFontLoaded ? { fontFamily: 'NotoSansArabic', fontWeight: 'normal' as const, letterSpacing: 0 } : undefined;
   const [viewedResources, setViewedResources] = useState<string[]>([]);
   const [expandedCourses, setExpandedCourses] = useState<Record<string, boolean>>({});
   const [openingResourceId, setOpeningResourceId] = useState<number | null>(null);
@@ -139,6 +153,15 @@ export const CoursesScreen = ({ navigation }: any) => {
     ((t as any).domainOther || domain.title)
   );
 
+  const formatResourceDate = (value: string | null | undefined) => {
+    const date = new Date(value || '');
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleDateString(
+      language === 'ar' ? 'ar-TN-u-nu-latn' : language === 'fr' ? 'fr-TN' : 'en-GB',
+      { day: 'numeric', month: 'short', year: 'numeric' },
+    );
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f6f8fb' }}>
       <GlobalHeader navigation={navigation} />
@@ -205,18 +228,17 @@ export const CoursesScreen = ({ navigation }: any) => {
         ) : (
           <View style={{ gap: 14 }}>
             {courses.map((course) => {
-              const domain = getSubjectDomain(course.name);
+              const rawCourseName = String(course.name || '');
+              const domain = getSubjectDomain(rawCourseName);
               const themeKey = Object.keys(SUBJECT_THEMES).find((key) =>
-                key !== 'Default' && course.name.toLowerCase().includes(key.toLowerCase())
+                key !== 'Default' && rawCourseName.toLowerCase().includes(key.toLowerCase())
               );
               const ThemeIcon = SUBJECT_THEMES[themeKey || 'Default'].icon;
-              const courseName = getTranslatedSubject(course.name);
+              const courseName = getTranslatedSubject(rawCourseName);
               const isExpanded = expandedCourses[course.id];
-              const resources = course.resources || [];
+              const resources = Array.isArray(course.resources) ? course.resources : [];
               const newCount = resources.filter((resource: any) => !viewedResources.includes(resource.id.toString())).length;
-              const teacherName = course.teacher === 'Multiple Teachers'
-                ? (isRTL ? 'الفريق التربوي' : 'Équipe pédagogique')
-                : (course.teacher || '—');
+              const teacherName = getTeacherName(course.teacher, language);
 
               return (
                 <View
@@ -253,11 +275,11 @@ export const CoursesScreen = ({ navigation }: any) => {
                       <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'flex-start' }}>
                         <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
                           <View style={{ backgroundColor: domain.soft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 12 }}>
-                            <Text style={{ color: domain.color, fontSize: 10, fontWeight: '800', letterSpacing: 0.6 }}>
+                            <Text style={[{ color: domain.color, fontSize: 10, fontWeight: '800', letterSpacing: 0.6 }, arabicText]}>
                               {getDomainTitle(domain)}
                             </Text>
                           </View>
-                          <Text style={{ color: '#172033', fontSize: 21, fontWeight: '900', letterSpacing: -0.2, textAlign: isRTL ? 'right' : 'left' }} numberOfLines={2}>
+                          <Text style={[{ width: '100%', color: '#172033', fontSize: 21, fontWeight: '900', letterSpacing: -0.2, textAlign: isRTL ? 'right' : 'left' }, arabicText]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.86}>
                             {courseName}
                           </Text>
                           <Text style={{ color: '#657184', fontSize: 12, fontWeight: '600', marginTop: 6, textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>
@@ -275,18 +297,18 @@ export const CoursesScreen = ({ navigation }: any) => {
                         <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: domain.bg, alignItems: 'center', justifyContent: 'center' }}>
                           <FileText size={16} color={domain.color} />
                         </View>
-                        <Text style={{ marginHorizontal: 9, color: '#334155', fontSize: 13, fontWeight: '800' }}>
-                          {resources.length} {resources.length === 1 ? 'document' : 'documents'}
+                        <Text style={[{ marginHorizontal: 9, color: '#334155', fontSize: 13, fontWeight: '800' }, arabicText]}>
+                          {toWestern(resources.length)} {resources.length === 1 ? (t as any).courseDocument : (t as any).courseDocuments}
                         </Text>
                         {newCount > 0 && (
                           <View style={{ backgroundColor: '#e8f0fe', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 }}>
-                            <Text style={{ color: '#174ea6', fontSize: 10, fontWeight: '900' }}>{newCount} nouveau</Text>
+                            <Text style={[{ color: '#174ea6', fontSize: 10, fontWeight: '900' }, arabicText]}>{toWestern(newCount)} {(t as any).courseNew}</Text>
                           </View>
                         )}
                       </View>
                       <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
-                        <Text style={{ color: '#0b57d0', fontSize: 12, fontWeight: '800', marginRight: isRTL ? 0 : 6, marginLeft: isRTL ? 6 : 0 }}>
-                          {isExpanded ? 'Fermer' : 'Ouvrir'}
+                        <Text style={[{ color: '#0b57d0', fontSize: 12, fontWeight: '800', marginRight: isRTL ? 0 : 6, marginLeft: isRTL ? 6 : 0 }, arabicText]}>
+                          {isExpanded ? (t as any).courseClose : (t as any).courseOpen}
                         </Text>
                         {isExpanded ? <ChevronUp size={17} color="#0b57d0" /> : <ChevronDown size={17} color="#0b57d0" />}
                       </View>
@@ -325,7 +347,7 @@ export const CoursesScreen = ({ navigation }: any) => {
                                 <Text style={{ flexShrink: 1, fontSize: 14, fontWeight: '800', color: '#172033' }} numberOfLines={1}>{res.title}</Text>
                                 {isNew && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#0b57d0', marginHorizontal: 7 }} />}
                               </View>
-                              <Text style={{ fontSize: 11, color: '#718096', fontWeight: '600', marginTop: 3 }}>{moment(res.createdAt).format('D MMM YYYY')}</Text>
+                              <Text style={[{ fontSize: 11, color: '#718096', fontWeight: '600', marginTop: 3 }, arabicText]}>{formatResourceDate(res.createdAt)}</Text>
                             </View>
                             <View style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', borderRadius: 11, borderWidth: 1, borderColor: '#e2e8f0' }}>
                               {openingResourceId === res.id ? <ActivityIndicator size="small" color="#0b57d0" /> : <Download color="#0b57d0" size={17} />}
@@ -337,7 +359,7 @@ export const CoursesScreen = ({ navigation }: any) => {
                           <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: domain.bg, alignItems: 'center', justifyContent: 'center', marginBottom: 9 }}>
                             <FileText size={20} color={domain.color} />
                           </View>
-                          <Text style={{ color: '#64748b', fontSize: 13, fontWeight: '700' }}>{(t as any).noFiles || 'Aucun document disponible'}</Text>
+                          <Text style={[{ color: '#64748b', fontSize: 13, fontWeight: '700' }, arabicText]}>{(t as any).noCourseDocuments}</Text>
                         </View>
                       )}
                     </View>

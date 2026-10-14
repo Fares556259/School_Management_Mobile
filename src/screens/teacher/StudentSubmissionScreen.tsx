@@ -134,7 +134,7 @@ export const StudentSubmissionScreen = ({ route, navigation }: any) => {
   };
 
   const getLocale = () => {
-    if (language === 'ar') return 'ar-TN';
+    if (language === 'ar') return 'ar-TN-u-nu-latn';
     if (language === 'fr') return 'fr-FR';
     return 'en-US';
   };
