@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Dimensions, Platform, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { 
   Calculator, Book, Languages, Globe, Palette, Microscope, Music, BookOpen, 
-  FileText, Download, ChevronDown, ChevronUp, X, Share2, Eye, RefreshCw, ExternalLink
+  FileText, Download, ChevronDown, ChevronUp, X, Share2, Eye, RefreshCw
 } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
-import { studentService } from '../services/api';
+import { API_BASE_URL, studentService } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GlobalHeader } from '../components/GlobalHeader';
 import { useQuery } from '@tanstack/react-query';
@@ -19,6 +19,7 @@ import { downloadAndPreviewPDF } from '../utils/fileUtils';
 import { SkeletonBlock } from '../components/SkeletonView';
 import { useFonts } from 'expo-font';
 import { Image } from 'expo-image';
+import { WebView } from 'react-native-webview';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -111,6 +112,7 @@ const detectResourceKind = async (resource: any): Promise<ResourceKind> => {
 };
 
 export const CoursesScreen = ({ navigation }: any) => {
+  const insets = useSafeAreaInsets();
   const selectedChildId = useAppStore((s) => s.selectedChildId);
   const children = useAppStore((s) => s.children);
   const { t, isRTL, language, getTranslatedSubject, toWestern } = useLanguage();
@@ -126,7 +128,7 @@ export const CoursesScreen = ({ navigation }: any) => {
   const [mediaRetryKey, setMediaRetryKey] = useState(0);
   const child = children.find(c => c.id === selectedChildId);
 
-  const [viewingMedia, setViewingMedia] = useState<{ url: string; title: string; subject?: string } | null>(null);
+  const [viewingMedia, setViewingMedia] = useState<{ url: string; title: string; subject?: string; kind: ResourceKind } | null>(null);
 
   useEffect(() => {
     if (!viewingMedia || mediaStatus !== 'loading') return;
@@ -175,10 +177,14 @@ export const CoursesScreen = ({ navigation }: any) => {
     }
   };
 
-  const getMediaFile = (media: { url: string; title: string }) => {
+  const getMediaFile = (media: { url: string; title: string; kind?: ResourceKind }) => {
     const urlPath = media.url.split('?')[0];
     const urlExtension = urlPath.match(/\.([a-z0-9]{2,5})$/i)?.[1]?.toLowerCase();
-    const extension = urlExtension && ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf'].includes(urlExtension) ? urlExtension : 'jpg';
+    const extension = media.kind === 'pdf'
+      ? 'pdf'
+      : urlExtension && ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf'].includes(urlExtension)
+        ? urlExtension
+        : 'jpg';
     const mimeType = extension === 'pdf' ? 'application/pdf' : extension === 'png' ? 'image/png' : extension === 'webp' ? 'image/webp' : extension === 'gif' ? 'image/gif' : 'image/jpeg';
     const safeTitle = (media.title || 'SnapSchool')
       .replace(/\.[a-z0-9]{2,5}$/i, '')
@@ -187,7 +193,7 @@ export const CoursesScreen = ({ navigation }: any) => {
     return { extension, mimeType, safeTitle, filename: `${safeTitle}.${extension}` };
   };
 
-  const cacheMedia = async (media: { url: string; title: string }) => {
+  const cacheMedia = async (media: { url: string; title: string; kind?: ResourceKind }) => {
     const file = getMediaFile(media);
     const cacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || '';
     const localUri = `${cacheDir}${Date.now()}_${file.filename}`;
@@ -250,11 +256,11 @@ export const CoursesScreen = ({ navigation }: any) => {
     setOpeningResourceId(res.id);
     try {
       const kind = await detectResourceKind(res);
-      if (kind === 'image') {
+      if (kind === 'image' || kind === 'pdf') {
         setMediaStatus('loading');
         setMediaRetryKey(0);
-        setViewingMedia({ url: res.url, title: res.title, subject: courseName });
-        void Image.prefetch(res.url, 'disk').catch(() => undefined);
+        setViewingMedia({ url: res.url, title: res.title, subject: courseName, kind });
+        if (kind === 'image') void Image.prefetch(res.url, 'disk').catch(() => undefined);
         return;
       }
 
@@ -268,13 +274,20 @@ export const CoursesScreen = ({ navigation }: any) => {
         });
       } catch {
         const cleanUrl = res.url.split('?')[0];
-        const extension = kind === 'pdf' ? 'pdf' : cleanUrl.match(/\.([a-z0-9]{2,5})$/i)?.[1] || 'pdf';
+        const extension = cleanUrl.match(/\.([a-z0-9]{2,5})$/i)?.[1] || 'bin';
         const titleHasExtension = /\.[a-z0-9]{2,5}$/i.test(res.title || '');
         await downloadAndPreviewPDF(res.url, titleHasExtension ? res.title : `${res.title || 'SnapSchool'}.${extension}`);
       }
     } finally {
       setOpeningResourceId(null);
     }
+  };
+
+  const getPdfViewerUrl = (media: { url: string; title: string }) => {
+    const safeBase = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+    const filename = `${(media.title || 'SnapSchool').replace(/\.pdf$/i, '').replace(/[^a-z0-9_-]/gi, '_') || 'SnapSchool'}.pdf`;
+    const proxiedUrl = `${safeBase}/uploads-proxy?url=${encodeURIComponent(media.url)}&filename=${encodeURIComponent(filename)}`;
+    return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(proxiedUrl)}`;
   };
 
   const toggleCourse = (id: string) => {
@@ -518,7 +531,7 @@ export const CoursesScreen = ({ navigation }: any) => {
           animationType="fade"
           onRequestClose={() => { setViewingMedia(null); setMediaStatus('loading'); }}
         >
-          <View style={{ flex: 1, backgroundColor: '#0B1220', paddingTop: Platform.OS === 'ios' ? 50 : 24, paddingBottom: Platform.OS === 'ios' ? 34 : 22 }}>
+          <View style={{ flex: 1, backgroundColor: '#0B1220', paddingTop: Math.max(insets.top, 18), paddingBottom: Math.max(insets.bottom, 18) + 8 }}>
             {/* Top Bar */}
             <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 }}>
               <View style={{ flex: 1, marginRight: isRTL ? 0 : 16, marginLeft: isRTL ? 16 : 0 }}>
@@ -539,25 +552,44 @@ export const CoursesScreen = ({ navigation }: any) => {
               </TouchableOpacity>
             </View>
 
-            {/* Main Image View */}
+            {/* Main file view */}
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 18 }}>
               <View style={{ width: SCREEN_WIDTH - 32, maxHeight: SCREEN_HEIGHT * 0.7, flex: 1, borderRadius: 22, overflow: 'hidden', backgroundColor: '#111827', borderWidth: 1, borderColor: '#263449', shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 18, elevation: 10, alignItems: 'center', justifyContent: 'center' }}>
-                <Image
-                  key={`${viewingMedia.url}-${mediaRetryKey}`}
-                  source={{ uri: viewingMedia.url }}
-                  style={{ width: '100%', height: '100%' }}
-                  contentFit="contain"
-                  cachePolicy="memory-disk"
-                  transition={180}
-                  onLoadStart={() => setMediaStatus('loading')}
-                  onLoad={() => setMediaStatus('ready')}
-                  onError={() => setMediaStatus('error')}
-                />
+                {viewingMedia.kind === 'pdf' ? (
+                  <WebView
+                    key={`${viewingMedia.url}-${mediaRetryKey}`}
+                    source={{ uri: getPdfViewerUrl(viewingMedia) }}
+                    style={{ width: SCREEN_WIDTH - 34, height: '100%', backgroundColor: '#f8fafc' }}
+                    originWhitelist={['https://*']}
+                    javaScriptEnabled
+                    domStorageEnabled
+                    setSupportMultipleWindows={false}
+                    allowsBackForwardNavigationGestures={false}
+                    onLoadStart={() => setMediaStatus('loading')}
+                    onLoadEnd={() => setMediaStatus('ready')}
+                    onError={() => setMediaStatus('error')}
+                    onHttpError={() => setMediaStatus('error')}
+                  />
+                ) : (
+                  <Image
+                    key={`${viewingMedia.url}-${mediaRetryKey}`}
+                    source={{ uri: viewingMedia.url }}
+                    style={{ width: '100%', height: '100%' }}
+                    contentFit="contain"
+                    cachePolicy="memory-disk"
+                    transition={180}
+                    onLoadStart={() => setMediaStatus('loading')}
+                    onLoad={() => setMediaStatus('ready')}
+                    onError={() => setMediaStatus('error')}
+                  />
+                )}
                 {mediaStatus === 'loading' && (
                   <View style={{ position: 'absolute', inset: 0, backgroundColor: '#111827', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 34 }}>
                     <ActivityIndicator size="large" color="#60a5fa" />
                     <Text style={[{ color: '#e2e8f0', fontSize: 14, fontWeight: '800', marginTop: 16, textAlign: 'center' }, arabicText]}>
-                      {language === 'ar' ? 'جارٍ تحميل الصورة…' : language === 'fr' ? 'Chargement de l’image…' : 'Loading image…'}
+                      {viewingMedia.kind === 'pdf'
+                        ? (language === 'ar' ? 'جارٍ تجهيز ملف PDF…' : language === 'fr' ? 'Préparation du PDF…' : 'Preparing PDF…')
+                        : (language === 'ar' ? 'جارٍ تحميل الصورة…' : language === 'fr' ? 'Chargement de l’image…' : 'Loading image…')}
                     </Text>
                     <Text style={[{ color: '#718096', fontSize: 11, marginTop: 6, textAlign: 'center' }, arabicText]}>
                       {language === 'ar' ? 'قد يستغرق ذلك لحظات حسب سرعة الاتصال.' : language === 'fr' ? 'Cela peut prendre quelques instants selon votre connexion.' : 'This may take a moment depending on your connection.'}
@@ -571,14 +603,14 @@ export const CoursesScreen = ({ navigation }: any) => {
                       {language === 'ar' ? 'تعذر عرض هذا الملف' : language === 'fr' ? 'Impossible d’afficher ce fichier' : 'Unable to display this file'}
                     </Text>
                     <Text style={[{ color: '#94a3b8', fontSize: 12, lineHeight: 18, marginTop: 6, textAlign: 'center' }, arabicText]}>
-                      {language === 'ar' ? 'يمكنك إعادة المحاولة أو فتحه خارج التطبيق.' : language === 'fr' ? 'Réessayez ou ouvrez-le dans le navigateur.' : 'Try again or open it in your browser.'}
+                      {language === 'ar' ? 'يمكنك إعادة المحاولة أو تنزيل الملف.' : language === 'fr' ? 'Réessayez ou téléchargez le fichier.' : 'Try again or download the file.'}
                     </Text>
                     <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 10, marginTop: 18 }}>
                       <TouchableOpacity onPress={() => { setMediaStatus('loading'); setMediaRetryKey(key => key + 1); }} style={{ height: 44, paddingHorizontal: 15, borderRadius: 14, backgroundColor: '#0b6fe8', flexDirection: isRTL ? 'row-reverse' : 'row', gap: 7, alignItems: 'center', justifyContent: 'center' }}>
                         <RefreshCw size={16} color="white" /><Text style={[{ color: 'white', fontSize: 12, fontWeight: '900' }, arabicText]}>{language === 'ar' ? 'إعادة المحاولة' : language === 'fr' ? 'Réessayer' : 'Retry'}</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity onPress={() => WebBrowser.openBrowserAsync(viewingMedia.url)} style={{ height: 44, paddingHorizontal: 15, borderRadius: 14, backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155', flexDirection: isRTL ? 'row-reverse' : 'row', gap: 7, alignItems: 'center', justifyContent: 'center' }}>
-                        <ExternalLink size={16} color="white" /><Text style={[{ color: 'white', fontSize: 12, fontWeight: '900' }, arabicText]}>{language === 'ar' ? 'فتح خارجي' : language === 'fr' ? 'Ouvrir' : 'Open'}</Text>
+                      <TouchableOpacity onPress={downloadViewingMedia} style={{ height: 44, paddingHorizontal: 15, borderRadius: 14, backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155', flexDirection: isRTL ? 'row-reverse' : 'row', gap: 7, alignItems: 'center', justifyContent: 'center' }}>
+                        <Download size={16} color="white" /><Text style={[{ color: 'white', fontSize: 12, fontWeight: '900' }, arabicText]}>{language === 'ar' ? 'تنزيل' : language === 'fr' ? 'Télécharger' : 'Download'}</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -594,6 +626,7 @@ export const CoursesScreen = ({ navigation }: any) => {
                   flex: 1,
                   justifyContent: 'center',
                   backgroundColor: '#0B6FE8',
+                  minHeight: 54,
                   paddingVertical: 14,
                   borderRadius: 16,
                   flexDirection: isRTL ? 'row-reverse' : 'row',
@@ -608,7 +641,7 @@ export const CoursesScreen = ({ navigation }: any) => {
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={shareViewingMedia}
-                style={{ flex: 1, justifyContent: 'center', backgroundColor: '#182235', paddingVertical: 14, borderRadius: 16, borderWidth: 1, borderColor: '#334155', flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 8 }}
+                style={{ flex: 1, minHeight: 54, justifyContent: 'center', backgroundColor: '#182235', paddingVertical: 14, borderRadius: 16, borderWidth: 1, borderColor: '#334155', flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 8 }}
               >
                 {mediaAction === 'share' ? <ActivityIndicator size="small" color="white" /> : <Share2 size={18} color="white" />}
                 <Text style={{ color: 'white', fontWeight: '900', fontSize: 14 }}>
