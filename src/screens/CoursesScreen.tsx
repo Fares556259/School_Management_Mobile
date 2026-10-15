@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Dimensions, Platform, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Dimensions, Platform, Alert, ToastAndroid } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { 
   Calculator, Book, Languages, Globe, Palette, Microscope, Music, BookOpen, 
-  FileText, Download, ChevronDown, ChevronUp, X, Share2, Eye, RefreshCw
+  FileText, Download, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, X, Share2, Eye, RefreshCw
 } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
@@ -20,6 +20,7 @@ import { SkeletonBlock } from '../components/SkeletonView';
 import { useFonts } from 'expo-font';
 import { Image } from 'expo-image';
 import { WebView } from 'react-native-webview';
+import ReactNativeBlobUtil from 'react-native-blob-util';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -128,7 +129,7 @@ export const CoursesScreen = ({ navigation }: any) => {
   const [mediaRetryKey, setMediaRetryKey] = useState(0);
   const child = children.find(c => c.id === selectedChildId);
 
-  const [viewingMedia, setViewingMedia] = useState<{ url: string; title: string; subject?: string; kind: ResourceKind } | null>(null);
+  const [viewingMedia, setViewingMedia] = useState<{ id: number; url: string; title: string; subject?: string; kind: ResourceKind } | null>(null);
 
   useEffect(() => {
     if (!viewingMedia || mediaStatus !== 'loading') return;
@@ -144,6 +145,19 @@ export const CoursesScreen = ({ navigation }: any) => {
     gcTime: 24 * 60 * 60 * 1000,
     refetchOnMount: false,
   });
+
+  const previewableResources = courses.flatMap((course: any) => {
+    const subject = getTranslatedSubject(String(course.name || ''));
+    const resources = Array.isArray(course.resources) ? course.resources : [];
+    return resources
+      .map((resource: any) => ({ ...resource, subject, kind: inferResourceKind(resource) }))
+      .filter((resource: any) => resource.url && (resource.kind === 'image' || resource.kind === 'pdf'));
+  });
+  const currentPreviewIndex = viewingMedia
+    ? previewableResources.findIndex((resource: any) => resource.id === viewingMedia.id)
+    : -1;
+  const hasPreviousPreview = currentPreviewIndex > 0;
+  const hasNextPreview = currentPreviewIndex >= 0 && currentPreviewIndex < previewableResources.length - 1;
 
   useFocusEffect(useCallback(() => {
     if (selectedChildId && isStale) void refetch();
@@ -205,22 +219,37 @@ export const CoursesScreen = ({ navigation }: any) => {
     if (!viewingMedia || mediaAction) return;
     setMediaAction('download');
     try {
-      const file = await cacheMedia(viewingMedia);
       if (Platform.OS === 'android') {
-        const initialDirectory = FileSystem.StorageAccessFramework.getUriForDirectoryInRoot('Download');
-        const permission = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(initialDirectory);
-        if (!permission.granted) return;
-        const base64 = await FileSystem.readAsStringAsync(file.localUri, { encoding: FileSystem.EncodingType.Base64 });
-        const targetUri = await FileSystem.StorageAccessFramework.createFileAsync(permission.directoryUri, file.safeTitle, file.mimeType);
-        await FileSystem.StorageAccessFramework.writeAsStringAsync(targetUri, base64, { encoding: FileSystem.EncodingType.Base64 });
-        Alert.alert(
-          language === 'ar' ? 'تم التنزيل' : language === 'fr' ? 'Téléchargement terminé' : 'Download complete',
-          language === 'ar' ? 'تم حفظ الملف في المجلد الذي اخترته.' : language === 'fr' ? 'Le fichier a été enregistré dans le dossier choisi.' : 'The file was saved in the folder you selected.',
+        const file = getMediaFile(viewingMedia);
+        const downloadsDirectory = ReactNativeBlobUtil.fs.dirs.DownloadDir;
+        let filename = file.filename;
+        let destination = `${downloadsDirectory}/${filename}`;
+        if (await ReactNativeBlobUtil.fs.exists(destination)) {
+          filename = `${file.safeTitle}-${Date.now()}.${file.extension}`;
+          destination = `${downloadsDirectory}/${filename}`;
+        }
+        await ReactNativeBlobUtil.config({
+          addAndroidDownloads: {
+            useDownloadManager: true,
+            notification: true,
+            mediaScannable: true,
+            title: filename,
+            description: language === 'ar' ? 'ملف من SnapSchool' : language === 'fr' ? 'Document SnapSchool' : 'SnapSchool file',
+            mime: file.mimeType,
+            path: destination,
+          },
+        }).fetch('GET', viewingMedia.url);
+        ToastAndroid.show(
+          language === 'ar' ? 'تم الحفظ في التنزيلات' : language === 'fr' ? 'Enregistré dans Téléchargements' : 'Saved to Downloads',
+          ToastAndroid.LONG,
         );
-      } else if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(file.localUri, { mimeType: file.mimeType, dialogTitle: viewingMedia.title });
       } else {
-        await WebBrowser.openBrowserAsync(viewingMedia.url);
+        const file = await cacheMedia(viewingMedia);
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(file.localUri, { mimeType: file.mimeType, dialogTitle: viewingMedia.title });
+        } else {
+          await WebBrowser.openBrowserAsync(viewingMedia.url);
+        }
       }
     } catch (error) {
       console.warn('Media download failed', error);
@@ -259,7 +288,7 @@ export const CoursesScreen = ({ navigation }: any) => {
       if (kind === 'image' || kind === 'pdf') {
         setMediaStatus('loading');
         setMediaRetryKey(0);
-        setViewingMedia({ url: res.url, title: res.title, subject: courseName, kind });
+        setViewingMedia({ id: res.id, url: res.url, title: res.title, subject: courseName, kind });
         if (kind === 'image') void Image.prefetch(res.url, 'disk').catch(() => undefined);
         return;
       }
@@ -281,6 +310,22 @@ export const CoursesScreen = ({ navigation }: any) => {
     } finally {
       setOpeningResourceId(null);
     }
+  };
+
+  const navigateViewingMedia = (offset: -1 | 1) => {
+    const target = previewableResources[currentPreviewIndex + offset];
+    if (!target) return;
+    void markAsViewed(target.id);
+    setMediaStatus('loading');
+    setMediaRetryKey(0);
+    setViewingMedia({
+      id: target.id,
+      url: target.url,
+      title: target.title,
+      subject: target.subject,
+      kind: target.kind,
+    });
+    if (target.kind === 'image') void Image.prefetch(target.url, 'disk').catch(() => undefined);
   };
 
   const getPdfViewerUrl = (media: { url: string; title: string }) => {
@@ -540,7 +585,10 @@ export const CoursesScreen = ({ navigation }: any) => {
                 </Text>
                 {viewingMedia.subject && (
                   <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>
-                    {getTranslatedSubject(viewingMedia.subject)}
+                    {viewingMedia.subject}
+                    {currentPreviewIndex >= 0 && previewableResources.length > 1
+                      ? `  •  ${toWestern(currentPreviewIndex + 1)}/${toWestern(previewableResources.length)}`
+                      : ''}
                   </Text>
                 )}
               </View>
@@ -614,6 +662,60 @@ export const CoursesScreen = ({ navigation }: any) => {
                       </TouchableOpacity>
                     </View>
                   </View>
+                )}
+                {previewableResources.length > 1 && (
+                  <>
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityLabel={language === 'ar' ? 'الملف السابق' : language === 'fr' ? 'Document précédent' : 'Previous material'}
+                      disabled={!hasPreviousPreview}
+                      onPress={() => navigateViewingMedia(-1)}
+                      activeOpacity={0.78}
+                      style={{
+                        position: 'absolute',
+                        left: 8,
+                        top: '50%',
+                        marginTop: -27,
+                        zIndex: 20,
+                        elevation: 20,
+                        width: 48,
+                        height: 54,
+                        borderRadius: 17,
+                        backgroundColor: hasPreviousPreview ? 'rgba(15, 23, 42, 0.88)' : 'rgba(15, 23, 42, 0.3)',
+                        borderWidth: 1,
+                        borderColor: hasPreviousPreview ? '#475569' : 'rgba(71, 85, 105, 0.25)',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <ChevronLeft size={27} color={hasPreviousPreview ? 'white' : '#64748b'} strokeWidth={2.5} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityLabel={language === 'ar' ? 'الملف التالي' : language === 'fr' ? 'Document suivant' : 'Next material'}
+                      disabled={!hasNextPreview}
+                      onPress={() => navigateViewingMedia(1)}
+                      activeOpacity={0.78}
+                      style={{
+                        position: 'absolute',
+                        right: 8,
+                        top: '50%',
+                        marginTop: -27,
+                        zIndex: 20,
+                        elevation: 20,
+                        width: 48,
+                        height: 54,
+                        borderRadius: 17,
+                        backgroundColor: hasNextPreview ? 'rgba(15, 23, 42, 0.88)' : 'rgba(15, 23, 42, 0.3)',
+                        borderWidth: 1,
+                        borderColor: hasNextPreview ? '#475569' : 'rgba(71, 85, 105, 0.25)',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <ChevronRight size={27} color={hasNextPreview ? 'white' : '#64748b'} strokeWidth={2.5} />
+                    </TouchableOpacity>
+                  </>
                 )}
               </View>
             </View>
