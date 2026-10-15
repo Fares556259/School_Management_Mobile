@@ -3,8 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput, ActivityIndicator, StatusBar, Dimensions, Switch, Linking } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, ChevronLeft, User, Pencil, FileText, Info, PhoneCall, MapPin, Image as ImageIcon, Award, Globe, RefreshCw, KeyRound } from 'lucide-react-native';
+import { Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, ChevronLeft, User, Pencil, FileText, Info, PhoneCall, MapPin, Image as ImageIcon, Award, Globe, RefreshCw, KeyRound, Plus } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { useFonts } from 'expo-font';
 import { Svg, Circle } from 'react-native-svg';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage, Language } from '../context/LanguageContext';
@@ -105,8 +106,8 @@ const CircularProgress = ({ size, progress, imageUri, name, updating, onPress }:
 const CHILD_COLORS = ['#eff6ff', '#f5f3ff', '#fff7ed', '#fdf2f8'];
 const CHILD_TEXT_COLORS = ['#0055d4', '#8b5cf6', '#f59e0b', '#ec4899'];
 
-const ChildCard = ({ child, index, onSelect, onEditImage }: any) => {
-  const { t, isRTL } = useLanguage();
+const ChildCard = ({ child, index, selected, onSelect, onEdit }: any) => {
+  const { t, isRTL, language } = useLanguage();
   const bgColor = CHILD_COLORS[index % CHILD_COLORS.length];
   const textColor = CHILD_TEXT_COLORS[index % CHILD_TEXT_COLORS.length];
   
@@ -115,45 +116,37 @@ const ChildCard = ({ child, index, onSelect, onEditImage }: any) => {
       onPress={onSelect}
       activeOpacity={0.7}
       style={{
-        flexDirection: isRTL ? 'row-reverse' : 'row',
-        backgroundColor: 'white',
-        borderRadius: 24,
-        padding: 16,
-        alignItems: 'center',
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
+        width: 172,
+        minHeight: 112,
+        backgroundColor: selected ? '#f0f7ff' : 'white',
+        borderRadius: 22,
+        padding: 14,
+        marginRight: 12,
+        borderWidth: selected ? 2 : 1,
+        borderColor: selected ? '#0b72df' : '#e2e8f0',
+        shadowColor: '#183153',
+        shadowOpacity: selected ? 0.08 : 0.03,
+        shadowRadius: 8,
+        elevation: selected ? 2 : 0,
       }}
     >
-      <View 
-        style={{
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: bgColor,
-          marginRight: isRTL ? 0 : 16,
-          marginLeft: isRTL ? 16 : 0,
-        }} 
-      >
-        {child.avatarUrl ? (
-          <Image 
-            source={{ uri: child.avatarUrl }} 
-            style={{ width: '100%', height: '100%', borderRadius: 999 }}
-            contentFit="cover"
-            transition={200}
-          />
-        ) : (
-          <UserIcon size={30} color={textColor} strokeWidth={1.5} />
-        )}
+      <View style={{ width: '100%', flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: bgColor, overflow: 'hidden' }}>
+          {child.avatarUrl ? <Image source={{ uri: child.avatarUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" transition={200} /> : <UserIcon size={25} color={textColor} strokeWidth={1.7} />}
+        </View>
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          {selected && <View style={{ width: 25, height: 25, borderRadius: 13, backgroundColor: '#0b72df', alignItems: 'center', justifyContent: 'center' }}><Check size={14} color="white" strokeWidth={3} /></View>}
+          <TouchableOpacity onPress={onEdit} accessibilityRole="button" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ width: 25, height: 25, borderRadius: 9, backgroundColor: selected ? '#dcecff' : '#f3f6f9', alignItems: 'center', justifyContent: 'center' }}>
+            <Pencil size={12} color={selected ? '#0b72df' : '#718096'} />
+          </TouchableOpacity>
+        </View>
       </View>
-      <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
-        <Text style={{ fontSize: 17, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>
+      <View style={{ width: '100%', marginTop: 10, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+        <Text style={{ fontSize: 15, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>
           {child.name}
         </Text>
-        <Text style={{ color: textColor, fontSize: 13, fontWeight: '800', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>
-          {t.classLabel}: {child.class}
+        <Text style={{ color: selected ? '#0b72df' : '#64748b', fontSize: 12, fontWeight: '700', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>
+          {child.class && child.class !== 'No Class' ? `${t.classLabel} ${child.class}` : (language === 'ar' ? 'دون قسم' : language === 'fr' ? 'Classe non attribuée' : 'No class assigned')}
         </Text>
       </View>
     </TouchableOpacity>
@@ -169,21 +162,21 @@ const SettingItemV3 = ({ icon: Icon, label, subtitle, color, iconBg, onPress, is
       style={{
         flexDirection: isRTL ? 'row-reverse' : 'row',
         alignItems: 'center',
-        paddingVertical: 16,
-        paddingHorizontal: 20,
+      paddingVertical: 14,
+      paddingHorizontal: 16,
         borderBottomWidth: !isLast ? 1 : 0,
         borderBottomColor: '#f1f5f9',
       }}
     >
       <View style={{
-        width: 42,
-        height: 42,
-        borderRadius: 14,
+        width: 40,
+        height: 40,
+        borderRadius: 13,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: iconBg ? undefined : '#eff6ff',
-        marginRight: isRTL ? 0 : 16,
-        marginLeft: isRTL ? 16 : 0,
+        marginRight: isRTL ? 0 : 13,
+        marginLeft: isRTL ? 13 : 0,
       }} className={iconBg}>
         <Icon size={20} color={color || "#0055d4"} />
       </View>
@@ -203,9 +196,9 @@ const SectionTitle = ({ title }: { title: string }) => {
       fontSize: 13,
       fontWeight: '800',
       color: '#64748b',
-      marginTop: 28,
+      marginTop: 24,
       marginBottom: 10,
-      marginHorizontal: 24,
+      marginHorizontal: 20,
       textAlign: isRTL ? 'right' : 'left',
     }}>
       {title}
@@ -214,8 +207,10 @@ const SectionTitle = ({ title }: { title: string }) => {
 };
 
 export const ProfileScreen = ({ navigation, onSignOut }: any) => {
-  const { children, setSelectedChildId, setChildren, userName, setUserName, setUserAvatarUrl, userAvatarUrl, userRole, userId } = useAppStore();
+  const { children, selectedChildId, setSelectedChildId, setChildren, userName, setUserName, setUserAvatarUrl, userAvatarUrl, userRole, userId } = useAppStore();
   const { t, language, setLanguage, isRTL } = useLanguage();
+  const [arabicFontLoaded] = useFonts({ NotoSansArabic: require('../../assets/fonts/NotoSansArabic.ttf') });
+  const arabicText = isRTL && arabicFontLoaded ? { fontFamily: 'NotoSansArabic', fontWeight: 'normal' as const, letterSpacing: 0 } : undefined;
   const [profile, setProfile] = useState<any>(null);
   const [schoolInfo, setSchoolInfo] = useState<any>(null);
   const [updating, setUpdating] = useState(false);
@@ -612,10 +607,15 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
   };
 
   const handleLogout = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
+    const logoutCopy = language === 'ar'
+      ? { title: 'تسجيل الخروج', body: 'هل تريد تسجيل الخروج من حسابك؟', cancel: 'إلغاء', confirm: 'تسجيل الخروج' }
+      : language === 'fr'
+        ? { title: 'Déconnexion', body: 'Voulez-vous vous déconnecter de votre compte ?', cancel: 'Annuler', confirm: 'Se déconnecter' }
+        : { title: 'Sign out', body: 'Do you want to sign out of your account?', cancel: 'Cancel', confirm: 'Sign out' };
+    Alert.alert(logoutCopy.title, logoutCopy.body, [
+      { text: logoutCopy.cancel, style: 'cancel' },
       {
-        text: 'Sign Out',
+        text: logoutCopy.confirm,
         style: 'destructive',
         onPress: async () => {
           await authService.logout();
@@ -730,47 +730,34 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }} edges={['top']}>
       <StatusBar barStyle="dark-content" />
 
-      {/* Header Save Button */}
-      <View className="flex-row justify-end px-6 pt-2 h-12">
-        {isDirty && (
-          <TouchableOpacity 
-             onPress={handleSaveProfile}
-             disabled={updating}
-             className="bg-brand-primary px-5 py-2.5 rounded-full shadow-md shadow-brand-primary/20"
-          >
-            {updating ? <ActivityIndicator size="small" color="white" /> : <Text className="text-white font-jakarta font-bold text-sm">Save</Text>}
-          </TouchableOpacity>
-        )}
-      </View>
-
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1" contentContainerStyle={{ paddingBottom: 150, backgroundColor: '#f8fafc' }}>
-        
-        {/* Main Title */}
-        <View className="items-center mt-4 mb-2">
-          <Text className="text-[13px] font-jakarta font-bold text-text-primary tracking-widest uppercase">{t.profileSettingTitle}</Text>
+        <View style={{ marginHorizontal: 20, marginTop: 22, marginBottom: 14, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+          <Text style={[{ fontSize: 12, fontWeight: '800', color: '#0b72df' }, arabicText]}>
+            {language === 'ar' ? 'الحساب والعائلة' : language === 'fr' ? 'COMPTE & FAMILLE' : 'ACCOUNT & FAMILY'}
+          </Text>
+          <Text style={[{ fontSize: 28, lineHeight: 36, fontWeight: '900', color: '#10213a', marginTop: 2 }, arabicText]}>{t.profileSettingTitle}</Text>
         </View>
 
-        {/* Top Profile Card */}
-        <View style={{
+        <TouchableOpacity activeOpacity={0.75} onPress={() => { void openEditProfile(); }} style={{
           backgroundColor: 'white',
-          borderRadius: 24,
-          padding: 20,
+          borderRadius: 22,
+          padding: 16,
           flexDirection: isRTL ? 'row-reverse' : 'row',
           alignItems: 'center',
-          marginTop: 16,
-          marginHorizontal: 24,
+          marginHorizontal: 20,
           borderWidth: 1,
           borderColor: '#e2e8f0',
+          shadowColor: '#183153', shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 1,
         }}>
           <View style={{
-            width: 64,
-            height: 64,
-            borderRadius: 32,
+            width: 58,
+            height: 58,
+            borderRadius: 18,
             backgroundColor: '#eff6ff',
             alignItems: 'center',
             justifyContent: 'center',
-            marginRight: isRTL ? 0 : 16,
-            marginLeft: isRTL ? 16 : 0,
+            marginRight: isRTL ? 0 : 14,
+            marginLeft: isRTL ? 14 : 0,
           }}>
             {(profile?.img || userAvatarUrl) ? (
               <Image 
@@ -785,37 +772,43 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
             )}
           </View>
           <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
-            <Text style={{ fontSize: 18, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }}>
+            <Text style={[{ fontSize: 18, fontWeight: '900', color: '#1e293b', textAlign: isRTL ? 'right' : 'left' }, arabicText]}>
               {profile?.name && profile?.surname ? `${profile.name} ${profile.surname}` : userName || '...'}
             </Text>
-            <Text style={{ fontSize: 13, fontWeight: '600', color: '#64748b', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>
-              {profile?.phone || (userRole === 'teacher' ? 'حساب مدرس' : `${children.length} أبناء مسجلين`)}
+            <Text style={[{ fontSize: 13, fontWeight: '600', color: '#64748b', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }, arabicText]}>
+              {profile?.phone || (userRole === 'teacher' ? (language === 'ar' ? 'حساب مدرس' : language === 'fr' ? 'Compte enseignant' : 'Teacher account') : `${children.length} ${language === 'ar' ? 'أبناء مسجلين' : language === 'fr' ? 'enfants inscrits' : 'children enrolled'}`)}
             </Text>
           </View>
-        </View>
+          {preparingEdit ? <ActivityIndicator size="small" color="#0b72df" /> : <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: '#edf6ff', alignItems: 'center', justifyContent: 'center' }}><Pencil size={16} color="#0b72df" /></View>}
+        </TouchableOpacity>
 
         {/* My Children Section - Only for Parents */}
         {userRole === 'parent' && (
-          <View className="mt-8">
+          <View>
             <SectionTitle title={t.myChildren} />
-            <View className="px-6">
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 4 }}>
               {children.map((child, index) => (
                 <ChildCard 
                   key={child.id} 
                   child={child} 
                   index={index}
-                  onSelect={() => { setSelectedChildId(child.id); openEditChildModal(child); }}
-                  onEditImage={() => showImageOptions('student', child.id)}
+                  selected={child.id === selectedChildId}
+                  onSelect={() => setSelectedChildId(child.id)}
+                  onEdit={() => openEditChildModal(child)}
                 />
               ))}
-            </View>
+              <TouchableOpacity onPress={() => navigation.navigate('LinkChild')} style={{ width: 112, minHeight: 112, borderRadius: 22, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#9bc8f4', backgroundColor: '#f5faff', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
+                <View style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: '#dfefff', alignItems: 'center', justifyContent: 'center' }}><Plus size={19} color="#0b72df" /></View>
+                <Text style={[{ marginTop: 8, color: '#0b72df', fontSize: 11, lineHeight: 16, fontWeight: '800', textAlign: 'center' }, arabicText]}>{language === 'ar' ? 'إضافة تلميذ' : language === 'fr' ? 'Ajouter un enfant' : 'Add a child'}</Text>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         )}
 
         {/* General Section */}
         <View>
           <SectionTitle title={t.generalSection} />
-          <View className="bg-white mx-6 rounded-[24px] overflow-hidden border border-surface-low/60 shadow-sm shadow-black/5">
+          <View className="bg-white mx-5 rounded-[22px] overflow-hidden border border-surface-low/60 shadow-sm shadow-black/5">
             <SettingItemV3 
               icon={UserIcon} 
               color="#0055d4" iconBg="bg-blue-50"
@@ -843,12 +836,12 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
         {/* Preferences Section */}
         <View>
           <SectionTitle title={t.preferencesSection} />
-          <View className="bg-white mx-6 rounded-[24px] overflow-hidden border border-surface-low/60 shadow-sm shadow-black/5">
+          <View className="bg-white mx-5 rounded-[22px] overflow-hidden border border-surface-low/60 shadow-sm shadow-black/5">
             <SettingItemV3 
               icon={Globe} 
               color="#0055d4" iconBg="bg-blue-50"
               label={t.appLanguage} 
-              subtitle={(t?.english || 'English 🇬🇧')}
+              subtitle={language === 'ar' ? 'العربية 🇹🇳' : language === 'fr' ? 'Français 🇫🇷' : 'English 🇬🇧'}
               onPress={() => setLangModalVisible(true)}
             />
             <SettingItemV3 
