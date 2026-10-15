@@ -1,7 +1,7 @@
 import { PrivacyControls } from '../components/PrivacyControls';
 import React, { useState, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput, ActivityIndicator, StatusBar, Dimensions, Switch, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput, ActivityIndicator, StatusBar, Dimensions, Switch, Linking, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Edit2, BellRing, LogOut, Camera, X, Check, Phone, User as UserIcon, ChevronDown, ChevronRight, ChevronLeft, User, Pencil, FileText, Info, PhoneCall, MapPin, Image as ImageIcon, Award, Globe, RefreshCw, KeyRound, Plus } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -221,11 +221,10 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
   const [preparingEdit, setPreparingEdit] = useState(false);
   const [langModalVisible, setLangModalVisible] = useState(false);
   const [editData, setEditData] = useState({ name: '', surname: '', phone: '' });
-  const [editChildrenDataBulk, setEditChildrenDataBulk] = useState<{id: string, name: string, surname: string, avatarUrl?: string}[]>([]);
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [editChildModalVisible, setEditChildModalVisible] = useState(false);
-  const [editChildData, setEditChildData] = useState({ id: '', name: '', surname: '' });
+  const [editChildData, setEditChildData] = useState({ id: '', name: '', surname: '', avatarUrl: '', className: '', studentNumber: '' });
   const [updatingChild, setUpdatingChild] = useState(false);
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ current: '', next: '', confirm: '' });
@@ -324,17 +323,28 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     setEditChildData({ 
       id: child.id, 
       name: nameParts[0] || '', 
-      surname: nameParts.slice(1).join(' ') || '' 
+      surname: nameParts.slice(1).join(' ') || '',
+      avatarUrl: child.avatarUrl || '',
+      className: child.class && child.class !== 'No Class' ? child.class : '',
+      studentNumber: child.raw?.studentId || child.raw?.uniqueId || child.raw?.code || '',
     });
     setEditChildModalVisible(true);
   };
 
   const handleSaveChildProfile = async () => {
     if (!editChildData.id) return;
+    if (!editChildData.name.trim() || !editChildData.surname.trim()) {
+      showToast(
+        'warning',
+        language === 'ar' ? 'معلومات ناقصة' : language === 'fr' ? 'Informations incomplètes' : 'Missing information',
+        language === 'ar' ? 'أدخل اسم التلميذ ولقبه.' : language === 'fr' ? 'Renseignez le prénom et le nom de l’enfant.' : 'Enter the child’s first and last name.'
+      );
+      return;
+    }
     setUpdatingChild(true);
     try {
-      await studentService.updateProfile(editChildData.id, { name: editChildData.name, surname: editChildData.surname });
-      const updatedChildren = children.map(c => c.id === editChildData.id ? { ...c, name: `${editChildData.name} ${editChildData.surname}`.trim() } : c);
+      await studentService.updateProfile(editChildData.id, { name: editChildData.name.trim(), surname: editChildData.surname.trim() });
+      const updatedChildren = children.map(c => c.id === editChildData.id ? { ...c, name: `${editChildData.name.trim()} ${editChildData.surname.trim()}` } : c);
       setChildren(updatedChildren);
       setEditChildModalVisible(false);
       showToast('success', t?.profileUpdatedSuccess || 'Profile updated successfully');
@@ -394,10 +404,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     if (preparingEdit) return;
     setPreparingEdit(true);
     try {
-      const [refreshed, freshChildren] = await Promise.all([
-        loadProfile(),
-        userRole === 'parent' ? parentService.fetchChildren() : Promise.resolve(children),
-      ]);
+      const refreshed = await loadProfile();
       const freshProfile = refreshed.data?.userProfile || profile;
       if (!freshProfile) {
         showToast(
@@ -408,23 +415,11 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
         return;
       }
 
-      if (userRole === 'parent') setChildren(freshChildren);
-      const childrenForEdit = userRole === 'parent' ? freshChildren : children;
-
       setEditData({
         name: freshProfile.name || '',
         surname: freshProfile.surname || '',
         phone: freshProfile.phone || '',
       });
-      setEditChildrenDataBulk(childrenForEdit.map((child) => {
-        const parts = (child.name || '').trim().split(/\s+/);
-        return {
-          id: child.id,
-          name: parts[0] || '',
-          surname: parts.slice(1).join(' '),
-          avatarUrl: child.avatarUrl || undefined,
-        };
-      }));
       setEditModalVisible(true);
     } catch {
       showToast(
@@ -514,7 +509,8 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
         if (updated) {
           const refreshedChildren = await parentService.fetchChildren();
           setChildren(refreshedChildren);
-          setEditChildrenDataBulk(prev => prev.map(c => c.id === id ? { ...c, avatarUrl: url } : c));
+          const refreshedChild = refreshedChildren.find(child => child.id === id);
+          setEditChildData(previous => previous.id === id ? { ...previous, avatarUrl: refreshedChild?.avatarUrl || url } : previous);
         }
       }
       showToast('success', t?.profilePhotoUpdatedSuccess || 'Profile picture updated successfully');
@@ -531,28 +527,10 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
     try {
       const updated = await parentService.updateProfile(editData);
       
-      let childrenUpdated = false;
-      const updatedChildrenStore = [...children];
-      for (const childData of editChildrenDataBulk) {
-         const originalChild = children.find(c => c.id === childData.id);
-         const newName = `${childData.name} ${childData.surname}`.trim();
-         if (originalChild && originalChild.name !== newName) {
-            await studentService.updateProfile(childData.id, { name: childData.name, surname: childData.surname });
-            childrenUpdated = true;
-            const idx = updatedChildrenStore.findIndex(c => c.id === childData.id);
-            if (idx >= 0) {
-               updatedChildrenStore[idx] = { ...updatedChildrenStore[idx], name: newName };
-            }
-         }
-      }
-
-      if (updated || childrenUpdated) {
+      if (updated) {
         if (updated) {
           setProfile({ ...profile, ...editData });
           setUserName(`${editData.name} ${editData.surname}`);
-        }
-        if (childrenUpdated) {
-          setChildren(updatedChildrenStore);
         }
         setEditModalVisible(false);
         showToast('success', t?.profileUpdatedSuccess || 'Profile updated successfully');
@@ -1017,84 +995,6 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
                 </View>
               </View>
 
-              {/* Children Profile Fields */}
-              {editChildrenDataBulk.length > 0 && (
-                <View className="mt-4">
-                  <Text className="text-[13px] font-jakarta font-semibold text-text-primary mb-4 ml-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>
-                    {t?.myChildren || 'Children'}
-                  </Text>
-                  {editChildrenDataBulk.map((childData, index) => (
-                    <View key={childData.id} className="mb-6 bg-white rounded-3xl p-5 border border-surface-low/50 shadow-sm shadow-black/5">
-                      <View className="flex-row items-center mb-4">
-                        <View className="relative mr-3 pb-1 pr-1">
-                          <View className="w-12 h-12 rounded-full bg-blue-50 items-center justify-center shadow-sm shadow-black/5 overflow-hidden">
-                            {childData.avatarUrl ? (
-                              <Image 
-                                source={{ uri: childData.avatarUrl }} 
-                                style={{ width: '100%', height: '100%' }} 
-                                contentFit="cover" 
-                              />
-                            ) : (
-                              <UserIcon size={20} color="#0055d4" />
-                            )}
-                          </View>
-                          <TouchableOpacity 
-                            onPress={() => showImageOptions('student', childData.id)} 
-                            hitSlop={{top: 20, bottom: 20, left: 20, right: 20}}
-                            style={{ zIndex: 100, elevation: 10 }}
-                            className="absolute bottom-0 right-0 bg-brand-primary w-7 h-7 rounded-full items-center justify-center border-2 border-white shadow-sm shadow-black/10"
-                          >
-                            <Camera size={12} color="white" />
-                          </TouchableOpacity>
-                        </View>
-                        <Text className="text-sm font-jakarta font-bold text-text-primary" numberOfLines={1}>
-                          {`${childData.name} ${childData.surname}`.trim() || (language === 'ar' ? `الطفل ${index + 1}` : language === 'en' ? `Child ${index + 1}` : `Enfant ${index + 1}`)}
-                        </Text>
-                      </View>
-                      
-                      <View className="gap-4">
-                        <View>
-                          <Text className="text-xs font-jakarta font-medium text-text-tertiary mb-2 ml-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>
-                            {t?.nameLabel || 'Name'}
-                          </Text>
-                          <View className="bg-surface-low/30 rounded-2xl px-4 py-3">
-                            <TextInput 
-                              className="text-sm text-text-primary font-manrope font-semibold p-0"
-                              value={childData.name}
-                              onChangeText={(t) => {
-                                const newData = [...editChildrenDataBulk];
-                                newData[index].name = t;
-                                setEditChildrenDataBulk(newData);
-                              }}
-                              placeholderTextColor="#9ca3af"
-                              style={{ textAlign: isRTL ? 'right' : 'left' }}
-                            />
-                          </View>
-                        </View>
-
-                        <View>
-                          <Text className="text-xs font-jakarta font-medium text-text-tertiary mb-2 ml-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>
-                            {t?.surnameLabel || 'Surname'}
-                          </Text>
-                          <View className="bg-surface-low/30 rounded-2xl px-4 py-3">
-                            <TextInput 
-                              className="text-sm text-text-primary font-manrope font-semibold p-0"
-                              value={childData.surname}
-                              onChangeText={(t) => {
-                                const newData = [...editChildrenDataBulk];
-                                newData[index].surname = t;
-                                setEditChildrenDataBulk(newData);
-                              }}
-                              placeholderTextColor="#9ca3af"
-                              style={{ textAlign: isRTL ? 'right' : 'left' }}
-                            />
-                          </View>
-                        </View>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              )}
             </View>
           </ScrollView>
 
@@ -1290,73 +1190,110 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
       </Modal>
 
       {/* Edit Child Profile Modal */}
-      <Modal visible={editChildModalVisible} transparent={false} animationType="slide">
-        <View style={{ flex: 1, backgroundColor: '#f8fafc', paddingTop: Math.max(insets.top, 20) }}>
-          <View className="flex-row items-center px-6 py-4 mt-2">
-            <TouchableOpacity onPress={() => setEditChildModalVisible(false)} className="p-2 -ml-2" hitSlop={{top: 15, bottom: 15, left: 15, right: 15}}>
-              <ChevronDown size={24} color="#2b3437" />
-            </TouchableOpacity>
-            <View className="flex-1 items-center mr-6">
-              <Text className="text-[#2b3437] font-semibold text-xs tracking-widest uppercase">
-                {t?.editChildProfile || 'Edit Child Profile'}
-              </Text>
-            </View>
-          </View>
-
-          <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false}>
-            <View className="items-center mb-8">
-              <View className="relative w-28 h-28 rounded-full bg-blue-50 items-center justify-center shadow-sm shadow-black/5">
-                <Text className="text-4xl text-brand-primary font-bold">
-                  {editChildData.name ? editChildData.name.charAt(0).toUpperCase() : 'C'}
-                </Text>
-              </View>
-            </View>
-
-            <View className="space-y-6 mb-12">
-              <View>
-                <Text className="text-[#64748b] text-sm font-medium mb-2 pl-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>
-                  {t?.nameLabel || 'Name'}
-                </Text>
-                <TextInput
-                  value={editChildData.name}
-                  onChangeText={(t) => setEditChildData({ ...editChildData, name: t })}
-                  className="bg-white px-5 py-4 rounded-[16px] text-[#2b3437] font-medium border border-surface-low/50 shadow-sm shadow-black/5"
-                  placeholderTextColor="#94a3b8"
-                  style={{ textAlign: isRTL ? 'right' : 'left' }}
-                />
-              </View>
-
-              <View>
-                <Text className="text-[#64748b] text-sm font-medium mb-2 pl-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>
-                  {t?.surnameLabel || 'Surname'}
-                </Text>
-                <TextInput
-                  value={editChildData.surname}
-                  onChangeText={(t) => setEditChildData({ ...editChildData, surname: t })}
-                  className="bg-white px-5 py-4 rounded-[16px] text-[#2b3437] font-medium border border-surface-low/50 shadow-sm shadow-black/5"
-                  placeholderTextColor="#94a3b8"
-                  style={{ textAlign: isRTL ? 'right' : 'left' }}
-                />
-              </View>
-            </View>
-
-            <View className="pb-12">
-              <TouchableOpacity 
-                onPress={handleSaveChildProfile}
-                disabled={updatingChild}
-                className="bg-brand-primary rounded-full py-4 items-center shadow-sm shadow-brand-primary/30"
+      <Modal visible={editChildModalVisible} transparent={false} animationType="slide" onRequestClose={() => !updatingChild && setEditChildModalVisible(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: '#f6f8fb' }}>
+          <View style={{ flex: 1, paddingTop: Math.max(insets.top, 16) }}>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', paddingHorizontal: 20, height: 62 }}>
+              <TouchableOpacity
+                onPress={() => setEditChildModalVisible(false)}
+                disabled={updatingChild || updating}
+                accessibilityRole="button"
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: 'white', borderWidth: 1, borderColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' }}
               >
-                {updatingChild ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text className="text-white font-semibold text-base">
-                    {t?.saveChanges || 'Save Changes'}
+                <ChevronDown size={22} color="#243247" />
+              </TouchableOpacity>
+              <View style={{ flex: 1, marginHorizontal: 14, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                <Text style={[{ fontSize: 11, color: '#0b72df', fontWeight: '800' }, arabicText]}>
+                  {language === 'ar' ? 'ملف التلميذ' : language === 'fr' ? 'PROFIL DE L’ENFANT' : 'CHILD PROFILE'}
+                </Text>
+                <Text style={[{ fontSize: 20, color: '#10213a', fontWeight: '900', marginTop: 1 }, arabicText]}>
+                  {t?.editChildProfile || 'Edit Child Profile'}
+                </Text>
+              </View>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: 130 }}>
+              <View style={{ backgroundColor: 'white', borderRadius: 26, borderWidth: 1, borderColor: '#e1e8f0', padding: 20, alignItems: 'center', shadowColor: '#183153', shadowOpacity: 0.05, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 2 }}>
+                <View style={{ width: 108, height: 108, borderRadius: 32, backgroundColor: '#eaf4ff', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
+                  {editChildData.avatarUrl ? (
+                    <Image source={{ uri: editChildData.avatarUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" transition={200} />
+                  ) : (
+                    <Text style={{ fontSize: 38, color: '#0b72df', fontWeight: '900' }}>{editChildData.name?.charAt(0).toUpperCase() || 'C'}</Text>
+                  )}
+                  {updating && <View style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(15,35,65,0.36)', alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color="white" /></View>}
+                </View>
+
+                <Text style={[{ marginTop: 14, color: '#10213a', fontSize: 19, fontWeight: '900', textAlign: 'center' }, arabicText]} numberOfLines={1}>
+                  {`${editChildData.name} ${editChildData.surname}`.trim()}
+                </Text>
+                <Text style={[{ marginTop: 3, color: '#718096', fontSize: 12, fontWeight: '600', textAlign: 'center' }, arabicText]}>
+                  {language === 'ar' ? 'اختر صورة واضحة للتلميذ' : language === 'fr' ? 'Choisissez une photo claire de l’enfant' : 'Choose a clear photo of the child'}
+                </Text>
+
+                <View style={[{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 10, marginTop: 16 }]}>
+                  <TouchableOpacity disabled={updating} onPress={() => pickImage('student', editChildData.id)} style={{ minHeight: 44, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, borderRadius: 14, backgroundColor: '#eaf4ff' }}>
+                    <ImageIcon size={17} color="#0b72df" />
+                    <Text style={[{ color: '#0b72df', fontSize: 12, fontWeight: '800' }, arabicText]}>{t?.chooseFromLibrary || 'Gallery'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity disabled={updating} onPress={() => takePhoto('student', editChildData.id)} style={{ minHeight: 44, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, borderRadius: 14, backgroundColor: '#f4f0ff' }}>
+                    <Camera size={17} color="#7454b3" />
+                    <Text style={[{ color: '#7454b3', fontSize: 12, fontWeight: '800' }, arabicText]}>{t?.takePhoto || 'Camera'}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {(editChildData.className || editChildData.studentNumber) && (
+                <View style={{ marginTop: 14, backgroundColor: '#eef5fc', borderRadius: 20, padding: 15, borderWidth: 1, borderColor: '#dce8f5' }}>
+                  <Text style={[{ color: '#55708f', fontSize: 11, fontWeight: '700', textAlign: isRTL ? 'right' : 'left', marginBottom: 10 }, arabicText]}>
+                    {language === 'ar' ? 'بيانات مدرسية تديرها الإدارة' : language === 'fr' ? 'Informations gérées par l’école' : 'School-managed information'}
                   </Text>
-                )}
+                  <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 10 }}>
+                    {editChildData.className && <View style={{ flex: 1, backgroundColor: 'white', borderRadius: 14, padding: 12 }}><Text style={[{ color: '#8795a8', fontSize: 10, fontWeight: '700', textAlign: isRTL ? 'right' : 'left' }, arabicText]}>{t.classLabel}</Text><Text style={{ color: '#183153', fontSize: 15, fontWeight: '900', marginTop: 3, textAlign: isRTL ? 'right' : 'left' }}>{editChildData.className}</Text></View>}
+                    {editChildData.studentNumber && <View style={{ flex: 1, backgroundColor: 'white', borderRadius: 14, padding: 12 }}><Text style={[{ color: '#8795a8', fontSize: 10, fontWeight: '700', textAlign: isRTL ? 'right' : 'left' }, arabicText]}>{t?.studentNumberLabel || 'Student number'}</Text><Text style={{ color: '#183153', fontSize: 14, fontWeight: '900', marginTop: 3, textAlign: isRTL ? 'right' : 'left' }} numberOfLines={1}>{editChildData.studentNumber}</Text></View>}
+                  </View>
+                </View>
+              )}
+
+              <View style={{ marginTop: 18 }}>
+                <Text style={[{ color: '#10213a', fontSize: 17, fontWeight: '900', textAlign: isRTL ? 'right' : 'left', marginBottom: 5 }, arabicText]}>
+                  {language === 'ar' ? 'المعلومات الشخصية' : language === 'fr' ? 'Informations personnelles' : 'Personal information'}
+                </Text>
+                <Text style={[{ color: '#7a8799', fontSize: 12, lineHeight: 18, textAlign: isRTL ? 'right' : 'left', marginBottom: 14 }, arabicText]}>
+                  {language === 'ar' ? 'يمكنك تعديل الاسم والصورة لكل تلميذ على حدة.' : language === 'fr' ? 'Modifiez le nom et la photo de chaque enfant séparément.' : 'Edit each child’s name and photo separately.'}
+                </Text>
+
+                {[
+                  { key: 'name', label: t?.nameLabel || 'First name', value: editChildData.name },
+                  { key: 'surname', label: t?.surnameLabel || 'Last name', value: editChildData.surname },
+                ].map(field => (
+                  <View key={field.key} style={{ marginBottom: 14 }}>
+                    <Text style={[{ color: '#526174', fontSize: 12, fontWeight: '700', marginBottom: 7, textAlign: isRTL ? 'right' : 'left' }, arabicText]}>{field.label}</Text>
+                    <View style={{ height: 56, backgroundColor: 'white', borderRadius: 17, borderWidth: 1, borderColor: '#dfe6ee', paddingHorizontal: 16, justifyContent: 'center' }}>
+                      <TextInput
+                        value={field.value}
+                        onChangeText={value => setEditChildData(previous => ({ ...previous, [field.key]: value }))}
+                        autoCapitalize="words"
+                        placeholderTextColor="#9aa6b5"
+                        style={[{ padding: 0, color: '#17253a', fontSize: 16, fontWeight: '700', textAlign: isRTL ? 'right' : 'left' }, arabicText]}
+                      />
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+
+            <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 18), backgroundColor: 'rgba(246,248,251,0.97)', borderTopWidth: 1, borderTopColor: '#e6ebf1' }}>
+              <TouchableOpacity
+                onPress={handleSaveChildProfile}
+                disabled={updatingChild || updating || !editChildData.name.trim() || !editChildData.surname.trim()}
+                style={{ height: 54, borderRadius: 17, backgroundColor: '#0b72df', alignItems: 'center', justifyContent: 'center', opacity: updatingChild || updating || !editChildData.name.trim() || !editChildData.surname.trim() ? 0.48 : 1, shadowColor: '#0b72df', shadowOpacity: 0.2, shadowRadius: 9, shadowOffset: { width: 0, height: 4 }, elevation: 2 }}
+              >
+                {updatingChild ? <ActivityIndicator color="white" /> : <Text style={[{ color: 'white', fontSize: 15, fontWeight: '900' }, arabicText]}>{t?.saveChanges || 'Save Changes'}</Text>}
               </TouchableOpacity>
             </View>
-          </ScrollView>
-        </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Authenticated parent password change */}
