@@ -924,95 +924,73 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
       </Modal>
 
       {/* Edit Profile Modal */}
-      <Modal visible={editModalVisible} transparent={false} animationType="slide">
-        <View style={{ flex: 1, backgroundColor: '#f8fafc', paddingTop: Math.max(insets.top, 20) }}>
-          <View className="flex-row items-center px-6 py-4 mt-2">
-            <TouchableOpacity onPress={() => setEditModalVisible(false)} className="p-2 -ml-2" hitSlop={{top: 15, bottom: 15, left: 15, right: 15}}>
-              <ChevronDown size={24} color="#2b3437" />
-            </TouchableOpacity>
-            <Text className="flex-1 text-center text-[13px] font-jakarta font-bold text-text-primary tracking-widest uppercase mr-6">
-              {t?.editProfileItem || 'Edit Profile'}
-            </Text>
-          </View>
-          
-          <ScrollView className="flex-1 px-6">
-            <View className="items-center mt-6 mb-10">
-              <View className="relative w-28 h-28 rounded-full bg-blue-50 items-center justify-center shadow-sm shadow-black/5">
-                {profile?.img ? (
-                  <Image 
-                    source={{ uri: profile.img }} 
-                    style={{ width: '100%', height: '100%', borderRadius: 999 }} 
-                    contentFit="cover" 
-                  />
-                ) : (
-                  <Text className="text-4xl font-jakarta font-black text-brand-primary">{profile?.name?.charAt(0)}</Text>
-                )}
-                <TouchableOpacity onPress={() => showImageOptions('user')} className="absolute bottom-0 right-0 bg-brand-primary w-8 h-8 rounded-full items-center justify-center border-4 border-[#f8fafc]">
-                  <Camera size={14} color="white" />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View className="gap-5">
-              <View>
-                <Text className="text-[13px] font-jakarta font-semibold text-text-primary mb-2 ml-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>
-                  {t?.nameLabel || 'Name'}
-                </Text>
-                <View className="bg-white rounded-2xl px-5 py-4 shadow-sm shadow-black/5 border border-surface-low/50">
-                  <TextInput 
-                    className="text-[15px] text-text-primary font-manrope font-semibold p-0"
-                    value={editData.name}
-                    onChangeText={(t) => setEditData({...editData, name: t})}
-                    placeholderTextColor="#9ca3af"
-                    style={{ textAlign: isRTL ? 'right' : 'left' }}
-                  />
-                </View>
-              </View>
-
-              <View>
-                <Text className="text-[13px] font-jakarta font-semibold text-text-primary mb-2 ml-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>
-                  {t?.surnameLabel || 'Surname'}
-                </Text>
-                <View className="bg-white rounded-2xl px-5 py-4 shadow-sm shadow-black/5 border border-surface-low/50">
-                  <TextInput 
-                    className="text-[15px] text-text-primary font-manrope font-semibold p-0"
-                    value={editData.surname}
-                    onChangeText={(t) => setEditData({...editData, surname: t})}
-                    placeholderTextColor="#9ca3af"
-                    style={{ textAlign: isRTL ? 'right' : 'left' }}
-                  />
-                </View>
-              </View>
-
-              <View>
-                <Text className="text-[13px] font-jakarta font-semibold text-text-primary mb-2 ml-1" style={{ textAlign: isRTL ? 'right' : 'left' }}>
-                  {t?.phoneLabel || 'Phone Number'}
-                </Text>
-                <View className="bg-gray-100 rounded-2xl px-5 py-4 border border-surface-low/50">
-                  <Text className="text-[15px] text-gray-400 font-manrope font-semibold" style={{ textAlign: isRTL ? 'right' : 'left' }}>
-                    {editData.phone || '—'}
-                  </Text>
-                </View>
-              </View>
-
-            </View>
-          </ScrollView>
-
-          <View className="p-6 bg-[#f8fafc] pb-8">
-             <TouchableOpacity 
-                onPress={handleSaveProfile}
-                disabled={updating || !isDirty}
-                className={`py-4 rounded-full items-center shadow-md ${updating || !isDirty ? 'bg-surface-low shadow-none border border-black/5' : 'bg-brand-primary shadow-brand-primary/20'}`}
+      <Modal visible={editModalVisible} transparent={false} animationType="slide" onRequestClose={() => !updating && setEditModalVisible(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: '#f6f8fb' }}>
+          <View style={{ flex: 1, paddingTop: Math.max(insets.top, 16) }}>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', paddingHorizontal: 20, height: 62 }}>
+              <TouchableOpacity
+                onPress={() => setEditModalVisible(false)}
+                disabled={updating}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: 'white', borderWidth: 1, borderColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' }}
               >
-                {updating ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text className={`${updating || !isDirty ? 'text-text-muted' : 'text-white'} font-jakarta font-bold text-lg`}>
-                    {t?.saveChanges || 'Save Changes'}
-                  </Text>
-                )}
+                <ChevronDown size={22} color="#243247" />
               </TouchableOpacity>
+              <View style={{ flex: 1, marginHorizontal: 14, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                <Text style={[{ fontSize: 11, color: '#0b72df', fontWeight: '800' }, arabicText]}>
+                  {language === 'ar' ? 'حساب وليّ الأمر' : language === 'fr' ? 'PROFIL DU PARENT' : 'PARENT PROFILE'}
+                </Text>
+                <Text style={[{ fontSize: 20, color: '#10213a', fontWeight: '900', marginTop: 1 }, arabicText]}>{t?.editProfileItem || 'Edit Profile'}</Text>
+              </View>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: 130 }}>
+              <View style={{ backgroundColor: 'white', borderRadius: 26, borderWidth: 1, borderColor: '#e1e8f0', padding: 20, alignItems: 'center', shadowColor: '#183153', shadowOpacity: 0.05, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 2 }}>
+                <View style={{ width: 108, height: 108, borderRadius: 32, backgroundColor: '#eaf4ff', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
+                  {(profile?.img || userAvatarUrl) ? <Image source={{ uri: profile?.img || userAvatarUrl! }} style={{ width: '100%', height: '100%' }} contentFit="cover" transition={200} /> : <Text style={{ fontSize: 38, color: '#0b72df', fontWeight: '900' }}>{editData.name?.charAt(0).toUpperCase() || 'P'}</Text>}
+                  {updating && <View style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(15,35,65,0.36)', alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color="white" /></View>}
+                </View>
+                <Text style={[{ marginTop: 14, color: '#10213a', fontSize: 19, fontWeight: '900', textAlign: 'center' }, arabicText]}>{`${editData.name} ${editData.surname}`.trim()}</Text>
+                <Text style={[{ marginTop: 3, color: '#718096', fontSize: 12, fontWeight: '600', textAlign: 'center' }, arabicText]}>{language === 'ar' ? 'حدّث صورتك الشخصية' : language === 'fr' ? 'Mettez à jour votre photo de profil' : 'Update your profile photo'}</Text>
+                <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 10, marginTop: 16 }}>
+                  <TouchableOpacity disabled={updating} onPress={() => pickImage('user')} style={{ minHeight: 44, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, borderRadius: 14, backgroundColor: '#eaf4ff' }}>
+                    <ImageIcon size={17} color="#0b72df" /><Text style={[{ color: '#0b72df', fontSize: 12, fontWeight: '800' }, arabicText]}>{t?.chooseFromLibrary || 'Gallery'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity disabled={updating} onPress={() => takePhoto('user')} style={{ minHeight: 44, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, borderRadius: 14, backgroundColor: '#f4f0ff' }}>
+                    <Camera size={17} color="#7454b3" /><Text style={[{ color: '#7454b3', fontSize: 12, fontWeight: '800' }, arabicText]}>{t?.takePhoto || 'Camera'}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={{ marginTop: 18 }}>
+                <Text style={[{ color: '#10213a', fontSize: 17, fontWeight: '900', textAlign: isRTL ? 'right' : 'left', marginBottom: 5 }, arabicText]}>{language === 'ar' ? 'المعلومات الشخصية' : language === 'fr' ? 'Informations personnelles' : 'Personal information'}</Text>
+                <Text style={[{ color: '#7a8799', fontSize: 12, lineHeight: 18, textAlign: isRTL ? 'right' : 'left', marginBottom: 14 }, arabicText]}>{language === 'ar' ? 'عدّل معلومات حساب وليّ الأمر.' : language === 'fr' ? 'Modifiez les informations du compte parent.' : 'Edit the parent account information.'}</Text>
+                {[
+                  { key: 'name', label: t?.nameLabel || 'First name', value: editData.name },
+                  { key: 'surname', label: t?.surnameLabel || 'Last name', value: editData.surname },
+                ].map(field => (
+                  <View key={field.key} style={{ marginBottom: 14 }}>
+                    <Text style={[{ color: '#526174', fontSize: 12, fontWeight: '700', marginBottom: 7, textAlign: isRTL ? 'right' : 'left' }, arabicText]}>{field.label}</Text>
+                    <View style={{ height: 56, backgroundColor: 'white', borderRadius: 17, borderWidth: 1, borderColor: '#dfe6ee', paddingHorizontal: 16, justifyContent: 'center' }}>
+                      <TextInput value={field.value} onChangeText={value => setEditData(previous => ({ ...previous, [field.key]: value }))} autoCapitalize="words" placeholderTextColor="#9aa6b5" style={[{ padding: 0, color: '#17253a', fontSize: 16, fontWeight: '700', textAlign: isRTL ? 'right' : 'left' }, arabicText]} />
+                    </View>
+                  </View>
+                ))}
+                <Text style={[{ color: '#526174', fontSize: 12, fontWeight: '700', marginBottom: 7, textAlign: isRTL ? 'right' : 'left' }, arabicText]}>{t?.phoneLabel || 'Phone Number'}</Text>
+                <View style={{ height: 56, backgroundColor: '#eef2f6', borderRadius: 17, borderWidth: 1, borderColor: '#e2e8f0', paddingHorizontal: 16, justifyContent: 'center' }}>
+                  <Text style={{ color: '#7f8b99', fontSize: 16, fontWeight: '700', textAlign: isRTL ? 'right' : 'left' }}>{editData.phone || '—'}</Text>
+                </View>
+                <Text style={[{ marginTop: 7, color: '#94a3b8', fontSize: 11, textAlign: isRTL ? 'right' : 'left' }, arabicText]}>{language === 'ar' ? 'لتغيير رقم الهاتف، تواصل مع إدارة المدرسة.' : language === 'fr' ? 'Pour modifier ce numéro, contactez l’administration.' : 'Contact the school administration to change this number.'}</Text>
+              </View>
+            </ScrollView>
+
+            <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 24), backgroundColor: 'rgba(246,248,251,0.98)', borderTopWidth: 1, borderTopColor: '#e6ebf1' }}>
+              <TouchableOpacity onPress={handleSaveProfile} disabled={updating || !editData.name.trim() || !editData.surname.trim()} style={{ height: 54, borderRadius: 17, backgroundColor: '#0b72df', alignItems: 'center', justifyContent: 'center', opacity: updating || !editData.name.trim() || !editData.surname.trim() ? 0.48 : 1, shadowColor: '#0b72df', shadowOpacity: 0.2, shadowRadius: 9, shadowOffset: { width: 0, height: 4 }, elevation: 2 }}>
+                {updating ? <ActivityIndicator color="white" /> : <Text style={[{ color: 'white', fontSize: 15, fontWeight: '900' }, arabicText]}>{t?.saveChanges || 'Save Changes'}</Text>}
+              </TouchableOpacity>
+            </View>
           </View>
+        </KeyboardAvoidingView>
 
           {/* Photo Selection Action Sheet (Nested inside Edit Modal for iOS compatibility) */}
           <Modal visible={photoModalVisible} transparent animationType="fade" onRequestClose={() => setPhotoModalVisible(false)}>
@@ -1186,7 +1164,6 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
               </TouchableOpacity>
             </TouchableOpacity>
           </Modal>
-        </View>
       </Modal>
 
       {/* Edit Child Profile Modal */}
@@ -1283,7 +1260,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
               </View>
             </ScrollView>
 
-            <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 18), backgroundColor: 'rgba(246,248,251,0.97)', borderTopWidth: 1, borderTopColor: '#e6ebf1' }}>
+            <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 24), backgroundColor: 'rgba(246,248,251,0.98)', borderTopWidth: 1, borderTopColor: '#e6ebf1' }}>
               <TouchableOpacity
                 onPress={handleSaveChildProfile}
                 disabled={updatingChild || updating || !editChildData.name.trim() || !editChildData.surname.trim()}
