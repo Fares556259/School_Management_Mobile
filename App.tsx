@@ -15,6 +15,7 @@ import { ExamDetailScreen } from './src/screens/ExamDetailScreen';
 import { SignInScreen } from './src/screens/SignInScreen';
 import { LinkChildScreen } from './src/screens/LinkChildScreen';
 import { AnnouncementDetailScreen } from './src/screens/AnnouncementDetailScreen';
+import { ParentApprovalScreen } from './src/screens/ParentApprovalScreen';
 import { ParentSignUpScreen } from './src/screens/ParentSignUpScreen';
 import { LandingScreen } from './src/screens/LandingScreen';
 import { AppLaunchScreen } from './src/screens/AppLaunchScreen';
@@ -43,7 +44,7 @@ import { View, ActivityIndicator, Alert, StyleSheet, AppState } from 'react-nati
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from './src/store/useAppStore';
-import { authService, authStorage, studentService, API_BASE_URL } from './src/services/api';
+import { authService, authStorage, parentService, studentService, API_BASE_URL } from './src/services/api';
 import { notificationService } from './src/services/notificationService';
 import * as Notifications from 'expo-notifications';
 import * as Updates from 'expo-updates';
@@ -256,6 +257,7 @@ export default function App() {
   const setUserId = useAppStore(state => state.setUserId);
   const userRole = useAppStore(state => state.userRole);
   const userId = useAppStore(state => state.userId);
+  const parentAccessStatus = useAppStore(state => state.parentAccessStatus);
   const [authState, setAuthState] = useState<'loading' | 'onboarding' | 'landing' | 'signedIn' | 'signedOut' | 'signUp'>('loading');
   const [signUpInitialPhone, setSignUpInitialPhone] = useState('');
   const [isLaunchScreenVisible, setIsLaunchScreenVisible] = useState(true);
@@ -309,6 +311,19 @@ export default function App() {
       }, 1_200);
     };
 
+    // Pending parents stay outside the family navigator until the server approves access.
+    if (role === 'parent') {
+      const cachedAccess = await authStorage.getParentAccess();
+      const access = await parentService.fetchAccessStatus();
+      const currentUid = await authStorage.getUserId();
+      if (revision !== sessionRevisionRef.current || currentUid !== uid) return;
+      const status = access?.accessStatus || (cachedAccess === 'ACTIVE' ? 'ACTIVE' : 'CHECKING');
+      if (status !== 'ACTIVE') {
+        setChildren([]); setSelectedChildId(null);
+        useAppStore.getState().setParentAccessStatus(status);
+        return;
+      }
+    }
     // Paint the signed-in parent experience from the device before the first
     // API round trip. The verified server snapshot below quietly reconciles it.
     if (role === 'parent') {
@@ -323,6 +338,8 @@ export default function App() {
     if (snapshot.role === 'parent' && snapshot.children.length > 0) {
       await applyParentChildren(snapshot.children);
     }
+
+    if (role === 'parent') useAppStore.getState().setParentAccessStatus('ACTIVE');
 
     if (snapshot.profile?.name) {
       const fullName = `${snapshot.profile.name} ${snapshot.profile.surname || ''}`.trim();
@@ -345,6 +362,10 @@ export default function App() {
     const pending = (async () => {
       try {
         if (!(await notificationService.isEnabled())) return;
+        if (useAppStore.getState().userRole === 'parent' && useAppStore.getState().parentAccessStatus !== 'ACTIVE') {
+          const permissions = await Notifications.getPermissionsAsync();
+          if (!permissions.granted) return; // The waiting screen offers an explicit opt-in.
+        }
         await notificationService.initChannels();
         const token = await notificationService.getPushToken();
         if (token) {
@@ -373,6 +394,7 @@ export default function App() {
 
   const clearLocalSession = React.useCallback(() => {
     sessionRevisionRef.current += 1;
+    useAppStore.getState().setParentAccessStatus('CHECKING');
     resetUser();
     setChildren([]);
     setSelectedChildId(null);
@@ -476,10 +498,20 @@ export default function App() {
       }).finally(clearLocalSession);
     });
 
+    const approvalSubscription = DeviceEventEmitter.addListener('parent_approval_required', () => {
+      sessionRevisionRef.current += 1;
+      setChildren([]); setSelectedChildId(null);
+      useAppStore.getState().setParentAccessStatus('PENDING');
+      void authStorage.saveParentAccess('PENDING');
+    });
+
     const appStateSub = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
         authStorage.getUserId().then((storedUid) => {
-          if (storedUid) void registerPush(storedUid);
+          if (storedUid) {
+            void registerPush(storedUid);
+            if (useAppStore.getState().userRole === 'parent') void applySessionSnapshot(storedUid, 'parent');
+          }
         });
         checkAndApplyUpdates();
       }
@@ -493,6 +525,7 @@ export default function App() {
 
     return () => {
       authSubscription.remove();
+      approvalSubscription.remove();
       appStateSub.remove();
       pushTokenSub.remove();
     };
@@ -505,7 +538,9 @@ export default function App() {
       }
       return;
     }
-    if (data.type === 'HOMEWORK' && data.homeworkId) {
+    if (data.type === 'PARENT_ACCESS') {
+      (navigationRef as any).navigate('ParentRequests');
+    } else if (data.type === 'HOMEWORK' && data.homeworkId) {
       const targetStudentId = data.studentId || useAppStore.getState().selectedChildId;
       if (data.studentId) {
         useAppStore.getState().setSelectedChildId(data.studentId);
@@ -541,6 +576,10 @@ export default function App() {
     const subscription = Notifications.addNotificationReceivedListener(notification => {
       const data = notification.request.content.data;
       console.log("[PUSH-FOREGROUND]", data?.type);
+      if (data?.type === 'PARENT_ACCESS') {
+        const uid = useAppStore.getState().userId;
+        if (uid && useAppStore.getState().userRole === 'parent') void applySessionSnapshot(uid, 'parent');
+      }
       // Invalidate relevant caches for instant UI update
       if (data?.type === 'ATTENDANCE' || data?.type === 'REMARK' || data?.type === 'GRADE') {
         queryClient.invalidateQueries({ queryKey: ['studentDay'] });
@@ -556,7 +595,7 @@ export default function App() {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     });
     return () => subscription.remove();
-  }, []);
+  }, [applySessionSnapshot]);
 
   // Safe background OTA update check on launch
   useEffect(() => {
@@ -608,12 +647,16 @@ export default function App() {
       }, 500);
       return () => clearTimeout(timeout);
     }
-  }, [authState]);
+  }, [authState, parentAccessStatus]);
 
   const handleSignIn = async () => {
     const uid = await authStorage.getUserId();
     const role = await authStorage.getUserRole();
     
+    if (role === 'parent') {
+      const status = await authStorage.getParentAccess();
+      useAppStore.getState().setParentAccessStatus(status === 'ACTIVE' ? 'ACTIVE' : status === 'REJECTED' ? 'REJECTED' : 'PENDING');
+    }
     if (uid) setUserId(uid);
     if (role) setUserRole(role as any);
     if (uid) identifyUser(uid, { role });
@@ -636,6 +679,12 @@ export default function App() {
       clearLocalSession();
     }
   }, [clearLocalSession]);
+
+  useEffect(() => {
+    if (authState !== 'signedIn' || userRole !== 'parent' || parentAccessStatus !== 'ACTIVE' || !userId) return;
+    const timer = setInterval(() => { if (AppState.currentState === 'active') void applySessionSnapshot(userId, 'parent'); }, 60_000);
+    return () => clearInterval(timer);
+  }, [authState, userRole, parentAccessStatus, userId, applySessionSnapshot]);
 
   const MainTabsScreen = React.useCallback(
     () => <BottomTabsContent onSignOut={handleSignOut} />,
@@ -712,6 +761,11 @@ export default function App() {
                       onBack={() => setAuthState('signedOut')}
                       onSignUpSuccess={handleSignIn}
                     />
+                  ) : userRole === 'parent' && parentAccessStatus !== 'ACTIVE' ? (
+                    <ParentApprovalScreen onSignOut={handleSignOut} onActivated={async () => {
+                      const uid = await authStorage.getUserId();
+                      if (uid) await applySessionSnapshot(uid, 'parent');
+                    }} />
                   ) : (
                     <Stack.Navigator screenOptions={{ headerShown: false }}>
                       <Stack.Screen
@@ -724,6 +778,7 @@ export default function App() {
                       <Stack.Screen name="HomeworkDetail" component={HomeworkDetailScreen} />
                       <Stack.Screen name="ExamDetail" component={ExamDetailScreen} />
                       <Stack.Screen name="AnnouncementDetail" component={AnnouncementDetailScreen} />
+                      <Stack.Screen name="ParentRequests" component={ParentApprovalScreen} />
                       <Stack.Screen name="LinkChild" component={LinkChildScreen} />
                       <Stack.Screen name="Exams" component={ExamsScreen} />
                       <Stack.Screen name="Results" component={ResultsScreen} />

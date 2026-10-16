@@ -1,4 +1,5 @@
 import { PrivacyControls } from '../components/PrivacyControls';
+import { parentAccessText } from '../content/parentAccess';
 import React, { useState, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput, ActivityIndicator, StatusBar, Dimensions, Switch, Linking, KeyboardAvoidingView, Platform } from 'react-native';
@@ -786,6 +787,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
         {/* General Section */}
         <View>
           <SectionTitle title={t.generalSection} />
+
           <View className="bg-white mx-5 rounded-[22px] overflow-hidden border border-surface-low/60 shadow-sm shadow-black/5">
             <SettingItemV3 
               icon={UserIcon} 
@@ -803,9 +805,9 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
                   color="#8b5cf6" iconBg="bg-purple-50"
                   label={t.reportCardItem} 
                   subtitle={t.profileReportCardSub}
-                  isLast
                   onPress={() => navigation.navigate('Results')} 
                 />
+                <SettingItemV3 icon={BellRing} color="#0B63CE" iconBg="bg-blue-50" label={parentAccessText[language].activeTitle} subtitle={parentAccessText[language].security} isLast onPress={() => navigation.navigate('ParentRequests')} />
               </View>
             )}
           </View>

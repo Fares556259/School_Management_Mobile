@@ -17,6 +17,7 @@ const USER_ID_KEY = 'snapschool_user_id';
 const USER_ROLE_KEY = 'snapschool_user_role';
 const SCHOOL_ID_KEY = 'snapschool_school_id';
 const JWT_TOKEN_KEY = 'snapschool_jwt_token';
+const PARENT_ACCESS_KEY = 'snapschool_parent_access';
 const STUDENTS_CACHE_KEY = 'snapschool_students_cache';
 
 const cleanPersonValue = (value: any): string => {
@@ -56,7 +57,7 @@ export const getFullImageUrl = (url: string | null): string | null => {
 
 // ─── In-Memory Credential Cache ──────────────────────────────────────────────
 // Cache missing values too, and share cold reads across concurrent requests.
-const credentialKeys = [USER_ID_KEY, USER_ROLE_KEY, SCHOOL_ID_KEY, JWT_TOKEN_KEY];
+const credentialKeys = [USER_ID_KEY, USER_ROLE_KEY, SCHOOL_ID_KEY, JWT_TOKEN_KEY, PARENT_ACCESS_KEY];
 type CredentialState = { value: string | null; loaded: boolean; revision: number; pending?: Promise<string | null> };
 const credentials = new Map<string, CredentialState>();
 let authGeneration = 0;
@@ -99,6 +100,8 @@ function saveCredential(key: string, value: string): Promise<void> {
 
 // ─── Auth Storage ────────────────────────────────────────────────────────────
 export const authStorage = {
+  saveParentAccess: (status: string) => saveCredential(PARENT_ACCESS_KEY, status),
+  getParentAccess: () => readCredential(PARENT_ACCESS_KEY),
   saveUserId: (id: string) => saveCredential(USER_ID_KEY, id),
   getUserId: () => readCredential(USER_ID_KEY),
   saveUserRole: (role: string) => saveCredential(USER_ROLE_KEY, role),
@@ -193,6 +196,10 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
         }
         try {
           const parsed = JSON.parse(text);
+          if (parsed?.code === 'PARENT_APPROVAL_REQUIRED') {
+            const { DeviceEventEmitter } = require('react-native');
+            DeviceEventEmitter.emit('parent_approval_required');
+          }
           if (parsed && typeof parsed === 'object') return parsed;
         } catch {}
         return null;
@@ -302,6 +309,7 @@ export const authService = {
 
   signUpParent: async (payload: {
     claimTokens: string[];
+    locale?: string;
     parentName: string;
     parentSurname: string;
     phone: string;
@@ -322,7 +330,7 @@ export const authService = {
   }> => {
     const response = await apiFetch('/api/mobile/auth', {
       method: 'POST',
-      body: JSON.stringify({ ...payload, action: 'signup', role: 'parent' }),
+      body: JSON.stringify({ ...payload, action: 'signup', role: 'parent', approvalFlowVersion: 1 }),
     });
 
     if (!response) {
@@ -334,6 +342,7 @@ export const authService = {
     }
 
     await Promise.all([
+      response.accessStatus ? authStorage.saveParentAccess(response.accessStatus) : Promise.resolve(),
       response.token ? authStorage.saveToken(response.token) : Promise.resolve(),
       response.userId ? authStorage.saveUserId(response.userId) : Promise.resolve(),
       response.userType ? authStorage.saveUserRole(response.userType) : Promise.resolve(),
@@ -370,7 +379,7 @@ export const authService = {
   }> => {
     const response = await apiFetch('/api/mobile/auth', {
       method: 'POST',
-      body: JSON.stringify({ phone: phone.trim(), password, action, role, otpCode }),
+      body: JSON.stringify({ phone: phone.trim(), password, action, role, otpCode, approvalFlowVersion: 1 }),
     });
 
     if (!response) {
@@ -383,6 +392,7 @@ export const authService = {
 
     // Save tokens and session in parallel for speed
     await Promise.all([
+      response.accessStatus ? authStorage.saveParentAccess(response.accessStatus) : Promise.resolve(),
       response.token ? authStorage.saveToken(response.token) : Promise.resolve(),
       response.userId ? authStorage.saveUserId(response.userId) : Promise.resolve(),
       response.userType ? authStorage.saveUserRole(response.userType) : Promise.resolve(),
@@ -427,7 +437,7 @@ export const authService = {
   resetPassword: async (phone: string, otpCode: string, newPassword: string, role: string): Promise<{ success: boolean; error?: string }> => {
     const response = await apiFetch('/api/mobile/auth', {
       method: 'POST',
-      body: JSON.stringify({ phone: phone.trim(), otpCode, password: newPassword, action: 'reset_password', role }),
+      body: JSON.stringify({ phone: phone.trim(), otpCode, password: newPassword, action: 'reset_password', role, approvalFlowVersion: 1 }),
     });
     if (!response || !response.success) {
       return { success: false, error: response?.error || 'Failed to reset password.' };
@@ -532,10 +542,21 @@ export const parentService = {
     });
   },
 
-  linkStudent: async (studentId: string) => {
+  fetchAccessStatus: async () => {
+    const data = await apiFetch('/api/mobile/parent/access');
+    if (!data?.accessStatus || !Array.isArray(data.requests)) return null;
+    await authStorage.saveParentAccess(data.accessStatus);
+    return data as ParentAccessSnapshot;
+  },
+
+  updatePendingProfile: async (profile: { name: string; surname: string; phone: string; address: string }) => apiFetch('/api/mobile/parent/access', { method: 'PATCH', body: JSON.stringify({ action: 'UPDATE_PROFILE', ...profile }) }),
+
+  cancelAccessRequest: async (requestId: string) => apiFetch('/api/mobile/parent/access', { method: 'PATCH', body: JSON.stringify({ requestId, action: 'CANCEL' }) }),
+
+  linkStudent: async (studentId: string, relation = 'guardian') => {
     return apiFetch('/api/mobile/students', {
       method: 'POST',
-      body: JSON.stringify({ studentId: studentId.trim() }),
+      body: JSON.stringify({ studentId: studentId.trim(), relation, approvalFlowVersion: 1 }),
     });
   },
 
@@ -1279,4 +1300,9 @@ export const privacyService = {
   submit: (kind: 'ACCOUNT_DELETION' | 'AI_REPORT', message = '') => apiFetch('/api/mobile/privacy-request', {
     method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({kind, message}),
   }),
+};
+
+export type ParentAccessSnapshot = {
+  accessStatus: 'ACTIVE' | 'PENDING' | 'REJECTED'; name: string; surname: string; address: string; phone: string; schoolName: string;
+  requests: { id: string; reference: string; status: string; reason: string | null; relation: string; createdAt: string; reviewedAt: string | null }[];
 };

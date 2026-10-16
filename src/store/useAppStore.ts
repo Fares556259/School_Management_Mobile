@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { Student } from '../types';
 
 interface AppState {
+  parentAccessStatus: 'CHECKING' | 'ACTIVE' | 'PENDING' | 'REJECTED';
+  setParentAccessStatus: (status: 'CHECKING' | 'ACTIVE' | 'PENDING' | 'REJECTED') => void;
   children: Student[];
   userRole: 'parent' | 'teacher' | 'admin' | null;
   userId: string | null;
@@ -29,6 +31,8 @@ interface AppState {
   getSelectedChild: () => Student | undefined;
 }
 export const useAppStore = create<AppState>((set, get) => ({
+  parentAccessStatus: 'CHECKING',
+  setParentAccessStatus: (parentAccessStatus) => set({ parentAccessStatus }),
   children: [],
   userRole: null,
   userId: null,
