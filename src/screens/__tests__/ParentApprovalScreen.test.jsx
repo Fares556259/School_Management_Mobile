@@ -108,6 +108,7 @@ it('registers after returning from Android settings and respects the app opt-out
   await act(async () => { foreground('active'); });
   expect(authService.registerPushToken).toHaveBeenCalledWith('parent-a', 'ExponentPushToken[test]');
   expect(labels()).toContain('Alertes d’activation activées');
+  expect(renderer.root.findByType(ScrollView).props.refreshControl.props.refreshing).toBe(false);
 });
 
 it('opens a focused, simplified status page for one pending child', async () => {

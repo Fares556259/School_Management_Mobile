@@ -1,6 +1,6 @@
 import { PrivacyControls } from '../components/PrivacyControls';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, AppState, Linking, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, AppState, Linking, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import { ArrowLeft, ArrowRight, BellRing, CheckCircle2, ChevronLeft, ChevronRight, Clock3, LogOut, ShieldCheck } from 'lucide-react-native';
@@ -77,7 +77,7 @@ export function ParentApprovalScreen({ onActivated, onSignOut, navigation, route
     mounted.current = true; void load(); void enableNotifications(false);
     const timer = setInterval(() => { if (AppState.currentState === 'active') void load(true); }, 20_000);
     const app = AppState.addEventListener('change', state => {
-      if (state === 'active') { void load(); void enableNotifications(false); }
+      if (state === 'active') { void load(true); void enableNotifications(false); }
     });
     const push = Notifications.addNotificationReceivedListener(event => { if (event.request.content.data?.type === 'PARENT_ACCESS') void load(true); });
     return () => { mounted.current = false; clearInterval(timer); app.remove(); push.remove(); };
@@ -87,14 +87,14 @@ export function ParentApprovalScreen({ onActivated, onSignOut, navigation, route
     setSavingProfile(true); setProfileError('');
     try {
       const result = await parentService.updatePendingProfile(profileForm);
-      if (result?.success) { setProfileForm(null); await load(); } else setProfileError(c.updateFailed);
+      if (result?.success) { setProfileForm(null); await load(true); } else setProfileError(c.updateFailed);
     } catch { setProfileError(c.updateFailed); } finally { if (mounted.current) setSavingProfile(false); }
   };
   const cancelRequest = (id: string) => Alert.alert(c.cancelTitle, c.cancelBody, [
     { text: c.keep, style: 'cancel' },
     { text: c.confirmCancel, style: 'destructive', onPress: async () => {
       setCancelling(id);
-      try { const result = await parentService.cancelAccessRequest(id); if (!result?.success) setOffline(true); else await load(); }
+      try { const result = await parentService.cancelAccessRequest(id); if (!result?.success) setOffline(true); else await load(true); }
       finally { if (mounted.current) setCancelling(null); }
     } },
   ]);
@@ -127,7 +127,6 @@ export function ParentApprovalScreen({ onActivated, onSignOut, navigation, route
         <Text style={[s.title, text, { fontSize: 25, lineHeight: 32 }]}>{title}</Text><Text style={[s.body, text]}>{body}</Text>
       </View>
       {offline && <Text accessibilityRole="alert" style={[s.error, text]}>{c.offline}</Text>}
-      {!snapshot && loading && <ActivityIndicator color="#086CE0" />}
       {snapshot && hasPendingRequest && <TouchableOpacity
         disabled={notify === 'enabled' || notifying}
         onPress={() => { if (notify === 'denied') void Linking.openSettings(); else void enableNotifications(); }}
@@ -157,7 +156,7 @@ export function ParentApprovalScreen({ onActivated, onSignOut, navigation, route
         <AccessButton label={c.back} secondary disabled={savingProfile} onPress={() => setProfileForm(null)} />
       </View>}
       {!!snapshot && !focusedRequest && !editing && <AccessButton label={rejected ? c.correct : c.addAnother} secondary onPress={() => setEditing(true)} />}
-      {editing && <><ChildAccessRequestForm onSent={() => { setEditing(false); void load(); }} /><TouchableOpacity onPress={() => setEditing(false)} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={[s.body, { textAlign: 'center' }]}>{c.back}</Text></TouchableOpacity></>}
+      {editing && <><ChildAccessRequestForm onSent={() => { setEditing(false); void load(true); }} /><TouchableOpacity onPress={() => setEditing(false)} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={[s.body, { textAlign: 'center' }]}>{c.back}</Text></TouchableOpacity></>}
       {!navigation && <PrivacyControls />}
       {onSignOut && <TouchableOpacity onPress={onSignOut} accessibilityRole="button" style={[row, { gap: 8, alignItems: 'center', justifyContent: 'center', minHeight: 48 }]}><LogOut size={17} color="#637189" /><Text style={[s.body, { fontWeight: '600' }]}>{c.signOut}</Text></TouchableOpacity>}
     </ScrollView>
