@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
-import { Bell, ChevronDown, Check, X, User, ChevronRight, ChevronLeft } from 'lucide-react-native';
+import { Bell, ChevronDown, Check, X, User, ChevronRight, ChevronLeft, Clock3, ShieldAlert } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
-import { authStorage, studentService } from '../services/api';
+import { authStorage, parentService, ParentAccessSnapshot, studentService } from '../services/api';
 import { Image } from 'expo-image';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { prefetchChildHome, prefetchChildTabs } from '../services/childDataSync';
 import { savePreferredChildId } from '../services/sessionHydration';
+import { parentAccessText } from '../content/parentAccess';
 
 interface GlobalHeaderProps {
   navigation: any;
@@ -15,7 +16,8 @@ interface GlobalHeaderProps {
 }
 
 const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, language } = useLanguage();
+  const accessCopy = parentAccessText[language];
   const selectedChildId = useAppStore(s => s.selectedChildId);
   const setSelectedChildId = useAppStore(s => s.setSelectedChildId);
   const children = useAppStore(s => s.children);
@@ -44,6 +46,14 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
     staleTime: 60_000,
     refetchOnMount: false,
     gcTime: 24 * 60 * 60_000,
+  });
+
+  const { data: familyRequests, refetch: refreshFamilyRequests } = useQuery<ParentAccessSnapshot | null>({
+    queryKey: ['parentAccess', userId],
+    queryFn: () => parentService.fetchAccessStatus(),
+    enabled: userRole === 'parent' && !!userId,
+    staleTime: 20_000,
+    refetchOnMount: true,
   });
 
   useEffect(() => {
@@ -81,9 +91,25 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
 
   const toggleSwitcher = () => {
     if (userRole === 'teacher') return;
-    if (!showSwitcher) warmFamilyHomes();
+    if (!showSwitcher) {
+      warmFamilyHomes();
+      void refreshFamilyRequests();
+    }
     setShowSwitcher(!showSwitcher);
   };
+
+  const openRequest = (requestId: string) => {
+    setShowSwitcher(false);
+    navigation.navigate('ParentRequests', { requestId });
+  };
+
+  const requestColors = (requestStatus: string) => requestStatus === 'PENDING'
+    ? { background: '#FFF8E8', border: '#F2D79B', text: '#8A5B12' }
+    : requestStatus === 'REJECTED' || requestStatus === 'REVOKED'
+      ? { background: '#FFF1EE', border: '#F2C5BA', text: '#B6472C' }
+      : { background: '#F3F5F8', border: '#E1E7EF', text: '#637189' };
+
+  const unresolvedRequests = (familyRequests?.requests || []).filter(request => request.status !== 'APPROVED');
 
   return (
     <View style={{ backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#EEF2F6', zIndex: 50 }}>
@@ -239,6 +265,9 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
                       <Text style={{ fontSize: 18, fontWeight: '700', color: '#172033', textAlign: isRTL ? 'right' : 'left' }}>{child.name}</Text>
                       <Text style={{ fontSize: 14, color: '#737C7F', fontWeight: '600', textAlign: isRTL ? 'right' : 'left' }}>{child.class || t.noClassAssigned}</Text>
                     </View>
+                    <View style={{ borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: '#E4F6EF', marginHorizontal: 8 }}>
+                      <Text style={{ color: '#118465', fontSize: 10, fontWeight: '800' }}>{accessCopy.approved}</Text>
+                    </View>
                     {isActive ? (
                       <View className="w-7 h-7 bg-brand-primary rounded-full items-center justify-center">
                         <Check size={16} color="white" />
@@ -248,6 +277,31 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
                     )}
                   </TouchableOpacity>
                 );
+              })}
+              {unresolvedRequests.map(request => {
+                const colors = requestColors(request.status);
+                const label = request.status === 'PENDING' ? accessCopy.pending
+                  : request.status === 'REJECTED' ? accessCopy.rejected
+                    : request.status === 'REVOKED' ? accessCopy.revoked : accessCopy.cancelled;
+                return <TouchableOpacity
+                  key={request.id}
+                  onPress={() => openRequest(request.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${accessCopy.requestChild} ${request.reference}, ${label}`}
+                  style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', padding: 16, borderRadius: 24, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.background }}
+                >
+                  <View style={{ width: 54, height: 54, borderRadius: 18, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border }}>
+                    {request.status === 'PENDING' ? <Clock3 size={23} color={colors.text} /> : <ShieldAlert size={23} color={colors.text} />}
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0, marginLeft: isRTL ? 0 : 14, marginRight: isRTL ? 14 : 0, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                    <Text style={{ fontSize: 16, fontWeight: '800', color: '#172033', textAlign: isRTL ? 'right' : 'left' }}>{accessCopy.requestChild} {request.reference}</Text>
+                    <Text style={{ marginTop: 3, fontSize: 12, color: '#737C7F', fontWeight: '600', textAlign: isRTL ? 'right' : 'left' }}>{familyRequests?.schoolName}</Text>
+                  </View>
+                  <View style={{ borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: '#FFFFFF', marginHorizontal: 8 }}>
+                    <Text style={{ color: colors.text, fontSize: 10, fontWeight: '800' }}>{label}</Text>
+                  </View>
+                  {isRTL ? <ChevronLeft size={19} color={colors.text} /> : <ChevronRight size={19} color={colors.text} />}
+                </TouchableOpacity>;
               })}
             </ScrollView>
  

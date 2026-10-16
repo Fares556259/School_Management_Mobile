@@ -1,7 +1,7 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 import * as Notifications from 'expo-notifications';
-import { Alert, AppState, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, AppState, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { ParentApprovalScreen } from '../ParentApprovalScreen';
 import { authService, authStorage, parentService } from '../../services/api';
 import { notificationService } from '../../services/notificationService';
@@ -16,7 +16,7 @@ jest.mock('expo-notifications', () => ({
 }));
 jest.mock('../../services/api', () => ({
   authService: { registerPushToken: jest.fn() }, authStorage: { getUserId: jest.fn().mockResolvedValue('parent-a') },
-  parentService: { fetchAccessStatus: jest.fn(), cancelAccessRequest: jest.fn(), linkStudent: jest.fn() },
+  parentService: { fetchAccessStatus: jest.fn(), fetchChildren: jest.fn().mockResolvedValue([]), cancelAccessRequest: jest.fn(), linkStudent: jest.fn() },
 }));
 jest.mock('../../services/notificationService', () => ({ notificationService: { getPushToken: jest.fn(), initChannels: jest.fn().mockResolvedValue(undefined), isEnabled: jest.fn().mockResolvedValue(true), setEnabled: jest.fn().mockResolvedValue(undefined) } }));
 let renderer;
@@ -25,6 +25,7 @@ const pending = () => ({ accessStatus: 'PENDING', schoolName: 'School', name: 'A
 ] });
 const labels = () => renderer.root.findAllByType(Text).map(n => n.props.children).flat().filter(v => typeof v === 'string');
 const button = label => renderer.root.findAllByType(TouchableOpacity).find(node => node.findAllByType(Text).some(text => text.props.children === label));
+const refresh = () => renderer.root.findByType(ScrollView).props.refreshControl.props.onRefresh();
 beforeEach(() => {
   mockLanguage = 'fr'; jest.useFakeTimers();
   Notifications.getPermissionsAsync.mockResolvedValue({ granted: false });
@@ -41,7 +42,7 @@ it('keeps the parent waiting and opens access only after a server approval', asy
   expect(labels()).toContain('••••1234');
   expect(onActivated).not.toHaveBeenCalled();
   parentService.fetchAccessStatus.mockResolvedValue({ ...pending(), accessStatus: 'ACTIVE' });
-  await act(async () => { await button('Vérifier le statut').props.onPress(); });
+  await act(async () => { await refresh(); });
   expect(onActivated).toHaveBeenCalledTimes(1);
 });
 it('preserves a saved request on network failure and offers a retry', async () => {
@@ -49,7 +50,7 @@ it('preserves a saved request on network failure and offers a retry', async () =
   await act(async () => { renderer = TestRenderer.create(<ParentApprovalScreen />); });
   expect(labels().some(text => text.includes('Votre demande est enregistrée'))).toBe(true);
   parentService.fetchAccessStatus.mockResolvedValue(pending());
-  await act(async () => { await button('Vérifier le statut').props.onPress(); });
+  await act(async () => { await refresh(); });
   expect(labels()).toContain('••••1234');
 });
 it('registers activation alerts only after the parent chooses notifications', async () => {
@@ -107,4 +108,23 @@ it('registers after returning from Android settings and respects the app opt-out
   await act(async () => { foreground('active'); });
   expect(authService.registerPushToken).toHaveBeenCalledWith('parent-a', 'ExponentPushToken[test]');
   expect(labels()).toContain('Alertes d’activation activées');
+});
+
+it('opens a focused, simplified status page for one pending child', async () => {
+  parentService.fetchAccessStatus.mockResolvedValue({
+    ...pending(),
+    accessStatus: 'ACTIVE',
+    requests: [
+      { ...pending().requests[0], id: 'approved-a', reference: '••••1111', status: 'APPROVED' },
+      { ...pending().requests[0], id: 'pending-b', reference: '••••2222', status: 'PENDING' },
+    ],
+  });
+  const navigation = { goBack: jest.fn() };
+  await act(async () => { renderer = TestRenderer.create(<ParentApprovalScreen navigation={navigation} route={{ params: { requestId: 'pending-b' } }} />); });
+  expect(labels()).toContain('Accès en cours de vérification');
+  expect(labels()).toContain('••••2222');
+  expect(labels()).not.toContain('••••1111');
+  expect(button('Vérifier le statut')).toBeUndefined();
+  expect(button('Ajouter un autre enfant')).toBeUndefined();
+  expect(renderer.root.findAllByType(ActivityIndicator)).toHaveLength(0);
 });
