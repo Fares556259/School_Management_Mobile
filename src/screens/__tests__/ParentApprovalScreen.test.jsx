@@ -129,3 +129,29 @@ it('opens a focused, simplified status page for one pending child', async () => 
   expect(button('Ajouter un autre enfant')).toBeUndefined();
   expect(renderer.root.findAllByType(ActivityIndicator)).toHaveLength(0);
 });
+
+it('renders a declined child immediately while the server refresh stays pending', async () => {
+  let resolveStatus;
+  parentService.fetchAccessStatus.mockImplementation(() => new Promise(resolve => { resolveStatus = resolve; }));
+  const rejectedRequest = {
+    ...pending().requests[0],
+    id: 'rejected-b',
+    reference: '••••4400',
+    status: 'REJECTED',
+    reason: 'Contactez l’administration',
+    reviewedAt: '2026-10-16T09:00:00Z',
+  };
+  act(() => {
+    renderer = TestRenderer.create(<ParentApprovalScreen
+      navigation={{ goBack: jest.fn() }}
+      route={{ params: { requestId: rejectedRequest.id, requestPreview: rejectedRequest, schoolName: 'SnapSchool Academy', accessStatus: 'ACTIVE' } }}
+    />);
+  });
+
+  expect(labels()).toContain('Accès non approuvé');
+  expect(labels()).toContain('Contactez l’administration');
+  expect(labels()).not.toContain('Vérification de votre compte');
+  expect(renderer.root.findByType(ScrollView).props.refreshControl.props.refreshing).toBe(false);
+
+  await act(async () => { resolveStatus({ ...pending(), accessStatus: 'ACTIVE', requests: [rejectedRequest] }); });
+});

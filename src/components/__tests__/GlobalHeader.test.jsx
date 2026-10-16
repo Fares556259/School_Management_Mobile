@@ -60,6 +60,11 @@ it('shows approved, pending and rejected family statuses and opens the selected 
 
   const pending = renderer.root.findAllByType(TouchableOpacity).find(node => node.props.accessibilityLabel?.includes('••••2222'));
   act(() => pending.props.onPress());
-  expect(navigation.navigate).toHaveBeenCalledWith('ParentRequests', { requestId: 'pending-b' });
+  expect(navigation.navigate).toHaveBeenCalledWith('ParentRequests', {
+    requestId: 'pending-b',
+    requestPreview: { id: 'pending-b', reference: '••••2222', status: 'PENDING', reason: null, relation: 'father', createdAt: '2026-10-16T08:00:00Z', reviewedAt: null },
+    schoolName: 'SnapSchool',
+    accessStatus: 'ACTIVE',
+  });
   expect(mockRequestRefetch).toHaveBeenCalled();
 });

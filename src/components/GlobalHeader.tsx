@@ -98,9 +98,14 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
     setShowSwitcher(!showSwitcher);
   };
 
-  const openRequest = (requestId: string) => {
+  const openRequest = (request: ParentAccessSnapshot['requests'][number]) => {
     setShowSwitcher(false);
-    navigation.navigate('ParentRequests', { requestId });
+    navigation.navigate('ParentRequests', {
+      requestId: request.id,
+      requestPreview: request,
+      schoolName: familyRequests?.schoolName || '',
+      accessStatus: familyRequests?.accessStatus || 'ACTIVE',
+    });
   };
 
   const requestColors = (requestStatus: string) => requestStatus === 'PENDING'
@@ -285,7 +290,7 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
                     : request.status === 'REVOKED' ? accessCopy.revoked : accessCopy.cancelled;
                 return <TouchableOpacity
                   key={request.id}
-                  onPress={() => openRequest(request.id)}
+                  onPress={() => openRequest(request)}
                   accessibilityRole="button"
                   accessibilityLabel={`${accessCopy.requestChild} ${request.reference}, ${label}`}
                   style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', padding: 16, borderRadius: 24, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.background }}

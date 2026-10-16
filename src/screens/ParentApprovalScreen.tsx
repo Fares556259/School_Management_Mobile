@@ -15,7 +15,23 @@ import { useAppStore } from '../store/useAppStore';
 
 export function ParentApprovalScreen({ onActivated, onSignOut, navigation, route }: { onActivated?: () => Promise<void>; onSignOut?: () => void; navigation?: any; route?: any }) {
   const { language, isRTL } = useLanguage(); const c = parentAccessText[language];
-  const [snapshot, setSnapshot] = useState<ParentAccessSnapshot | null>(null);
+  const [snapshot, setSnapshot] = useState<ParentAccessSnapshot | null>(() => {
+    const preview = route?.params?.requestPreview as ParentAccessSnapshot['requests'][number] | undefined;
+    if (!preview || typeof preview.id !== 'string' || typeof preview.status !== 'string') return null;
+    const previewAccessStatus = route?.params?.accessStatus;
+    const accessStatus: ParentAccessSnapshot['accessStatus'] = previewAccessStatus === 'PENDING' || previewAccessStatus === 'REJECTED'
+      ? previewAccessStatus
+      : 'ACTIVE';
+    return {
+      accessStatus,
+      name: '',
+      surname: '',
+      address: '',
+      phone: '',
+      schoolName: typeof route?.params?.schoolName === 'string' ? route.params.schoolName : '',
+      requests: [preview],
+    };
+  });
   const [loading, setLoading] = useState(false); const [offline, setOffline] = useState(false);
   const [notify, setNotify] = useState<'unknown' | 'enabled' | 'denied'>('unknown');
   const [notifyError, setNotifyError] = useState(false);
@@ -74,7 +90,7 @@ export function ParentApprovalScreen({ onActivated, onSignOut, navigation, route
     finally { notificationInFlight.current = false; if (mounted.current) setNotifying(false); }
   }, []);
   useEffect(() => {
-    mounted.current = true; void load(); void enableNotifications(false);
+    mounted.current = true; void load(true); void enableNotifications(false);
     const timer = setInterval(() => { if (AppState.currentState === 'active') void load(true); }, 20_000);
     const app = AppState.addEventListener('change', state => {
       if (state === 'active') { void load(true); void enableNotifications(false); }
