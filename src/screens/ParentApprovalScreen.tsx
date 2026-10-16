@@ -33,7 +33,7 @@ export function ParentApprovalScreen({ onActivated, onSignOut, navigation, route
     };
   });
   const [loading, setLoading] = useState(false); const [offline, setOffline] = useState(false);
-  const [notify, setNotify] = useState<'unknown' | 'enabled' | 'denied'>('unknown');
+  const [notify, setNotify] = useState<'unknown' | 'enabled' | 'denied'>(() => route?.params?.notificationsEnabled === true ? 'enabled' : 'unknown');
   const [notifyError, setNotifyError] = useState(false);
   const [notifying, setNotifying] = useState(false); const [editing, setEditing] = useState(false);
   const [cancelling, setCancelling] = useState<string | null>(null);

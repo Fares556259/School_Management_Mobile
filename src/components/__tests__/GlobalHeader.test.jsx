@@ -26,6 +26,8 @@ jest.mock('../../services/api', () => ({
 }));
 jest.mock('../../services/childDataSync', () => ({ prefetchChildHome: jest.fn(() => Promise.resolve()), prefetchChildTabs: jest.fn(() => Promise.resolve()) }));
 jest.mock('../../services/sessionHydration', () => ({ savePreferredChildId: jest.fn() }));
+jest.mock('../../services/notificationService', () => ({ notificationService: { isEnabled: jest.fn().mockResolvedValue(true) } }));
+jest.mock('expo-notifications', () => ({ getPermissionsAsync: jest.fn().mockResolvedValue({ granted: true }) }));
 jest.mock('expo-image', () => ({ Image: (props) => {
   const MockView = require('react-native').View;
   return require('react').createElement(MockView, props);
@@ -44,7 +46,7 @@ beforeEach(() => {
 });
 afterEach(() => { jest.clearAllTimers(); jest.useRealTimers(); });
 
-it('shows approved, pending and rejected family statuses and opens the selected request', () => {
+it('shows approved, pending and rejected family statuses and opens the selected request', async () => {
   const navigation = { navigate: jest.fn() };
   let renderer;
   act(() => { renderer = TestRenderer.create(<GlobalHeader navigation={navigation} />); });
@@ -59,12 +61,13 @@ it('shows approved, pending and rejected family statuses and opens the selected 
   expect(labels).not.toContain('••••1111');
 
   const pending = renderer.root.findAllByType(TouchableOpacity).find(node => node.props.accessibilityLabel?.includes('••••2222'));
-  act(() => pending.props.onPress());
+  await act(async () => { await pending.props.onPress(); });
   expect(navigation.navigate).toHaveBeenCalledWith('ParentRequests', {
     requestId: 'pending-b',
     requestPreview: { id: 'pending-b', reference: '••••2222', status: 'PENDING', reason: null, relation: 'father', createdAt: '2026-10-16T08:00:00Z', reviewedAt: null },
     schoolName: 'SnapSchool',
     accessStatus: 'ACTIVE',
+    notificationsEnabled: true,
   });
   expect(mockRequestRefetch).toHaveBeenCalled();
 });

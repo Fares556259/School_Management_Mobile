@@ -5,8 +5,10 @@ import { useAppStore } from '../store/useAppStore';
 import { useLanguage } from '../context/LanguageContext';
 import { authStorage, parentService, ParentAccessSnapshot, studentService } from '../services/api';
 import { Image } from 'expo-image';
+import * as Notifications from 'expo-notifications';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { prefetchChildHome, prefetchChildTabs } from '../services/childDataSync';
+import { notificationService } from '../services/notificationService';
 import { savePreferredChildId } from '../services/sessionHydration';
 import { parentAccessText } from '../content/parentAccess';
 
@@ -98,13 +100,22 @@ const GlobalHeaderComponent = ({ navigation, showBack }: GlobalHeaderProps) => {
     setShowSwitcher(!showSwitcher);
   };
 
-  const openRequest = (request: ParentAccessSnapshot['requests'][number]) => {
+  const openRequest = async (request: ParentAccessSnapshot['requests'][number]) => {
     setShowSwitcher(false);
+    let notificationsEnabled = false;
+    try {
+      const [permissions, preferenceEnabled] = await Promise.all([
+        Notifications.getPermissionsAsync(),
+        notificationService.isEnabled(),
+      ]);
+      notificationsEnabled = permissions.granted && preferenceEnabled;
+    } catch { /* The status screen will verify notification access again. */ }
     navigation.navigate('ParentRequests', {
       requestId: request.id,
       requestPreview: request,
       schoolName: familyRequests?.schoolName || '',
       accessStatus: familyRequests?.accessStatus || 'ACTIVE',
+      notificationsEnabled,
     });
   };
 

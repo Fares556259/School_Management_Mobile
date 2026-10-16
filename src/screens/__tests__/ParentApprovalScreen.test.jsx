@@ -155,3 +155,21 @@ it('renders a declined child immediately while the server refresh stays pending'
 
   await act(async () => { resolveStatus({ ...pending(), accessStatus: 'ACTIVE', requests: [rejectedRequest] }); });
 });
+
+it('shows an already-enabled activation alert on the first frame', () => {
+  let resolveStatus;
+  parentService.fetchAccessStatus.mockImplementation(() => new Promise(resolve => { resolveStatus = resolve; }));
+  const pendingRequest = { ...pending().requests[0], id: 'pending-b', reference: '••••4400' };
+  act(() => {
+    renderer = TestRenderer.create(<ParentApprovalScreen
+      navigation={{ goBack: jest.fn() }}
+      route={{ params: { requestId: pendingRequest.id, requestPreview: pendingRequest, schoolName: 'SnapSchool Academy', accessStatus: 'ACTIVE', notificationsEnabled: true } }}
+    />);
+  });
+
+  expect(labels()).toContain('Alertes d’activation activées');
+  expect(labels()).not.toContain('M’avertir de l’activation');
+  act(() => { renderer.unmount(); });
+  resolveStatus(pending());
+  renderer = null;
+});
