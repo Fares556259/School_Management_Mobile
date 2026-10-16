@@ -1,6 +1,7 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
-import { Alert, Text, TouchableOpacity, View } from 'react-native';
+import * as Notifications from 'expo-notifications';
+import { Alert, AppState, Text, TouchableOpacity, View } from 'react-native';
 import { ParentApprovalScreen } from '../ParentApprovalScreen';
 import { authService, authStorage, parentService } from '../../services/api';
 import { notificationService } from '../../services/notificationService';
@@ -17,7 +18,7 @@ jest.mock('../../services/api', () => ({
   authService: { registerPushToken: jest.fn() }, authStorage: { getUserId: jest.fn().mockResolvedValue('parent-a') },
   parentService: { fetchAccessStatus: jest.fn(), cancelAccessRequest: jest.fn(), linkStudent: jest.fn() },
 }));
-jest.mock('../../services/notificationService', () => ({ notificationService: { getPushToken: jest.fn() } }));
+jest.mock('../../services/notificationService', () => ({ notificationService: { getPushToken: jest.fn(), initChannels: jest.fn().mockResolvedValue(undefined), isEnabled: jest.fn().mockResolvedValue(true), setEnabled: jest.fn().mockResolvedValue(undefined) } }));
 let renderer;
 const pending = () => ({ accessStatus: 'PENDING', schoolName: 'School', name: 'Amel', phone: '20123456', requests: [
   { id: 'request-a', reference: '••••1234', status: 'PENDING', reason: null, relation: 'mother', createdAt: '2026-10-16T08:00:00Z' },
@@ -26,6 +27,8 @@ const labels = () => renderer.root.findAllByType(Text).map(n => n.props.children
 const button = label => renderer.root.findAllByType(TouchableOpacity).find(node => node.findAllByType(Text).some(text => text.props.children === label));
 beforeEach(() => {
   mockLanguage = 'fr'; jest.useFakeTimers();
+  Notifications.getPermissionsAsync.mockResolvedValue({ granted: false });
+  notificationService.isEnabled.mockResolvedValue(true);
   parentService.fetchAccessStatus.mockResolvedValue(pending());
   jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 });
@@ -72,4 +75,36 @@ it('requires explicit confirmation to cancel a pending request', async () => {
   const actions = Alert.alert.mock.calls[0][2];
   await act(async () => { await actions[1].onPress(); });
   expect(parentService.cancelAccessRequest).toHaveBeenCalledWith('request-a');
+});
+
+it('registers a waiting parent automatically when Android permission is already allowed', async () => {
+  Notifications.getPermissionsAsync.mockResolvedValue({ granted: true });
+  notificationService.getPushToken.mockResolvedValue('ExponentPushToken[test]');
+  authService.registerPushToken.mockResolvedValue({ success: true });
+  await act(async () => { renderer = TestRenderer.create(<ParentApprovalScreen />); });
+  expect(authService.registerPushToken).toHaveBeenCalledWith('parent-a', 'ExponentPushToken[test]');
+  expect(notificationService.initChannels).toHaveBeenCalled();
+  expect(labels()).toContain('Alertes d’activation activées');
+});
+it('does not claim alerts are enabled when permission exists but server registration fails', async () => {
+  Notifications.getPermissionsAsync.mockResolvedValue({ granted: true });
+  notificationService.getPushToken.mockResolvedValue('ExponentPushToken[test]');
+  authService.registerPushToken.mockResolvedValue({ success: false });
+  await act(async () => { renderer = TestRenderer.create(<ParentApprovalScreen />); });
+  expect(labels()).not.toContain('Alertes d’activation activées');
+  expect(button('M’avertir de l’activation')).toBeDefined();
+});
+it('registers after returning from Android settings and respects the app opt-out', async () => {
+  Notifications.getPermissionsAsync.mockResolvedValue({ granted: true });
+  notificationService.isEnabled.mockResolvedValue(false);
+  const listener = jest.spyOn(AppState, 'addEventListener');
+  notificationService.getPushToken.mockResolvedValue('ExponentPushToken[test]');
+  authService.registerPushToken.mockResolvedValue({ success: true });
+  await act(async () => { renderer = TestRenderer.create(<ParentApprovalScreen />); });
+  expect(authService.registerPushToken).not.toHaveBeenCalled();
+  notificationService.isEnabled.mockResolvedValue(true);
+  const foreground = listener.mock.calls.find(([event]) => event === 'change')[1];
+  await act(async () => { foreground('active'); });
+  expect(authService.registerPushToken).toHaveBeenCalledWith('parent-a', 'ExponentPushToken[test]');
+  expect(labels()).toContain('Alertes d’activation activées');
 });

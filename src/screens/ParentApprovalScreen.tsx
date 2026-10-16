@@ -23,6 +23,7 @@ export function ParentApprovalScreen({ onActivated, onSignOut, navigation }: { o
   const [profileForm, setProfileForm] = useState<{ name: string; surname: string; phone: string; address: string } | null>(null);
   const [savingProfile, setSavingProfile] = useState(false); const [profileError, setProfileError] = useState('');
   const [checked, setChecked] = useState(false);
+  const notificationInFlight = useRef(false);
   const mounted = useRef(true); const inflight = useRef(false); const activated = useRef(onActivated); activated.current = onActivated;
   const text = { textAlign: isRTL ? 'right' as const : 'left' as const }; const row = { flexDirection: isRTL ? 'row-reverse' as const : 'row' as const };
   const load = useCallback(async (quiet = false) => {
@@ -37,26 +38,38 @@ export function ParentApprovalScreen({ onActivated, onSignOut, navigation }: { o
     } catch { if (mounted.current) setOffline(true); }
     finally { inflight.current = false; if (mounted.current) setLoading(false); }
   }, []);
-  useEffect(() => {
-    mounted.current = true; void load();
-    const timer = setInterval(() => { if (AppState.currentState === 'active') void load(true); }, 20_000);
-    const app = AppState.addEventListener('change', state => { if (state === 'active') { void load(); void Notifications.getPermissionsAsync().then(result => { if (mounted.current) setNotify(result.granted ? 'enabled' : 'unknown'); }); } });
-    const push = Notifications.addNotificationReceivedListener(event => { if (event.request.content.data?.type === 'PARENT_ACCESS') void load(true); });
-    void Notifications.getPermissionsAsync().then(result => { if (mounted.current && result.granted) setNotify('enabled'); }).catch(() => {});
-    return () => { mounted.current = false; clearInterval(timer); app.remove(); push.remove(); };
-  }, [load]);
-  const enableNotifications = async () => {
-    setNotifying(true); setNotifyError(false);
+  const enableNotifications = useCallback(async (requestPermission = true) => {
+    if (notificationInFlight.current) return;
+    notificationInFlight.current = true;
     try {
+      const permissions = await Notifications.getPermissionsAsync();
+      if (!requestPermission && (!permissions.granted || !(await notificationService.isEnabled()))) {
+        if (mounted.current) setNotify('unknown');
+        return;
+      }
+      if (mounted.current) { setNotifying(true); setNotifyError(false); }
+      // Channels must exist before Android grants permission or receives a push.
+      await notificationService.initChannels();
       const token = await notificationService.getPushToken(); const uid = await authStorage.getUserId();
       const result = token && uid ? await authService.registerPushToken(uid, token) : null;
-      const permissions = await Notifications.getPermissionsAsync();
+      const currentPermissions = await Notifications.getPermissionsAsync();
+      if (result?.success && requestPermission) await notificationService.setEnabled(true);
       if (mounted.current) {
-        setNotify(result?.success ? 'enabled' : permissions.granted ? 'unknown' : 'denied');
-        setNotifyError(!result?.success && permissions.granted);
+        setNotify(result?.success ? 'enabled' : currentPermissions.granted ? 'unknown' : 'denied');
+        setNotifyError(!result?.success && currentPermissions.granted);
       }
-    } catch { if (mounted.current) setNotifyError(true); } finally { if (mounted.current) setNotifying(false); }
-  };
+    } catch { if (mounted.current) { setNotify('unknown'); setNotifyError(true); } }
+    finally { notificationInFlight.current = false; if (mounted.current) setNotifying(false); }
+  }, []);
+  useEffect(() => {
+    mounted.current = true; void load(); void enableNotifications(false);
+    const timer = setInterval(() => { if (AppState.currentState === 'active') void load(true); }, 20_000);
+    const app = AppState.addEventListener('change', state => {
+      if (state === 'active') { void load(); void enableNotifications(false); }
+    });
+    const push = Notifications.addNotificationReceivedListener(event => { if (event.request.content.data?.type === 'PARENT_ACCESS') void load(true); });
+    return () => { mounted.current = false; clearInterval(timer); app.remove(); push.remove(); };
+  }, [load, enableNotifications]);
   const saveProfile = async () => {
     if (!profileForm || savingProfile) return;
     setSavingProfile(true); setProfileError('');
