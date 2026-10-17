@@ -927,7 +927,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
 
       {/* Edit Profile Modal */}
       <Modal visible={editModalVisible} transparent={false} animationType="slide" onRequestClose={() => !updating && setEditModalVisible(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: '#f6f8fb' }}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: '#f6f8fb' }}>
           <View style={{ flex: 1, paddingTop: Math.max(insets.top, 16) }}>
             <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', paddingHorizontal: 20, height: 62 }}>
               <TouchableOpacity
@@ -1170,7 +1170,7 @@ export const ProfileScreen = ({ navigation, onSignOut }: any) => {
 
       {/* Edit Child Profile Modal */}
       <Modal visible={editChildModalVisible} transparent={false} animationType="slide" onRequestClose={() => !updatingChild && setEditChildModalVisible(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: '#f6f8fb' }}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: '#f6f8fb' }}>
           <View style={{ flex: 1, paddingTop: Math.max(insets.top, 16) }}>
             <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', paddingHorizontal: 20, height: 62 }}>
               <TouchableOpacity
