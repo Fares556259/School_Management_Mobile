@@ -282,34 +282,33 @@ export default function App() {
     authStateRef.current = authState;
   }, [authState]);
 
+  const applyParentChildren = React.useCallback(async (uid: string, children: any[], revision = sessionRevisionRef.current) => {
+    if (!Array.isArray(children) || children.length === 0) return;
+    const currentUid = await authStorage.getUserId();
+    if (revision !== sessionRevisionRef.current || currentUid !== uid) return;
+
+    const currentSelection = useAppStore.getState().selectedChildId;
+    const storedSelection = await loadPreferredChildId(uid);
+    const selectedId = [currentSelection, storedSelection]
+      .find(candidate => candidate && children.some(child => child.id === candidate)) || children[0].id;
+
+    setChildren(children);
+    setSelectedChildId(selectedId);
+    void savePreferredChildId(uid, selectedId);
+
+    // Warm the next tab after the home screen has had time to paint.
+    setTimeout(() => {
+      void queryClient.prefetchQuery({
+        queryKey: ['courses', selectedId],
+        queryFn: () => studentService.fetchCourses(selectedId),
+        staleTime: 5 * 60 * 1000,
+        gcTime: 24 * 60 * 60 * 1000,
+      });
+    }, 1_200);
+  }, [setChildren, setSelectedChildId]);
+
   const applySessionSnapshot = React.useCallback(async (uid: string, role: SessionRole) => {
     const revision = ++sessionRevisionRef.current;
-    const applyParentChildren = async (children: any[]) => {
-      if (!Array.isArray(children) || children.length === 0) return;
-      const currentUid = await authStorage.getUserId();
-      if (revision !== sessionRevisionRef.current || currentUid !== uid) return;
-
-      const currentSelection = useAppStore.getState().selectedChildId;
-      const storedSelection = await loadPreferredChildId(uid);
-      const selectedId = [currentSelection, storedSelection]
-        .find(candidate => candidate && children.some(child => child.id === candidate)) || children[0].id;
-
-      setChildren(children);
-      setSelectedChildId(selectedId);
-      void savePreferredChildId(uid, selectedId);
-
-      // Warm the next tab while the launch screen is still visible. This is
-      // intentionally limited to the selected child's lightweight course
-      // summary so it does not compete with the home screen for bandwidth.
-      setTimeout(() => {
-        void queryClient.prefetchQuery({
-          queryKey: ['courses', selectedId],
-          queryFn: () => studentService.fetchCourses(selectedId),
-          staleTime: 5 * 60 * 1000,
-          gcTime: 24 * 60 * 60 * 1000,
-        });
-      }, 1_200);
-    };
 
     // Pending parents stay outside the family navigator until the server approves access.
     if (role === 'parent') {
@@ -328,7 +327,7 @@ export default function App() {
     // API round trip. The verified server snapshot below quietly reconciles it.
     if (role === 'parent') {
       const cachedChildren = await loadCachedParentChildren();
-      await applyParentChildren(cachedChildren);
+      await applyParentChildren(uid, cachedChildren, revision);
     }
 
     const snapshot = await loadSessionSnapshot(role);
@@ -336,7 +335,7 @@ export default function App() {
     if (revision !== sessionRevisionRef.current || currentUid !== uid) return;
 
     if (snapshot.role === 'parent' && snapshot.children.length > 0) {
-      await applyParentChildren(snapshot.children);
+      await applyParentChildren(uid, snapshot.children, revision);
     }
 
     if (role === 'parent') useAppStore.getState().setParentAccessStatus('ACTIVE');
@@ -351,7 +350,7 @@ export default function App() {
     if (snapshot.role === 'admin') {
       setSchoolName(snapshot.profile?.schoolName || 'SnapSchool');
     }
-  }, [setChildren, setSelectedChildId, setSchoolName, setUserAvatarUrl, setUserName]);
+  }, [applyParentChildren, setChildren, setSelectedChildId, setSchoolName, setUserAvatarUrl, setUserName]);
 
   const registerPush = React.useCallback((uid: string, force = false) => {
     const state = pushRegistrationRef.current;
@@ -466,12 +465,23 @@ export default function App() {
             identifyUser(uid, { role });
           }
 
-          // Keep the launch overlay above parent routing until the access gate
-          // resolves. Otherwise CHECKING and a freshly ACTIVE family snapshot
-          // briefly render before the home navigator on a cold start.
+          // Approved parents can paint Home from the verified device cache.
+          // The server then reconciles access, profile and children silently.
+          // Accounts without an active cached relationship still wait for the
+          // access gate so no intermediate request screen is exposed.
           if (uid && (role === 'parent' || role === 'teacher' || role === 'admin')) {
             if (role === 'parent') {
-              await applySessionSnapshot(uid, role);
+              const [cachedAccess, cachedChildren] = await Promise.all([
+                authStorage.getParentAccess(),
+                loadCachedParentChildren(),
+              ]);
+              if (cachedAccess === 'ACTIVE' && cachedChildren.length > 0) {
+                await applyParentChildren(uid, cachedChildren);
+                useAppStore.getState().setParentAccessStatus('ACTIVE');
+                void applySessionSnapshot(uid, role);
+              } else {
+                await applySessionSnapshot(uid, role);
+              }
             } else {
               void applySessionSnapshot(uid, role);
             }
@@ -534,7 +544,7 @@ export default function App() {
       appStateSub.remove();
       pushTokenSub.remove();
     };
-  }, [applySessionSnapshot, checkAndApplyUpdates, clearLocalSession, registerPush, setUserId, setUserRole]);
+  }, [applyParentChildren, applySessionSnapshot, checkAndApplyUpdates, clearLocalSession, registerPush, setUserId, setUserRole]);
 
   const navigateToNotification = async (data: any) => {
     if (!data) {
