@@ -1,6 +1,7 @@
 import { requestChatStream, type ChatStreamCallbacks } from "./chatStream";
 import { clearAccountData } from "./accountCleanup";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import {
   Student,
@@ -71,12 +72,36 @@ function credentialState(key: string): CredentialState {
   return state;
 }
 
+async function readPersistedCredential(key: string): Promise<string | null> {
+  if (key !== JWT_TOKEN_KEY || Platform.OS === 'web') return AsyncStorage.getItem(key);
+
+  const secureValue = await SecureStore.getItemAsync(key);
+  if (secureValue) return secureValue;
+
+  // One-time migration for sessions created before encrypted storage was enabled.
+  const legacyValue = await AsyncStorage.getItem(key);
+  if (legacyValue) {
+    await SecureStore.setItemAsync(key, legacyValue);
+    await AsyncStorage.removeItem(key);
+  }
+  return legacyValue;
+}
+
+async function writePersistedCredential(key: string, value: string): Promise<void> {
+  if (key !== JWT_TOKEN_KEY || Platform.OS === 'web') {
+    await AsyncStorage.setItem(key, value);
+    return;
+  }
+  await SecureStore.setItemAsync(key, value);
+  await AsyncStorage.removeItem(key);
+}
+
 function readCredential(key: string): Promise<string | null> {
   const state = credentialState(key);
   if (state.loaded) return Promise.resolve(state.value);
   if (state.pending) return state.pending;
   const revision = state.revision;
-  const pending = AsyncStorage.getItem(key).then(value => {
+  const pending = readPersistedCredential(key).then(value => {
     // A slow disk read must never restore credentials after logout or login.
     if (state.revision !== revision) return readCredential(key);
     state.value = value;
@@ -95,7 +120,7 @@ function saveCredential(key: string, value: string): Promise<void> {
   state.value = value;
   state.loaded = true;
   state.pending = undefined;
-  return AsyncStorage.setItem(key, value);
+  return writePersistedCredential(key, value);
 }
 
 // ─── Auth Storage ────────────────────────────────────────────────────────────
@@ -122,7 +147,10 @@ export const authStorage = {
     try {
       await clearAccountData();
     } finally {
-      await AsyncStorage.multiRemove([...credentialKeys, STUDENTS_CACHE_KEY]);
+      await Promise.all([
+        AsyncStorage.multiRemove([...credentialKeys, STUDENTS_CACHE_KEY]),
+        Platform.OS === 'web' ? Promise.resolve() : SecureStore.deleteItemAsync(JWT_TOKEN_KEY),
+      ]);
     }
   },
   isLoggedIn: async () => {
@@ -130,11 +158,15 @@ export const authStorage = {
     return !!id && !!token;
   },
   preload: async () => {
-    const keys = credentialKeys.filter(key => !credentialState(key).loaded);
-    if (!keys.length) return;
+    const keys = credentialKeys.filter(key => key !== JWT_TOKEN_KEY && !credentialState(key).loaded);
+    const tokenNeedsLoad = !credentialState(JWT_TOKEN_KEY).loaded;
+    if (!keys.length && !tokenNeedsLoad) return;
     const revisions = keys.map(key => credentialState(key).revision);
     try {
-      const pairs = await AsyncStorage.multiGet(keys);
+      const [pairs] = await Promise.all([
+        AsyncStorage.multiGet(keys),
+        tokenNeedsLoad ? readCredential(JWT_TOKEN_KEY) : Promise.resolve(null),
+      ]);
       pairs.forEach(([key, value], index) => {
         const state = credentialState(key);
         if (state.revision === revisions[index]) {

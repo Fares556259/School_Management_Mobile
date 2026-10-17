@@ -3,7 +3,7 @@
     "name": "SnapSchool",
     "slug": "SnapSchool_App",
     "scheme": "snapschool-app",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -74,7 +74,8 @@
           ]
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-secure-store"
     ],
     "extra": {
       "eas": {
@@ -84,7 +85,7 @@
     "updates": {
       "url": "https://u.expo.dev/ea2d0e56-8dca-4913-84e5-37322118c6be",
       "checkAutomatically": "ON_LOAD",
-      "fallbackToCacheTimeout": 5000
+      "fallbackToCacheTimeout": 0
     },
     "runtimeVersion": {
       "policy": "appVersion"

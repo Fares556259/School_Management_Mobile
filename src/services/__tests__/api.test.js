@@ -1,5 +1,8 @@
 jest.mock('@react-native-async-storage/async-storage', () => ({
-  getItem: jest.fn(), setItem: jest.fn(), multiGet: jest.fn(), multiRemove: jest.fn(),
+  getItem: jest.fn(), setItem: jest.fn(), removeItem: jest.fn(), multiGet: jest.fn(), multiRemove: jest.fn(),
+}));
+jest.mock('expo-secure-store', () => ({
+  getItemAsync: jest.fn(), setItemAsync: jest.fn(), deleteItemAsync: jest.fn(),
 }));
 
 const deferred = () => {
@@ -9,15 +12,20 @@ const deferred = () => {
 };
 const response = (data, status = 200) => ({ ok: status < 400, status, json: async () => data, text: async () => JSON.stringify(data) });
 const tick = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
-let storage, api, emit, originalFetch;
+let storage, secureStorage, api, emit, originalFetch;
 
 beforeEach(() => {
   jest.resetModules();
   storage = require('@react-native-async-storage/async-storage');
+  secureStorage = require('expo-secure-store');
   storage.getItem.mockResolvedValue(null);
   storage.setItem.mockResolvedValue();
+  storage.removeItem.mockResolvedValue();
   storage.multiGet.mockImplementation(async keys => keys.map(key => [key, null]));
   storage.multiRemove.mockResolvedValue();
+  secureStorage.getItemAsync.mockResolvedValue(null);
+  secureStorage.setItemAsync.mockResolvedValue();
+  secureStorage.deleteItemAsync.mockResolvedValue();
   api = require('../api');
   emit = jest.spyOn(require('react-native').DeviceEventEmitter, 'emit').mockImplementation(() => {});
   jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -36,18 +44,18 @@ const login = async (token = 'account-a', school = 'school-a', user = 'parent-a'
 
 it('shares a cold credential read and caches missing credentials too', async () => {
   const cold = deferred();
-  storage.getItem.mockReturnValueOnce(cold.promise);
+  secureStorage.getItemAsync.mockReturnValueOnce(cold.promise);
   const reads = [api.authStorage.getToken(), api.authStorage.getToken(), api.authStorage.getToken()];
-  expect(storage.getItem).toHaveBeenCalledTimes(1);
+  expect(secureStorage.getItemAsync).toHaveBeenCalledTimes(1);
   cold.resolve(null);
   expect(await Promise.all(reads)).toEqual([null, null, null]);
   expect(await api.authStorage.getToken()).toBeNull();
-  expect(storage.getItem).toHaveBeenCalledTimes(1);
+  expect(secureStorage.getItemAsync).toHaveBeenCalledTimes(1);
 });
 
 it('does not restore an old credential when a disk read finishes after login', async () => {
   const cold = deferred();
-  storage.getItem.mockReturnValueOnce(cold.promise);
+  secureStorage.getItemAsync.mockReturnValueOnce(cold.promise);
   const read = api.authStorage.getToken();
   await api.authStorage.saveToken('new-account');
   cold.resolve('previous-account');
