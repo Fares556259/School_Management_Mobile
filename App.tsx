@@ -466,10 +466,15 @@ export default function App() {
             identifyUser(uid, { role });
           }
 
-          // Stored credentials are enough to launch. Profile/network hydration
-          // continues in the background and is discarded if the account changes.
+          // Keep the launch overlay above parent routing until the access gate
+          // resolves. Otherwise CHECKING and a freshly ACTIVE family snapshot
+          // briefly render before the home navigator on a cold start.
           if (uid && (role === 'parent' || role === 'teacher' || role === 'admin')) {
-            void applySessionSnapshot(uid, role);
+            if (role === 'parent') {
+              await applySessionSnapshot(uid, role);
+            } else {
+              void applySessionSnapshot(uid, role);
+            }
           }
           nextPostOnboarding = 'signedIn';
         } else {
