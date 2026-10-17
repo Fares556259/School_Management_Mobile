@@ -44,7 +44,7 @@ import { View, ActivityIndicator, Alert, StyleSheet, AppState } from 'react-nati
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from './src/store/useAppStore';
-import { authService, authStorage, parentService, studentService, API_BASE_URL } from './src/services/api';
+import { authService, authStorage, parentService, studentService, API_BASE_URL, getFullImageUrl } from './src/services/api';
 import { notificationService } from './src/services/notificationService';
 import * as Notifications from 'expo-notifications';
 import * as Updates from 'expo-updates';
@@ -531,7 +531,7 @@ export default function App() {
     };
   }, [applySessionSnapshot, checkAndApplyUpdates, clearLocalSession, registerPush, setUserId, setUserRole]);
 
-  const navigateToNotification = (data: any) => {
+  const navigateToNotification = async (data: any) => {
     if (!data) {
       if ((navigationRef as any)?.isReady?.()) {
         (navigationRef as any).navigate('Notifications');
@@ -539,7 +539,39 @@ export default function App() {
       return;
     }
     if (data.type === 'PARENT_ACCESS') {
-      (navigationRef as any).navigate('ParentRequests');
+      let snapshot = null;
+      let request = null;
+      const hasDecisionPayload = typeof data.requestId === 'string' && typeof data.status === 'string';
+      if (!hasDecisionPayload) {
+        snapshot = await parentService.fetchAccessStatus();
+        const reviewed = snapshot?.requests
+          .filter(item => item.status !== 'PENDING' && item.reviewedAt)
+          .sort((a, b) => new Date(b.reviewedAt || 0).getTime() - new Date(a.reviewedAt || 0).getTime());
+        request = (data.requestId ? snapshot?.requests.find(item => item.id === data.requestId) : reviewed?.[0]) || null;
+      }
+      const status = request?.status || data.status;
+      const requestId = request?.id || data.requestId;
+      const rawChild = request?.child || (data.child && typeof data.child === 'object' ? data.child : undefined);
+      const child = rawChild ? { ...rawChild, avatarUrl: rawChild.avatarUrl || getFullImageUrl(rawChild.img || null) } : undefined;
+      const requestPreview = request || (requestId && status ? {
+        id: requestId,
+        reference: typeof data.reference === 'string' ? data.reference : '••••',
+        status,
+        reason: typeof data.reason === 'string' ? data.reason : null,
+        relation: 'guardian',
+        createdAt: typeof data.createdAt === 'string' ? data.createdAt : new Date().toISOString(),
+        reviewedAt: typeof data.reviewedAt === 'string' ? data.reviewedAt : new Date().toISOString(),
+        studentId: typeof data.studentId === 'string' ? data.studentId : child?.id,
+        child,
+      } : undefined);
+      (navigationRef as any).navigate('ParentRequests', requestPreview ? {
+        requestId,
+        requestPreview,
+        schoolName: snapshot?.schoolName || '',
+        accessStatus: status === 'APPROVED' ? 'ACTIVE' : snapshot?.accessStatus,
+        notificationsEnabled: true,
+        openedFromApprovalNotification: status === 'APPROVED',
+      } : undefined);
     } else if (data.type === 'HOMEWORK' && data.homeworkId) {
       const targetStudentId = data.studentId || useAppStore.getState().selectedChildId;
       if (data.studentId) {
@@ -616,7 +648,7 @@ export default function App() {
       console.log("[DEBUG-NOTIF-TAP]", data);
 
       if (authStateRef.current === 'signedIn' && navigationRef.isReady()) {
-        navigateToNotification(data);
+        void navigateToNotification(data);
       } else {
         pendingNotificationRef.current = data;
       }
@@ -642,7 +674,7 @@ export default function App() {
       pendingNotificationRef.current = null;
       const timeout = setTimeout(() => {
         if (navigationRef.isReady()) {
-          navigateToNotification(data);
+          void navigateToNotification(data);
         }
       }, 500);
       return () => clearTimeout(timeout);

@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, AppState, Linking, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
+import { Image } from 'expo-image';
 import { ArrowLeft, ArrowRight, BellRing, CheckCircle2, ChevronLeft, ChevronRight, Clock3, LogOut, ShieldCheck } from 'lucide-react-native';
 import { AccessButton, AccessField, accessStyles as s } from '../components/auth/AccessControls';
 import { ChildAccessRequestForm } from '../components/auth/ChildAccessRequestForm';
@@ -15,6 +16,7 @@ import { useAppStore } from '../store/useAppStore';
 
 export function ParentApprovalScreen({ onActivated, onSignOut, navigation, route }: { onActivated?: () => Promise<void>; onSignOut?: () => void; navigation?: any; route?: any }) {
   const { language, isRTL } = useLanguage(); const c = parentAccessText[language];
+  const approvedChildren = useAppStore(state => state.children);
   const [snapshot, setSnapshot] = useState<ParentAccessSnapshot | null>(() => {
     const preview = route?.params?.requestPreview as ParentAccessSnapshot['requests'][number] | undefined;
     if (!preview || typeof preview.id !== 'string' || typeof preview.status !== 'string') return null;
@@ -120,8 +122,9 @@ export function ParentApprovalScreen({ onActivated, onSignOut, navigation, route
   const focusedRequest = snapshot?.requests.find(request => request.id === route?.params?.requestId);
   const focusedPending = focusedRequest?.status === 'PENDING';
   const focusedRejected = focusedRequest?.status === 'REJECTED' || focusedRequest?.status === 'REVOKED';
-  const title = focusedPending ? c.childPendingTitle : focusedRejected ? c.childRejectedTitle : active ? c.activeTitle : rejected ? c.rejectedTitle : snapshot ? c.pendingTitle : c.checkingTitle;
-  const body = focusedPending ? c.childPendingBody : focusedRejected ? c.childRejectedBody : active ? c.activeBody : rejected ? c.rejectedBody : snapshot ? c.pendingBody : c.checkingBody;
+  const focusedApproved = focusedRequest?.status === 'APPROVED';
+  const title = focusedPending ? c.childPendingTitle : focusedRejected ? c.childRejectedTitle : focusedApproved ? c.childApprovedTitle : active ? c.activeTitle : rejected ? c.rejectedTitle : snapshot ? c.pendingTitle : c.checkingTitle;
+  const body = focusedPending ? c.childPendingBody : focusedRejected ? c.childRejectedBody : focusedApproved ? c.childApprovedBody : active ? c.activeBody : rejected ? c.rejectedBody : snapshot ? c.pendingBody : c.checkingBody;
   const visibleRequests = focusedRequest ? [focusedRequest] : snapshot?.requests || [];
   const hasPendingRequest = !!snapshot?.requests.some(request => request.status === 'PENDING');
   const requestColors = (requestStatus: string) => requestStatus === 'APPROVED'
@@ -155,6 +158,21 @@ export function ParentApprovalScreen({ onActivated, onSignOut, navigation, route
       </TouchableOpacity>}
       {visibleRequests.map(request => {
         const colors = requestColors(request.status);
+        const linkedChild = approvedChildren.find(child => child.id === (request.studentId || request.child?.id));
+        const childName = request.child ? `${request.child.name} ${request.child.surname}`.trim() : linkedChild?.name;
+        const childClass = request.child?.className || linkedChild?.class;
+        const childAvatar = request.child?.avatarUrl || linkedChild?.avatarUrl;
+        if (request.status === 'APPROVED' && childName) return <View key={request.id} style={[s.card, { padding: 17, backgroundColor: colors.background, borderColor: colors.border }]}>
+          <View style={[row, { alignItems: 'center', gap: 13 }]}>
+            <Image source={childAvatar ? { uri: childAvatar } : require('../../assets/noavatar.png')} transition={150} style={{ width: 58, height: 58, borderRadius: 19, backgroundColor: '#E4F6EF' }} />
+            <View style={{ flex: 1, minWidth: 0, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+              <Text style={[s.heading, text, { fontSize: 17 }]}>{childName}</Text>
+              {!!childClass && <Text style={[s.small, text, { marginTop: 3 }]}>{c.classLabel}: {childClass}</Text>}
+              <Text style={[s.small, text, { marginTop: 3, color: '#637189' }]}>{c.reference}: {request.reference}</Text>
+            </View>
+            <View style={{ borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: colors.badge }}><Text style={{ fontSize: 11, fontWeight: '800', color: colors.text }}>{labels[request.status]}</Text></View>
+          </View>
+        </View>;
         return <View key={request.id} style={[s.card, { padding: 17, gap: 11, backgroundColor: colors.background, borderColor: colors.border }]}>
         <View style={[row, { alignItems: 'center', justifyContent: 'space-between', gap: 8 }]}><Text style={{ fontSize: 16, color: '#142238', fontWeight: '800' }}>{c.requestChild} {request.reference}</Text><View style={{ borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: colors.badge, flexShrink: 1 }}><Text style={{ fontSize: 11, fontWeight: '800', color: colors.text }}>{labels[request.status]}</Text></View></View>
         {!!request.reason && <View style={{ borderRadius: 12, padding: 12, backgroundColor: '#FFF7F3', gap: 5 }}><Text style={[s.small, text, { fontWeight: '800', color: '#99573D' }]}>{c.schoolReason}</Text><Text style={[s.body, text]}>{request.reason}</Text></View>}

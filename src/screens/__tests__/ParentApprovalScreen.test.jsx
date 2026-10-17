@@ -173,3 +173,33 @@ it('shows an already-enabled activation alert on the first frame', () => {
   resolveStatus(pending());
   renderer = null;
 });
+
+it('opens an approved notification as a green child profile with full identity', () => {
+  let resolveStatus;
+  parentService.fetchAccessStatus.mockImplementation(() => new Promise(resolve => { resolveStatus = resolve; }));
+  const approvedRequest = {
+    ...pending().requests[0],
+    id: 'approved-b',
+    reference: '••••4800',
+    status: 'APPROVED',
+    reviewedAt: '2026-10-16T14:00:00Z',
+    studentId: 'student-b',
+    child: { id: 'student-b', name: 'Meriem', surname: 'Ben Salah', className: '2A', avatarUrl: null },
+  };
+  act(() => {
+    renderer = TestRenderer.create(<ParentApprovalScreen
+      navigation={{ goBack: jest.fn() }}
+      route={{ params: { requestId: approvedRequest.id, requestPreview: approvedRequest, schoolName: 'SnapSchool Academy', accessStatus: 'ACTIVE', notificationsEnabled: true, openedFromApprovalNotification: true } }}
+    />);
+  });
+
+  expect(labels()).toContain('Accès approuvé');
+  expect(labels()).toContain('Meriem Ben Salah');
+  expect(labels()).toContain('2A');
+  expect(labels()).toContain('Approuvée');
+  expect(labels()).not.toContain('En attente d’approbation');
+  expect(labels()).not.toContain('Les demandes de votre famille');
+  act(() => { renderer.unmount(); });
+  resolveStatus({ ...pending(), accessStatus: 'ACTIVE', requests: [approvedRequest] });
+  renderer = null;
+});

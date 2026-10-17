@@ -546,7 +546,13 @@ export const parentService = {
     const data = await apiFetch('/api/mobile/parent/access');
     if (!data?.accessStatus || !Array.isArray(data.requests)) return null;
     await authStorage.saveParentAccess(data.accessStatus);
-    return data as ParentAccessSnapshot;
+    return {
+      ...data,
+      requests: data.requests.map((request: any) => request.child ? {
+        ...request,
+        child: { ...request.child, avatarUrl: getFullImageUrl(request.child.img) },
+      } : request),
+    } as ParentAccessSnapshot;
   },
 
   updatePendingProfile: async (profile: { name: string; surname: string; phone: string; address: string }) => apiFetch('/api/mobile/parent/access', { method: 'PATCH', body: JSON.stringify({ action: 'UPDATE_PROFILE', ...profile }) }),
@@ -1304,5 +1310,9 @@ export const privacyService = {
 
 export type ParentAccessSnapshot = {
   accessStatus: 'ACTIVE' | 'PENDING' | 'REJECTED'; name: string; surname: string; address: string; phone: string; schoolName: string;
-  requests: { id: string; reference: string; status: string; reason: string | null; relation: string; createdAt: string; reviewedAt: string | null }[];
+  requests: {
+    id: string; reference: string; status: string; reason: string | null; relation: string; createdAt: string; reviewedAt: string | null;
+    studentId?: string;
+    child?: { id: string; name: string; surname: string; className: string | null; img?: string | null; avatarUrl?: string | null };
+  }[];
 };
