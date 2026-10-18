@@ -1,4 +1,3 @@
-import { PrivacyControls } from '../components/PrivacyControls';
 import React, { useState, useEffect, useRef } from 'react';
 import { useHardwareBack } from '../hooks/useHardwareBack';
 import { AuthLanguageSwitch } from '../components/auth/AuthLanguageSwitch';
@@ -14,6 +13,7 @@ import {
   ActivityIndicator,
   StatusBar,
   Keyboard,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -28,6 +28,8 @@ import {
   ShieldCheck,
   User,
   Building2,
+  KeyRound,
+  X,
 } from 'lucide-react-native';
 import { authService } from '../services/api';
 import { useAppStore } from '../store/useAppStore';
@@ -77,6 +79,7 @@ export const SignInScreen = ({
   const [error, setError] = useState('');
   const [hint, setHint] = useState('');
   const [showSignUpPrompt, setShowSignUpPrompt] = useState(false);
+  const [showRecoveryHelp, setShowRecoveryHelp] = useState(false);
 
   const handleCheckStatus = async () => {
     Keyboard.dismiss();
@@ -582,6 +585,21 @@ export const SignInScreen = ({
                       )}
                     </TouchableOpacity>
                   </View>
+                  {role === 'parent' && step === 'NEEDS_PASSWORD' && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        Keyboard.dismiss();
+                        setShowRecoveryHelp(true);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel={language === 'ar' ? 'نسيت كلمة المرور' : language === 'en' ? 'Forgot password' : 'Mot de passe oublié'}
+                      style={{ minHeight: 44, alignSelf: isRTL ? 'flex-start' : 'flex-end', justifyContent: 'center', paddingHorizontal: 2 }}
+                    >
+                      <Text style={{ color: '#0055D4', fontSize: 13.5, fontWeight: '700' }}>
+                        {language === 'ar' ? 'نسيت كلمة المرور؟' : language === 'en' ? 'Forgot password?' : 'Mot de passe oublié ?'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
 
@@ -776,11 +794,78 @@ export const SignInScreen = ({
                   {language === 'ar' ? 'تواصل مع إدارة مدرستك إذا احتجت إلى مساعدة.' : language === 'en' ? 'Need help? Contact your school office.' : 'Besoin d’aide ? Contactez votre école.'}
                 </Text>
               </View>
-              <PrivacyControls signedIn={false} />
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      <Modal
+        visible={showRecoveryHelp}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setShowRecoveryHelp(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(15, 27, 61, 0.48)', justifyContent: 'center', paddingHorizontal: 22 }}>
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => setShowRecoveryHelp(false)}
+            accessibilityLabel={language === 'ar' ? 'إغلاق' : language === 'en' ? 'Close' : 'Fermer'}
+            style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+          />
+          <View style={{ borderRadius: 24, backgroundColor: '#FFFFFF', padding: 22, gap: 16, shadowColor: '#0F1B3D', shadowOpacity: 0.2, shadowRadius: 24, elevation: 12 }}>
+            <View style={[{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 12 }]}>
+              <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: '#EAF3FF', alignItems: 'center', justifyContent: 'center' }}>
+                <KeyRound size={23} color="#0055D4" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#0F1B3D', fontSize: 19, fontWeight: '800', textAlign: isRTL ? 'right' : 'left' }}>
+                  {language === 'ar' ? 'استرجاع كلمة المرور' : language === 'en' ? 'Recover your password' : 'Récupérer votre mot de passe'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowRecoveryHelp(false)}
+                accessibilityRole="button"
+                accessibilityLabel={language === 'ar' ? 'إغلاق' : language === 'en' ? 'Close' : 'Fermer'}
+                style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X size={20} color="#52637D" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ color: '#52637D', fontSize: 14.5, lineHeight: 22, textAlign: isRTL ? 'right' : 'left' }}>
+              {language === 'ar'
+                ? 'تواصل مع إدارة المدرسة. بعد التحقق من هويتك، ستمنحك الإدارة رمز دخول مؤقتًا من 8 أرقام.'
+                : language === 'en'
+                  ? 'Contact your school office. After verifying your identity, the school will give you an 8-digit temporary sign-in code.'
+                  : 'Contactez l’administration de votre école. Après vérification de votre identité, elle vous donnera un code temporaire de 8 chiffres.'}
+            </Text>
+
+            <View style={{ borderRadius: 16, backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0', padding: 14, gap: 5 }}>
+              <Text style={{ color: '#0F1B3D', fontSize: 13.5, fontWeight: '800', textAlign: isRTL ? 'right' : 'left' }}>
+                {language === 'ar' ? 'كيف تستخدمه؟' : language === 'en' ? 'How to use it' : 'Comment l’utiliser'}
+              </Text>
+              <Text style={{ color: '#64748B', fontSize: 13, lineHeight: 20, textAlign: isRTL ? 'right' : 'left' }}>
+                {language === 'ar'
+                  ? 'أدخل الرمز في خانة كلمة المرور ثم اضغط على تسجيل الدخول. بعد الدخول، يمكنك تغييره من الملف الشخصي.'
+                  : language === 'en'
+                    ? 'Enter the code in the password field and sign in. You can then change it from your profile.'
+                    : 'Saisissez ce code dans le champ Mot de passe, puis connectez-vous. Vous pourrez ensuite le modifier depuis votre profil.'}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => setShowRecoveryHelp(false)}
+              accessibilityRole="button"
+              style={{ height: 50, borderRadius: 16, backgroundColor: '#0055D4', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '800' }}>
+                {language === 'ar' ? 'فهمت' : language === 'en' ? 'Got it' : 'J’ai compris'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };

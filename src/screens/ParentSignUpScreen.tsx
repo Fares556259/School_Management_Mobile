@@ -1,4 +1,3 @@
-import { PrivacyControls } from '../components/PrivacyControls';
 import React, { useRef, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -78,7 +77,6 @@ export const ParentSignUpScreen = ({ initialPhone = '', onBack, onSignUpSuccess 
           <AccessField label={c.password} value={password} onChangeText={setPassword} secureTextEntry={!visible} autoComplete="new-password" autoCorrect={false} autoCapitalize="none" maxLength={128} hint={c.passwordHint} trailing={<TouchableOpacity accessibilityLabel={visible ? c.hidePassword : c.showPassword} onPress={() => setVisible(v => !v)} style={{ minWidth: 44, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}>{visible ? <EyeOff size={19} color="#637189" /> : <Eye size={19} color="#637189" />}</TouchableOpacity>} />
           <AccessField label={c.confirmPassword} value={confirmation} onChangeText={setConfirmation} secureTextEntry={!visible} autoCorrect={false} autoCapitalize="none" maxLength={128} returnKeyType="done" onSubmitEditing={() => void next()} />
         </View><View style={[s.card, { backgroundColor: '#EDF5FF', borderColor: '#D4E5FA' }]}><Text style={[s.heading, text, { fontSize: 15 }]}>{firstName} {lastName}</Text><Text style={[s.body, text]}>{phone}</Text>{children.map(child => <Text key={child.identifier} style={[s.small, text]}>{child.reference} · {child.schoolName}</Text>)}<Text style={[s.small, text]}>{c.security}</Text></View></>}
-        {step === 3 && <PrivacyControls signedIn={false} />}
         {!!error && <Text accessibilityRole="alert" style={[s.error, text]}>{error}</Text>}
       </ScrollView>
       <View style={s.footer}><AccessButton label={step === 3 ? c.submit : c.next} onPress={() => void next()} disabled={step === 1 && !children.length} loading={busy && step === 3} icon={step === 3 ? <ShieldCheck size={19} color="#FFFFFF" /> : undefined} /></View>

@@ -1,4 +1,3 @@
-import { PrivacyControls } from '../components/PrivacyControls';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, AppState, Linking, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -191,7 +190,6 @@ export function ParentApprovalScreen({ onActivated, onSignOut, navigation, route
       </View>}
       {!!snapshot && !focusedRequest && !editing && <AccessButton label={rejected ? c.correct : c.addAnother} secondary onPress={() => setEditing(true)} />}
       {editing && <><ChildAccessRequestForm onSent={() => { setEditing(false); void load(true); }} /><TouchableOpacity onPress={() => setEditing(false)} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={[s.body, { textAlign: 'center' }]}>{c.back}</Text></TouchableOpacity></>}
-      {!navigation && <PrivacyControls />}
       {onSignOut && <TouchableOpacity onPress={onSignOut} accessibilityRole="button" style={[row, { gap: 8, alignItems: 'center', justifyContent: 'center', minHeight: 48 }]}><LogOut size={17} color="#637189" /><Text style={[s.body, { fontWeight: '600' }]}>{c.signOut}</Text></TouchableOpacity>}
     </ScrollView>
   </SafeAreaView>;
