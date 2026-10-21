@@ -39,20 +39,18 @@ import { adminService } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
 import { useLanguage } from '../../context/LanguageContext';
 
+import { getAccountChatCache, chatStorageKeys } from './chatCache';
+import { submitActionDecision, applyActionDecision } from './actionConfirmation';
 import HniaEmptyState from './components/HniaEmptyState';
 import HniaHistoryDrawer, { ConversationThread } from './components/HniaHistoryDrawer';
 import HniaComposer from './components/HniaComposer';
 import HniaMessageBubble, { ChatMessage } from './components/HniaMessageBubble';
 import { tryParseActionCardWidget, ActionCardField, ActionCardData } from './HniaWidgets';
 
-const HNIA_STORAGE_KEY = '@hnia_chat_messages_v3';
-const HNIA_CONV_STORAGE_KEY = '@hnia_chat_conv_id_v3';
 const HNIA_AVATAR = require('../../../assets/hnia/hnia_mascot_icon.png');
 
 // In-Memory Fast Cache: preserves messages and active thread across tab switches
 // Ensures instant 0ms mount with ZERO loading spinner
-let memoryCachedMessages: ChatMessage[] = [];
-let memoryCachedConvId: string | undefined = undefined;
 
 function copyToClipboard(text: string): Promise<void> {
   try {
@@ -103,6 +101,15 @@ async function readAudioAsBase64(uri: string): Promise<string> {
 }
 
 export default function HniaChatScreen() {
+  const userId = useAppStore(state => state.userId);
+  return <HniaChatForAccount key={userId || 'signed-out'} userId={userId || 'signed-out'} />;
+}
+
+function HniaChatForAccount({ userId }: { userId: string }) {
+  const cache = getAccountChatCache(userId);
+  const keys = chatStorageKeys(userId);
+  const HNIA_STORAGE_KEY = keys.messages;
+  const HNIA_CONV_STORAGE_KEY = keys.conversation;
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
@@ -110,11 +117,11 @@ export default function HniaChatScreen() {
   const { t, language, isRTL } = useLanguage();
 
   // Chat State — initialized instantly from in-memory cache (0ms mount, zero spinner)
-  const [messages, setMessages] = useState<ChatMessage[]>(() => memoryCachedMessages);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => cache.messages);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isInitializing, setIsInitializing] = useState<boolean>(() => memoryCachedMessages.length === 0);
-  const [conversationId, setConversationId] = useState<string | undefined>(() => memoryCachedConvId);
+  const [isInitializing, setIsInitializing] = useState<boolean>(() => cache.messages.length === 0);
+  const [conversationId, setConversationId] = useState<string | undefined>(() => cache.conversationId);
   const [activeStatusStep, setActiveStatusStep] = useState<string | null>(null);
 
   // History Drawer State
@@ -129,6 +136,7 @@ export default function HniaChatScreen() {
 
   // Actions & Copy Feedback
   const [confirmingToolId, setConfirmingToolId] = useState<string | null>(null);
+  const confirmingActionRef = useRef(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null);
 
@@ -319,25 +327,25 @@ export default function HniaChatScreen() {
   const saveMessagesToLocal = useCallback(async (msgs: ChatMessage[], convId?: string) => {
     try {
       if (msgs && msgs.length > 0) {
-        memoryCachedMessages = msgs.slice(-50);
+        cache.messages = msgs.slice(-50);
         await AsyncStorage.setItem(HNIA_STORAGE_KEY, JSON.stringify(msgs.slice(-80)));
       }
       if (convId) {
-        memoryCachedConvId = convId;
+        cache.conversationId = convId;
         await AsyncStorage.setItem(HNIA_CONV_STORAGE_KEY, convId);
       }
     } catch (e) {
       console.warn('[HniaChat] Local save error:', e);
     }
-  }, []);
+  }, [cache, HNIA_STORAGE_KEY, HNIA_CONV_STORAGE_KEY]);
 
   // Initial load: instant in-memory first, then AsyncStorage fallback, then silent server sync
   useEffect(() => {
     let isMounted = true;
     (async () => {
-      let foundConvId: string | undefined = memoryCachedConvId || undefined;
+      let foundConvId: string | undefined = cache.conversationId || undefined;
       // If in-memory cache was empty on cold start, hydrate from AsyncStorage
-      if (memoryCachedMessages.length === 0) {
+      if (cache.messages.length === 0) {
         try {
           const [cachedRaw, cachedConvId] = await Promise.all([
             AsyncStorage.getItem(HNIA_STORAGE_KEY),
@@ -346,13 +354,13 @@ export default function HniaChatScreen() {
           if (!isMounted) return;
           if (cachedConvId) {
             setConversationId(cachedConvId);
-            memoryCachedConvId = cachedConvId;
+            cache.conversationId = cachedConvId;
             foundConvId = cachedConvId;
           }
           if (cachedRaw) {
             const parsed = JSON.parse(cachedRaw);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              memoryCachedMessages = parsed.slice(-50);
+              cache.messages = parsed.slice(-50);
               setMessages(parsed);
               setIsInitializing(false);
             }
@@ -445,7 +453,9 @@ export default function HniaChatScreen() {
                       });
                   }
 
-                  if (fullParsed) {
+                  if (matchedPending.actionTitle) {
+                    pendingConfirmation = matchedPending;
+                  } else if (fullParsed) {
                     pendingConfirmation = {
                       ...fullParsed,
                       toolCallId: matchedPending.toolCallId,
@@ -493,6 +503,10 @@ export default function HniaChatScreen() {
             };
           });
 
+          // Keep pending cards visible even if their original summary was outside this history page.
+          pendingList.filter((card: any) => !usedPendingIds.has(card.toolCallId)).forEach((card: any) => {
+            loaded.push({ id: `action_${card.toolCallId}`, role: 'assistant', content: '', pendingConfirmation: card, createdAt: new Date().toISOString() });
+          });
           setMessages(loaded);
           saveMessagesToLocal(loaded, res.conversationId);
           isInitialLoadRef.current = false;
@@ -531,8 +545,8 @@ export default function HniaChatScreen() {
     setHistoryDrawerVisible(false);
     if (threadId === conversationId) return;
 
-    memoryCachedConvId = threadId;
-    memoryCachedMessages = [];
+    cache.conversationId = threadId;
+    cache.messages = [];
     setIsLoading(true);
     setMessages([]);
     isInitialLoadRef.current = true;
@@ -547,8 +561,8 @@ export default function HniaChatScreen() {
   const handleCreateNewThread = async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setHistoryDrawerVisible(false);
-    memoryCachedMessages = [];
-    memoryCachedConvId = undefined;
+    cache.messages = [];
+    cache.conversationId = undefined;
     setMessages([]);
     setConversationId(undefined);
     setStagedImage(null);
@@ -1247,71 +1261,30 @@ export default function HniaChatScreen() {
     action: 'confirm' | 'cancel',
     updatedArgs?: Record<string, any>
   ) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    if (!toolCallId || toolCallId.startsWith('fallback_') || toolCallId.startsWith('parsed_')) {
-      if (updatedArgs) {
-        let editPrompt = action === 'confirm' ? "Oui, confirme l'action" : "Non, annule cette action";
-        if (updatedArgs.amount) editPrompt += ` avec le montant ${updatedArgs.amount} DT`;
-        if (updatedArgs.title) editPrompt += ` pour ${updatedArgs.title}`;
-        handleSendMessage(editPrompt);
-      } else {
-        handleSendMessage(action === 'confirm' ? "Oui, je confirme l'action." : 'Non, annule cette action.');
-      }
-      return;
-    }
-
+    if (confirmingActionRef.current) return;
+    confirmingActionRef.current = true;
     setConfirmingToolId(toolCallId);
-
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      const res = await adminService.confirmAction(toolCallId, action, updatedArgs);
-      if (res && res.success) {
-        const newStatus: 'EXECUTED' | 'REJECTED' = action === 'confirm' ? 'EXECUTED' : 'REJECTED';
-        setMessages((prev) => {
-          const next: ChatMessage[] = prev.map((m) => {
-            if (Array.isArray(m.pendingConfirmation)) {
-              const hasCard = m.pendingConfirmation.some((c: any) => c.toolCallId === toolCallId);
-              if (hasCard) {
-                return {
-                  ...m,
-                  pendingConfirmation: m.pendingConfirmation.map((c: any) =>
-                    c.toolCallId === toolCallId
-                      ? {
-                          ...c,
-                          status: newStatus,
-                          arguments: updatedArgs ? { ...(c.arguments || {}), ...updatedArgs } : c.arguments,
-                          reference: res.actionResult?.reference,
-                          resultMessage: res.actionResult?.summary || res.message,
-                        }
-                      : c
-                  ),
-                };
-              }
-            } else if (m.pendingConfirmation?.toolCallId === toolCallId) {
-              return {
-                ...m,
-                pendingConfirmation: {
-                  ...m.pendingConfirmation,
-                  status: newStatus,
-                  arguments: updatedArgs ? { ...(m.pendingConfirmation.arguments || {}), ...updatedArgs } : m.pendingConfirmation.arguments,
-                  reference: res.actionResult?.reference,
-                  resultMessage: res.actionResult?.summary || res.message,
-                },
-              };
-            }
-            return m;
-          });
-          saveMessagesToLocal(next, conversationId);
-          return next;
-        });
-        queryClient.invalidateQueries({ queryKey: ['admin'] });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } else {
-        handleSendMessage(action === 'confirm' ? "Oui, je confirme l'action." : 'Non, annule cette action.');
+      const res = await submitActionDecision(adminService.confirmAction, toolCallId, action, updatedArgs);
+      setMessages(prev => {
+        const next = applyActionDecision(prev, toolCallId, res, updatedArgs);
+        saveMessagesToLocal(next, conversationId);
+        return next;
+      });
+      if (res.actionStatus === 'EXECUTED') queryClient.invalidateQueries({ queryKey: ['admin'] });
+      if (res.success) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert('Décision de l’action', res.message || 'Actualisez la discussion pour vérifier son statut.');
       }
     } catch (err: any) {
-      handleSendMessage(action === 'confirm' ? "Oui, je confirme l'action." : 'Non, annule cette action.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert('Confirmation non vérifiée', err.message || 'Vérifiez votre connexion et actualisez la discussion avant de réessayer.');
+      // Read-only reconciliation; never recreate or replay a possibly completed write.
+      await loadChatHistory();
     } finally {
+      confirmingActionRef.current = false;
       setConfirmingToolId(null);
     }
   };
@@ -1450,6 +1423,7 @@ export default function HniaChatScreen() {
                   isCopied={copiedMessageId === item.id}
                   onConfirmAction={(id, updatedArgs) => handleConfirmation(id, 'confirm', updatedArgs)}
                   onCancelAction={(id) => handleConfirmation(id, 'cancel')}
+                  executingToolId={confirmingToolId}
                   isActionExecuting={
                     Boolean(
                       confirmingToolId &&

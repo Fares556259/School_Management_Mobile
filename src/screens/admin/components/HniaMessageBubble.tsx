@@ -64,6 +64,7 @@ interface HniaMessageBubbleProps {
   onConfirmAction: (toolCallId: string, updatedArgs?: Record<string, any>) => void;
   onCancelAction: (toolCallId: string) => void;
   isActionExecuting: boolean;
+  executingToolId?: string | null;
   onSelectSuggestion: (text: string) => void;
   onNavigateToCaisse?: () => void;
 }
@@ -76,6 +77,7 @@ function HniaMessageBubble({
   onConfirmAction,
   onCancelAction,
   isActionExecuting,
+  executingToolId,
   onSelectSuggestion,
   onNavigateToCaisse,
 }: HniaMessageBubbleProps) {
@@ -345,7 +347,7 @@ function HniaMessageBubble({
                   card={card}
                   onConfirm={onConfirmAction}
                   onCancel={onCancelAction}
-                  isExecuting={isActionExecuting}
+                  isExecuting={isActionExecuting && (!executingToolId || card.toolCallId === executingToolId)}
                 />
               </View>
             ))}
@@ -745,6 +747,7 @@ export default React.memo(HniaMessageBubble, (prev, next) => {
     prev.message.isStreaming === next.message.isStreaming &&
     prev.isCopied === next.isCopied &&
     prev.isActionExecuting === next.isActionExecuting &&
+    prev.executingToolId === next.executingToolId &&
     prev.message.widget === next.message.widget &&
     prevCard?.status === nextCard?.status &&
     prevCard?.toolCallId === nextCard?.toolCallId &&

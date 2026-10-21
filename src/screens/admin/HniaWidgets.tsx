@@ -64,7 +64,7 @@ export interface ActionCardData {
   actionType?: 'expense' | 'income' | 'payment' | 'student' | 'class' | 'attendance' | 'announcement' | 'generic';
   confirmText: string;
   fields?: ActionCardField[];
-  status?: 'PENDING' | 'EXECUTING' | 'EXECUTED' | 'REJECTED';
+  status?: 'PENDING' | 'EXECUTING' | 'EXECUTED' | 'REJECTED' | 'FAILED' | 'EXPIRED';
   reference?: string;
   resultMessage?: string;
   arguments?: Record<string, any>;
@@ -1501,6 +1501,7 @@ export function ActionCardWidget({
   const isIncome = card.toolName === 'add_income' || card.actionType === 'income';
   const isExpense = card.toolName === 'add_expense' || card.actionType === 'expense';
   const isPayment = card.toolName === 'record_payment' || card.toolName === 'record_parent_payment' || card.actionType === 'payment';
+  const canEdit = ['add_expense', 'add_income', 'record_payment', 'record_parent_payment'].includes(card.toolName);
   const isStudent = card.toolName === 'create_student' || card.actionType === 'student';
 
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -1537,6 +1538,7 @@ export function ActionCardWidget({
   };
 
   const getInitialBeneficiary = () => {
+    if (localOverrides?.parentNameOrId) return String(localOverrides.parentNameOrId);
     if (localOverrides?.studentNameOrId) return String(localOverrides.studentNameOrId);
     if (card.arguments?.studentNameOrId) return String(card.arguments.studentNameOrId);
     if (card.arguments?.studentName) return String(card.arguments.studentName);
@@ -1569,18 +1571,25 @@ export function ActionCardWidget({
     const updated: Record<string, any> = {};
 
     if (editAmount.trim()) {
-      const parsed = parseFloat(editAmount.replace(/[^0-9.]/g, ''));
-      if (!isNaN(parsed)) updated.amount = parsed;
+      const value = editAmount.trim();
+      const parsed = Number(value.replace(',', '.'));
+      if (!/^\d+(?:[.,]\d+)?$/.test(value) || !Number.isFinite(parsed) || parsed <= 0) {
+        Alert.alert('Montant invalide', 'Saisissez un montant positif, par exemple 7,50.');
+        return;
+      }
+      updated.amount = parsed;
     }
-    if (editTitle.trim()) {
+    if ((isExpense || isIncome) && editTitle.trim()) {
       updated.title = editTitle.trim();
       updated.description = editTitle.trim();
     }
-    if (editCategory.trim()) {
+    if ((isExpense || isIncome) && editCategory.trim()) {
       updated.category = editCategory.trim();
     }
     if (editBeneficiary.trim()) {
-      if (card.toolName === 'record_payment' || card.actionType === 'payment') {
+      if (card.toolName === 'record_parent_payment') {
+        updated.parentNameOrId = editBeneficiary.trim();
+      } else if (card.toolName === 'record_payment' || card.actionType === 'payment') {
         updated.studentNameOrId = editBeneficiary.trim();
       } else {
         updated.name = editBeneficiary.trim();
@@ -1689,6 +1698,17 @@ export function ActionCardWidget({
     );
   }
 
+  if (card.status === 'FAILED' || card.status === 'EXPIRED') {
+    return (
+      <View style={actionStyles.rejectedCard}>
+        <X size={15} color="#dc2626" />
+        <Text style={actionStyles.rejectedText}>
+          {card.resultMessage || (card.status === 'EXPIRED' ? 'Proposition expirée. Demandez une nouvelle carte à Hnia.' : 'Action non enregistrée. Vérifiez les données avant une nouvelle demande.')}
+        </Text>
+      </View>
+    );
+  }
+
   // 3. EXECUTING State (In-flight steps visualization)
   if (isExecuting || card.status === 'EXECUTING') {
     return (
@@ -1757,8 +1777,8 @@ export function ActionCardWidget({
       if (idx >= 0) fields[idx] = { ...fields[idx], value: localOverrides.category };
       else fields.push({ label: 'Catégorie', value: localOverrides.category });
     }
-    if (localOverrides.studentNameOrId || localOverrides.name) {
-      const val = localOverrides.studentNameOrId || localOverrides.name;
+    if (localOverrides.studentNameOrId || localOverrides.parentNameOrId || localOverrides.name) {
+      const val = localOverrides.studentNameOrId || localOverrides.parentNameOrId || localOverrides.name;
       const idx = fields.findIndex(
         (f) =>
           f.label.toLowerCase().includes('bénéficiaire') ||
@@ -1819,6 +1839,7 @@ export function ActionCardWidget({
         </View>
       )}
 
+      <Text style={actionStyles.fieldLabel}>Aucune modification avant votre confirmation.</Text>
       {/* Action Buttons: Annuler | Modifier | Confirmer */}
       <View style={actionStyles.buttonsRow}>
         <TouchableOpacity
@@ -1833,6 +1854,7 @@ export function ActionCardWidget({
           <Text style={actionStyles.cancelBtnText}>Annuler</Text>
         </TouchableOpacity>
 
+        {canEdit && (
         <TouchableOpacity
           activeOpacity={0.75}
           style={actionStyles.editBtn}
@@ -1844,6 +1866,8 @@ export function ActionCardWidget({
           <Pencil size={13} color="#0055d4" />
           <Text style={actionStyles.editBtnText}>Modifier</Text>
         </TouchableOpacity>
+
+        )}
 
         <TouchableOpacity
           activeOpacity={0.85}
@@ -1926,6 +1950,7 @@ export function ActionCardWidget({
               )}
 
               {/* Titre / Description */}
+              {(isExpense || isIncome) && (
               <View style={actionStyles.inputBlock}>
                 <Text style={actionStyles.inputLabel}>
                   {isIncome ? 'Intitulé de la recette' : isExpense ? 'Intitulé / Justification' : 'Description'}
@@ -1944,6 +1969,7 @@ export function ActionCardWidget({
                   placeholderTextColor="#94a3b8"
                 />
               </View>
+              )}
 
               {/* Catégorie */}
               {(isExpense || isIncome || Boolean(getInitialCategory()) || card.toolName === 'add_expense' || card.toolName === 'add_income') && (
