@@ -39,6 +39,7 @@ import { adminService } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
 import { useLanguage } from '../../context/LanguageContext';
 
+import { replaceInterruptedReply } from './interruptedReply';
 import { getAccountChatCache, chatStorageKeys } from './chatCache';
 import { submitActionDecision, applyActionDecision } from './actionConfirmation';
 import HniaEmptyState from './components/HniaEmptyState';
@@ -1185,9 +1186,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
           },
           onError: (streamErr) => {
             console.warn('[HniaChat] Stream error:', streamErr);
-            setMessages(prev => prev.map(m => 
-              m.isStreaming ? { ...m, isStreaming: false, content: streamingTextRef.current || m.content } : m
-            ));
+            // The completed request path replaces the fragment with one clear error reply.
           },
         },
         controller.signal
@@ -1219,27 +1218,22 @@ function HniaChatForAccount({ userId }: { userId: string }) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else if (res && !res.success && !isDoneTriggered) {
         setLastFailedMessage(rawText);
-        const errorMsg: ChatMessage = {
-          id: `bot_${Date.now()}`,
-          role: 'assistant',
-          content: "La réponse a été interrompue. Vérifiez le résultat avant de réessayer si une action était en cours.",
-          createdAt: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, errorMsg]);
+        if (tokenFlushTimerRef.current) { clearTimeout(tokenFlushTimerRef.current); tokenFlushTimerRef.current = null; }
+        setMessages(prev => {
+          const next = replaceInterruptedReply(prev, botMsgId, 'La vérification a été interrompue. Je ne peux pas confirmer ces données. Réessayez pour obtenir une réponse vérifiée.');
+          saveMessagesToLocal(next, conversationId);
+          return next;
+        });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     } catch (err: any) {
       if (controller.signal.aborted) return;
       setLastFailedMessage(rawText);
-      const errorMsg: ChatMessage = {
-        id: `bot_${Date.now()}`,
-        role: 'assistant',
-        content: "Je n'arrive pas à contacter SnapSchool pour le moment.",
-        createdAt: new Date().toISOString(),
-      };
-      setMessages((prev) => {
-        const cleanPrev = prev.map(m => m.isStreaming ? { ...m, isStreaming: false, content: streamingTextRef.current || m.content } : m);
-        return [...cleanPrev, errorMsg];
+      if (tokenFlushTimerRef.current) { clearTimeout(tokenFlushTimerRef.current); tokenFlushTimerRef.current = null; }
+      setMessages(prev => {
+        const next = replaceInterruptedReply(prev, botMsgId, "Je n'arrive pas à vérifier les données auprès de SnapSchool pour le moment. Veuillez réessayer.");
+        saveMessagesToLocal(next, conversationId);
+        return next;
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
