@@ -1138,6 +1138,12 @@ export const teacherService = {
 };
 
 export const adminService = {
+  createCaissePrintLink: async (date?: string) => {
+    return apiFetch('/api/mobile/admin/caisse/print', {
+      method: 'POST',
+      body: JSON.stringify(date ? { date } : {}),
+    });
+  },
   // Fetch admin dashboard data
   fetchDashboard: async (month?: number, year?: number) => {
     const params = new URLSearchParams();

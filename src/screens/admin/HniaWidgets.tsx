@@ -45,7 +45,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as WebBrowser from 'expo-web-browser';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { adminService, authStorage } from '../../services/api';
+import { adminService } from '../../services/api';
 
 // ============================================================================
 // Types
@@ -230,11 +230,10 @@ export function CaisseCardWidget({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setPrinting(true);
     try {
-      const token = await authStorage.getToken();
-      const dateParam = data.date ? `&date=${encodeURIComponent(data.date)}` : '';
-      const printUrl = `https://www.snapschool.academy/api/mobile/admin/caisse/print?token=${encodeURIComponent(token || '')}${dateParam}`;
+      const printSession = await adminService.createCaissePrintLink(data.date);
+      if (!printSession?.url) throw new Error(printSession?.error || 'Print session unavailable');
 
-      await WebBrowser.openBrowserAsync(printUrl, {
+      await WebBrowser.openBrowserAsync(printSession.url, {
         presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
         toolbarColor: '#0f172a',
         controlsColor: '#ffffff',

@@ -42,7 +42,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as ImagePicker from 'expo-image-picker';
-import { adminService, authStorage } from '../../services/api';
+import { adminService } from '../../services/api';
 import { trackEvent } from '../../services/posthog';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -458,10 +458,10 @@ export default function AdminCaisseScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setPrinting(true);
     try {
-      const token = await authStorage.getToken();
-      const printUrl = `https://www.snapschool.academy/api/mobile/admin/caisse/print?token=${encodeURIComponent(token || '')}`;
+      const printSession = await adminService.createCaissePrintLink();
+      if (!printSession?.url) throw new Error(printSession?.error || 'Print session unavailable');
 
-      await WebBrowser.openBrowserAsync(printUrl, {
+      await WebBrowser.openBrowserAsync(printSession.url, {
         presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
         toolbarColor: '#0f172a',
         controlsColor: '#ffffff',
