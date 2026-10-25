@@ -268,6 +268,11 @@ export default function App() {
   const postOnboardingStateRef = React.useRef<'signedIn' | 'landing'>('landing');
   const routeNameRef = React.useRef<string | undefined>(undefined);
   const sessionRevisionRef = React.useRef(0);
+  const sessionRefreshRef = React.useRef<{
+    key: string;
+    finishedAt: number;
+    pending: Promise<void> | null;
+  }>({ key: '', finishedAt: 0, pending: null });
   const pushRegistrationRef = React.useRef<{ userId: string; lastAt: number; pending: Promise<void> | null }>({ userId: '', lastAt: 0, pending: null });
 
   // Transition smoothly from launch screen once bootstrap and minimum animation time have elapsed
@@ -307,49 +312,74 @@ export default function App() {
     }, 1_200);
   }, [setChildren, setSelectedChildId]);
 
-  const applySessionSnapshot = React.useCallback(async (uid: string, role: SessionRole) => {
-    const revision = ++sessionRevisionRef.current;
+  const applySessionSnapshot = React.useCallback((uid: string, role: SessionRole, force = false): Promise<void> => {
+    const key = `${uid}:${role}`;
+    const refresh = sessionRefreshRef.current;
+    if (!force && refresh.key === key) {
+      if (refresh.pending) return refresh.pending;
+      if (Date.now() - refresh.finishedAt < 30_000) return Promise.resolve();
+    }
 
-    // Pending parents stay outside the family navigator until the server approves access.
-    if (role === 'parent') {
-      const cachedAccess = await authStorage.getParentAccess();
-      const access = await parentService.fetchAccessStatus();
+    const revision = ++sessionRevisionRef.current;
+    const pending = (async () => {
+      let snapshotPromise: ReturnType<typeof loadSessionSnapshot> | null = null;
+
+      // Pending parents stay outside the family navigator until the server approves access.
+      if (role === 'parent') {
+        const cachedAccess = await authStorage.getParentAccess();
+
+        // Active accounts can verify access and refresh their profile/children in
+        // parallel. Nothing from the network snapshot is applied until access is
+        // confirmed by the server.
+        if (cachedAccess === 'ACTIVE') snapshotPromise = loadSessionSnapshot(role);
+        const access = await parentService.fetchAccessStatus();
+        const currentUid = await authStorage.getUserId();
+        if (revision !== sessionRevisionRef.current || currentUid !== uid) return;
+        const status = access?.accessStatus || (cachedAccess === 'ACTIVE' ? 'ACTIVE' : 'CHECKING');
+        if (status !== 'ACTIVE') {
+          setChildren([]); setSelectedChildId(null);
+          useAppStore.getState().setParentAccessStatus(status);
+          return;
+        }
+
+        // The launch path already applies a cached family. Avoid reading and
+        // mapping the same AsyncStorage payload a second time.
+        if (useAppStore.getState().children.length === 0) {
+          const cachedChildren = await loadCachedParentChildren();
+          await applyParentChildren(uid, cachedChildren, revision);
+        }
+      }
+
+      const snapshot = await (snapshotPromise || loadSessionSnapshot(role));
       const currentUid = await authStorage.getUserId();
       if (revision !== sessionRevisionRef.current || currentUid !== uid) return;
-      const status = access?.accessStatus || (cachedAccess === 'ACTIVE' ? 'ACTIVE' : 'CHECKING');
-      if (status !== 'ACTIVE') {
-        setChildren([]); setSelectedChildId(null);
-        useAppStore.getState().setParentAccessStatus(status);
-        return;
+
+      if (snapshot.role === 'parent' && snapshot.children.length > 0) {
+        await applyParentChildren(uid, snapshot.children, revision);
       }
-    }
-    // Paint the signed-in parent experience from the device before the first
-    // API round trip. The verified server snapshot below quietly reconciles it.
-    if (role === 'parent') {
-      const cachedChildren = await loadCachedParentChildren();
-      await applyParentChildren(uid, cachedChildren, revision);
-    }
 
-    const snapshot = await loadSessionSnapshot(role);
-    const currentUid = await authStorage.getUserId();
-    if (revision !== sessionRevisionRef.current || currentUid !== uid) return;
+      if (role === 'parent') useAppStore.getState().setParentAccessStatus('ACTIVE');
 
-    if (snapshot.role === 'parent' && snapshot.children.length > 0) {
-      await applyParentChildren(uid, snapshot.children, revision);
-    }
+      if (snapshot.profile?.name) {
+        const fullName = `${snapshot.profile.name} ${snapshot.profile.surname || ''}`.trim();
+        setUserName(fullName);
+      } else if (snapshot.role === 'admin') {
+        setUserName('Admin');
+      }
+      setUserAvatarUrl(snapshot.profile?.img || null);
+      if (snapshot.role === 'admin') {
+        setSchoolName(snapshot.profile?.schoolName || 'SnapSchool');
+      }
+    })().finally(() => {
+      const current = sessionRefreshRef.current;
+      if (current.key === key && current.pending === pending) {
+        current.pending = null;
+        current.finishedAt = Date.now();
+      }
+    });
 
-    if (role === 'parent') useAppStore.getState().setParentAccessStatus('ACTIVE');
-
-    if (snapshot.profile?.name) {
-      const fullName = `${snapshot.profile.name} ${snapshot.profile.surname || ''}`.trim();
-      setUserName(fullName);
-    } else if (snapshot.role === 'admin') {
-      setUserName('Admin');
-    }
-    setUserAvatarUrl(snapshot.profile?.img || null);
-    if (snapshot.role === 'admin') {
-      setSchoolName(snapshot.profile?.schoolName || 'SnapSchool');
-    }
+    sessionRefreshRef.current = { key, finishedAt: refresh.key === key ? refresh.finishedAt : 0, pending };
+    return pending;
   }, [applyParentChildren, setChildren, setSelectedChildId, setSchoolName, setUserAvatarUrl, setUserName]);
 
   const registerPush = React.useCallback((uid: string, force = false) => {
@@ -393,6 +423,7 @@ export default function App() {
 
   const clearLocalSession = React.useCallback(() => {
     sessionRevisionRef.current += 1;
+    sessionRefreshRef.current = { key: '', finishedAt: 0, pending: null };
     useAppStore.getState().setParentAccessStatus('CHECKING');
     resetUser();
     setChildren([]);
@@ -515,6 +546,7 @@ export default function App() {
 
     const approvalSubscription = DeviceEventEmitter.addListener('parent_approval_required', () => {
       sessionRevisionRef.current += 1;
+      sessionRefreshRef.current = { key: '', finishedAt: 0, pending: null };
       setChildren([]); setSelectedChildId(null);
       useAppStore.getState().setParentAccessStatus('PENDING');
       void authStorage.saveParentAccess('PENDING');
@@ -625,7 +657,7 @@ export default function App() {
       console.log("[PUSH-FOREGROUND]", data?.type);
       if (data?.type === 'PARENT_ACCESS') {
         const uid = useAppStore.getState().userId;
-        if (uid && useAppStore.getState().userRole === 'parent') void applySessionSnapshot(uid, 'parent');
+        if (uid && useAppStore.getState().userRole === 'parent') void applySessionSnapshot(uid, 'parent', true);
       }
       // Invalidate relevant caches for instant UI update
       if (data?.type === 'ATTENDANCE' || data?.type === 'REMARK' || data?.type === 'GRADE') {
@@ -811,7 +843,7 @@ export default function App() {
                   ) : userRole === 'parent' && parentAccessStatus !== 'ACTIVE' ? (
                     <ParentApprovalScreen onSignOut={handleSignOut} onActivated={async () => {
                       const uid = await authStorage.getUserId();
-                      if (uid) await applySessionSnapshot(uid, 'parent');
+                      if (uid) await applySessionSnapshot(uid, 'parent', true);
                     }} />
                   ) : (
                     <Stack.Navigator screenOptions={{ headerShown: false }}>
