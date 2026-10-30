@@ -46,6 +46,7 @@ import * as Sharing from 'expo-sharing';
 import * as WebBrowser from 'expo-web-browser';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { adminService } from '../../services/api';
+import { hniaText } from './hniaExperience';
 
 // ============================================================================
 // Types
@@ -67,6 +68,7 @@ export interface ActionCardData {
   status?: 'PENDING' | 'EXECUTING' | 'EXECUTED' | 'REJECTED' | 'FAILED' | 'EXPIRED';
   reference?: string;
   resultMessage?: string;
+  undoExpenseId?: number;
   arguments?: Record<string, any>;
 }
 
@@ -217,10 +219,13 @@ function handlePhoneCall(student: UnpaidStudentItem) {
 export function CaisseCardWidget({
   data,
   onOpenCaisse,
+  language = 'fr',
 }: {
   data: CaisseWidgetData;
   onOpenCaisse?: () => void;
+  language?: string;
 }) {
+  const tx = (fr: string, en: string, ar: string) => hniaText(language, fr, en, ar);
   const [downloadingBordereau, setDownloadingBordereau] = useState(false);
   const [printing, setPrinting] = useState(false);
   const incomes = Math.max(0, data.totalIncomes || 0);
@@ -301,14 +306,14 @@ export function CaisseCardWidget({
           <View style={caisseStyles.iconCircle}>
             <Wallet size={15} color="#059669" />
           </View>
-          <Text style={caisseStyles.headerTitle}>Point de caisse</Text>
+          <Text style={caisseStyles.headerTitle}>{tx('Point de caisse', 'Cash overview', 'الكاسة')}</Text>
         </View>
         <Text style={caisseStyles.headerDate}>{data.date || "Aujourd'hui"}</Text>
       </View>
 
       {/* Hero: Bold Net Cash Balance */}
       <View style={caisseStyles.heroSection}>
-        <Text style={caisseStyles.heroLabel}>SOLDE NET EN CAISSE</Text>
+        <Text style={caisseStyles.heroLabel}>{tx('SOLDE NET EN CAISSE', 'NET CASH BALANCE', 'الرصيد الصافي')}</Text>
         <Text style={[caisseStyles.heroAmount, { color: isNetPositive ? '#059669' : '#dc2626' }]}>
           {isNetPositive ? '+ ' : ''}
           {data.netCashBalance.toLocaleString('fr-FR')} DT
@@ -318,7 +323,7 @@ export function CaisseCardWidget({
       {/* Minimal Inflows & Outflows stats row */}
       <View style={caisseStyles.statsRow}>
         <View style={caisseStyles.statCol}>
-          <Text style={caisseStyles.statLabel}>Recettes</Text>
+          <Text style={caisseStyles.statLabel}>{tx('Recettes', 'Income', 'المداخيل')}</Text>
           <Text style={caisseStyles.incomeVal}>
             + {incomes.toLocaleString('fr-FR')} DT
           </Text>
@@ -332,7 +337,7 @@ export function CaisseCardWidget({
         <View style={caisseStyles.statDivider} />
 
         <View style={caisseStyles.statCol}>
-          <Text style={caisseStyles.statLabel}>Dépenses</Text>
+          <Text style={caisseStyles.statLabel}>{tx('Dépenses', 'Expenses', 'المصاريف')}</Text>
           <Text style={caisseStyles.expenseVal}>
             - {expenses.toLocaleString('fr-FR')} DT
           </Text>
@@ -356,7 +361,7 @@ export function CaisseCardWidget({
         ) : (
           <>
             <Printer size={15} color="#ffffff" strokeWidth={2.2} />
-            <Text style={caisseStyles.printMainBtnText}>Imprimer le Bordereau</Text>
+            <Text style={caisseStyles.printMainBtnText}>{tx('Imprimer le bordereau', 'Print cash statement', 'اطبع الكشف')}</Text>
           </>
         )}
       </TouchableOpacity>
@@ -374,7 +379,7 @@ export function CaisseCardWidget({
           ) : (
             <>
               <Share2 size={13} color="#0f172a" />
-              <Text style={caisseStyles.secondaryBtnText}>Partager PDF</Text>
+              <Text style={caisseStyles.secondaryBtnText}>{tx('Partager PDF', 'Share PDF', 'مشاركة PDF')}</Text>
             </>
           )}
         </TouchableOpacity>
@@ -388,7 +393,7 @@ export function CaisseCardWidget({
               onOpenCaisse();
             }}
           >
-            <Text style={caisseStyles.secondaryBtnText}>Voir la Caisse</Text>
+            <Text style={caisseStyles.secondaryBtnText}>{tx('Voir la caisse', 'Open cash register', 'افتح الكاسة')}</Text>
             <ArrowRight size={12} color="#0f172a" strokeWidth={2} />
           </TouchableOpacity>
         )}
@@ -1483,13 +1488,18 @@ export function ActionCardWidget({
   onConfirm,
   onCancel,
   isExecuting,
+  language = 'fr',
+  onRequestUndo,
 }: {
   card: any;
   onConfirm: (toolCallId: string, updatedArgs?: Record<string, any>) => void;
   onCancel: (toolCallId: string) => void;
   isExecuting?: boolean;
+  language?: string;
+  onRequestUndo?: (expenseId: number) => void;
 }) {
   const card: ActionCardData = Array.isArray(rawCard) ? rawCard[0] : rawCard;
+  const tx = (fr: string, en: string, ar: string) => language === 'ar' ? ar : language === 'en' ? en : fr;
   if (!card) return null;
 
   const insets = useSafeAreaInsets();
@@ -1683,6 +1693,7 @@ export function ActionCardWidget({
             <Text style={actionStyles.referenceCode}>{card.reference}</Text>
           </View>
         )}
+        {Number.isInteger(card.undoExpenseId) && onRequestUndo && <TouchableOpacity accessibilityRole="button" onPress={() => onRequestUndo(card.undoExpenseId!)} style={{ paddingVertical: 12 }}><Text style={{ color: '#47698e', fontSize: 12, fontWeight: '600' }}>{tx('Annuler cette dépense…', 'Undo this expense…', 'إلغاء المصروف هذا…')}</Text></TouchableOpacity>}
       </View>
     );
   }
@@ -1714,15 +1725,7 @@ export function ActionCardWidget({
       <View style={actionStyles.executingCard}>
         <View style={actionStyles.executingHeader}>
           <ActivityIndicator size="small" color="#0055d4" />
-          <Text style={actionStyles.executingTitle}>Je m'en occupe...</Text>
-        </View>
-        <View style={actionStyles.stepRow}>
-          <CheckCircle2 size={13} color="#059669" />
-          <Text style={actionStyles.stepSuccessText}>Vérification des autorisations & données</Text>
-        </View>
-        <View style={actionStyles.stepRow}>
-          <ActivityIndicator size="small" color="#0055d4" style={{ transform: [{ scale: 0.7 }] }} />
-          <Text style={actionStyles.stepActiveText}>Enregistrement dans le système...</Text>
+          <Text style={actionStyles.executingTitle}>{tx('Enregistrement en cours…', 'Saving your action…', 'نسجّل في العملية…')}</Text>
         </View>
       </View>
     );
@@ -1802,6 +1805,7 @@ export function ActionCardWidget({
   } else if (displayTitle.startsWith('Confirmer l\'action : ')) {
     displayTitle = displayTitle.replace('Confirmer l\'action : ', '');
   }
+  if (language !== 'fr') displayTitle = isExpense ? tx('', 'Add expense', 'تسجيل مصروف') : isIncome ? tx('', 'Record income', 'تسجيل مدخول') : isPayment ? tx('', 'Record payment', 'تسجيل خلاص') : isStudent ? tx('', 'Enroll student', 'تسجيل تلميذ') : tx(displayTitle, 'Review school action', 'راجع العملية');
 
   return (
     <View style={actionStyles.card}>
@@ -1814,7 +1818,7 @@ export function ActionCardWidget({
           <Text style={actionStyles.headerTitle}>{displayTitle}</Text>
         </View>
         <View style={actionStyles.pendingBadge}>
-          <Text style={actionStyles.pendingBadgeText}>À vérifier</Text>
+          <Text style={actionStyles.pendingBadgeText}>{tx('À vérifier', 'Review', 'للمراجعة')}</Text>
         </View>
       </View>
 
@@ -1823,7 +1827,7 @@ export function ActionCardWidget({
         <View style={actionStyles.tableContainer}>
           {fields.map((f, i) => (
             <View key={i} style={[actionStyles.fieldRow, i > 0 && actionStyles.fieldRowBorder]}>
-              <Text style={actionStyles.fieldLabel}>{f.label}</Text>
+              <Text style={actionStyles.fieldLabel}>{({ Montant: tx('Montant', 'Amount', 'المبلغ'), Catégorie: tx('Catégorie', 'Category', 'الصنف'), Description: tx('Description', 'Description', 'الوصف'), Date: tx('Date', 'Date', 'التاريخ'), Bénéficiaire: tx('Bénéficiaire', 'Beneficiary', 'المستفيد'), Période: tx('Période', 'Period', 'الفترة') } as Record<string, string>)[f.label] || f.label}</Text>
               <Text style={actionStyles.fieldValue}>{f.value}</Text>
             </View>
           ))}
@@ -1838,7 +1842,7 @@ export function ActionCardWidget({
         </View>
       )}
 
-      <Text style={actionStyles.fieldLabel}>Aucune modification avant votre confirmation.</Text>
+      <Text style={actionStyles.fieldLabel}>{tx('Aucune modification avant votre confirmation.', 'Changes require your confirmation.', 'التغيير يستنى تأكيدك.')}</Text>
       {/* Action Buttons: Annuler | Modifier | Confirmer */}
       <View style={actionStyles.buttonsRow}>
         <TouchableOpacity
@@ -1850,7 +1854,7 @@ export function ActionCardWidget({
           }}
         >
           <X size={14} color="#64748b" />
-          <Text style={actionStyles.cancelBtnText}>Annuler</Text>
+          <Text style={actionStyles.cancelBtnText}>{tx('Annuler', 'Cancel', 'إلغاء')}</Text>
         </TouchableOpacity>
 
         {canEdit && (
@@ -1863,7 +1867,7 @@ export function ActionCardWidget({
           }}
         >
           <Pencil size={13} color="#0055d4" />
-          <Text style={actionStyles.editBtnText}>Modifier</Text>
+          <Text style={actionStyles.editBtnText}>{tx('Modifier', 'Edit', 'تعديل')}</Text>
         </TouchableOpacity>
 
         )}
@@ -1877,7 +1881,7 @@ export function ActionCardWidget({
           }}
         >
           <Check size={15} color="#ffffff" strokeWidth={2.4} />
-          <Text style={actionStyles.confirmBtnText}>Confirmer</Text>
+          <Text style={actionStyles.confirmBtnText}>{tx('Confirmer', 'Confirm', 'تأكيد')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -2067,10 +2071,13 @@ export function ActionCardWidget({
 export function FinanceSummaryWidget({
   data,
   onViewCaisse,
+  language = 'fr',
 }: {
   data: FinanceSummaryData;
   onViewCaisse?: () => void;
+  language?: string;
 }) {
+  const tx = (fr: string, en: string, ar: string) => hniaText(language, fr, en, ar);
   const isPositive = (data.trendPercent ?? 0) >= 0;
 
   return (
@@ -2081,7 +2088,7 @@ export function FinanceSummaryWidget({
           <View style={financeStyles.iconBadge}>
             <Wallet size={15} color="#059669" />
           </View>
-          <Text style={financeStyles.headerTitle}>Revenus — {data.period}</Text>
+          <Text style={financeStyles.headerTitle}>{tx('Revenus', 'Revenue', 'المداخيل')} — {data.period}</Text>
         </View>
         {data.trendPercent !== undefined && (
           <View style={[financeStyles.trendBadge, { backgroundColor: isPositive ? '#ecfdf5' : '#fef2f2' }]}>
@@ -2101,25 +2108,25 @@ export function FinanceSummaryWidget({
       <View style={financeStyles.heroSection}>
         <Text style={financeStyles.heroAmount}>{data.totalRevenue.toLocaleString('fr-FR')} DT</Text>
         <Text style={financeStyles.heroSubtitle}>
-          {data.comparisonText ? `Chiffre d'affaires (${data.comparisonText})` : 'Total des recettes encaissées'}
+          {data.comparisonText ? `${tx('Chiffre d’affaires', 'Revenue', 'المداخيل')} (${data.comparisonText})` : tx('Total des recettes encaissées', 'Total collected income', 'جملة المداخيل المقبوضة')}
         </Text>
       </View>
 
       {/* Stats Breakdown */}
       <View style={financeStyles.statsGrid}>
         <View style={financeStyles.statBox}>
-          <Text style={financeStyles.statLabel}>Recettes</Text>
+          <Text style={financeStyles.statLabel}>{tx('Recettes', 'Income', 'المداخيل')}</Text>
           <Text style={financeStyles.statValGreen}>+{data.totalRevenue.toLocaleString('fr-FR')} DT</Text>
         </View>
         <View style={financeStyles.statDivider} />
         <View style={financeStyles.statBox}>
-          <Text style={financeStyles.statLabel}>Dépenses</Text>
+          <Text style={financeStyles.statLabel}>{tx('Dépenses', 'Expenses', 'المصاريف')}</Text>
           <Text style={financeStyles.statValRed}>-{data.totalExpenses.toLocaleString('fr-FR')} DT</Text>
         </View>
         <View style={financeStyles.statDivider} />
         <View style={financeStyles.statBox}>
-          <Text style={financeStyles.statLabel}>Résultat net</Text>
-          <Text style={financeStyles.statValNet}>+{data.netProfit.toLocaleString('fr-FR')} DT</Text>
+          <Text style={financeStyles.statLabel}>{tx('Résultat net', 'Net result', 'الصافي')}</Text>
+          <Text style={financeStyles.statValNet}>{data.netProfit >= 0 ? '+' : ''}{data.netProfit.toLocaleString('fr-FR')} DT</Text>
         </View>
       </View>
 
@@ -2133,7 +2140,7 @@ export function FinanceSummaryWidget({
             onViewCaisse();
           }}
         >
-          <Text style={financeStyles.ctaBtnText}>Consulter la caisse détaillée</Text>
+          <Text style={financeStyles.ctaBtnText}>{tx('Consulter la caisse détaillée', 'View cash details', 'تفاصيل الكاسة')}</Text>
           <ArrowRight size={13} color="#0f172a" />
         </TouchableOpacity>
       )}
@@ -2276,11 +2283,15 @@ export function StudentProfileWidget({
 export function AttendanceSummaryWidget({
   data,
   onNotifyParents,
+  language = 'fr',
 }: {
   data: AttendanceSummaryData;
   onNotifyParents?: () => void;
+  language?: string;
 }) {
-  const rateNum = parseInt(data.attendanceRate, 10) || 100;
+  const tx = (fr: string, en: string, ar: string) => hniaText(language, fr, en, ar);
+  const parsedRate = parseFloat(data.attendanceRate);
+  const rateNum = Number.isFinite(parsedRate) ? parsedRate : 0;
   const isHighAttendance = rateNum >= 90;
   const isMidAttendance = rateNum >= 75 && rateNum < 90;
   const barColor = isHighAttendance ? '#059669' : isMidAttendance ? '#d97706' : '#dc2626';
@@ -2293,7 +2304,7 @@ export function AttendanceSummaryWidget({
           <View style={attendanceStyles.iconBadge}>
             <Users size={15} color="#0284c7" />
           </View>
-          <Text style={attendanceStyles.headerTitle}>Présences — {data.className}</Text>
+          <Text style={attendanceStyles.headerTitle}>{tx('Présences', 'Attendance', 'الحضور')} — {data.className}</Text>
         </View>
         <Text style={attendanceStyles.headerDate}>{data.date}</Text>
       </View>
@@ -2301,7 +2312,7 @@ export function AttendanceSummaryWidget({
       {/* Big Gauge Bar */}
       <View style={attendanceStyles.gaugeContainer}>
         <View style={attendanceStyles.gaugeTextRow}>
-          <Text style={attendanceStyles.gaugeLabel}>Taux d'assiduité</Text>
+          <Text style={attendanceStyles.gaugeLabel}>{tx('Taux de présence', 'Attendance rate', 'نسبة الحضور')}</Text>
           <Text style={[attendanceStyles.gaugeValue, { color: barColor }]}>
             {data.attendanceRate}
           </Text>
@@ -2319,17 +2330,17 @@ export function AttendanceSummaryWidget({
       {/* Counts Row */}
       <View style={attendanceStyles.countsRow}>
         <View style={attendanceStyles.countBox}>
-          <Text style={attendanceStyles.countLabel}>Présents</Text>
+          <Text style={attendanceStyles.countLabel}>{tx('Présents', 'Present', 'حاضرين')}</Text>
           <Text style={attendanceStyles.presentVal}>{data.presentCount}</Text>
         </View>
         <View style={attendanceStyles.statDivider} />
         <View style={attendanceStyles.countBox}>
-          <Text style={attendanceStyles.countLabel}>Absents</Text>
+          <Text style={attendanceStyles.countLabel}>{tx('Absents', 'Absent', 'غايبين')}</Text>
           <Text style={attendanceStyles.absentVal}>{data.absentCount}</Text>
         </View>
         <View style={attendanceStyles.statDivider} />
         <View style={attendanceStyles.countBox}>
-          <Text style={attendanceStyles.countLabel}>Retards</Text>
+          <Text style={attendanceStyles.countLabel}>{tx('Retards', 'Late', 'متأخرين')}</Text>
           <Text style={attendanceStyles.lateVal}>{data.lateCount}</Text>
         </View>
       </View>
@@ -2337,7 +2348,7 @@ export function AttendanceSummaryWidget({
       {/* Absent students preview */}
       {data.absentStudents && data.absentStudents.length > 0 && (
         <View style={attendanceStyles.absentsList}>
-          <Text style={attendanceStyles.absentsTitle}>Élèves absents :</Text>
+          <Text style={attendanceStyles.absentsTitle}>{tx('Élèves absents :', 'Absent students:', 'التلاميذ الغايبين:')}</Text>
           {data.absentStudents.slice(0, 3).map((st, i) => (
             <Text key={i} style={attendanceStyles.absentItem}>
               • {st.name} {st.class ? `(${st.class})` : ''}
@@ -2363,7 +2374,7 @@ export function AttendanceSummaryWidget({
         >
           <Bell size={13} color="#ffffff" strokeWidth={2.4} />
           <Text style={attendanceStyles.notifyBtnText}>
-            Alerter les parents des {data.absentCount} absent(s)
+            {tx(`Alerter les parents des ${data.absentCount} absent(s)`, `Notify parents of ${data.absentCount} absent students`, `نبّه أولياء ${data.absentCount} تلاميذ غايبين`)}
           </Text>
         </TouchableOpacity>
       )}

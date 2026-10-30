@@ -26,6 +26,7 @@ export function applyActionDecision<T extends { pendingConfirmation?: any; widge
       arguments: edits ? { ...(card.arguments || {}), ...edits } : card.arguments,
       reference: result.actionResult?.reference,
       resultMessage: result.actionResult?.summary || result.message,
+      undoExpenseId: result.undoExpenseId,
     };
   };
   return messages.map(message => ({

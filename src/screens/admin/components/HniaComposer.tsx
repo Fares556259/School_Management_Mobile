@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import {
   Plus,
+  Check,
   ArrowUp,
   Mic,
   Square,
@@ -63,6 +64,7 @@ interface HniaComposerProps {
   bottomInset: number;
   isKeyboardVisible: boolean;
   onFocus?: () => void;
+  chatLanguage?: string;
 }
 
 export default function HniaComposer({
@@ -94,8 +96,11 @@ export default function HniaComposer({
   bottomInset,
   isKeyboardVisible,
   onFocus,
+  chatLanguage,
 }: HniaComposerProps) {
-  const { t, language, isRTL } = useLanguage();
+  const { t, language: appLanguage } = useLanguage();
+  const language = chatLanguage || appLanguage;
+  const isRTL = language === 'ar';
   const [attachmentSheetVisible, setAttachmentSheetVisible] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
@@ -236,11 +241,13 @@ export default function HniaComposer({
           {/* Send audio button */}
           <TouchableOpacity
             style={styles.recordingSendBtn}
+            accessibilityRole="button"
+            accessibilityLabel={language === 'ar' ? 'راجع التسجيل' : language === 'en' ? 'Review recording' : 'Relire le vocal'}
             onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
             onPress={onStopAndSendRecording}
             activeOpacity={0.85}
           >
-            <ArrowUp size={19} color="#ffffff" strokeWidth={2.6} />
+            <Check size={19} color="#ffffff" strokeWidth={2.6} />
           </TouchableOpacity>
         </View>
       ) : (
@@ -249,6 +256,8 @@ export default function HniaComposer({
           {/* + Attachment Button */}
           <TouchableOpacity
             style={styles.plusButton}
+            accessibilityRole="button"
+            accessibilityLabel={language === 'ar' ? 'إرفاق ملف' : language === 'en' ? 'Attach a file' : 'Joindre un fichier'}
             onPress={() => setAttachmentSheetVisible(true)}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -289,6 +298,8 @@ export default function HniaComposer({
             ) : hasContentToSend ? (
               <TouchableOpacity
                 style={styles.sendButton}
+                accessibilityRole="button"
+                accessibilityLabel={language === 'ar' ? 'إرسال الرسالة' : language === 'en' ? 'Send message' : 'Envoyer le message'}
                 onPress={() => onSend()}
                 activeOpacity={0.85}
               >

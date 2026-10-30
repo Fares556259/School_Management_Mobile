@@ -1138,6 +1138,8 @@ export const teacherService = {
 };
 
 export const adminService = {
+  fetchHniaBriefing: () => apiFetch('/api/mobile/agent/briefing'),
+  transcribeHniaAudio: (audioBase64: string, audioMimeType = 'audio/mp4', signal?: AbortSignal) => apiFetch('/api/mobile/agent/chat', { method: 'POST', body: JSON.stringify({ transcribeOnly: true, audioBase64, audioMimeType }), signal }),
   createCaissePrintLink: async (date?: string) => {
     return apiFetch('/api/mobile/admin/caisse/print', {
       method: 'POST',
@@ -1198,6 +1200,10 @@ export const adminService = {
       audioMimeType?: string;
       imageBase64?: string;
       imageMimeType?: string;
+      newConversation?: boolean;
+      refreshReadId?: string;
+      nextReadPage?: boolean;
+      language?: string;
     },
     callbacks: ChatStreamCallbacks,
     signal?: AbortSignal
@@ -1222,6 +1228,7 @@ export const adminService = {
   },
 
   // Fetch chat history
+  searchChatHistory: (conversationId: string, search: string) => apiFetch(`/api/mobile/agent/history?${new URLSearchParams({ conversationId, search, limit: '100' }).toString()}`),
   fetchChatHistory: async (conversationId?: string, limit = 50) => {
     const params = new URLSearchParams({ limit: limit.toString() });
     if (conversationId) params.set('conversationId', conversationId);

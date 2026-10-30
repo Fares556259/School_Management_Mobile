@@ -23,6 +23,8 @@ import {
   FileText,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { HniaEvidence, HniaRecordsCard } from './HniaDataCard';
+import { hniaText } from '../hniaExperience';
 import {
   ActionCardWidget,
   CaisseCardWidget,
@@ -48,12 +50,14 @@ export interface ChatMessage {
   transcription?: string;
   isStreaming?: boolean;
   widget?: {
-    type: 'caisse' | 'unpaid_tuition' | 'pdf_receipt' | 'finance_summary' | 'student_card' | 'attendance_card' | 'action_card';
+    type: 'caisse' | 'unpaid_tuition' | 'pdf_receipt' | 'finance_summary' | 'student_card' | 'attendance_card' | 'action_card' | 'school_records';
     data: any;
   } | null;
   pendingConfirmation?: ActionCardData | ActionCardData[] | null;
   followUpSuggestions?: string[];
   createdAt?: string;
+  evidence?: any;
+  recovery?: { prompt: string; uncertainAction: boolean };
 }
 
 interface HniaMessageBubbleProps {
@@ -67,6 +71,13 @@ interface HniaMessageBubbleProps {
   executingToolId?: string | null;
   onSelectSuggestion: (text: string) => void;
   onNavigateToCaisse?: () => void;
+  language?: string;
+  schoolName?: string;
+  onRefreshRead?: (id: string) => void;
+  onNextReadPage?: (id: string) => void;
+  onOpenClass?: (name: string) => void;
+  onRecover?: (message: ChatMessage, mode: 'continue' | 'retry') => void;
+  disabled?: boolean;
 }
 
 function HniaMessageBubble({
@@ -80,8 +91,11 @@ function HniaMessageBubble({
   executingToolId,
   onSelectSuggestion,
   onNavigateToCaisse,
+  language = 'fr', schoolName, onRefreshRead, onNextReadPage, onOpenClass, onRecover, disabled,
 }: HniaMessageBubbleProps) {
   const isUser = message.role === 'user';
+  const [expandedText, setExpandedText] = useState(false);
+  const recordsData = !isUser && message.widget?.type === 'school_records' ? message.widget.data : null;
 
   // Extract structured widgets if available
   const caisseData = !isUser
@@ -106,7 +120,7 @@ function HniaMessageBubble({
   const actionCardData = actionCards[0] || null;
 
   const hasWidget = Boolean(
-    caisseData || unpaidData || receiptData || financeData || studentData || attendanceData || actionCards.length > 0
+    recordsData || caisseData || unpaidData || receiptData || financeData || studentData || attendanceData || actionCards.length > 0
   );
 
   // Markdown line-by-line parser
@@ -334,6 +348,7 @@ function HniaMessageBubble({
         ) : actionCards.length > 0 ? (
           /* Native Action Card Rendering */
           <View style={{ width: '100%' }}>
+            <Text style={{ fontSize: 11, color: '#69819b', marginBottom: 8 }}>{schoolName}</Text>
             {message.content &&
               !message.content.includes('❓') &&
               !/^veuillez vérifier et confirmer/i.test(message.content.trim()) && (
@@ -344,6 +359,8 @@ function HniaMessageBubble({
             {actionCards.map((card, idx) => (
               <View key={card.toolCallId || idx} style={{ marginTop: idx > 0 ? 10 : 0 }}>
                 <ActionCardWidget
+                  language={language}
+                  onRequestUndo={(expenseId) => onSelectSuggestion(`Prépare une carte de confirmation pour annuler la dépense dont l’identifiant exact est ${expenseId}. Utilise void_expense avec expenseId: ${expenseId}.`)}
                   card={card}
                   onConfirm={onConfirmAction}
                   onCancel={onCancelAction}
@@ -352,16 +369,20 @@ function HniaMessageBubble({
               </View>
             ))}
           </View>
-        ) : (
+        ) : !hasWidget ? (
           /* Standard Assistant Markdown Response */
           <View style={{ width: '100%' }}>
-            {renderedContent}
+            {message.content.length > 950 && !expandedText ? renderFormattedContent(message.content.slice(0, 650) + '…') : renderedContent}
+            {message.content.length > 950 && <TouchableOpacity accessibilityRole="button" style={{ paddingVertical: 12 }} onPress={() => setExpandedText(!expandedText)}><Text style={{ color: '#235bc8', fontWeight: '600' }}>{expandedText ? hniaText(language, 'Réduire', 'Show less', 'عرض أقل') : hniaText(language, 'Lire la suite', 'Read more', 'اقرا البقية')}</Text></TouchableOpacity>}
           </View>
-        )}
+        ) : null}
+
+        {recordsData && <HniaRecordsCard data={recordsData} language={language} onOpenClass={recordsData.classId && onOpenClass ? () => onOpenClass(String(recordsData.classId)) : undefined} onNextPage={() => onNextReadPage?.(message.evidence?.toolCallId)} />}
 
         {/* Interactive Visual Widgets (when provided) */}
         {caisseData && (
           <CaisseCardWidget
+            language={language}
             data={caisseData}
             onOpenCaisse={onNavigateToCaisse}
           />
@@ -379,10 +400,11 @@ function HniaMessageBubble({
         )}
 
         {receiptData && <PdfReceiptWidget data={receiptData} />}
-        {financeData && <FinanceSummaryWidget data={financeData} onViewCaisse={onNavigateToCaisse} />}
+        {financeData && <FinanceSummaryWidget language={language} data={financeData} onViewCaisse={onNavigateToCaisse} />}
         {studentData && <StudentProfileWidget student={studentData} />}
         {attendanceData && (
           <AttendanceSummaryWidget
+            language={language}
             data={attendanceData}
             onNotifyParents={() =>
               onSelectSuggestion("Envoie un rappel d'absence aux parents des élèves absents d'aujourd'hui.")
@@ -390,14 +412,13 @@ function HniaMessageBubble({
           />
         )}
 
+        {!isUser && message.evidence && <HniaEvidence evidence={message.evidence} language={language} schoolName={schoolName} onRefresh={onRefreshRead} disabled={disabled} />}
+        {message.recovery && <View style={{ marginTop: 12, gap: 8 }}><Text style={{ fontSize: 12, color: '#64748b', lineHeight: 18 }}>{message.recovery.uncertainAction ? hniaText(language, 'Vérifiez le statut avant de relancer une action.', 'Check the action status before retrying.', 'ثبت في حالة العملية قبل ما تعاود.') : hniaText(language, 'Vous pouvez reprendre cette consultation.', 'You can resume this lookup.', 'تنجم تكمّل التثبت.')}</Text><View style={{ flexDirection: 'row', gap: 16 }}>{(['continue', 'retry'] as const).filter(mode => !message.recovery?.uncertainAction || mode === 'continue').map(mode => <TouchableOpacity key={mode} accessibilityRole="button" disabled={disabled} style={{ paddingVertical: 10 }} onPress={() => onRecover?.(message, mode)}><Text style={{ color: '#235bc8', fontWeight: '600' }}>{message.recovery?.uncertainAction ? hniaText(language, 'Vérifier le statut', 'Check status', 'ثبت في الحالة') : mode === 'continue' ? hniaText(language, 'Continuer', 'Continue', 'كمّل') : hniaText(language, 'Réessayer', 'Try again', 'عاود جرّب')}</Text></TouchableOpacity>)}</View></View>}
+
         {/* Assistant Footer (Model Tag & Copy Button) */}
         {!isUser && message.content && (
           <View style={styles.assistantFooter}>
             <ReportAIResponse content={message.content} />
-            <View style={styles.modelTag}>
-              <View style={styles.modelDot} />
-              <Text style={styles.modelText}>Hnia IA</Text>
-            </View>
 
             <TouchableOpacity
               style={styles.copyBtn}
@@ -407,39 +428,18 @@ function HniaMessageBubble({
               {isCopied ? (
                 <>
                   <Check size={11} color="#10b981" />
-                  <Text style={[styles.copyBtnText, { color: '#10b981' }]}>Copié !</Text>
+                  <Text style={[styles.copyBtnText, { color: '#10b981' }]}>{hniaText(language, 'Copié', 'Copied', 'تم النسخ')}</Text>
                 </>
               ) : (
                 <>
                   <Copy size={11} color="#94a3b8" />
-                  <Text style={styles.copyBtnText}>Copier</Text>
+                  <Text style={styles.copyBtnText}>{hniaText(language, 'Copier', 'Copy', 'نسخ')}</Text>
                 </>
               )}
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Follow-up Suggestion Chips */}
-        {!isUser &&
-          message.followUpSuggestions &&
-          message.followUpSuggestions.length > 0 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.suggestionsScroll}
-              contentContainerStyle={styles.suggestionsContent}
-            >
-              {message.followUpSuggestions.map((sug, sIdx) => (
-                <TouchableOpacity
-                  key={sIdx}
-                  style={styles.suggestionChip}
-                  onPress={() => onSelectSuggestion(sug)}
-                >
-                  <Text style={styles.suggestionChipText}>{sug}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
       </View>
     </View>
   );

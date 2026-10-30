@@ -18,6 +18,13 @@ it('shows the review and confirm/cancel buttons before calling any action', asyn
   act(() => button('Confirmer').props.onPress()); expect(confirm).toHaveBeenCalledTimes(1); expect(confirm).toHaveBeenCalledWith('proposal-a', undefined);
 });
 it('cancels without calling confirmation', async () => { await render(); act(() => button('Annuler').props.onPress()); expect(cancel).toHaveBeenCalledWith('proposal-a'); expect(confirm).not.toHaveBeenCalled(); });
+it('undo on a receipt only requests a new proposal; it never executes or confirms the reversal', async () => {
+  const undo = jest.fn();
+  await render({ ...card, status: 'EXECUTED', undoExpenseId: 23 }, { onRequestUndo: undo });
+  expect(undo).not.toHaveBeenCalled();
+  act(() => button('Annuler cette dépense…').props.onPress());
+  expect(undo).toHaveBeenCalledWith(23); expect(confirm).not.toHaveBeenCalled(); expect(cancel).not.toHaveBeenCalled();
+});
 it.each(['EXECUTED', 'REJECTED', 'FAILED', 'EXPIRED', 'EXECUTING'])('hides action buttons for %s cards', async status => { await render({ ...card, status }); expect(button('Confirmer')).toBeUndefined(); expect(button('Annuler')).toBeUndefined(); expect(confirm).not.toHaveBeenCalled(); });
 it('editing does not execute, rejects negative amounts and preserves decimal commas', async () => {
   await render(); act(() => button('Modifier').props.onPress()); expect(confirm).not.toHaveBeenCalled();

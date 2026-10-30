@@ -1,7 +1,9 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
+  TextInput,
+  ScrollView,
   FlatList,
   TouchableOpacity,
   Image,
@@ -13,6 +15,7 @@ import {
   StyleSheet,
   StatusBar,
   Keyboard,
+  Linking,
   Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,6 +28,10 @@ import {
   Square,
   Sparkles,
   RotateCcw,
+  MoreHorizontal,
+  Search,
+  Languages,
+  ChevronDown,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -39,12 +46,14 @@ import { adminService } from '../../services/api';
 import { useAppStore } from '../../store/useAppStore';
 import { useLanguage } from '../../context/LanguageContext';
 
+import { hniaText, contextualPrompts, localizedProgress, HniaLanguage } from './hniaExperience';
 import { replaceInterruptedReply } from './interruptedReply';
 import { getAccountChatCache, chatStorageKeys } from './chatCache';
 import { submitActionDecision, applyActionDecision } from './actionConfirmation';
 import HniaEmptyState from './components/HniaEmptyState';
 import HniaHistoryDrawer, { ConversationThread } from './components/HniaHistoryDrawer';
 import HniaComposer from './components/HniaComposer';
+import HniaActivity from './components/HniaActivity';
 import HniaMessageBubble, { ChatMessage } from './components/HniaMessageBubble';
 import { tryParseActionCardWidget, ActionCardField, ActionCardData } from './HniaWidgets';
 
@@ -115,7 +124,21 @@ function HniaChatForAccount({ userId }: { userId: string }) {
   const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
   const schoolName = useAppStore((s) => s.schoolName) || 'SnapSchool';
-  const { t, language, isRTL } = useLanguage();
+  const { t, language: appLanguage } = useLanguage();
+  const [language, setChatLanguage] = useState<HniaLanguage>(appLanguage as HniaLanguage);
+  const isRTL = language === 'ar';
+  const tx = (fr: string, en: string, ar: string) => hniaText(language, fr, en, ar);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [searchResults, setSearchResults] = useState<ChatMessage[] | null>(null);
+  const [voiceReview, setVoiceReview] = useState(false);
+  const [recentClass, setRecentClass] = useState<string | undefined>();
+  const classUsageRef = useRef<Record<string, number>>({});
+  const newConversationRef = useRef(false);
+  const historyRequestRef = useRef(0);
+  const lastToolRef = useRef<string | undefined>(undefined);
+  const [visibleDate, setVisibleDate] = useState<string | null>(null);
 
   // Chat State — initialized instantly from in-memory cache (0ms mount, zero spinner)
   const [messages, setMessages] = useState<ChatMessage[]>(() => cache.messages);
@@ -195,7 +218,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
     }
     return m.pendingConfirmation.status === 'PENDING';
   });
-  const agentStatus = hasPendingAction
+  const agentStatus = hasPendingAction && !isLoading
     ? {
         label: language === 'ar' ? 'إجراء مطلوب' : language === 'en' ? 'Action Required' : 'Action requise',
         dotColor: '#f59e0b',
@@ -204,57 +227,51 @@ function HniaChatForAccount({ userId }: { userId: string }) {
       }
     : isLoading
     ? {
-        label: language === 'ar' ? 'هنيّة تفكّر...' : language === 'en' ? 'Hnia is thinking...' : 'Hnia travaille...',
+        label: tx('Recherche…', 'Searching…', 'نبحث…'),
         dotColor: '#2563eb',
         textColor: '#1d4ed8',
         bg: '#eff6ff',
       }
     : {
-        label: language === 'ar' ? 'متصلة' : language === 'en' ? 'Online' : 'En ligne',
+        label: tx('Prête', 'Ready', 'حاضرة'),
         dotColor: '#10b981',
         textColor: '#059669',
         bg: '#ecfdf5',
       };
 
-  // Quick Suggestion Chips (visible when in active conversation)
-  const QUICK_CHIPS = [
-    {
-      label: language === 'ar' ? '📊 مداخيل الشهر' : language === 'en' ? '📊 Monthly Revenue' : '📊 Recettes du mois',
-      prompt:
-        language === 'ar'
-          ? 'أعطني مداخيل ورصيد هذا الشهر المالي'
-          : language === 'en'
-          ? 'Give me the revenue and financial summary for this month'
-          : 'Donne-moi les revenus et le bilan financier de ce mois',
-    },
-    {
-      label: language === 'ar' ? '💳 المستحقات' : language === 'en' ? '💳 Unpaid' : '💳 Impayés',
-      prompt:
-        language === 'ar'
-          ? 'من هم التلاميذ الذين لديهم مستحقات غير خالصة هذا الشهر؟'
-          : language === 'en'
-          ? 'Which students have unpaid tuitions this month?'
-          : 'Quels sont les élèves qui ont des impayés ce mois-ci ?',
-    },
-    {
-      label: language === 'ar' ? '💰 تسجيل مصروف' : language === 'en' ? '💰 Add Expense' : '💰 Ajouter dépense',
-      prompt:
-        language === 'ar'
-          ? 'أريد تسجيل مصروف جديد في الخزينة'
-          : language === 'en'
-          ? 'I want to record a new expense'
-          : 'Je souhaite enregistrer une nouvelle dépense',
-    },
-    {
-      label: language === 'ar' ? '📋 غيابات اليوم' : language === 'en' ? "📋 Today's Absences" : '📋 Absences du jour',
-      prompt:
-        language === 'ar'
-          ? 'ما هي الغيابات المسجلة لهذا اليوم؟'
-          : language === 'en'
-          ? 'What are the recorded absences for today?'
-          : "Quelles sont les absences constatées aujourd'hui ?",
-    },
-  ];
+  const QUICK_CHIPS = contextualPrompts(language, new Date().getHours(), recentClass);
+  const displayedMessages = useMemo(() => searchText.trim() && searchResults ? [...searchResults].reverse() : [...messages].reverse().filter(message => !searchText.trim() || message.content.toLocaleLowerCase().includes(searchText.trim().toLocaleLowerCase())), [messages, searchText, searchResults]);
+  useEffect(() => {
+    setSearchResults(null);
+    if (!searchText.trim() || !conversationId) return;
+    let active = true;
+    const timer = setTimeout(() => { adminService.searchChatHistory(conversationId, searchText).then(result => { if (active && result?.success) setSearchResults(result.messages || []); }).catch(() => null); }, 350);
+    return () => { active = false; clearTimeout(timer); };
+  }, [conversationId, searchText]);
+  const dateLabel = (value?: string) => value ? new Date(value).toLocaleDateString(language === 'ar' ? 'ar-TN' : language === 'en' ? 'en-GB' : 'fr-FR', { day: 'numeric', month: 'long' }) : '';
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    const first = viewableItems.find((item: any) => item.isViewable && item.item?.createdAt);
+    if (first) setVisibleDate(first.item.createdAt);
+  }).current;
+  useEffect(() => {
+    let live = true;
+    AsyncStorage.getItem(`hnia_language_${userId}_${conversationId || 'new'}`).then(value => { if (live) setChatLanguage((['fr', 'en', 'ar'].includes(value || '') ? value : appLanguage) as HniaLanguage); }).catch(() => null);
+    return () => { live = false; };
+  }, [userId, conversationId]);
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem(`hnia_class_usage_${userId}_${schoolName}`).then(value => {
+      if (!active || !value) return;
+      const parsed = JSON.parse(value);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return;
+      classUsageRef.current = Object.fromEntries(Object.entries(parsed).filter(([, count]) => typeof count === 'number' && Number.isFinite(count) && count > 0).map(([name, count]) => [name, Number(count)]));
+      const mostUsed = Object.entries(classUsageRef.current).sort((a, b) => b[1] - a[1])[0];
+      if (mostUsed) setRecentClass(mostUsed[0]);
+    }).catch(() => null);
+    return () => { active = false; };
+  }, [userId, schoolName]);
+  const chooseLanguage = (next: HniaLanguage) => { setChatLanguage(next); AsyncStorage.setItem(`hnia_language_${userId}_${conversationId || 'new'}`, next).catch(() => null); };
+
 
   // Cleanup audio recording on unmount
   useEffect(() => {
@@ -374,6 +391,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
         setIsInitializing(false);
       }
       if (isMounted) {
+        setIsInitializing(false);
         await loadChatHistory(foundConvId || undefined);
       }
     })();
@@ -383,9 +401,11 @@ function HniaChatForAccount({ userId }: { userId: string }) {
   }, []);
 
   const loadChatHistory = async (overrideConvId?: string) => {
+    const requestId = ++historyRequestRef.current;
     const idToUse = overrideConvId || conversationId;
     try {
       const res = await adminService.fetchChatHistory(idToUse);
+      if (requestId !== historyRequestRef.current || isSendingRef.current) return;
       if (res && res.success) {
         if (res.conversationId) {
           setConversationId(res.conversationId);
@@ -499,6 +519,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
               content,
               imageUri,
               widget: m.widget || null,
+              evidence: m.evidence || null,
               pendingConfirmation,
               createdAt: m.createdAt,
             };
@@ -546,6 +567,9 @@ function HniaChatForAccount({ userId }: { userId: string }) {
     setHistoryDrawerVisible(false);
     if (threadId === conversationId) return;
 
+    newConversationRef.current = false;
+    setSearchText('');
+    setVisibleDate(null);
     cache.conversationId = threadId;
     cache.messages = [];
     setIsLoading(true);
@@ -562,6 +586,13 @@ function HniaChatForAccount({ userId }: { userId: string }) {
   const handleCreateNewThread = async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setHistoryDrawerVisible(false);
+    historyRequestRef.current++;
+    newConversationRef.current = true;
+    setSearchText('');
+    setSearchVisible(false);
+    setVoiceReview(false);
+    setLastFailedMessage(null);
+    setVisibleDate(null);
     cache.messages = [];
     cache.conversationId = undefined;
     setMessages([]);
@@ -937,7 +968,8 @@ function HniaChatForAccount({ userId }: { userId: string }) {
   const handleSendMessage = async (
     textToSend?: string,
     directAudioBase64?: string,
-    directAudioMime?: string
+    directAudioMime?: string,
+    refresh?: { readId: string; messageId: string; nextPage?: boolean }
   ) => {
     const rawText = (textToSend ?? inputText).trim();
     if (!rawText && !stagedImage && !stagedAudio && !directAudioBase64) return;
@@ -953,6 +985,26 @@ function HniaChatForAccount({ userId }: { userId: string }) {
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setLastFailedMessage(null);
+    historyRequestRef.current++;
+    lastToolRef.current = undefined;
+    if (directAudioBase64 || stagedAudio) {
+      setIsLoading(true);
+      setActiveStatusStep(tx('Compréhension du vocal…', 'Understanding your voice…', 'نفهم في التسجيل…'));
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      try {
+        const result = await adminService.transcribeHniaAudio(directAudioBase64 || stagedAudio!.base64, directAudioMime || 'audio/mp4', controller.signal);
+        if (!controller.signal.aborted) {
+          if (!result?.success || !result.transcription) throw new Error('NO_SPEECH');
+          setInputText(result.transcription);
+          setVoiceReview(true);
+          setStagedAudio(null);
+        }
+      } catch (error) { if (!controller.signal.aborted) setVocalError(tx('Vocal non compris. Réessayez.', 'Could not understand the recording. Try again.', 'ما فهمتش التسجيل. عاود جرّب.')); }
+      finally { setIsLoading(false); setActiveStatusStep(null); abortControllerRef.current = null; isSendingRef.current = false; }
+      return;
+    }
+    setVoiceReview(false);
 
     const userMsgId = `user_${Date.now()}`;
     const userMsg: ChatMessage = {
@@ -962,8 +1014,6 @@ function HniaChatForAccount({ userId }: { userId: string }) {
         rawText ||
         (directAudioBase64
           ? '🎙️ Transcription en cours...'
-          : stagedAudio
-          ? `🎙️ ${stagedAudio.name}`
           : stagedImage
           ? '📷 Document envoyé'
           : ''),
@@ -972,14 +1022,15 @@ function HniaChatForAccount({ userId }: { userId: string }) {
       createdAt: new Date().toISOString(),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
-    saveMessagesToLocal([...messages, userMsg], conversationId);
+    if (!refresh) {
+      setMessages((prev) => [...prev, userMsg]);
+      saveMessagesToLocal([...messages, userMsg], conversationId);
+    }
 
     // Inverted FlatList auto-shows new messages at visual bottom
 
     setInputText('');
     const imagePayload = stagedImage;
-    const audioPayload = stagedAudio;
     setStagedImage(null);
     setStagedAudio(null);
 
@@ -987,14 +1038,14 @@ function HniaChatForAccount({ userId }: { userId: string }) {
     abortControllerRef.current = controller;
     setIsLoading(true);
     setActiveStatusStep(
-      directAudioBase64 || audioPayload
+      directAudioBase64
         ? 'Transcription du message vocal...'
         : imagePayload
         ? 'Analyse du document...'
         : 'Analyse de la demande...'
     );
 
-    const botMsgId = `bot_${Date.now()}`;
+    const botMsgId = refresh?.messageId || `bot_${Date.now()}`;
     let accumulatedText = '';
     let isStreamStarted = false;
     let isDoneTriggered = false;
@@ -1005,6 +1056,9 @@ function HniaChatForAccount({ userId }: { userId: string }) {
       const payload: any = {
         message: rawText,
         conversationId,
+        newConversation: newConversationRef.current,
+        language,
+        ...(refresh ? { refreshReadId: refresh.readId, nextReadPage: refresh.nextPage === true } : {}),
       };
 
       if (imagePayload) {
@@ -1015,9 +1069,6 @@ function HniaChatForAccount({ userId }: { userId: string }) {
       if (directAudioBase64) {
         payload.audioBase64 = directAudioBase64;
         payload.audioMimeType = directAudioMime || 'audio/mp4';
-      } else if (audioPayload) {
-        payload.audioBase64 = audioPayload.base64;
-        payload.audioMimeType = 'audio/mp4';
       }
 
       const res = await adminService.streamMessage(
@@ -1026,7 +1077,8 @@ function HniaChatForAccount({ userId }: { userId: string }) {
           onStatus: (status) => {
             if (controller.signal.aborted) return;
             // Clean status step without exposing raw tool names
-            setActiveStatusStep(status.step || 'Traitement en cours...');
+            lastToolRef.current = status.tool || lastToolRef.current;
+            setActiveStatusStep(localizedProgress(status.step, status.tool, language));
           },
           onTranscription: (transcription) => {
             if (controller.signal.aborted || !transcription) return;
@@ -1124,6 +1176,16 @@ function HniaChatForAccount({ userId }: { userId: string }) {
             setActiveStatusStep(null);
 
             const nextConvId = result?.conversationId || conversationId;
+            newConversationRef.current = false;
+            if (nextConvId) AsyncStorage.setItem(`hnia_language_${userId}_${nextConvId}`, language).catch(() => null);
+            const classFilter = result?.evidence?.filters?.className;
+            if (classFilter) {
+              const usage: Record<string, number> = { ...classUsageRef.current, [String(classFilter)]: (Number(classUsageRef.current[String(classFilter)]) || 0) + 1 };
+              const ranked = Object.entries(usage).sort((a, b) => b[1] - a[1]).slice(0, 20);
+              classUsageRef.current = Object.fromEntries(ranked);
+              setRecentClass(ranked[0][0]);
+              AsyncStorage.setItem(`hnia_class_usage_${userId}_${schoolName}`, JSON.stringify(classUsageRef.current)).catch(() => null);
+            }
             if (result?.conversationId) {
               setConversationId(result.conversationId);
               AsyncStorage.setItem(HNIA_CONV_STORAGE_KEY, result.conversationId).catch(() => null);
@@ -1160,6 +1222,8 @@ function HniaChatForAccount({ userId }: { userId: string }) {
                         widget: finalWidget,
                         pendingConfirmation: finalConfirmation,
                         followUpSuggestions: result?.followUpSuggestions,
+                        evidence: result?.evidence,
+                        recovery: undefined,
                       }
                     : m
                 );
@@ -1174,6 +1238,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
                     widget: finalWidget,
                     pendingConfirmation: finalConfirmation,
                     followUpSuggestions: result?.followUpSuggestions,
+                    evidence: result?.evidence,
                     createdAt: new Date().toISOString(),
                   },
                 ];
@@ -1205,6 +1270,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
           transcription: res.transcription,
           pendingConfirmation: res.pendingConfirmation,
           widget: res.widget,
+          evidence: res.evidence,
           followUpSuggestions: res.followUpSuggestions,
           createdAt: new Date().toISOString(),
         };
@@ -1220,7 +1286,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
         setLastFailedMessage(rawText);
         if (tokenFlushTimerRef.current) { clearTimeout(tokenFlushTimerRef.current); tokenFlushTimerRef.current = null; }
         setMessages(prev => {
-          const next = replaceInterruptedReply(prev, botMsgId, 'La vérification a été interrompue. Je ne peux pas confirmer ces données. Réessayez pour obtenir une réponse vérifiée.');
+          const next = replaceInterruptedReply(prev, botMsgId, tx('La connexion a été perdue avant la fin de la réponse.', 'I lost the connection before completing the answer.', 'تقصّت الكونكسيون قبل ما نكمّل الإجابة.')).map(m => m.id === botMsgId ? { ...m, recovery: { prompt: rawText, uncertainAction: Boolean(receivedConfirmation || (lastToolRef.current && !/^(get_|search_|query_)/.test(lastToolRef.current))) } } : m);
           saveMessagesToLocal(next, conversationId);
           return next;
         });
@@ -1231,7 +1297,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
       setLastFailedMessage(rawText);
       if (tokenFlushTimerRef.current) { clearTimeout(tokenFlushTimerRef.current); tokenFlushTimerRef.current = null; }
       setMessages(prev => {
-        const next = replaceInterruptedReply(prev, botMsgId, "Je n'arrive pas à vérifier les données auprès de SnapSchool pour le moment. Veuillez réessayer.");
+        const next = replaceInterruptedReply(prev, botMsgId, tx('La connexion a été perdue avant la fin de la réponse.', 'I lost the connection before completing the answer.', 'تقصّت الكونكسيون قبل ما نكمّل الإجابة.')).map(m => m.id === botMsgId ? { ...m, recovery: { prompt: rawText, uncertainAction: Boolean(receivedConfirmation || (lastToolRef.current && !/^(get_|search_|query_)/.test(lastToolRef.current))) } } : m);
         saveMessagesToLocal(next, conversationId);
         return next;
       });
@@ -1310,14 +1376,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
       {/* Top Header */}
       <View style={[styles.header, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
         <View style={[styles.headerLeft, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-          <TouchableOpacity
-            style={styles.historyBtn}
-            onPress={handleOpenHistoryDrawer}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            activeOpacity={0.7}
-          >
-            <History size={20} color="#334155" />
-          </TouchableOpacity>
+
 
           <View style={styles.avatarBox}>
             <Image source={HNIA_AVATAR} style={styles.avatarImg} />
@@ -1341,21 +1400,25 @@ function HniaChatForAccount({ userId }: { userId: string }) {
               </View>
             </View>
             <Text style={[styles.headerSubtitle, { textAlign: isRTL ? 'right' : 'left' }]} numberOfLines={1}>
-              {language === 'ar' ? `المساعد الذكي • ${schoolName}` : language === 'en' ? `Assistant • ${schoolName}` : `Assistante SnapSchool • ${schoolName}`}
+              {schoolName}
             </Text>
           </View>
         </View>
 
         <TouchableOpacity
           style={styles.newChatBtn}
-          onPress={handleCreateNewThread}
+          onPress={() => setMenuVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel={tx('Menu Hnia', 'Hnia menu', 'قائمة هنية')}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           activeOpacity={0.7}
         >
-          <Plus size={19} color="#0055d4" strokeWidth={2.4} />
+          <MoreHorizontal size={22} color="#506a87" />
         </TouchableOpacity>
       </View>
 
+      {searchVisible && <View style={{ paddingHorizontal: 16, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#f7f9fc' }}><Search size={16} color="#6983a0" /><TextInput accessibilityLabel={tx('Rechercher dans la conversation', 'Search conversation', 'لوّج في المحادثة')} value={searchText} onChangeText={setSearchText} placeholder={tx('Rechercher dans cette conversation…', 'Search this conversation…', 'لوّج في المحادثة…')} style={{ flex: 1, minHeight: 38, color: '#25415f' }} autoFocus /><Text style={{ fontSize: 11, color: '#6b839d' }}>{displayedMessages.length}</Text><TouchableOpacity accessibilityRole="button" onPress={() => { setSearchVisible(false); setSearchText(''); }}><X size={18} color="#6b839d" /></TouchableOpacity></View>}
+      {visibleDate && messages.length > 0 && !searchVisible && <View style={{ paddingVertical: 4, alignItems: 'center', backgroundColor: '#f7f9fc' }}><Text style={{ fontSize: 10, color: '#8496aa' }}>{dateLabel(visibleDate)}</Text></View>}
       <Reanimated.View
         style={[
           { flex: 1 },
@@ -1364,17 +1427,11 @@ function HniaChatForAccount({ userId }: { userId: string }) {
       >
         <View style={{ flex: 1 }}>
           {/* Main Area */}
-          {isInitializing ? (
-            <View style={styles.loadingCenter}>
-              <ActivityIndicator size="large" color="#0055d4" />
-              <Text style={styles.loadingText}>
-                {language === 'ar' ? 'جاري تهيئة هنيّة...' : language === 'en' ? 'Initializing Hnia...' : 'Initialisation d’Hnia...'}
-              </Text>
-            </View>
-          ) : messages.length === 0 ? (
+          {messages.length === 0 ? (
             /* Welcome / Empty State */
             <HniaEmptyState
               schoolName={schoolName}
+              chatLanguage={language}
               onSelectPrompt={(prompt) => handleSendMessage(prompt)}
               onOpenAttachmentSheet={handleTakePhoto}
             />
@@ -1382,10 +1439,12 @@ function HniaChatForAccount({ userId }: { userId: string }) {
             /* Message List */
             <FlatList
               ref={flatListRef}
-              data={[...messages].reverse()}
+              data={displayedMessages}
+              onViewableItemsChanged={onViewableItemsChanged}
+              viewabilityConfig={{ itemVisiblePercentThreshold: 30 }}
               inverted={true}
               keyExtractor={(item) => item.id}
-              extraData={confirmingToolId || (isLoading ? 'loading' : 'idle')}
+              extraData={[confirmingToolId, isLoading, language]}
               windowSize={7}
               maxToRenderPerBatch={10}
               initialNumToRender={15}
@@ -1409,7 +1468,8 @@ function HniaChatForAccount({ userId }: { userId: string }) {
               }}
               scrollEventThrottle={100}
               keyboardDismissMode="none"
-              renderItem={({ item }) => (
+              renderItem={({ item, index }) => (
+                <View style={{ gap: 10 }}>
                 <HniaMessageBubble
                   message={item}
                   onPreviewImage={(uri) => setFullscreenImageUri(uri)}
@@ -1428,7 +1488,19 @@ function HniaChatForAccount({ userId }: { userId: string }) {
                   }
                   onSelectSuggestion={(sug) => handleSendMessage(sug)}
                   onNavigateToCaisse={() => navigation.navigate('Caisse')}
+                  language={language}
+                  schoolName={schoolName}
+                  disabled={isLoading}
+                  onRefreshRead={(id) => handleSendMessage(tx('Actualiser les données', 'Refresh records', 'حدّث المعطيات'), undefined, undefined, { readId: id, messageId: item.id })}
+                  onNextReadPage={(id) => { if (id) handleSendMessage('Page suivante', undefined, undefined, { readId: id, messageId: item.id, nextPage: true }); }}
+                  onOpenClass={(classId) => Linking.openURL(`https://www.snapschool.academy/list/classes/${encodeURIComponent(classId)}`)}
+                  onRecover={async (message, mode) => {
+                    if (message.recovery?.uncertainAction) { await loadChatHistory(); return; }
+                    const prompt = message.recovery?.prompt;
+                    if (prompt) handleSendMessage(mode === 'continue' ? tx('Reprends cette consultation : ', 'Resume this lookup: ', 'كمّل التثبت: ') + prompt : prompt);
+                  }}
                 />
+                </View>
               )}
               contentContainerStyle={styles.messagesList}
               showsVerticalScrollIndicator={false}
@@ -1436,34 +1508,8 @@ function HniaChatForAccount({ userId }: { userId: string }) {
               ListHeaderComponent={
                 isLoading && !messages.some((m) => m.isStreaming) ? (
                   <View style={[styles.typingCard, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-                    <Image source={HNIA_AVATAR} style={styles.typingAvatar} />
-                    <View style={[styles.typingContent, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-                      <ActivityIndicator size="small" color="#0055d4" style={isRTL ? { marginLeft: 6 } : { marginRight: 6 }} />
-                      <Text style={[styles.typingText, { textAlign: isRTL ? 'right' : 'left' }]}>
-                        {activeStatusStep || (language === 'ar' ? 'هنيّة تحضّر الإجابة...' : language === 'en' ? 'Hnia is preparing the answer...' : 'Hnia prépare la réponse...')}
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      style={[styles.stopPill, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
-                      onPress={handleInterrupt}
-                      activeOpacity={0.8}
-                    >
-                      <Square size={9} color="#dc2626" fill="#dc2626" />
-                      <Text style={styles.stopPillText}>
-                        {language === 'ar' ? 'إيقاف' : language === 'en' ? 'Stop' : 'Arrêter'}
-                      </Text>
-                    </TouchableOpacity>
+                    <HniaActivity label={activeStatusStep || tx('Préparation de la réponse…', 'Preparing your answer…', 'نحضّر في الإجابة…')} />
                   </View>
-                ) : lastFailedMessage ? (
-                  <TouchableOpacity
-                    style={[styles.retryBanner, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
-                    onPress={() => handleSendMessage(lastFailedMessage)}
-                  >
-                    <RotateCcw size={14} color="#dc2626" />
-                    <Text style={styles.retryText}>
-                      {language === 'ar' ? 'إعادة المحاولة' : language === 'en' ? 'Retry sending' : "Réessayer l'envoi"}
-                    </Text>
-                  </TouchableOpacity>
                 ) : null
               }
             />
@@ -1484,7 +1530,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
           )}
 
           {/* Quick Action Suggestion Chips (when chatting - hidden while typing to maximize message visibility) */}
-          {messages.length > 0 && !isRecording && !isKeyboardVisible && (
+          {messages.length > 0 && !isLoading && !hasPendingAction && !isRecording && !isKeyboardVisible && !searchVisible && (
             <View style={styles.quickChipsBar}>
               <FlatList
                 horizontal
@@ -1505,8 +1551,11 @@ function HniaChatForAccount({ userId }: { userId: string }) {
             </View>
           )}
 
+          {voiceReview && <View style={{ backgroundColor: '#eef5ff', paddingHorizontal: 18, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}><Text style={{ color: '#3d6192', fontSize: 12, flex: 1 }}>{tx('Vocal compris. Relisez et modifiez avant l’envoi.', 'Voice understood. Review and edit before sending.', 'فهمت التسجيل. راجع وعدّل قبل ما تبعث.')}</Text><TouchableOpacity accessibilityRole="button" onPress={() => { setVoiceReview(false); setInputText(''); }}><X size={17} color="#637f9f" /></TouchableOpacity></View>}
+          {messages.length === 0 && isLoading && <View style={{ paddingHorizontal: 22 }}><HniaActivity label={activeStatusStep || tx('Consultation des données…', 'Checking school data…', 'نراجع في المعطيات…')} /></View>}
           {/* Composer */}
           <HniaComposer
+            chatLanguage={language}
             inputText={inputText}
             onChangeText={setInputText}
             onSend={(txt) => handleSendMessage(txt)}
@@ -1541,6 +1590,18 @@ function HniaChatForAccount({ userId }: { userId: string }) {
         </View>
       </Reanimated.View>
 
+      <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
+        <TouchableOpacity activeOpacity={1} style={experienceStyles.overlay} onPress={() => setMenuVisible(false)}>
+          <TouchableOpacity activeOpacity={1} style={experienceStyles.menu} onPress={() => {}}>
+            <Text style={experienceStyles.menuTitle}>{tx('Votre espace Hnia', 'Your Hnia workspace', 'فضاء هنية')}</Text>
+            <TouchableOpacity accessibilityRole="button" disabled={isLoading} style={experienceStyles.menuRow} onPress={() => { setMenuVisible(false); handleCreateNewThread(); }}><Plus size={19} color="#456387" /><Text style={experienceStyles.menuText}>{tx('Nouveau sujet', 'New topic', 'موضوع جديد')}</Text></TouchableOpacity>
+            <TouchableOpacity accessibilityRole="button" disabled={isLoading} style={experienceStyles.menuRow} onPress={() => { setMenuVisible(false); handleOpenHistoryDrawer(); }}><History size={19} color="#456387" /><Text style={experienceStyles.menuText}>{tx('Historique', 'Conversation history', 'المحادثات السابقة')}</Text></TouchableOpacity>
+            <TouchableOpacity accessibilityRole="button" disabled={!messages.length} style={experienceStyles.menuRow} onPress={() => { setMenuVisible(false); setSearchVisible(true); }}><Search size={19} color="#456387" /><Text style={experienceStyles.menuText}>{tx('Rechercher dans la conversation', 'Search conversation', 'لوّج في المحادثة')}</Text></TouchableOpacity>
+            <View style={experienceStyles.menuRow}><Languages size={19} color="#456387" /><Text style={experienceStyles.menuText}>{tx('Langue de réponse', 'Reply language', 'لغة الإجابة')}</Text></View>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>{(['fr', 'en', 'ar'] as const).map(code => <TouchableOpacity key={code} accessibilityRole="button" accessibilityState={{ selected: code === language }} onPress={() => chooseLanguage(code)} style={[experienceStyles.language, code === language && { backgroundColor: '#e9f1ff', borderColor: '#b8cff1' }]}><Text style={{ color: '#345d91', fontWeight: '600' }}>{code === 'ar' ? 'عربي' : code === 'en' ? 'English' : 'Français'}</Text></TouchableOpacity>)}</View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
       {/* History Drawer Modal */}
       <HniaHistoryDrawer
         visible={historyDrawerVisible}
@@ -1600,6 +1661,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flex: 1,
   },
   historyBtn: {
     width: 36,
@@ -1631,6 +1693,7 @@ const styles = StyleSheet.create({
   },
   headerTitleCol: {
     gap: 1,
+    flex: 1,
   },
   titleRow: {
     flexDirection: 'row',
@@ -1817,3 +1880,5 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 });
+
+const experienceStyles = StyleSheet.create({ overlay: { flex: 1, backgroundColor: 'rgba(15,32,55,0.25)', justifyContent: 'flex-end' }, menu: { backgroundColor: '#fff', padding: 24, paddingBottom: 36, borderTopLeftRadius: 26, borderTopRightRadius: 26 }, menuTitle: { color: '#193552', fontSize: 20, fontWeight: '700', marginBottom: 18 }, menuRow: { flexDirection: 'row', alignItems: 'center', gap: 13, minHeight: 50 }, menuText: { color: '#3e5977', fontSize: 15 }, language: { flex: 1, borderWidth: 1, borderColor: '#e2eaf4', paddingVertical: 13, borderRadius: 12, alignItems: 'center' } });
