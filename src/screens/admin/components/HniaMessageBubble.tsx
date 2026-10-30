@@ -99,13 +99,13 @@ function HniaMessageBubble({
 
   // Extract structured widgets if available
   const caisseData = !isUser
-    ? (message.widget?.type === 'caisse' ? message.widget.data : tryParseCaisseWidget(message.content))
+    ? (message.widget ? message.widget.type === 'caisse' ? message.widget.data : null : tryParseCaisseWidget(message.content))
     : null;
   const unpaidData = !isUser
-    ? (message.widget?.type === 'unpaid_tuition' ? message.widget.data : tryParseUnpaidWidget(message.content))
+    ? (message.widget ? message.widget.type === 'unpaid_tuition' ? message.widget.data : null : tryParseUnpaidWidget(message.content))
     : null;
   const receiptData = !isUser
-    ? (message.widget?.type === 'pdf_receipt' ? message.widget.data : tryParseReceiptWidget(message.content))
+    ? (message.widget ? message.widget.type === 'pdf_receipt' ? message.widget.data : null : tryParseReceiptWidget(message.content))
     : null;
   const financeData = !isUser && message.widget?.type === 'finance_summary' ? message.widget.data : null;
   const studentData = !isUser && message.widget?.type === 'student_card' ? message.widget.data : null;
