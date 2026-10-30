@@ -128,6 +128,35 @@ function HniaChatForAccount({ userId }: { userId: string }) {
   const [language, setChatLanguage] = useState<HniaLanguage>(appLanguage as HniaLanguage);
   const isRTL = language === 'ar';
   const tx = (fr: string, en: string, ar: string) => hniaText(language, fr, en, ar);
+  const chatFailureCopy = (error?: string) => {
+    const value = String(error || '');
+    if (/plusieurs demandes|too many|rate.?limit|trop de requêtes/i.test(value)) {
+      return tx(
+        'Hnia reçoit plusieurs demandes. Patientez quelques secondes avant de continuer.',
+        'Hnia is handling several requests. Wait a few seconds before continuing.',
+        'هنية تعالج في برشة طلبات. استنى ثواني وبعد كمّل.'
+      );
+    }
+    if (/temporaire|generation|modèle|model|quota|capacity|unavailable/i.test(value)) {
+      return tx(
+        'Hnia n’a pas pu terminer cette réponse. Vos données et vos actions restent inchangées.',
+        'Hnia could not finish this answer. Your data and actions are unchanged.',
+        'هنية ما نجمتش تكمّل الإجابة. معطياتك والعمليات ما تبدّل منهم شيء.'
+      );
+    }
+    if (/HTTP 401|session|unauthorized/i.test(value)) {
+      return tx(
+        'Votre session doit être renouvelée pour continuer.',
+        'Your session needs to be renewed before continuing.',
+        'يلزم تجدّد الدخول باش تكمّل.'
+      );
+    }
+    return tx(
+      'La connexion a été perdue avant la fin de la réponse.',
+      'I lost the connection before completing the answer.',
+      'تقصّت الكونكسيون قبل ما نكمّل الإجابة.'
+    );
+  };
   const [menuVisible, setMenuVisible] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -1286,7 +1315,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
         setLastFailedMessage(rawText);
         if (tokenFlushTimerRef.current) { clearTimeout(tokenFlushTimerRef.current); tokenFlushTimerRef.current = null; }
         setMessages(prev => {
-          const next = replaceInterruptedReply(prev, botMsgId, tx('La connexion a été perdue avant la fin de la réponse.', 'I lost the connection before completing the answer.', 'تقصّت الكونكسيون قبل ما نكمّل الإجابة.')).map(m => m.id === botMsgId ? { ...m, recovery: { prompt: rawText, uncertainAction: Boolean(receivedConfirmation || (lastToolRef.current && !/^(get_|search_|query_)/.test(lastToolRef.current))) } } : m);
+          const next = replaceInterruptedReply(prev, botMsgId, chatFailureCopy(res.error)).map(m => m.id === botMsgId ? { ...m, recovery: { prompt: rawText, uncertainAction: Boolean(receivedConfirmation || (lastToolRef.current && !/^(get_|search_|query_)/.test(lastToolRef.current))) } } : m);
           saveMessagesToLocal(next, conversationId);
           return next;
         });
@@ -1297,7 +1326,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
       setLastFailedMessage(rawText);
       if (tokenFlushTimerRef.current) { clearTimeout(tokenFlushTimerRef.current); tokenFlushTimerRef.current = null; }
       setMessages(prev => {
-        const next = replaceInterruptedReply(prev, botMsgId, tx('La connexion a été perdue avant la fin de la réponse.', 'I lost the connection before completing the answer.', 'تقصّت الكونكسيون قبل ما نكمّل الإجابة.')).map(m => m.id === botMsgId ? { ...m, recovery: { prompt: rawText, uncertainAction: Boolean(receivedConfirmation || (lastToolRef.current && !/^(get_|search_|query_)/.test(lastToolRef.current))) } } : m);
+        const next = replaceInterruptedReply(prev, botMsgId, chatFailureCopy(err?.message)).map(m => m.id === botMsgId ? { ...m, recovery: { prompt: rawText, uncertainAction: Boolean(receivedConfirmation || (lastToolRef.current && !/^(get_|search_|query_)/.test(lastToolRef.current))) } } : m);
         saveMessagesToLocal(next, conversationId);
         return next;
       });

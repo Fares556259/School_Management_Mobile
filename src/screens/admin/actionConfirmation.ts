@@ -25,7 +25,10 @@ export function applyActionDecision<T extends { pendingConfirmation?: any; widge
       ...card, status: result.actionStatus,
       arguments: edits ? { ...(card.arguments || {}), ...edits } : card.arguments,
       reference: result.actionResult?.reference,
-      resultMessage: result.actionResult?.summary || result.message,
+      // Terminal cards render trusted structured fields. Do not expose the
+      // tool's Markdown result body as receipt copy.
+      resultMessage: undefined,
+      completedAt: result.actionResult?.timestamp,
       undoExpenseId: result.undoExpenseId,
     };
   };

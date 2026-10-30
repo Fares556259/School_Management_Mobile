@@ -22,8 +22,21 @@ it('undo on a receipt only requests a new proposal; it never executes or confirm
   const undo = jest.fn();
   await render({ ...card, status: 'EXECUTED', undoExpenseId: 23 }, { onRequestUndo: undo });
   expect(undo).not.toHaveBeenCalled();
-  act(() => button('Annuler cette dépense…').props.onPress());
+  act(() => button('Préparer l’annulation').props.onPress());
   expect(undo).toHaveBeenCalledWith(23); expect(confirm).not.toHaveBeenCalled(); expect(cancel).not.toHaveBeenCalled();
+});
+it('renders a clean structured receipt without raw markdown or internal references', async () => {
+  await render({ ...card, status: 'EXECUTED', reference: 'ACT-internal-secret', resultMessage: '✅ **Dépense Enregistrée** ...', completedAt: '2026-10-30T08:41:55.000Z', fields: [
+    { label: 'Montant', value: '7.5 DT' }, { label: 'Catégorie', value: 'Fournitures' }, { label: 'Description', value: 'Paper' },
+  ] });
+  const text = renderer.root.findAllByType(Text).map(node => String(node.props.children)).join(' ');
+  expect(text).toContain('Dépense enregistrée'); expect(text).toContain('7.5 DT'); expect(text).toContain('Fournitures');
+  expect(text).not.toContain('**'); expect(text).not.toContain('ACT-internal-secret');
+});
+it('shows cancellation as a neutral final outcome with the cancelled context', async () => {
+  await render({ ...card, status: 'REJECTED', fields: [{ label: 'Montant', value: '7.5 DT' }, { label: 'Catégorie', value: 'Fournitures' }] });
+  const text = renderer.root.findAllByType(Text).map(node => String(node.props.children)).join(' ');
+  expect(text).toContain('Action annulée'); expect(text).toContain('Aucune donnée n’a été modifiée.'); expect(text).toContain('7.5 DT');
 });
 it.each(['EXECUTED', 'REJECTED', 'FAILED', 'EXPIRED', 'EXECUTING'])('hides action buttons for %s cards', async status => { await render({ ...card, status }); expect(button('Confirmer')).toBeUndefined(); expect(button('Annuler')).toBeUndefined(); expect(confirm).not.toHaveBeenCalled(); });
 it('editing does not execute, rejects negative amounts and preserves decimal commas', async () => {

@@ -48,9 +48,9 @@ export function requestChatStream({ url, headers, data, callbacks, signal, isCur
       if (signal?.aborted || !isCurrent()) { cancel(); return false; }
       return true;
     };
-    const fail = (error: string) => {
+    const fail = (error: string, details: Record<string, any> = {}) => {
       if (!active()) return;
-      finish({ success: false, error }, true);
+      finish({ success: false, error, ...details }, true);
       notify(callbacks.onError, new Error(error));
     };
     const resetTimeout = () => {
@@ -60,7 +60,15 @@ export function requestChatStream({ url, headers, data, callbacks, signal, isCur
     const complete = (result: any) => {
       if (!active()) return;
       if (!result || typeof result !== 'object' || result.success !== true) {
-        fail(typeof result?.error === 'string' ? result.error : 'La réponse n’a pas pu être terminée.');
+        const code = typeof result?.error === 'string' && /^[A-Z_]+$/.test(result.error) ? result.error : undefined;
+        fail(
+          typeof result?.message === 'string'
+            ? result.message
+            : typeof result?.error === 'string'
+            ? result.error
+            : 'La réponse n’a pas pu être terminée.',
+          code ? { errorCode: code } : {}
+        );
         return;
       }
       finish(result, true);
@@ -116,7 +124,14 @@ export function requestChatStream({ url, headers, data, callbacks, signal, isCur
         if (!active()) return;
         if (xhr.status < 200 || xhr.status >= 300) {
           const status = xhr.status;
-          fail(`HTTP ${status}`);
+          let response: any = null;
+          try { response = JSON.parse(xhr.responseText || '{}'); } catch {}
+          const message = typeof response?.message === 'string'
+            ? response.message
+            : typeof response?.error === 'string' && !/^[A-Z_]+$/.test(response.error)
+            ? response.error
+            : `HTTP ${status}`;
+          fail(message, { status, errorCode: response?.error, retryAfterSeconds: response?.retryAfterSeconds });
           if (status === 401 && isCurrent()) onUnauthorized();
           return;
         }

@@ -68,6 +68,7 @@ export interface ActionCardData {
   status?: 'PENDING' | 'EXECUTING' | 'EXECUTED' | 'REJECTED' | 'FAILED' | 'EXPIRED';
   reference?: string;
   resultMessage?: string;
+  completedAt?: string;
   undoExpenseId?: number;
   arguments?: Record<string, any>;
 }
@@ -1657,20 +1658,48 @@ export function ActionCardWidget({
     }
   };
 
+  const terminalFields = (() => {
+    const values: ActionCardField[] = (card.fields || []).map((field) => ({ ...field }));
+    const replace = (matches: string[], label: string, value: unknown, suffix = '') => {
+      if (value === undefined || value === null || String(value).trim() === '') return;
+      const nextValue = `${String(value).trim()}${suffix}`;
+      const index = values.findIndex((field) => matches.some((match) => field.label.toLowerCase().includes(match)));
+      if (index >= 0) values[index] = { ...values[index], value: nextValue };
+      else values.push({ label, value: nextValue });
+    };
+    const args = card.arguments || {};
+    replace(['montant', 'amount'], 'Montant', args.amount, ' DT');
+    replace(['description', 'intitulé', 'titre'], 'Description', args.title || args.description);
+    replace(['catégorie', 'category'], 'Catégorie', args.category);
+    replace(['date'], 'Date', args.date);
+    replace(['bénéficiaire', 'élève', 'nom'], 'Bénéficiaire', args.studentNameOrId || args.parentNameOrId || args.name);
+    replace(['période', 'period'], 'Période', args.feePeriod);
+    return values.filter((field) => field.value && field.value !== 'undefined').slice(0, 4);
+  })();
+
+  const translatedFieldLabel = (label: string) => ({
+    Montant: tx('Montant', 'Amount', 'المبلغ'),
+    Catégorie: tx('Catégorie', 'Category', 'الصنف'),
+    Description: tx('Description', 'Description', 'الوصف'),
+    Date: tx('Date', 'Date', 'التاريخ'),
+    Bénéficiaire: tx('Bénéficiaire', 'Beneficiary', 'المستفيد'),
+    Période: tx('Période', 'Period', 'الفترة'),
+  } as Record<string, string>)[label] || label;
+
   // 1. EXECUTED State -> Clean Verified Result Card
   if (card.status === 'EXECUTED') {
-    const summary =
-      card.resultMessage ||
-      card.fields?.map((f) => f.value).slice(0, 2).join(' • ') ||
-      'Enregistré dans SnapSchool';
-
     const executedHeading = isIncome
-      ? 'Recette enregistrée'
+      ? tx('Recette enregistrée', 'Income recorded', 'تم تسجيل المدخول')
       : isExpense
-      ? 'Dépense enregistrée'
-      : card.actionTitle
-      ? card.actionTitle.replace(/^(Ajouter|Créer|Encaisser|Marquer)\s*/i, '') + ' enregistré(e)'
-      : 'Action exécutée avec succès';
+      ? tx('Dépense enregistrée', 'Expense recorded', 'تم تسجيل المصروف')
+      : isPayment
+      ? tx('Paiement enregistré', 'Payment recorded', 'تم تسجيل الخلاص')
+      : isStudent
+      ? tx('Élève inscrit', 'Student enrolled', 'تم تسجيل التلميذ')
+      : tx('Action terminée', 'Action completed', 'تمّت العملية');
+    const when = card.completedAt
+      ? new Date(card.completedAt).toLocaleTimeString(language === 'ar' ? 'ar-TN' : language === 'en' ? 'en-GB' : 'fr-FR', { hour: '2-digit', minute: '2-digit' })
+      : tx('à l’instant', 'just now', 'توا');
 
     return (
       <View style={actionStyles.executedCard}>
@@ -1679,40 +1708,60 @@ export function ActionCardWidget({
             <Check size={14} color="#059669" strokeWidth={2.6} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={actionStyles.executedTitle}>
-              {executedHeading}
-            </Text>
-            <Text style={actionStyles.executedSummary} numberOfLines={2}>
-              {summary}
-            </Text>
+            <Text style={actionStyles.executedTitle}>{executedHeading}</Text>
+            <Text style={actionStyles.executedSummary}>{tx(`Enregistré dans SnapSchool · ${when}`, `Saved in SnapSchool · ${when}`, `تسجّلت في SnapSchool · ${when}`)}</Text>
           </View>
+          <View style={actionStyles.savedBadge}><Text style={actionStyles.savedBadgeText}>{tx('Confirmé', 'Confirmed', 'مؤكّد')}</Text></View>
         </View>
-        {Boolean(card.reference) && (
-          <View style={actionStyles.executedFooter}>
-            <Text style={actionStyles.referenceLabel}>Référence :</Text>
-            <Text style={actionStyles.referenceCode}>{card.reference}</Text>
+        {terminalFields.length > 0 && (
+          <View style={actionStyles.outcomeTable}>
+            {terminalFields.map((field, index) => (
+              <View key={`${field.label}-${index}`} style={[actionStyles.outcomeRow, index > 0 && actionStyles.outcomeRowBorder]}>
+                <Text style={actionStyles.outcomeLabel}>{translatedFieldLabel(field.label)}</Text>
+                <Text style={actionStyles.outcomeValue}>{field.value}</Text>
+              </View>
+            ))}
           </View>
         )}
-        {Number.isInteger(card.undoExpenseId) && onRequestUndo && <TouchableOpacity accessibilityRole="button" onPress={() => onRequestUndo(card.undoExpenseId!)} style={{ paddingVertical: 12 }}><Text style={{ color: '#47698e', fontSize: 12, fontWeight: '600' }}>{tx('Annuler cette dépense…', 'Undo this expense…', 'إلغاء المصروف هذا…')}</Text></TouchableOpacity>}
+        {Number.isInteger(card.undoExpenseId) && onRequestUndo && (
+          <TouchableOpacity accessibilityRole="button" onPress={() => onRequestUndo(card.undoExpenseId!)} style={actionStyles.undoButton}>
+            <Text style={actionStyles.undoButtonText}>{tx('Préparer l’annulation', 'Prepare reversal', 'حضّر الإلغاء')}</Text>
+            <ArrowRight size={14} color="#47698e" />
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
 
-  // 2. REJECTED State -> Simple Cancel notice
+  // 2. REJECTED State -> Neutral, final cancellation receipt
   if (card.status === 'REJECTED') {
     return (
-      <View style={actionStyles.rejectedCard}>
-        <X size={15} color="#dc2626" />
-        <Text style={actionStyles.rejectedText}>Action annulée par l'administrateur</Text>
+      <View style={actionStyles.cancelledCard}>
+        <View style={actionStyles.executedHeader}>
+          <View style={actionStyles.cancelledIcon}><X size={14} color="#64748b" strokeWidth={2.4} /></View>
+          <View style={{ flex: 1 }}>
+            <Text style={actionStyles.cancelledTitle}>{tx('Action annulée', 'Action cancelled', 'تم إلغاء العملية')}</Text>
+            <Text style={actionStyles.cancelledSummary}>{tx('Aucune donnée n’a été modifiée.', 'No data was changed.', 'ما تبدّلت حتى معلومة.')}</Text>
+          </View>
+        </View>
+        {terminalFields.length > 0 && (
+          <View style={actionStyles.cancelledDetails}>
+            {terminalFields.slice(0, 2).map((field, index) => (
+              <Text key={`${field.label}-${index}`} style={actionStyles.cancelledDetailText} numberOfLines={1}>
+                {translatedFieldLabel(field.label)} · {field.value}
+              </Text>
+            ))}
+          </View>
+        )}
       </View>
     );
   }
 
   if (card.status === 'FAILED' || card.status === 'EXPIRED') {
     return (
-      <View style={actionStyles.rejectedCard}>
+      <View style={actionStyles.failedCard}>
         <X size={15} color="#dc2626" />
-        <Text style={actionStyles.rejectedText}>
+        <Text style={actionStyles.failedText}>
           {card.resultMessage || (card.status === 'EXPIRED' ? 'Proposition expirée. Demandez une nouvelle carte à Hnia.' : 'Action non enregistrée. Vérifiez les données avant une nouvelle demande.')}
         </Text>
       </View>
@@ -2740,31 +2789,103 @@ const actionStyles = StyleSheet.create({
   },
   executedSummary: {
     fontSize: 12,
-    color: '#15803d',
+    color: '#4b7660',
     marginTop: 2,
   },
-  executedFooter: {
+  savedBadge: {
+    backgroundColor: '#dcfce7',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  savedBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#15803d',
+    textTransform: 'uppercase',
+  },
+  outcomeTable: {
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    borderRadius: 11,
+    marginTop: 12,
+    paddingHorizontal: 11,
+    paddingVertical: 4,
+  },
+  outcomeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 6,
-    marginTop: 8,
-    paddingTop: 6,
+    justifyContent: 'space-between',
+    minHeight: 34,
+    gap: 12,
+  },
+  outcomeRowBorder: {
     borderTopWidth: 1,
     borderTopColor: '#dcfce7',
   },
-  referenceLabel: {
+  outcomeLabel: {
     fontSize: 11,
-    color: '#166534',
+    color: '#5b7d68',
     fontWeight: '600',
   },
-  referenceCode: {
-    fontSize: 11,
+  outcomeValue: {
+    flex: 1,
+    textAlign: 'right',
+    fontSize: 12,
     fontWeight: '800',
-    color: '#15803d',
-    fontFamily: 'monospace',
+    color: '#14532d',
   },
-  rejectedCard: {
+  undoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 40,
+    marginTop: 5,
+    paddingHorizontal: 4,
+  },
+  undoButtonText: {
+    color: '#47698e',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  cancelledCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 8,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: '#dbe4ee',
+  },
+  cancelledIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#e9eef4',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelledTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#475569',
+  },
+  cancelledSummary: {
+    marginTop: 2,
+    fontSize: 12,
+    color: '#718096',
+  },
+  cancelledDetails: {
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+    gap: 4,
+  },
+  cancelledDetailText: {
+    fontSize: 11,
+    color: '#64748b',
+  },
+  failedCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -2776,7 +2897,7 @@ const actionStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#fecaca',
   },
-  rejectedText: {
+  failedText: {
     fontSize: 12,
     fontWeight: '600',
     color: '#dc2626',

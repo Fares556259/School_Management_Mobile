@@ -100,6 +100,12 @@ it('handles current-account 401 and ordinary JSON responses', async () => {
   xhr.load(JSON.stringify({ success: true, message: 'Done' }));
   expect((await pending).message).toBe('Done');
 });
+it('preserves a rate-limit explanation instead of reducing it to a generic HTTP error', async () => {
+  const pending = start();
+  xhr.status = 429;
+  xhr.load(JSON.stringify({ success: false, error: 'RATE_LIMITED', message: 'Patientez quelques secondes.', retryAfterSeconds: 8 }));
+  expect(await pending).toEqual(expect.objectContaining({ success: false, error: 'Patientez quelques secondes.', errorCode: 'RATE_LIMITED', status: 429, retryAfterSeconds: 8 }));
+});
 it('settles malformed data and throwing callbacks without leaking timers', async () => {
   const pending = start();
   jest.spyOn(console, 'warn').mockImplementation(() => {});
