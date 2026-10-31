@@ -42,16 +42,16 @@ it.each(['EXECUTED', 'REJECTED', 'FAILED', 'EXPIRED', 'EXECUTING'])('hides actio
 it('editing does not execute, rejects negative amounts and preserves decimal commas', async () => {
   await render(); act(() => button('Modifier').props.onPress()); expect(confirm).not.toHaveBeenCalled();
   const amount = renderer.root.findAllByType(TextInput)[0];
-  act(() => amount.props.onChangeText('-7')); act(() => button('Confirmer (-7 DT)').props.onPress());
+  act(() => amount.props.onChangeText('-7')); act(() => button('Vérifier les modifications').props.onPress());
   expect(confirm).not.toHaveBeenCalled(); expect(Alert.alert).toHaveBeenCalled();
-  act(() => amount.props.onChangeText('7,50')); act(() => button('Confirmer (7,50 DT)').props.onPress());
+  act(() => amount.props.onChangeText('7,50')); act(() => button('Vérifier les modifications').props.onPress());
   expect(confirm).toHaveBeenCalledWith('proposal-a', expect.objectContaining({ amount: 7.5 }));
 });
 it('keeps the parent beneficiary key when editing a family payment', async () => {
   await render({ ...card, toolName: 'record_parent_payment', actionType: 'payment', arguments: { amount: 100, parentNameOrId: 'Amel Ben Ali' } });
   act(() => button('Modifier').props.onPress());
   act(() => renderer.root.findAllByType(TextInput).find(node => node.props.placeholder === 'Nom complet').props.onChangeText('Sonia Trabelsi'));
-  act(() => button('Confirmer (100 DT)').props.onPress());
+  act(() => button('Vérifier les modifications').props.onPress());
   expect(confirm).toHaveBeenCalledWith('proposal-a', expect.objectContaining({ parentNameOrId: 'Sonia Trabelsi' }));
   expect(confirm.mock.calls[0][1].studentNameOrId).toBeUndefined();
 });

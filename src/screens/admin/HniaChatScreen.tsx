@@ -1355,14 +1355,23 @@ function HniaChatForAccount({ userId }: { userId: string }) {
     setConfirmingToolId(toolCallId);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      const res = await submitActionDecision(adminService.confirmAction, toolCallId, action, updatedArgs);
+      const cards = messages.flatMap(message => {
+        const value = message.pendingConfirmation || (message.widget?.type === 'action_card' ? message.widget.data : null);
+        return Array.isArray(value) ? value : value ? [value] : [];
+      });
+      const reviewFingerprint = cards.find(card => card.toolCallId === toolCallId)?.reviewFingerprint;
+      const res = await submitActionDecision(adminService.confirmAction, toolCallId, action, updatedArgs, reviewFingerprint);
       setMessages(prev => {
         const next = applyActionDecision(prev, toolCallId, res, updatedArgs);
         saveMessagesToLocal(next, conversationId);
         return next;
       });
       if (res.actionStatus === 'EXECUTED') queryClient.invalidateQueries({ queryKey: ['admin'] });
-      if (res.success) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (res.reviewRequired) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        Alert.alert(tx('Vérifiez les détails', 'Review the details', 'ثبّت في التفاصيل'), res.message);
+      }
+      else if (res.success) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         Alert.alert('Décision de l’action', res.message || 'Actualisez la discussion pour vérifier son statut.');

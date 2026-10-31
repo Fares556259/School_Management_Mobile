@@ -3,13 +3,14 @@ const statuses = new Set<DecisionStatus>(['PENDING', 'EXECUTING', 'EXECUTED', 'R
 
 /** A decision always targets a server proposal. Never translate it into another chat command. */
 export async function submitActionDecision(
-  request: (id: string, action: 'confirm' | 'cancel', edits?: Record<string, any>) => Promise<any>,
+  request: (id: string, action: 'confirm' | 'cancel', edits?: Record<string, any>, reviewFingerprint?: string) => Promise<any>,
   id: string,
   action: 'confirm' | 'cancel',
   edits?: Record<string, any>,
+  reviewFingerprint?: string,
 ) {
   if (!id || /^(fallback_|parsed_)/.test(id)) throw new Error('Cette proposition doit être actualisée avant confirmation.');
-  const result = await request(id, action, edits);
+  const result = await request(id, action, edits, reviewFingerprint);
   const status = result?.actionStatus || result?.actionResult?.status;
   if (!statuses.has(status)) throw new Error(result?.message || 'Décision non vérifiée. Actualisez la discussion avant de réessayer.');
   return { ...result, actionStatus: status as DecisionStatus };
@@ -21,9 +22,10 @@ export function applyActionDecision<T extends { pendingConfirmation?: any; widge
   const update = (card: any): any => {
     if (Array.isArray(card)) return card.map(update);
     if (!card || card.toolCallId !== id) return card;
+    if (result.proposal?.toolCallId === id) return result.proposal;
     return {
       ...card, status: result.actionStatus,
-      arguments: edits ? { ...(card.arguments || {}), ...edits } : card.arguments,
+      arguments: card.arguments,
       reference: result.actionResult?.reference,
       // Terminal cards render trusted structured fields. Do not expose the
       // tool's Markdown result body as receipt copy.

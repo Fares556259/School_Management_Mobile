@@ -1183,11 +1183,12 @@ export const adminService = {
   confirmAction: async (
     toolCallId: string,
     action: 'confirm' | 'cancel',
-    updatedArgs?: Record<string, any>
+    updatedArgs?: Record<string, any>,
+    reviewFingerprint?: string,
   ) => {
     return apiFetch('/api/mobile/agent/confirm', {
       method: 'POST',
-      body: JSON.stringify({ toolCallId, action, updatedArgs }),
+      body: JSON.stringify({ toolCallId, action, updatedArgs, reviewFingerprint }),
     });
   },
   

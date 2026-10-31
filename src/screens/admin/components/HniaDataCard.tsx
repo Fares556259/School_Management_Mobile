@@ -6,11 +6,19 @@ import { freshnessLabel, hniaText } from '../hniaExperience';
 export function HniaEvidence({ evidence, language, schoolName, onRefresh, disabled }: any) {
   const [, tick] = useState(0);
   useEffect(() => { const timer = setInterval(() => tick(n => n + 1), 60_000); return () => clearInterval(timer); }, []);
-  if (!evidence || evidence.source !== 'school_database') return null;
+  if (!evidence) return null;
+  if (evidence.source === 'school_knowledge') return <View style={s.evidence}>
+    <Text style={s.evidenceTitle}>{hniaText(language, 'Sources de votre école', 'School sources', 'مصادر المدرسة')}</Text>
+    <Text style={s.meta}>{evidence.schoolName || schoolName}</Text>
+    {(evidence.sources || []).map((source: any, index: number) => <Text key={source.id} style={s.meta}>[{index + 1}] {source.title} · {source.updatedAt?.slice(0, 10)}</Text>)}
+    {!evidence.sources?.length && <Text style={s.meta}>{hniaText(language, 'Aucune source trouvée', 'No source found', 'ما فماش مصدر')}</Text>}
+    {evidence.toolCallId && onRefresh && <TouchableOpacity accessibilityRole="button" disabled={disabled} onPress={() => onRefresh(evidence.toolCallId)} style={s.refresh}><RefreshCw size={12} color="#235bc8" /><Text style={s.link}>{hniaText(language, 'Actualiser les sources', 'Refresh sources', 'تحديث المصادر')}</Text></TouchableOpacity>}
+  </View>;
+  if (evidence.source !== 'school_database') return null;
   const reads = evidence.reads || [evidence];
   const verified = evidence.verified !== false;
   return <View style={s.evidence}>
-    <View style={s.row}><Check size={12} color={verified ? '#16836b' : '#a16207'} /><Text style={s.evidenceTitle}>{hniaText(language, verified ? 'Données vérifiées' : 'Vérification partielle', verified ? 'Verified school data' : 'Partially verified', verified ? 'معطيات مثبتة' : 'تثبت جزئي')}</Text></View>
+    <View style={s.row}><Check size={12} color={verified ? '#16836b' : '#a16207'} /><Text style={s.evidenceTitle}>{hniaText(language, verified ? 'Données consultées' : 'Consultation partielle', verified ? 'Records retrieved' : 'Partial retrieval', verified ? 'معطيات المدرسة' : 'معطيات جزئية')}</Text></View>
     <Text style={s.meta}>{evidence.schoolName || schoolName}</Text>
     {reads.map((read: any, index: number) => <View key={read.toolCallId || index} style={s.read}>
       <Text style={s.meta}>{freshnessLabel(read.fetchedAt, language)}{Number.isInteger(read.total) ? ` · ${read.total} ${hniaText(language, 'résultats', 'records', 'نتائج')}` : ''}</Text>

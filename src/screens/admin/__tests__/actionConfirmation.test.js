@@ -10,6 +10,15 @@ it('never retries or invents another action after a network failure', async () =
   await expect(submitActionDecision(request, 'id', 'confirm')).rejects.toThrow('Lost connection');
   expect(request).toHaveBeenCalledTimes(1);
 });
+it('sends the reviewed fingerprint and replaces edited cards only with the server proposal', async () => {
+  const proposal = { toolCallId: 'target', status: 'PENDING', arguments: { amount: 7.5 }, reviewFingerprint: 'new-review' };
+  const request = jest.fn().mockResolvedValue({ actionStatus: 'PENDING', reviewRequired: true, proposal });
+  const result = await submitActionDecision(request, 'target', 'confirm', { amount: '7,50' }, 'old-review');
+  expect(request).toHaveBeenCalledWith('target', 'confirm', { amount: '7,50' }, 'old-review');
+  const messages = [{ pendingConfirmation: { toolCallId: 'target', arguments: { amount: 10 } } }];
+  expect(applyActionDecision(messages, 'target', result, { amount: 100 })[0].pendingConfirmation).toEqual(proposal);
+  expect(applyActionDecision(messages, 'target', { actionStatus: 'PENDING' }, { amount: 100 })[0].pendingConfirmation.arguments.amount).toBe(10);
+});
 it('refuses a success response without a verified action status', async () => {
   const request = jest.fn().mockResolvedValue({ success: true, message: 'Already processing' });
   await expect(submitActionDecision(request, 'id', 'confirm')).rejects.toThrow('Already processing');

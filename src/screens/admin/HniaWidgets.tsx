@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -61,6 +61,7 @@ export interface ActionCardField {
 export interface ActionCardData {
   toolCallId: string;
   toolName: string;
+  reviewFingerprint?: string;
   actionTitle: string;
   actionType?: 'expense' | 'income' | 'payment' | 'student' | 'class' | 'attendance' | 'announcement' | 'generic';
   confirmText: string;
@@ -1516,6 +1517,7 @@ export function ActionCardWidget({
 
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [localOverrides, setLocalOverrides] = useState<Record<string, any> | null>(null);
+  useEffect(() => { setLocalOverrides(null); }, [card.reviewFingerprint]);
 
   const getInitialAmount = () => {
     if (localOverrides?.amount !== undefined) return String(localOverrides.amount);
@@ -2102,7 +2104,7 @@ export function ActionCardWidget({
               >
                 <Check size={16} color="#ffffff" strokeWidth={2.4} />
                 <Text style={actionStyles.modalSaveButtonText}>
-                  {editAmount.trim() ? `Confirmer (${editAmount} DT)` : 'Confirmer l\'action'}
+                  {tx('Vérifier les modifications', 'Review changes', 'مراجعة التعديلات')}
                 </Text>
               </TouchableOpacity>
             </View>
