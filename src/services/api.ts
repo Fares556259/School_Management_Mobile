@@ -807,7 +807,18 @@ export const studentService = {
       }
     });
 
-    return timeline;
+    const additional: PaymentRecord[] = (Array.isArray(metadata?.additionalCharges) ? metadata.additionalCharges : [])
+      .filter((charge: any) => charge.academicYear === `${schoolYearStartYear}-${schoolYearStartYear + 1}`)
+      .map((charge: any, index: number) => {
+        const totalAmount = Number(charge.amount);
+        const paidAmount = Number(charge.paidAmount);
+        const dueDate = String(charge.dueDate).slice(0, 10);
+        const isOverdue = paidAmount < totalAmount && new Date(charge.dueDate) < today;
+        return { id: -10000 - index, chargeId: charge.id, chargeKind: charge.kind, periodLabel: charge.period, month: charge.period, totalAmount, paidAmount,
+          status: paidAmount >= totalAmount ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Due', isOverdue, dueDate,
+          academicYear: charge.academicYear };
+      });
+    return [...timeline, ...additional];
   },
 
   fetchExams: async (studentId: string, date: string): Promise<any[]> => {
@@ -1309,6 +1320,10 @@ export const adminService = {
       method: 'POST',
       body: JSON.stringify({ action: 'pay_salary', ...data }),
     });
+  },
+
+  saveTeacherOvertime: async (data: {teacherId: string; hours: number; month: number; year: number; expectedRate: number}) => {
+    return apiFetch('/api/mobile/admin/overtime', { method: 'POST', body: JSON.stringify(data) });
   },
 
   recordExpense: async (data: { title: string; amount: number; category?: string; img?: string | null }) => {

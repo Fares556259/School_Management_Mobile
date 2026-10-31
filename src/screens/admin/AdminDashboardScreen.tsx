@@ -12,6 +12,8 @@ import {
   Linking,
   Modal,
   StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -67,6 +69,9 @@ interface UnpaidItem {
   advanceAmount?: number;
   missedHours?: number;
   deduction?: number;
+  overtimeHours?: number;
+  overtimeAmount?: number;
+  overtimeRate?: number;
 }
 
 interface DashboardData {
@@ -308,10 +313,21 @@ export default function AdminDashboardScreen() {
     setPayModalItem(item);
     setPayAmount(item.dueAmount > 0 ? item.dueAmount.toString() : (item.fullFee || item.baseSalary || 100).toString());
     setPayMethod('Espèces');
+    setOvertimeInput(String(item.overtimeHours || 0));
+  };
+
+  const [overtimeInput,setOvertimeInput]=useState('0');
+  const [savingOvertime,setSavingOvertime]=useState(false);
+  const overtimeDirty=payModalItem?.type==='teacher'&&Number(overtimeInput.replace(',','.'))!==(payModalItem.overtimeHours||0);
+  const reviewOvertime=()=>{
+    if(!payModalItem||payModalItem.type!=='teacher'||savingOvertime)return;
+    const item=payModalItem;const hours=Number(overtimeInput.replace(',','.'));const rate=item.overtimeRate||0;
+    if(!Number.isFinite(hours)||hours<0||hours>744||(hours>0&&rate<=0)){setFeedback({type:'error',title:language==='ar'?'تحقق من الساعات وأجر الساعة':language==='en'?'Check hours and hourly rate':'Vérifiez les heures et le taux horaire',message:language==='ar'?'حدّد أجر الساعة في ملف الأستاذ.':language==='en'?'Set an hourly rate in the teacher profile.':'Définissez le taux horaire dans le profil enseignant.'});return;}
+    Alert.alert(language==='ar'?'تأكيد الساعات الإضافية':language==='en'?'Confirm overtime':'Confirmer les heures supplémentaires',`${item.name}\n${hours} h × ${rate} TND = +${Math.round(hours*rate*1000)/1000} TND\n${language==='ar'?'لا يُصرف أي راتب بهذا التعديل.':language==='en'?'This adjustment does not pay a salary.':'Cet ajustement ne verse aucun salaire.'}`,[{text:language==='ar'?'رجوع':language==='en'?'Back':'Retour',style:'cancel'},{text:language==='ar'?'تأكيد':language==='en'?'Confirm':'Confirmer',onPress:async()=>{setSavingOvertime(true);try{const result=await adminService.saveTeacherOvertime({teacherId:item.id,hours,expectedRate:rate,month:selectedMonth,year:selectedYear});if(!result?.success)throw new Error(result?.error||'Failed');const remaining=result.remaining;setPayModalItem({...item,overtimeHours:hours,overtimeAmount:result.overtimeAmount,dueAmount:remaining});setPayAmount(String(remaining));await queryClient.invalidateQueries({queryKey:['admin']});}catch(error:any){setFeedback({type:'error',title:language==='ar'?'تعذّر الحفظ':language==='en'?'Could not save':'Enregistrement impossible',message:error.message});}finally{setSavingOvertime(false);}}}]);
   };
 
   const handleConfirmPayment = async () => {
-    if (!payModalItem) return;
+    if (!payModalItem || overtimeDirty || savingOvertime) return;
     const amt = parseFloat(payAmount);
     if (isNaN(amt) || amt <= 0) {
       setFeedback({
@@ -921,8 +937,8 @@ export default function AdminDashboardScreen() {
         animationType="fade"
         onRequestClose={() => setPayModalItem(null)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS==='ios'?'padding':'height'}>
+          <ScrollView style={[styles.modalCard,{maxHeight:'90%',padding:0}]} contentContainerStyle={{padding:22}} keyboardShouldPersistTaps="handled">
             {/* Modal Header */}
             <View style={[styles.modalHeaderRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
               <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
@@ -951,6 +967,12 @@ export default function AdminDashboardScreen() {
             </View>
 
             {/* Amount Field */}
+            {payModalItem?.type==='teacher'&&<View style={{backgroundColor:'#ecfdf5',borderRadius:12,padding:12,marginBottom:14}}>
+              <Text style={{fontSize:13,fontWeight:'700',color:'#065f46'}}>{language==='ar'?'الساعات الإضافية':language==='en'?'Overtime hours':'Heures supplémentaires'}</Text>
+              <Text style={{fontSize:11,color:'#64748b',marginVertical:5}}>{language==='ar'?'تُضاف إلى الراتب، مستقلة عن ساعات الغياب.':language==='en'?'Added to salary, separate from missed hours.':'Ajoutées au salaire, indépendantes des absences.'}</Text>
+              <View style={{flexDirection:'row',gap:8,alignItems:'center'}}><TextInput accessibilityLabel={language==='ar'?'عدد الساعات الإضافية':language==='en'?'Overtime hours':'Heures supplémentaires'} keyboardType="decimal-pad" value={overtimeInput} onChangeText={setOvertimeInput} editable={!savingOvertime&&!submittingPay} style={{backgroundColor:'#fff',borderWidth:1,borderColor:'#a7f3d0',borderRadius:8,padding:8,width:70,color:'#0f172a'}}/><Text style={{flex:1,fontSize:12,color:'#065f46'}}>× {payModalItem.overtimeRate||0} TND/h</Text><TouchableOpacity disabled={!overtimeDirty||savingOvertime||submittingPay} onPress={reviewOvertime} style={{padding:9,backgroundColor:overtimeDirty?'#047857':'#cbd5e1',borderRadius:8}}><Text style={{fontSize:11,color:'#fff',fontWeight:'700'}}>{savingOvertime?'…':language==='ar'?'مراجعة':language==='en'?'Review':'Vérifier'}</Text></TouchableOpacity></View>
+              {overtimeDirty&&<Text style={{fontSize:11,color:'#92400e',marginTop:6}}>{language==='ar'?'احفظ الساعات قبل صرف الراتب.':language==='en'?'Save the hours before paying.':'Enregistrez les heures avant de payer.'}</Text>}
+            </View>}
             <Text style={[styles.modalFieldLabel, { textAlign: isRTL ? 'right' : 'left' }]}>{t.adminModalAmountToRecord}</Text>
             <TextInput
               value={payAmount}
@@ -1005,7 +1027,7 @@ export default function AdminDashboardScreen() {
 
               <TouchableOpacity
                 onPress={handleConfirmPayment}
-                disabled={submittingPay}
+                disabled={submittingPay||savingOvertime||overtimeDirty}
                 style={[
                   styles.modalConfirmButton,
                   {
@@ -1024,8 +1046,8 @@ export default function AdminDashboardScreen() {
                 )}
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── CUSTOM FEEDBACK / CONFIRMATION MODAL ─────────────────────────────── */}

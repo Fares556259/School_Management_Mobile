@@ -277,6 +277,20 @@ it('uses half September and June tariffs from the school without inflating money
   expect(payments.reduce((sum,p)=>sum+p.totalAmount,0)).toBe(1530);
 });
 
+it('keeps registration and optional services distinct from monthly tuition in the parent ledger', async () => {
+  await login();
+  fetch.mockResolvedValue(response([{kind:'metadata',tuitionFee:170,halfBoundaryMonths:true,academicYear:'2026-2027',additionalCharges:[
+    {id:'reg-a',kind:'REGISTRATION',period:'2026-2027',academicYear:'2026-2027',amount:150,paidAmount:0,dueDate:'2026-09-15T00:00:00Z'},
+    {id:'transport-a',kind:'TRANSPORT',period:'2026-10',academicYear:'2026-2027',amount:80,paidAmount:20,dueDate:'2026-10-01T00:00:00Z'},
+    {id:'old',kind:'REGISTRATION',period:'2025-2026',academicYear:'2025-2026',amount:150,paidAmount:150,dueDate:'2025-09-15T00:00:00Z'},
+  ]}]));
+  const payments=await api.studentService.fetchPayments('child-a');
+  expect(payments).toHaveLength(12);
+  expect(payments.find(p=>p.chargeId==='reg-a')).toMatchObject({chargeKind:'REGISTRATION',totalAmount:150,paidAmount:0,status:'Due'});
+  expect(payments.find(p=>p.chargeId==='transport-a')).toMatchObject({chargeKind:'TRANSPORT',totalAmount:80,paidAmount:20,status:'Partial'});
+  expect(payments.filter(p=>!p.chargeId).reduce((sum,p)=>sum+p.totalAmount,0)).toBe(1530);
+});
+
 
 it('never reports rejected attendance as saved, and accepts a confirmed save', async () => {
   await login('teacher-token', 'school-a', 'teacher-a');

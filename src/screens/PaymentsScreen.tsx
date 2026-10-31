@@ -289,9 +289,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
                 const shortMonth = monthName.slice(0, 3).toUpperCase();
                 const displayMonth = isRTL ? MONTHS_AR[shortMonth] || shortMonth : shortMonth;
                 const displayedAmount = showingPaid
-                  ? isPartial
-                    ? item.paidAmount
-                    : item.totalAmount
+                  ? item.paidAmount
                   : Math.max(0, item.totalAmount - item.paidAmount);
                 const paidRatio = item.totalAmount > 0
                   ? Math.min(100, Math.round((item.paidAmount / item.totalAmount) * 100))
@@ -310,10 +308,10 @@ export const PaymentsScreen = ({ navigation }: any) => {
                         </View>
                         <View style={styles.cardCopy}>
                           <Text style={[styles.cardTitle, { textAlign: isRTL ? 'right' : 'left' }]} numberOfLines={2}>
-                            {t.tuitionFees}
+                            {item.chargeKind === 'REGISTRATION' ? (language==='ar'?'التسجيل السنوي':language==='en'?'Annual registration':'Inscription annuelle') : item.chargeKind === 'TRANSPORT' ? (language==='ar'?'النقل المدرسي':language==='en'?'School transport':'Transport scolaire') : item.chargeKind === 'GARDE' ? (language==='ar'?'الحضانة':language==='en'?'After-school care':'Garde') : t.tuitionFees}
                           </Text>
                           <Text style={[styles.cardMonth, { color: statusColor, textAlign: isRTL ? 'right' : 'left' }]}>
-                            {displayMonth} {toWestern(year)}
+                            {item.chargeKind ? item.periodLabel : `${displayMonth} ${toWestern(year)}`}
                           </Text>
                         </View>
                       </View>
