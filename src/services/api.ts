@@ -743,16 +743,14 @@ export const studentService = {
     const students = await readStudentsCache(userId, schoolId);
     if (generation !== authGeneration) return [];
     const s = students.find((x) => x.id === studentId);
-    const tuitionFee = Number(metadata?.tuitionFee)
-      || Number(s?.customTuition)
-      || Number(s?.class?.level?.tuitionFee)
-      || 450;
+    const tuitionFee = Number(metadata?.tuitionFee ?? s?.customTuition ?? s?.class?.level?.tuitionFee ?? 450);
 
     const timeline: PaymentRecord[] = academicMonths.map((cycle, index) => {
+      const monthFee = Number(metadata?.monthlyFees?.[cycle.month] ?? (tuitionFee * (metadata?.halfBoundaryMonths && [6, 9].includes(cycle.month) ? 0.5 : 1)));
       // Look for a payment record for this specific month/year
       const p = payments.find((x: any) => x.month === cycle.month && x.year === cycle.year);
       
-      const dueDate = p?.dueDate || `${cycle.year}-${String(cycle.month).padStart(2, '0')}-01`;
+      const dueDate = p?.dueDate || `${cycle.year}-${String(cycle.month).padStart(2, '0')}-${metadata?.halfBoundaryMonths && cycle.month === 9 ? '15' : '01'}`;
       const due = new Date(dueDate);
       
       // Determine if it's in the past relative to today
@@ -773,8 +771,8 @@ export const studentService = {
         return {
           id: p.id,
           month: `${MONTH_NAMES[cycle.month]} ${cycle.year}`,
-          totalAmount: tuitionFee, // Always use the current real tuition fee
-          paidAmount: p.status === 'PAID' ? Math.max(p.amount, tuitionFee) : (isActuallyPaid ? p.amount : 0),
+          totalAmount: monthFee,
+          paidAmount: isActuallyPaid ? p.amount : 0,
           status: p.status === 'PAID' ? 'Paid' : p.status === 'PARTIAL' ? 'Partial' : 'Due',
           isOverdue,
           dueDate,
@@ -797,7 +795,7 @@ export const studentService = {
         return {
           id: -100 - index, // Virtual ID
           month: `${MONTH_NAMES[cycle.month]} ${cycle.year}`,
-          totalAmount: tuitionFee, // Real tuition fee from backend
+          totalAmount: monthFee,
           paidAmount: 0,
           status: isFuture ? 'Locked' : 'Due',
           isOverdue,

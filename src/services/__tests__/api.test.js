@@ -264,6 +264,19 @@ it('uses authoritative payment metadata instead of stale cached tuition settings
   });
 });
 
+it('uses half September and June tariffs from the school without inflating money paid', async () => {
+  await login();
+  fetch.mockResolvedValue(response([
+    { kind: 'metadata', tuitionFee: 170, halfBoundaryMonths: true, academicYear: '2026-2027', monthlyFees: { 9: 85, 6: 85 } },
+    { id: 77, month: 9, year: 2026, amount: 85, status: 'PAID' },
+  ]));
+  const payments = await api.studentService.fetchPayments('child-a');
+  expect(payments.find(p => p.month === 'September 2026')).toMatchObject({ totalAmount: 85, paidAmount: 85, status: 'Paid', dueDate: '2026-09-15' });
+  expect(payments.find(p => p.month === 'June 2027').totalAmount).toBe(85);
+  expect(payments.find(p => p.month === 'October 2026').totalAmount).toBe(170);
+  expect(payments.reduce((sum,p)=>sum+p.totalAmount,0)).toBe(1530);
+});
+
 
 it('never reports rejected attendance as saved, and accepts a confirmed save', async () => {
   await login('teacher-token', 'school-a', 'teacher-a');
