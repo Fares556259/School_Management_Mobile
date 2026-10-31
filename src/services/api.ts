@@ -1205,6 +1205,7 @@ export const adminService = {
       newConversation?: boolean;
       refreshReadId?: string;
       nextReadPage?: boolean;
+      prepareExpenseReversalId?: number;
       language?: string;
     },
     callbacks: ChatStreamCallbacks,

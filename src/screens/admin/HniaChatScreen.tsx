@@ -998,14 +998,15 @@ function HniaChatForAccount({ userId }: { userId: string }) {
     textToSend?: string,
     directAudioBase64?: string,
     directAudioMime?: string,
-    refresh?: { readId: string; messageId: string; nextPage?: boolean }
+    refresh?: { readId: string; messageId: string; nextPage?: boolean },
+    prepareExpenseReversalId?: number,
   ) => {
     const rawText = (textToSend ?? inputText).trim();
     if (!rawText && !stagedImage && !stagedAudio && !directAudioBase64) return;
     if (!aiConsent.current) {
       Alert.alert('Hnia IA', language === 'ar' ? 'ستُرسل رسائلك والصور والتسجيلات التي تختارها إلى خدمة الذكاء الاصطناعي لمعالجتها. تجنب البيانات غير الضرورية وتحقق من الإجابات قبل تنفيذ القرارات.' : language === 'fr' ? 'Vos messages et les photos ou enregistrements choisis seront transmis au service d’intelligence artificielle. Évitez les données inutiles et vérifiez les réponses avant toute décision.' : 'Your messages and selected photos or recordings will be sent to the AI service. Avoid unnecessary personal data and verify responses before acting.', [
         { text: language === 'ar' ? 'إلغاء' : language === 'fr' ? 'Annuler' : 'Cancel', style: 'cancel' },
-        { text: language === 'ar' ? 'متابعة' : language === 'fr' ? 'Continuer' : 'Continue', onPress: () => { aiConsent.current = true; void handleSendMessage(textToSend, directAudioBase64, directAudioMime); } }
+        { text: language === 'ar' ? 'متابعة' : language === 'fr' ? 'Continuer' : 'Continue', onPress: () => { aiConsent.current = true; void handleSendMessage(textToSend, directAudioBase64, directAudioMime, refresh, prepareExpenseReversalId); } }
       ]);
       return;
     }
@@ -1046,7 +1047,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
           : stagedImage
           ? '📷 Document envoyé'
           : ''),
-      imageUri: stagedImage?.uri,
+      imageUri: prepareExpenseReversalId ? undefined : stagedImage?.uri,
       isVoice: Boolean(stagedAudio || directAudioBase64),
       createdAt: new Date().toISOString(),
     };
@@ -1059,7 +1060,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
     // Inverted FlatList auto-shows new messages at visual bottom
 
     setInputText('');
-    const imagePayload = stagedImage;
+    const imagePayload = prepareExpenseReversalId ? null : stagedImage;
     setStagedImage(null);
     setStagedAudio(null);
 
@@ -1087,6 +1088,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
         conversationId,
         newConversation: newConversationRef.current,
         language,
+        ...(prepareExpenseReversalId ? { prepareExpenseReversalId } : {}),
         ...(refresh ? { refreshReadId: refresh.readId, nextReadPage: refresh.nextPage === true } : {}),
       };
 
@@ -1525,6 +1527,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
                     )
                   }
                   onSelectSuggestion={(sug) => handleSendMessage(sug)}
+                  onPrepareExpenseReversal={(expenseId) => handleSendMessage(tx('Préparer l’annulation de cette dépense', 'Prepare cancellation of this expense', 'إعداد إلغاء هذا المصروف'), undefined, undefined, undefined, expenseId)}
                   onNavigateToCaisse={() => navigation.navigate('Caisse')}
                   language={language}
                   schoolName={schoolName}

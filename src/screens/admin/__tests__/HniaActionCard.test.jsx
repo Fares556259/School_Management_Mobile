@@ -70,3 +70,18 @@ it('uses formal Arabic on the payment card', async () => {
   expect(text).toContain('تسجيل دفعة'); expect(text).toContain('لن تُنفَّذ التغييرات قبل تأكيدكم.');
   expect(text).not.toMatch(/خلاص|يستنى|توا/);
 });
+it('shows a readable expense cancellation with an explicit destructive confirmation', async () => {
+  await render({ ...card, toolName: 'void_expense', actionType: 'generic', actionTitle: 'Annuler une dépense', arguments: { expenseId: 407, amount: 2, expectedExpenseVersion: 'internal-version' }, fields: [{ label: 'Description', value: 'Thé' }, { label: 'Montant', value: '2 DT' }, { label: 'Catégorie', value: 'Restauration' }, { label: 'Date', value: '2026-10-31' }] });
+  const text = renderer.root.findAllByType(Text).map(node => String(node.props.children)).join(' ');
+  expect(text).toContain('Annuler une dépense'); expect(text).toContain('Thé'); expect(text).toContain('2 DT');
+  expect(text).not.toMatch(/void_expense|expenseId|internal-version/); expect(confirm).not.toHaveBeenCalled();
+  expect(button('Conserver')).toBeDefined();
+  act(() => button('Confirmer l’annulation').props.onPress()); expect(confirm).toHaveBeenCalledWith('proposal-a', undefined);
+});
+it('distinguishes keeping an expense from cancelling it after the decision', async () => {
+  await render({ ...card, toolName: 'void_expense', actionType: 'generic', status: 'REJECTED' });
+  expect(renderer.root.findAllByType(Text).map(node => String(node.props.children)).join(' ')).toContain('Dépense conservée');
+  expect(confirm).not.toHaveBeenCalled();
+  await act(async () => renderer.update(<ActionCardWidget card={{ ...card, toolName: 'void_expense', actionType: 'generic', status: 'EXECUTED' }} onConfirm={confirm} onCancel={cancel} />));
+  expect(renderer.root.findAllByType(Text).map(node => String(node.props.children)).join(' ')).toContain('Dépense annulée');
+});

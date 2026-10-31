@@ -67,6 +67,7 @@ interface HniaMessageBubbleProps {
   isCopied: boolean;
   onConfirmAction: (toolCallId: string, updatedArgs?: Record<string, any>) => void;
   onCancelAction: (toolCallId: string) => void;
+  onPrepareExpenseReversal?: (expenseId: number) => void;
   isActionExecuting: boolean;
   executingToolId?: string | null;
   onSelectSuggestion: (text: string) => void;
@@ -87,6 +88,7 @@ function HniaMessageBubble({
   isCopied,
   onConfirmAction,
   onCancelAction,
+  onPrepareExpenseReversal,
   isActionExecuting,
   executingToolId,
   onSelectSuggestion,
@@ -94,6 +96,8 @@ function HniaMessageBubble({
   language = 'fr', schoolName, onRefreshRead, onNextReadPage, onOpenClass, onRecover, disabled,
 }: HniaMessageBubbleProps) {
   const isUser = message.role === 'user';
+  const userContent = isUser && /^Prépare une carte de confirmation pour annuler la dépense dont l.identifiant exact est \d+\. Utilise void_expense avec expenseId: \d+\./i.test(message.content)
+    ? hniaText(language, 'Préparer l’annulation de cette dépense', 'Prepare cancellation of this expense', 'إعداد إلغاء هذا المصروف') : message.content;
   const [expandedText, setExpandedText] = useState(false);
   const recordsData = !isUser && message.widget?.type === 'school_records' ? message.widget.data : null;
 
@@ -340,9 +344,9 @@ function HniaMessageBubble({
         {/* User Content */}
         {isUser ? (
           <Text style={styles.userText}>
-            {message.content?.includes('[DOCUMENT NUMÉRISÉ REÇU PAR PHOTO]')
+            {userContent?.includes('[DOCUMENT NUMÉRISÉ REÇU PAR PHOTO]')
               ? '📷 Justificatif / Reçu envoyé'
-              : message.content?.replace(/\[IMAGE:https?:\/\/[^\]]+\]\n?/, '').trim() ||
+              : userContent?.replace(/\[IMAGE:https?:\/\/[^\]]+\]\n?/, '').trim() ||
                 (message.imageUri ? '📷 Document envoyé' : '')}
           </Text>
         ) : actionCards.length > 0 ? (
@@ -360,7 +364,7 @@ function HniaMessageBubble({
               <View key={card.toolCallId || idx} style={{ marginTop: idx > 0 ? 10 : 0 }}>
                 <ActionCardWidget
                   language={language}
-                  onRequestUndo={(expenseId) => onSelectSuggestion(`Prépare une carte de confirmation pour annuler la dépense dont l’identifiant exact est ${expenseId}. Utilise void_expense avec expenseId: ${expenseId}.`)}
+                  onRequestUndo={onPrepareExpenseReversal}
                   card={card}
                   onConfirm={onConfirmAction}
                   onCancel={onCancelAction}

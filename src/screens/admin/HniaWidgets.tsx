@@ -1510,6 +1510,7 @@ export function ActionCardWidget({
     : Math.max(insets.bottom || 0, 48) + 24;
 
   const isIncome = card.toolName === 'add_income' || card.actionType === 'income';
+  const isExpenseReversal = card.toolName === 'void_expense';
   const isExpense = card.toolName === 'add_expense' || card.actionType === 'expense';
   const isPayment = card.toolName === 'record_payment' || card.toolName === 'record_parent_payment' || card.actionType === 'payment';
   const canEdit = ['add_expense', 'add_income', 'record_payment', 'record_parent_payment'].includes(card.toolName);
@@ -1619,6 +1620,7 @@ export function ActionCardWidget({
   };
 
   const getActionIcon = () => {
+    if (isExpenseReversal) return <Wallet size={16} color="#b45309" />;
     if (isIncome) return <TrendingUp size={16} color="#059669" />;
     switch (card.actionType) {
       case 'expense':
@@ -1641,6 +1643,7 @@ export function ActionCardWidget({
   };
 
   const getActionThemeColor = () => {
+    if (isExpenseReversal) return '#b45309';
     if (isIncome) return '#059669';
     switch (card.actionType) {
       case 'expense':
@@ -1702,7 +1705,7 @@ export function ActionCardWidget({
 
   // 1. EXECUTED State -> Clean Verified Result Card
   if (card.status === 'EXECUTED') {
-    const executedHeading = isIncome
+    const executedHeading = isExpenseReversal ? tx('Dépense annulée', 'Expense cancelled', 'تم إلغاء المصروف') : isIncome
       ? tx('Recette enregistrée', 'Income recorded', 'تم تسجيل المدخول')
       : isExpense
       ? tx('Dépense enregistrée', 'Expense recorded', 'تم تسجيل المصروف')
@@ -1754,7 +1757,7 @@ export function ActionCardWidget({
         <View style={actionStyles.executedHeader}>
           <View style={actionStyles.cancelledIcon}><X size={14} color="#64748b" strokeWidth={2.4} /></View>
           <View style={{ flex: 1 }}>
-            <Text style={actionStyles.cancelledTitle}>{tx('Action annulée', 'Action cancelled', 'تم إلغاء العملية')}</Text>
+            <Text style={actionStyles.cancelledTitle}>{isExpenseReversal ? tx('Dépense conservée', 'Expense kept', 'تم الإبقاء على المصروف') : tx('Action annulée', 'Action cancelled', 'تم إلغاء العملية')}</Text>
             <Text style={actionStyles.cancelledSummary}>{tx('Aucune donnée n’a été modifiée.', 'No data was changed.', 'لم تُعدَّل أي بيانات.')}</Text>
           </View>
         </View>
@@ -1855,7 +1858,9 @@ export function ActionCardWidget({
   }
 
   let displayTitle = card.actionTitle || 'Action à vérifier';
-  if (/add_income/i.test(displayTitle) || isIncome) {
+  if (isExpenseReversal) {
+    displayTitle = tx('Annuler une dépense', 'Cancel expense', 'إلغاء مصروف');
+  } else if (/add_income/i.test(displayTitle) || isIncome) {
     displayTitle = 'Encaisser une recette';
   } else if (/add_expense/i.test(displayTitle) || isExpense) {
     displayTitle = 'Ajouter une dépense';
@@ -1868,7 +1873,7 @@ export function ActionCardWidget({
   } else if (displayTitle.startsWith('Confirmer l\'action : ')) {
     displayTitle = displayTitle.replace('Confirmer l\'action : ', '');
   }
-  if (language !== 'fr') displayTitle = isExpense ? tx('', 'Add expense', 'تسجيل مصروف') : isIncome ? tx('', 'Record income', 'تسجيل مدخول') : isPayment ? tx('', 'Record payment', 'تسجيل دفعة') : isStudent ? tx('', 'Enroll student', 'تسجيل تلميذ') : tx(displayTitle, 'Review school action', 'مراجعة العملية');
+  if (language !== 'fr' && !isExpenseReversal) displayTitle = isExpense ? tx('', 'Add expense', 'تسجيل مصروف') : isIncome ? tx('', 'Record income', 'تسجيل مدخول') : isPayment ? tx('', 'Record payment', 'تسجيل دفعة') : isStudent ? tx('', 'Enroll student', 'تسجيل تلميذ') : tx(displayTitle, 'Review school action', 'مراجعة العملية');
 
   const missingPaymentAmount = isPayment && !(Number(localOverrides?.amount ?? card.arguments?.amount) > 0);
 
@@ -1920,7 +1925,7 @@ export function ActionCardWidget({
           }}
         >
           <X size={14} color="#64748b" />
-          <Text style={actionStyles.cancelBtnText}>{tx('Annuler', 'Cancel', 'إلغاء')}</Text>
+          <Text style={actionStyles.cancelBtnText}>{isExpenseReversal ? tx('Conserver', 'Keep expense', 'الإبقاء عليه') : tx('Annuler', 'Cancel', 'إلغاء')}</Text>
         </TouchableOpacity>
 
         {canEdit && (
@@ -1949,7 +1954,7 @@ export function ActionCardWidget({
           }}
         >
           <Check size={15} color="#ffffff" strokeWidth={2.4} />
-          <Text style={actionStyles.confirmBtnText}>{tx('Confirmer', 'Confirm', 'تأكيد')}</Text>
+          <Text style={actionStyles.confirmBtnText}>{isExpenseReversal ? tx('Confirmer l’annulation', 'Confirm cancellation', 'تأكيد الإلغاء') : tx('Confirmer', 'Confirm', 'تأكيد')}</Text>
         </TouchableOpacity>
       </View>
 
