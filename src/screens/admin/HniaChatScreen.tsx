@@ -134,27 +134,27 @@ function HniaChatForAccount({ userId }: { userId: string }) {
       return tx(
         'Hnia reçoit plusieurs demandes. Patientez quelques secondes avant de continuer.',
         'Hnia is handling several requests. Wait a few seconds before continuing.',
-        'هنية تعالج في برشة طلبات. استنى ثواني وبعد كمّل.'
+        'تُعالج هنية عدة طلبات حالياً. يرجى الانتظار قليلاً ثم المتابعة.'
       );
     }
     if (/temporaire|generation|modèle|model|quota|capacity|unavailable/i.test(value)) {
       return tx(
         'Hnia n’a pas pu terminer cette réponse. Vos données et vos actions restent inchangées.',
         'Hnia could not finish this answer. Your data and actions are unchanged.',
-        'هنية ما نجمتش تكمّل الإجابة. معطياتك والعمليات ما تبدّل منهم شيء.'
+        'تعذّر على هنية إكمال الإجابة. لم تتغير البيانات أو العمليات.'
       );
     }
     if (/HTTP 401|session|unauthorized/i.test(value)) {
       return tx(
         'Votre session doit être renouvelée pour continuer.',
         'Your session needs to be renewed before continuing.',
-        'يلزم تجدّد الدخول باش تكمّل.'
+        'يرجى تسجيل الدخول مجدداً للمتابعة.'
       );
     }
     return tx(
       'La connexion a été perdue avant la fin de la réponse.',
       'I lost the connection before completing the answer.',
-      'تقصّت الكونكسيون قبل ما نكمّل الإجابة.'
+      'انقطع الاتصال قبل اكتمال الإجابة.'
     );
   };
   const [menuVisible, setMenuVisible] = useState(false);
@@ -256,7 +256,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
       }
     : isLoading
     ? {
-        label: tx('Recherche…', 'Searching…', 'نبحث…'),
+        label: tx('Recherche…', 'Searching…', 'جارٍ البحث…'),
         dotColor: '#2563eb',
         textColor: '#1d4ed8',
         bg: '#eff6ff',
@@ -1018,7 +1018,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
     lastToolRef.current = undefined;
     if (directAudioBase64 || stagedAudio) {
       setIsLoading(true);
-      setActiveStatusStep(tx('Compréhension du vocal…', 'Understanding your voice…', 'نفهم في التسجيل…'));
+      setActiveStatusStep(tx('Compréhension du vocal…', 'Understanding your voice…', 'جارٍ فهم التسجيل الصوتي…'));
       const controller = new AbortController();
       abortControllerRef.current = controller;
       try {
@@ -1029,7 +1029,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
           setVoiceReview(true);
           setStagedAudio(null);
         }
-      } catch (error) { if (!controller.signal.aborted) setVocalError(tx('Vocal non compris. Réessayez.', 'Could not understand the recording. Try again.', 'ما فهمتش التسجيل. عاود جرّب.')); }
+      } catch (error) { if (!controller.signal.aborted) setVocalError(tx('Vocal non compris. Réessayez.', 'Could not understand the recording. Try again.', 'تعذّر فهم التسجيل الصوتي. يرجى المحاولة مجدداً.')); }
       finally { setIsLoading(false); setActiveStatusStep(null); abortControllerRef.current = null; isSendingRef.current = false; }
       return;
     }
@@ -1360,7 +1360,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
         return Array.isArray(value) ? value : value ? [value] : [];
       });
       const reviewFingerprint = cards.find(card => card.toolCallId === toolCallId)?.reviewFingerprint;
-      const res = await submitActionDecision(adminService.confirmAction, toolCallId, action, updatedArgs, reviewFingerprint);
+      const res = await submitActionDecision((id, decision, edits, review) => adminService.confirmAction(id, decision, edits, review, language), toolCallId, action, updatedArgs, reviewFingerprint);
       setMessages(prev => {
         const next = applyActionDecision(prev, toolCallId, res, updatedArgs);
         saveMessagesToLocal(next, conversationId);
@@ -1535,7 +1535,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
                   onRecover={async (message, mode) => {
                     if (message.recovery?.uncertainAction) { await loadChatHistory(); return; }
                     const prompt = message.recovery?.prompt;
-                    if (prompt) handleSendMessage(mode === 'continue' ? tx('Reprends cette consultation : ', 'Resume this lookup: ', 'كمّل التثبت: ') + prompt : prompt);
+                    if (prompt) handleSendMessage(mode === 'continue' ? tx('Reprends cette consultation : ', 'Resume this lookup: ', 'استأنف التحقق: ') + prompt : prompt);
                   }}
                 />
                 </View>
@@ -1546,7 +1546,7 @@ function HniaChatForAccount({ userId }: { userId: string }) {
               ListHeaderComponent={
                 isLoading && !messages.some((m) => m.isStreaming) ? (
                   <View style={[styles.typingCard, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-                    <HniaActivity label={activeStatusStep || tx('Préparation de la réponse…', 'Preparing your answer…', 'نحضّر في الإجابة…')} />
+                    <HniaActivity label={activeStatusStep || tx('Préparation de la réponse…', 'Preparing your answer…', 'جارٍ إعداد الإجابة…')} />
                   </View>
                 ) : null
               }
@@ -1589,8 +1589,8 @@ function HniaChatForAccount({ userId }: { userId: string }) {
             </View>
           )}
 
-          {voiceReview && <View style={{ backgroundColor: '#eef5ff', paddingHorizontal: 18, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}><Text style={{ color: '#3d6192', fontSize: 12, flex: 1 }}>{tx('Vocal compris. Relisez et modifiez avant l’envoi.', 'Voice understood. Review and edit before sending.', 'فهمت التسجيل. راجع وعدّل قبل ما تبعث.')}</Text><TouchableOpacity accessibilityRole="button" onPress={() => { setVoiceReview(false); setInputText(''); }}><X size={17} color="#637f9f" /></TouchableOpacity></View>}
-          {messages.length === 0 && isLoading && <View style={{ paddingHorizontal: 22 }}><HniaActivity label={activeStatusStep || tx('Consultation des données…', 'Checking school data…', 'نراجع في المعطيات…')} /></View>}
+          {voiceReview && <View style={{ backgroundColor: '#eef5ff', paddingHorizontal: 18, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}><Text style={{ color: '#3d6192', fontSize: 12, flex: 1 }}>{tx('Vocal compris. Relisez et modifiez avant l’envoi.', 'Voice understood. Review and edit before sending.', 'تم فهم التسجيل. يرجى مراجعته وتعديله قبل الإرسال.')}</Text><TouchableOpacity accessibilityRole="button" onPress={() => { setVoiceReview(false); setInputText(''); }}><X size={17} color="#637f9f" /></TouchableOpacity></View>}
+          {messages.length === 0 && isLoading && <View style={{ paddingHorizontal: 22 }}><HniaActivity label={activeStatusStep || tx('Consultation des données…', 'Checking school data…', 'جارٍ مراجعة البيانات…')} /></View>}
           {/* Composer */}
           <HniaComposer
             chatLanguage={language}

@@ -308,7 +308,7 @@ export function CaisseCardWidget({
           <View style={caisseStyles.iconCircle}>
             <Wallet size={15} color="#059669" />
           </View>
-          <Text style={caisseStyles.headerTitle}>{tx('Point de caisse', 'Cash overview', 'الكاسة')}</Text>
+          <Text style={caisseStyles.headerTitle}>{tx('Point de caisse', 'Cash overview', 'الصندوق النقدي')}</Text>
         </View>
         <Text style={caisseStyles.headerDate}>{data.date || "Aujourd'hui"}</Text>
       </View>
@@ -395,7 +395,7 @@ export function CaisseCardWidget({
               onOpenCaisse();
             }}
           >
-            <Text style={caisseStyles.secondaryBtnText}>{tx('Voir la caisse', 'Open cash register', 'افتح الكاسة')}</Text>
+            <Text style={caisseStyles.secondaryBtnText}>{tx('Voir la caisse', 'Open cash register', 'فتح الصندوق النقدي')}</Text>
             <ArrowRight size={12} color="#0f172a" strokeWidth={2} />
           </TouchableOpacity>
         )}
@@ -1552,6 +1552,8 @@ export function ActionCardWidget({
   const getInitialBeneficiary = () => {
     if (localOverrides?.parentNameOrId) return String(localOverrides.parentNameOrId);
     if (localOverrides?.studentNameOrId) return String(localOverrides.studentNameOrId);
+    const reviewedBeneficiary = card.fields?.find(field => field.label === 'Bénéficiaire');
+    if (reviewedBeneficiary) return reviewedBeneficiary.value;
     if (card.arguments?.studentNameOrId) return String(card.arguments.studentNameOrId);
     if (card.arguments?.studentName) return String(card.arguments.studentName);
     if (card.arguments?.parentNameOrId) return String(card.arguments.parentNameOrId);
@@ -1598,7 +1600,7 @@ export function ActionCardWidget({
     if ((isExpense || isIncome) && editCategory.trim()) {
       updated.category = editCategory.trim();
     }
-    if (editBeneficiary.trim()) {
+    if (editBeneficiary.trim() && editBeneficiary.trim() !== getInitialBeneficiary().trim()) {
       if (card.toolName === 'record_parent_payment') {
         updated.parentNameOrId = editBeneficiary.trim();
       } else if (card.toolName === 'record_payment' || card.actionType === 'payment') {
@@ -1674,7 +1676,7 @@ export function ActionCardWidget({
     replace(['description', 'intitulé', 'titre'], 'Description', args.title || args.description);
     replace(['catégorie', 'category'], 'Catégorie', args.category);
     replace(['date'], 'Date', args.date);
-    replace(['bénéficiaire', 'élève', 'nom'], 'Bénéficiaire', args.studentNameOrId || args.parentNameOrId || args.name);
+    replace(['bénéficiaire', 'élève', 'nom'], 'Bénéficiaire', values.find(field => field.label === 'Bénéficiaire')?.value || args.studentNameOrId || args.parentNameOrId || args.name);
     replace(['période', 'period'], 'Période', args.feePeriod);
     return values.filter((field) => field.value && field.value !== 'undefined').slice(0, 4);
   })();
@@ -1686,7 +1688,17 @@ export function ActionCardWidget({
     Date: tx('Date', 'Date', 'التاريخ'),
     Bénéficiaire: tx('Bénéficiaire', 'Beneficiary', 'المستفيد'),
     Période: tx('Période', 'Period', 'الفترة'),
+    'Mode de règlement': tx('Mode de règlement', 'Payment method', 'طريقة الدفع'),
   } as Record<string, string>)[label] || label;
+
+  const translatedFieldValue = (field: ActionCardField) => {
+    if (field.value === 'À préciser') return tx('À préciser', 'Required', 'مطلوب');
+    if (field.value === 'Espèces') return tx('Espèces', 'Cash', 'نقداً');
+    if (field.label === 'Période' && card.arguments?.month && card.arguments?.year && !card.arguments?.feePeriod) {
+      return new Date(card.arguments.year, card.arguments.month - 1, 1).toLocaleDateString(language === 'ar' ? 'ar-TN' : language === 'en' ? 'en-GB' : 'fr-FR', { month: 'long', year: 'numeric' });
+    }
+    return field.value;
+  };
 
   // 1. EXECUTED State -> Clean Verified Result Card
   if (card.status === 'EXECUTED') {
@@ -1695,13 +1707,13 @@ export function ActionCardWidget({
       : isExpense
       ? tx('Dépense enregistrée', 'Expense recorded', 'تم تسجيل المصروف')
       : isPayment
-      ? tx('Paiement enregistré', 'Payment recorded', 'تم تسجيل الخلاص')
+      ? tx('Paiement enregistré', 'Payment recorded', 'تم تسجيل الدفعة')
       : isStudent
       ? tx('Élève inscrit', 'Student enrolled', 'تم تسجيل التلميذ')
       : tx('Action terminée', 'Action completed', 'تمّت العملية');
     const when = card.completedAt
       ? new Date(card.completedAt).toLocaleTimeString(language === 'ar' ? 'ar-TN' : language === 'en' ? 'en-GB' : 'fr-FR', { hour: '2-digit', minute: '2-digit' })
-      : tx('à l’instant', 'just now', 'توا');
+      : tx('à l’instant', 'just now', 'الآن');
 
     return (
       <View style={actionStyles.executedCard}>
@@ -1711,7 +1723,7 @@ export function ActionCardWidget({
           </View>
           <View style={{ flex: 1 }}>
             <Text style={actionStyles.executedTitle}>{executedHeading}</Text>
-            <Text style={actionStyles.executedSummary}>{tx(`Enregistré dans SnapSchool · ${when}`, `Saved in SnapSchool · ${when}`, `تسجّلت في SnapSchool · ${when}`)}</Text>
+            <Text style={actionStyles.executedSummary}>{tx(`Enregistré dans SnapSchool · ${when}`, `Saved in SnapSchool · ${when}`, `تم التسجيل في SnapSchool · ${when}`)}</Text>
           </View>
           <View style={actionStyles.savedBadge}><Text style={actionStyles.savedBadgeText}>{tx('Confirmé', 'Confirmed', 'مؤكّد')}</Text></View>
         </View>
@@ -1720,14 +1732,14 @@ export function ActionCardWidget({
             {terminalFields.map((field, index) => (
               <View key={`${field.label}-${index}`} style={[actionStyles.outcomeRow, index > 0 && actionStyles.outcomeRowBorder]}>
                 <Text style={actionStyles.outcomeLabel}>{translatedFieldLabel(field.label)}</Text>
-                <Text style={actionStyles.outcomeValue}>{field.value}</Text>
+                <Text style={actionStyles.outcomeValue}>{translatedFieldValue(field)}</Text>
               </View>
             ))}
           </View>
         )}
         {Number.isInteger(card.undoExpenseId) && onRequestUndo && (
           <TouchableOpacity accessibilityRole="button" onPress={() => onRequestUndo(card.undoExpenseId!)} style={actionStyles.undoButton}>
-            <Text style={actionStyles.undoButtonText}>{tx('Préparer l’annulation', 'Prepare reversal', 'حضّر الإلغاء')}</Text>
+            <Text style={actionStyles.undoButtonText}>{tx('Préparer l’annulation', 'Prepare reversal', 'إعداد الإلغاء')}</Text>
             <ArrowRight size={14} color="#47698e" />
           </TouchableOpacity>
         )}
@@ -1743,7 +1755,7 @@ export function ActionCardWidget({
           <View style={actionStyles.cancelledIcon}><X size={14} color="#64748b" strokeWidth={2.4} /></View>
           <View style={{ flex: 1 }}>
             <Text style={actionStyles.cancelledTitle}>{tx('Action annulée', 'Action cancelled', 'تم إلغاء العملية')}</Text>
-            <Text style={actionStyles.cancelledSummary}>{tx('Aucune donnée n’a été modifiée.', 'No data was changed.', 'ما تبدّلت حتى معلومة.')}</Text>
+            <Text style={actionStyles.cancelledSummary}>{tx('Aucune donnée n’a été modifiée.', 'No data was changed.', 'لم تُعدَّل أي بيانات.')}</Text>
           </View>
         </View>
         {terminalFields.length > 0 && (
@@ -1856,7 +1868,9 @@ export function ActionCardWidget({
   } else if (displayTitle.startsWith('Confirmer l\'action : ')) {
     displayTitle = displayTitle.replace('Confirmer l\'action : ', '');
   }
-  if (language !== 'fr') displayTitle = isExpense ? tx('', 'Add expense', 'تسجيل مصروف') : isIncome ? tx('', 'Record income', 'تسجيل مدخول') : isPayment ? tx('', 'Record payment', 'تسجيل خلاص') : isStudent ? tx('', 'Enroll student', 'تسجيل تلميذ') : tx(displayTitle, 'Review school action', 'راجع العملية');
+  if (language !== 'fr') displayTitle = isExpense ? tx('', 'Add expense', 'تسجيل مصروف') : isIncome ? tx('', 'Record income', 'تسجيل مدخول') : isPayment ? tx('', 'Record payment', 'تسجيل دفعة') : isStudent ? tx('', 'Enroll student', 'تسجيل تلميذ') : tx(displayTitle, 'Review school action', 'مراجعة العملية');
+
+  const missingPaymentAmount = isPayment && !(Number(localOverrides?.amount ?? card.arguments?.amount) > 0);
 
   return (
     <View style={actionStyles.card}>
@@ -1878,8 +1892,8 @@ export function ActionCardWidget({
         <View style={actionStyles.tableContainer}>
           {fields.map((f, i) => (
             <View key={i} style={[actionStyles.fieldRow, i > 0 && actionStyles.fieldRowBorder]}>
-              <Text style={actionStyles.fieldLabel}>{({ Montant: tx('Montant', 'Amount', 'المبلغ'), Catégorie: tx('Catégorie', 'Category', 'الصنف'), Description: tx('Description', 'Description', 'الوصف'), Date: tx('Date', 'Date', 'التاريخ'), Bénéficiaire: tx('Bénéficiaire', 'Beneficiary', 'المستفيد'), Période: tx('Période', 'Period', 'الفترة') } as Record<string, string>)[f.label] || f.label}</Text>
-              <Text style={actionStyles.fieldValue}>{f.value}</Text>
+              <Text style={actionStyles.fieldLabel}>{translatedFieldLabel(f.label)}</Text>
+              <Text style={actionStyles.fieldValue}>{translatedFieldValue(f)}</Text>
             </View>
           ))}
         </View>
@@ -1893,7 +1907,8 @@ export function ActionCardWidget({
         </View>
       )}
 
-      <Text style={actionStyles.fieldLabel}>{tx('Aucune modification avant votre confirmation.', 'Changes require your confirmation.', 'التغيير يستنى تأكيدك.')}</Text>
+      <Text style={actionStyles.fieldLabel}>{tx('Aucune modification avant votre confirmation.', 'Changes require your confirmation.', 'لن تُنفَّذ التغييرات قبل تأكيدكم.')}</Text>
+      {missingPaymentAmount && <Text style={actionStyles.fieldLabel}>{tx('Indiquez le montant reçu avec Modifier.', 'Use Edit to enter the amount received.', 'يرجى إدخال المبلغ المستلم باستخدام زر «تعديل».')}</Text>}
       {/* Action Buttons: Annuler | Modifier | Confirmer */}
       <View style={actionStyles.buttonsRow}>
         <TouchableOpacity
@@ -1925,7 +1940,9 @@ export function ActionCardWidget({
 
         <TouchableOpacity
           activeOpacity={0.85}
-          style={[actionStyles.confirmBtn, { backgroundColor: getActionThemeColor() }]}
+          accessibilityState={{ disabled: missingPaymentAmount }}
+          disabled={missingPaymentAmount}
+          style={[actionStyles.confirmBtn, { backgroundColor: getActionThemeColor(), opacity: missingPaymentAmount ? 0.45 : 1 }]}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             onConfirm(card.toolCallId, localOverrides || undefined);
@@ -2191,7 +2208,7 @@ export function FinanceSummaryWidget({
             onViewCaisse();
           }}
         >
-          <Text style={financeStyles.ctaBtnText}>{tx('Consulter la caisse détaillée', 'View cash details', 'تفاصيل الكاسة')}</Text>
+          <Text style={financeStyles.ctaBtnText}>{tx('Consulter la caisse détaillée', 'View cash details', 'تفاصيل الصندوق النقدي')}</Text>
           <ArrowRight size={13} color="#0f172a" />
         </TouchableOpacity>
       )}

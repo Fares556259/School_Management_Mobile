@@ -1185,10 +1185,11 @@ export const adminService = {
     action: 'confirm' | 'cancel',
     updatedArgs?: Record<string, any>,
     reviewFingerprint?: string,
+    language?: string,
   ) => {
     return apiFetch('/api/mobile/agent/confirm', {
       method: 'POST',
-      body: JSON.stringify({ toolCallId, action, updatedArgs, reviewFingerprint }),
+      body: JSON.stringify({ toolCallId, action, updatedArgs, reviewFingerprint, language }),
     });
   },
   

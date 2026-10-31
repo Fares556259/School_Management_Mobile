@@ -55,3 +55,18 @@ it('keeps the parent beneficiary key when editing a family payment', async () =>
   expect(confirm).toHaveBeenCalledWith('proposal-a', expect.objectContaining({ parentNameOrId: 'Sonia Trabelsi' }));
   expect(confirm.mock.calls[0][1].studentNameOrId).toBeUndefined();
 });
+it('shows the payment card with a required amount and preserves the exact recipient when editing only the amount', async () => {
+  await render({ ...card, toolName: 'record_payment', actionType: 'payment', arguments: { studentNameOrId: 'student-exact-id', month: 10, year: 2026 }, fields: [{ label: 'Montant', value: 'À préciser' }, { label: 'Bénéficiaire', value: 'Fares fares · 1A' }] });
+  expect(button('Confirmer').props.disabled).toBe(true); expect(button('Modifier')).toBeDefined(); expect(confirm).not.toHaveBeenCalled();
+  act(() => button('Modifier').props.onPress());
+  expect(renderer.root.findAllByType(TextInput).find(node => node.props.placeholder === 'Nom complet').props.value).toBe('Fares fares · 1A');
+  act(() => renderer.root.findAllByType(TextInput)[0].props.onChangeText('45'));
+  act(() => button('Vérifier les modifications').props.onPress());
+  expect(confirm).toHaveBeenCalledWith('proposal-a', { amount: 45 });
+});
+it('uses formal Arabic on the payment card', async () => {
+  await render({ ...card, toolName: 'record_payment', actionType: 'payment', arguments: { studentNameOrId: 'id' }, fields: [{ label: 'Montant', value: 'À préciser' }] }, { language: 'ar' });
+  const text = renderer.root.findAllByType(Text).map(node => String(node.props.children)).join(' ');
+  expect(text).toContain('تسجيل دفعة'); expect(text).toContain('لن تُنفَّذ التغييرات قبل تأكيدكم.');
+  expect(text).not.toMatch(/خلاص|يستنى|توا/);
+});
