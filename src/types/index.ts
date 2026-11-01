@@ -15,7 +15,8 @@ export interface Grade {
 
 export interface PaymentRecord {
   chargeId?: string;
-  chargeKind?: 'REGISTRATION' | 'TRANSPORT' | 'GARDE';
+  chargeKind?: string;
+  chargeName?: string;
   periodLabel?: string;
   id: number;
   month: string;

@@ -308,7 +308,7 @@ export const PaymentsScreen = ({ navigation }: any) => {
                         </View>
                         <View style={styles.cardCopy}>
                           <Text style={[styles.cardTitle, { textAlign: isRTL ? 'right' : 'left' }]} numberOfLines={2}>
-                            {item.chargeKind === 'REGISTRATION' ? (language==='ar'?'التسجيل السنوي':language==='en'?'Annual registration':'Inscription annuelle') : item.chargeKind === 'TRANSPORT' ? (language==='ar'?'النقل المدرسي':language==='en'?'School transport':'Transport scolaire') : item.chargeKind === 'GARDE' ? (language==='ar'?'الحضانة':language==='en'?'After-school care':'Garde') : t.tuitionFees}
+                            {item.chargeName || (item.chargeKind === 'REGISTRATION' ? (language==='ar'?'التسجيل السنوي':language==='en'?'Annual registration':'Inscription annuelle') : item.chargeKind === 'TRANSPORT' ? (language==='ar'?'النقل المدرسي':language==='en'?'School transport':'Transport scolaire') : item.chargeKind === 'GARDE' ? (language==='ar'?'الحضانة':language==='en'?'After-school care':'Garde') : t.tuitionFees)}
                           </Text>
                           <Text style={[styles.cardMonth, { color: statusColor, textAlign: isRTL ? 'right' : 'left' }]}>
                             {item.chargeKind ? item.periodLabel : `${displayMonth} ${toWestern(year)}`}

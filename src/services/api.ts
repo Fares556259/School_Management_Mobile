@@ -814,7 +814,7 @@ export const studentService = {
         const paidAmount = Number(charge.paidAmount);
         const dueDate = String(charge.dueDate).slice(0, 10);
         const isOverdue = paidAmount < totalAmount && new Date(charge.dueDate) < today;
-        return { id: -10000 - index, chargeId: charge.id, chargeKind: charge.kind, periodLabel: charge.period, month: charge.period, totalAmount, paidAmount,
+        return { id: -10000 - index, chargeId: charge.id, chargeKind: charge.kind, chargeName: charge.categoryName || undefined, periodLabel: charge.period, month: charge.period, totalAmount, paidAmount,
           status: paidAmount >= totalAmount ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Due', isOverdue, dueDate,
           academicYear: charge.academicYear };
       });

@@ -282,12 +282,14 @@ it('keeps registration and optional services distinct from monthly tuition in th
   fetch.mockResolvedValue(response([{kind:'metadata',tuitionFee:170,halfBoundaryMonths:true,academicYear:'2026-2027',additionalCharges:[
     {id:'reg-a',kind:'REGISTRATION',period:'2026-2027',academicYear:'2026-2027',amount:150,paidAmount:0,dueDate:'2026-09-15T00:00:00Z'},
     {id:'transport-a',kind:'TRANSPORT',period:'2026-10',academicYear:'2026-2027',amount:80,paidAmount:20,dueDate:'2026-10-01T00:00:00Z'},
+    {id:'custom-a',kind:'CUSTOM_12345678901234567890',categoryName:'Cantine',period:'2026-10',academicYear:'2026-2027',amount:40,paidAmount:0,dueDate:'2026-10-01T00:00:00Z'},
     {id:'old',kind:'REGISTRATION',period:'2025-2026',academicYear:'2025-2026',amount:150,paidAmount:150,dueDate:'2025-09-15T00:00:00Z'},
   ]}]));
   const payments=await api.studentService.fetchPayments('child-a');
-  expect(payments).toHaveLength(12);
+  expect(payments).toHaveLength(13);
   expect(payments.find(p=>p.chargeId==='reg-a')).toMatchObject({chargeKind:'REGISTRATION',totalAmount:150,paidAmount:0,status:'Due'});
   expect(payments.find(p=>p.chargeId==='transport-a')).toMatchObject({chargeKind:'TRANSPORT',totalAmount:80,paidAmount:20,status:'Partial'});
+  expect(payments.find(p=>p.chargeId==='custom-a')).toMatchObject({chargeKind:'CUSTOM_12345678901234567890',chargeName:'Cantine',totalAmount:40,status:'Due'});
   expect(payments.filter(p=>!p.chargeId).reduce((sum,p)=>sum+p.totalAmount,0)).toBe(1530);
 });
 
