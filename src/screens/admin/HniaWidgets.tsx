@@ -1,3 +1,4 @@
+import HniaPaymentEditor, { type HniaPaymentReview } from "./components/HniaPaymentEditor";
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -72,6 +73,7 @@ export interface ActionCardData {
   completedAt?: string;
   undoExpenseId?: number;
   arguments?: Record<string, any>;
+  paymentReview?: HniaPaymentReview;
 }
 
 export interface FinanceSummaryData {
@@ -1513,12 +1515,14 @@ export function ActionCardWidget({
   const isExpenseReversal = card.toolName === 'void_expense';
   const isExpense = card.toolName === 'add_expense' || card.actionType === 'expense';
   const isPayment = card.toolName === 'record_payment' || card.toolName === 'record_parent_payment' || card.actionType === 'payment';
-  const canEdit = ['add_expense', 'add_income', 'record_payment', 'record_parent_payment'].includes(card.toolName);
+  const canEdit = Boolean(card.paymentReview) || ['add_expense', 'add_income', 'record_payment', 'record_parent_payment'].includes(card.toolName);
+  const isSalary = card.toolName === 'pay_teacher_salary';
+  const isOvertime = card.toolName === 'set_teacher_overtime';
   const isStudent = card.toolName === 'create_student' || card.actionType === 'student';
 
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [localOverrides, setLocalOverrides] = useState<Record<string, any> | null>(null);
-  useEffect(() => { setLocalOverrides(null); }, [card.reviewFingerprint]);
+  useEffect(() => { setLocalOverrides(null); }, [card]);
 
   const getInitialAmount = () => {
     if (localOverrides?.amount !== undefined) return String(localOverrides.amount);
@@ -1691,6 +1695,17 @@ export function ActionCardWidget({
     Date: tx('Date', 'Date', 'التاريخ'),
     Bénéficiaire: tx('Bénéficiaire', 'Beneficiary', 'المستفيد'),
     Période: tx('Période', 'Period', 'الفترة'),
+    'Salaire de base': tx('Salaire de base', 'Base salary', 'الراتب الأساسي'),
+    'Retenue d’absence': tx('Retenue d’absence', 'Absence deduction', 'خصم الغياب'),
+    'Heures supplémentaires': tx('Heures supplémentaires', 'Overtime', 'الساعات الإضافية'),
+    'Complément forfaitaire': tx('Complément forfaitaire', 'Fixed addition', 'إضافة ثابتة'),
+    'Déjà versé': tx('Déjà versé', 'Already paid', 'المدفوع سابقاً'),
+    'Reste à payer': tx('Reste à payer', 'Remaining to pay', 'المتبقي للدفع'),
+    'Scolarité': tx('Scolarité', 'Tuition', 'الدراسة'),
+    'Inscription': tx('Inscription', 'Registration', 'التسجيل'),
+    'Transport': tx('Transport', 'Bus', 'النقل'),
+    'Garde': tx('Garde', 'After-school care', 'الحضانة'),
+    'Ajout': tx('Ajout', 'Addition', 'الإضافة'),
     'Mode de règlement': tx('Mode de règlement', 'Payment method', 'طريقة الدفع'),
   } as Record<string, string>)[label] || label;
 
@@ -1705,7 +1720,7 @@ export function ActionCardWidget({
 
   // 1. EXECUTED State -> Clean Verified Result Card
   if (card.status === 'EXECUTED') {
-    const executedHeading = isExpenseReversal ? tx('Dépense annulée', 'Expense cancelled', 'تم إلغاء المصروف') : isIncome
+    const executedHeading = isSalary ? tx('Salaire versé', 'Salary payment recorded', 'تم تسجيل دفعة الراتب') : isOvertime ? tx('Ajout au salaire enregistré', 'Salary addition recorded', 'تم تسجيل الإضافة إلى الراتب') : isExpenseReversal ? tx('Dépense annulée', 'Expense cancelled', 'تم إلغاء المصروف') : isIncome
       ? tx('Recette enregistrée', 'Income recorded', 'تم تسجيل المدخول')
       : isExpense
       ? tx('Dépense enregistrée', 'Expense recorded', 'تم تسجيل المصروف')
@@ -1875,7 +1890,10 @@ export function ActionCardWidget({
   }
   if (language !== 'fr' && !isExpenseReversal) displayTitle = isExpense ? tx('', 'Add expense', 'تسجيل مصروف') : isIncome ? tx('', 'Record income', 'تسجيل مدخول') : isPayment ? tx('', 'Record payment', 'تسجيل دفعة') : isStudent ? tx('', 'Enroll student', 'تسجيل تلميذ') : tx(displayTitle, 'Review school action', 'مراجعة العملية');
 
-  const missingPaymentAmount = isPayment && !(Number(localOverrides?.amount ?? card.arguments?.amount) > 0);
+  if (isSalary) displayTitle = tx('Verser un salaire', 'Pay teacher salary', 'دفع راتب المعلّم');
+  if (isOvertime) displayTitle = tx('Ajouter au salaire', 'Add to salary', 'إضافة إلى الراتب');
+
+  const missingPaymentAmount = isPayment && !isOvertime && !(Number(localOverrides?.amount ?? card.arguments?.amount) > 0);
 
   return (
     <View style={actionStyles.card}>
@@ -1913,7 +1931,7 @@ export function ActionCardWidget({
       )}
 
       <Text style={actionStyles.fieldLabel}>{tx('Aucune modification avant votre confirmation.', 'Changes require your confirmation.', 'لن تُنفَّذ التغييرات قبل تأكيدكم.')}</Text>
-      {missingPaymentAmount && <Text style={actionStyles.fieldLabel}>{tx('Indiquez le montant reçu avec Modifier.', 'Use Edit to enter the amount received.', 'يرجى إدخال المبلغ المستلم باستخدام زر «تعديل».')}</Text>}
+      {missingPaymentAmount && <Text style={actionStyles.fieldLabel}>{card.paymentReview?.type === 'student' ? tx('Avec Modifier, choisissez les mois, services et montants reçus.', 'Use Edit to choose months, services and amounts received.', 'اختر الأشهر والخدمات والمبالغ المستلمة باستخدام «تعديل».') : tx('Indiquez le montant reçu avec Modifier.', 'Use Edit to enter the amount received.', 'يرجى إدخال المبلغ المستلم باستخدام زر «تعديل».')}</Text>}
       {/* Action Buttons: Annuler | Modifier | Confirmer */}
       <View style={actionStyles.buttonsRow}>
         <TouchableOpacity
@@ -1958,9 +1976,17 @@ export function ActionCardWidget({
         </TouchableOpacity>
       </View>
 
-      {/* Modal d'édition directe */}
+      {isEditModalVisible && card.paymentReview && <HniaPaymentEditor
+        key={card.reviewFingerprint}
+        review={card.paymentReview}
+        args={card.arguments || {}}
+        language={language}
+        onClose={() => setIsEditModalVisible(false)}
+        onReview={edits => onConfirm(card.toolCallId, edits)}
+      />}
+      {/* Legacy editor for non-payment actions. */}
       <Modal
-        visible={isEditModalVisible}
+        visible={isEditModalVisible && !card.paymentReview}
         transparent
         animationType="fade"
         onRequestClose={() => setIsEditModalVisible(false)}
